@@ -10,7 +10,9 @@
     },
     "components": {
       "minecraft:icon": {
-        "texture": "voidreaper"
+        "textures": {
+          "default": "voidreaper"
+        }
       },
       "minecraft:display_name": {
         "value": "Voidreaper"
@@ -31,13 +33,19 @@
       "minecraft:repairable": {
         "repair_items": [
           {
-            "items": ["minecraft:netherite_ingot"],
+            "items": [
+              "minecraft:netherite_ingot"
+            ],
             "repair_amount": 500
           }
         ]
       },
       "minecraft:tags": {
-        "tags": ["arcane:weapon", "arcane:voidreaper", "minecraft:is_sword"]
+        "tags": [
+          "arcane:weapon",
+          "arcane:voidreaper",
+          "minecraft:is_sword"
+        ]
       }
     }
   }

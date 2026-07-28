@@ -4,27 +4,47 @@
     "name": "Arcane Arsenal BP",
     "description": "Six legendary weapons with custom magic effects. Behavior Pack.",
     "uuid": "ce3e794e-bca3-49ad-a365-089d36879fff",
-    "version": [1, 0, 0],
-    "min_engine_version": [1, 21, 0]
+    "version": [
+      1,
+      0,
+      1
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
   },
   "modules": [
     {
       "type": "data",
       "uuid": "e435370a-2096-4581-8717-351a40a16c6e",
-      "version": [1, 0, 0]
+      "version": [
+        1,
+        0,
+        1
+      ]
     },
     {
       "type": "script",
       "language": "javascript",
       "entry": "scripts/main.js",
       "uuid": "faf6d9d1-b778-4097-9c6d-772980fb0a3f",
-      "version": [1, 0, 0]
+      "version": [
+        1,
+        0,
+        1
+      ]
     }
   ],
   "dependencies": [
     {
       "uuid": "013abd2b-df58-4734-bdc2-9a8ff80d1664",
-      "version": [1, 0, 0]
+      "version": [
+        1,
+        0,
+        1
+      ]
     },
     {
       "module_name": "@minecraft/server",
@@ -32,7 +52,9 @@
     }
   ],
   "metadata": {
-    "authors": ["Arcane Arsenal"],
+    "authors": [
+      "Arcane Arsenal"
+    ],
     "license": "MIT",
     "product_type": "addon"
   }

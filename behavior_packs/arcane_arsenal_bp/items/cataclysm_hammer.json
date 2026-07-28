@@ -10,7 +10,9 @@
     },
     "components": {
       "minecraft:icon": {
-        "texture": "cataclysm_hammer"
+        "textures": {
+          "default": "cataclysm_hammer"
+        }
       },
       "minecraft:display_name": {
         "value": "Cataclysm Hammer"
@@ -31,13 +33,19 @@
       "minecraft:repairable": {
         "repair_items": [
           {
-            "items": ["minecraft:netherite_ingot"],
+            "items": [
+              "minecraft:netherite_ingot"
+            ],
             "repair_amount": 300
           }
         ]
       },
       "minecraft:tags": {
-        "tags": ["arcane:weapon", "arcane:cataclysm_hammer", "minecraft:is_axe"]
+        "tags": [
+          "arcane:weapon",
+          "arcane:cataclysm_hammer",
+          "minecraft:is_axe"
+        ]
       }
     }
   }

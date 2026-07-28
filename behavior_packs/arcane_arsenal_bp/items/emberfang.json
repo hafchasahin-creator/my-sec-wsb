@@ -10,7 +10,9 @@
     },
     "components": {
       "minecraft:icon": {
-        "texture": "emberfang"
+        "textures": {
+          "default": "emberfang"
+        }
       },
       "minecraft:display_name": {
         "value": "Emberfang"
@@ -31,13 +33,19 @@
       "minecraft:repairable": {
         "repair_items": [
           {
-            "items": ["minecraft:blaze_rod"],
+            "items": [
+              "minecraft:blaze_rod"
+            ],
             "repair_amount": 250
           }
         ]
       },
       "minecraft:tags": {
-        "tags": ["arcane:weapon", "arcane:emberfang", "minecraft:is_sword"]
+        "tags": [
+          "arcane:weapon",
+          "arcane:emberfang",
+          "minecraft:is_sword"
+        ]
       }
     }
   }

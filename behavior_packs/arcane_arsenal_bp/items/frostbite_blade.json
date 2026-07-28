@@ -10,7 +10,9 @@
     },
     "components": {
       "minecraft:icon": {
-        "texture": "frostbite_blade"
+        "textures": {
+          "default": "frostbite_blade"
+        }
       },
       "minecraft:display_name": {
         "value": "Frostbite Blade"
@@ -31,13 +33,19 @@
       "minecraft:repairable": {
         "repair_items": [
           {
-            "items": ["minecraft:diamond"],
+            "items": [
+              "minecraft:diamond"
+            ],
             "repair_amount": 250
           }
         ]
       },
       "minecraft:tags": {
-        "tags": ["arcane:weapon", "arcane:frostbite_blade", "minecraft:is_sword"]
+        "tags": [
+          "arcane:weapon",
+          "arcane:frostbite_blade",
+          "minecraft:is_sword"
+        ]
       }
     }
   }

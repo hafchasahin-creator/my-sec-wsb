@@ -10,7 +10,9 @@
     },
     "components": {
       "minecraft:icon": {
-        "texture": "stormcaller"
+        "textures": {
+          "default": "stormcaller"
+        }
       },
       "minecraft:display_name": {
         "value": "Stormcaller"
@@ -31,7 +33,9 @@
       "minecraft:repairable": {
         "repair_items": [
           {
-            "items": ["minecraft:prismarine_shard"],
+            "items": [
+              "minecraft:prismarine_shard"
+            ],
             "repair_amount": 200
           }
         ]
@@ -45,7 +49,11 @@
         "movement_modifier": 0.7
       },
       "minecraft:tags": {
-        "tags": ["arcane:weapon", "arcane:stormcaller", "minecraft:is_trident"]
+        "tags": [
+          "arcane:weapon",
+          "arcane:stormcaller",
+          "minecraft:is_trident"
+        ]
       }
     }
   }

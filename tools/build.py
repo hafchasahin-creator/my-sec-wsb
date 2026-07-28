@@ -96,8 +96,26 @@ def validate():
         identifier = item.get("description", {}).get("identifier")
         identifiers.append(identifier)
 
+        # minecraft:icon changed shape at format_version 1.20.60: the flat
+        # "texture" string is deprecated and is silently ignored by the game,
+        # which shows up in-game as an item with a completely blank icon.
+        # Reject it rather than shipping an invisible weapon again.
+        version = tuple(
+            int(part) for part in str(doc.get("format_version", "0")).split(".")
+        )
         icon = item.get("components", {}).get("minecraft:icon")
-        key = icon.get("texture") if isinstance(icon, dict) else icon
+        if isinstance(icon, dict) and "texture" in icon and version >= (1, 20, 60):
+            fail(
+                f"{path}: minecraft:icon uses the deprecated 'texture' field at "
+                f"format_version {doc['format_version']} - use "
+                f'{{"textures": {{"default": ...}}}} instead'
+            )
+            continue
+
+        if isinstance(icon, dict):
+            key = icon.get("textures", {}).get("default") or icon.get("texture")
+        else:
+            key = icon
         if not key:
             fail(f"{path}: no minecraft:icon texture")
             continue

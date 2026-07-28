@@ -62,6 +62,33 @@ Android/data/com.mojang.minecraftpe/files/games/com.mojang/resource_packs/arcane
 On Windows the same folders live under
 `%localappdata%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang\`.
 
+### Updating from v1.0.0
+
+v1.0.0 shipped with invisible item icons. If you already installed it:
+
+1. In Minecraft go to **Settings → Storage → Resource Packs / Behavior Packs** (or the
+   global **Profile → Packs** screen), find the two Arcane Arsenal packs and **delete**
+   both. This matters — the old copy is cached, and importing over it can keep the broken
+   textures.
+2. Import the new `ArcaneArsenal.mcaddon` (now version 1.0.1).
+3. Re-activate both packs on your world.
+
+### Checking it is actually working
+
+When you spawn into a world with the behaviour pack active, chat shows:
+
+```
+[Arcane Arsenal] v1.0.1 loaded - 6 weapons armed.
+```
+
+If that line does **not** appear, the behaviour pack's scripts are not running, and no
+weapon effect will fire. If it does appear but a weapon looks wrong, the problem is on the
+resource-pack side instead.
+
+To see exactly what the game thinks is wrong, turn on
+**Settings → Creator → Content Log GUI** (and "Content Log File"). It names the pack and
+file for any load error.
+
 ### Getting the weapons quickly
 
 ```
@@ -131,6 +158,11 @@ To stop the Cataclysm Hammer and Meteor Staff from destroying terrain, set
   `durability`, `enchantable`, `repairable`, `hand_equipped`, `glint`, `cooldown`,
   `use_modifiers`, `tags`, `max_stack_size`) is stable in 1.21.0, as is
   `@minecraft/server 1.11.0`.
+- **Icon syntax:** `minecraft:icon` must use `{"textures": {"default": "<key>"}}` at
+  `format_version` 1.20.60 and above. The older flat `{"texture": "<key>"}` field is
+  deprecated, and the game ignores it silently — the item still loads and still shows its
+  name, but the icon renders as nothing at all. `tools/build.py` now fails the build if
+  that form reappears.
 - **Defensive scripting:** particle and sound calls are individually wrapped, and each
   effect handler is guarded, so a device or build that lacks one cosmetic id degrades that
   single effect instead of breaking the add-on.

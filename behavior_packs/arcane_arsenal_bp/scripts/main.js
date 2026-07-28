@@ -495,4 +495,16 @@ world.afterEvents.itemUse.subscribe((event) => {
   }
 });
 
+// Visible proof the script module actually loaded. If you join a world and do
+// NOT see this line in chat, the behaviour pack's scripts are not running and
+// no weapon effect will fire - that is the first thing to check.
+world.afterEvents.playerSpawn.subscribe((event) => {
+  if (!event.initialSpawn) return;
+  try {
+    event.player.sendMessage("§b[Arcane Arsenal]§r v1.0.1 loaded - 6 weapons armed.");
+  } catch {
+    /* ignore */
+  }
+});
+
 console.warn("[Arcane Arsenal] loaded - 6 weapons armed.");

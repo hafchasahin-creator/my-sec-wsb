@@ -10,7 +10,9 @@
     },
     "components": {
       "minecraft:icon": {
-        "texture": "meteor_staff"
+        "textures": {
+          "default": "meteor_staff"
+        }
       },
       "minecraft:display_name": {
         "value": "Meteor Staff"
@@ -31,7 +33,9 @@
       "minecraft:repairable": {
         "repair_items": [
           {
-            "items": ["minecraft:blaze_rod"],
+            "items": [
+              "minecraft:blaze_rod"
+            ],
             "repair_amount": 150
           }
         ]
@@ -45,7 +49,10 @@
         "movement_modifier": 0.6
       },
       "minecraft:tags": {
-        "tags": ["arcane:weapon", "arcane:meteor_staff"]
+        "tags": [
+          "arcane:weapon",
+          "arcane:meteor_staff"
+        ]
       }
     }
   }
