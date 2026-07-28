@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "arcane:meteor_staff"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " F ",
+      " M ",
+      " R "
+    ],
+    "key": {
+      "F": {
+        "item": "minecraft:fire_charge"
+      },
+      "M": {
+        "item": "minecraft:magma_cream"
+      },
+      "R": {
+        "item": "minecraft:blaze_rod"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "arcane:meteor_staff",
+      "count": 1
+    }
+  }
+}

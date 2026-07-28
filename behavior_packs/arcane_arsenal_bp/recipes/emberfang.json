@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "arcane:emberfang"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " X ",
+      " D ",
+      " S "
+    ],
+    "key": {
+      "X": {
+        "item": "minecraft:magma_block"
+      },
+      "D": {
+        "item": "minecraft:blaze_powder"
+      },
+      "S": {
+        "item": "minecraft:blaze_rod"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "arcane:emberfang",
+      "count": 1
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "arcane:meteor_staff",
+      "menu_category": {
+        "category": "equipment",
+        "group": "itemGroup.name.sword"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "texture": "meteor_staff"
+      },
+      "minecraft:display_name": {
+        "value": "Meteor Staff"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:hand_equipped": true,
+      "minecraft:glint": true,
+      "minecraft:damage": {
+        "value": 3
+      },
+      "minecraft:durability": {
+        "max_durability": 600
+      },
+      "minecraft:enchantable": {
+        "value": 16,
+        "slot": "all"
+      },
+      "minecraft:repairable": {
+        "repair_items": [
+          {
+            "items": ["minecraft:blaze_rod"],
+            "repair_amount": 150
+          }
+        ]
+      },
+      "minecraft:cooldown": {
+        "category": "arcane_meteor",
+        "duration": 6.0
+      },
+      "minecraft:use_modifiers": {
+        "use_duration": 0.2,
+        "movement_modifier": 0.6
+      },
+      "minecraft:tags": {
+        "tags": ["arcane:weapon", "arcane:meteor_staff"]
+      }
+    }
+  }
+}

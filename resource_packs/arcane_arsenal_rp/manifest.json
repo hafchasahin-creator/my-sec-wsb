@@ -1,0 +1,22 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Arcane Arsenal RP",
+    "description": "Textures and names for the Arcane Arsenal weapons. Resource Pack.",
+    "uuid": "013abd2b-df58-4734-bdc2-9a8ff80d1664",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "56881415-20cf-4b4f-9fad-ca3a37605718",
+      "version": [1, 0, 0]
+    }
+  ],
+  "metadata": {
+    "authors": ["Arcane Arsenal"],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

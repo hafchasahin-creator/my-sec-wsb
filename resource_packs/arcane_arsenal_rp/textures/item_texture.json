@@ -1,0 +1,24 @@
+{
+  "resource_pack_name": "arcane_arsenal",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "frostbite_blade": {
+      "textures": "textures/items/frostbite_blade"
+    },
+    "emberfang": {
+      "textures": "textures/items/emberfang"
+    },
+    "stormcaller": {
+      "textures": "textures/items/stormcaller"
+    },
+    "voidreaper": {
+      "textures": "textures/items/voidreaper"
+    },
+    "cataclysm_hammer": {
+      "textures": "textures/items/cataclysm_hammer"
+    },
+    "meteor_staff": {
+      "textures": "textures/items/meteor_staff"
+    }
+  }
+}

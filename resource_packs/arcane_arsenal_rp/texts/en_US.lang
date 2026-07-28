@@ -1,0 +1,17 @@
+## Arcane Arsenal - English (US)
+
+pack.name=Arcane Arsenal RP
+pack.description=Textures and names for the Arcane Arsenal weapons.
+
+item.arcane:frostbite_blade=Frostbite Blade
+item.arcane:frostbite_blade.name=Frostbite Blade
+item.arcane:emberfang=Emberfang
+item.arcane:emberfang.name=Emberfang
+item.arcane:stormcaller=Stormcaller
+item.arcane:stormcaller.name=Stormcaller
+item.arcane:voidreaper=Voidreaper
+item.arcane:voidreaper.name=Voidreaper
+item.arcane:cataclysm_hammer=Cataclysm Hammer
+item.arcane:cataclysm_hammer.name=Cataclysm Hammer
+item.arcane:meteor_staff=Meteor Staff
+item.arcane:meteor_staff.name=Meteor Staff

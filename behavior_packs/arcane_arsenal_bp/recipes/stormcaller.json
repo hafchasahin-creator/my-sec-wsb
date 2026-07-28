@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "arcane:stormcaller"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "SHS",
+      " R ",
+      " R "
+    ],
+    "key": {
+      "S": {
+        "item": "minecraft:prismarine_shard"
+      },
+      "H": {
+        "item": "minecraft:heart_of_the_sea"
+      },
+      "R": {
+        "item": "minecraft:stick"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "arcane:stormcaller",
+      "count": 1
+    }
+  }
+}

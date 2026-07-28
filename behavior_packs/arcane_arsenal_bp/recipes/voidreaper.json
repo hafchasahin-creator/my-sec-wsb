@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "arcane:voidreaper"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " E ",
+      " N ",
+      " R "
+    ],
+    "key": {
+      "E": {
+        "item": "minecraft:ender_eye"
+      },
+      "N": {
+        "item": "minecraft:netherite_ingot"
+      },
+      "R": {
+        "item": "minecraft:blaze_rod"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "arcane:voidreaper",
+      "count": 1
+    }
+  }
+}
