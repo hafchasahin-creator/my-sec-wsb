@@ -1,0 +1,406 @@
+<title>Saing Bad — Outro</title>
+<style>
+  :root {
+    --void: #08090A;
+    --smoke: #14150F;
+    --box: #3F6B22;
+    --box-edge: #253F13;
+    --symbol: #C9E08A;
+    --ash: #9C9A90;
+    --dust: #C8A97E;
+    --rule: #2A2A25;
+
+    --display: "Arial Narrow", "Liberation Sans Narrow", "Nimbus Sans Narrow",
+               "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --meta: "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='0.5'/></svg>");
+  }
+
+  /* A title card is a deliberately single-theme object: it is always a dark
+     screen in a dark room. Both OS preference and the viewer toggle land here. */
+  :root[data-theme="light"], :root[data-theme="dark"] { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--void);
+    color: var(--ash);
+    font-family: var(--meta);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(18px, 3vh, 34px);
+    padding: clamp(16px, 4vw, 48px);
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- the stage ---------- */
+
+  .theater {
+    position: relative;
+    width: min(100%, 1080px);
+    aspect-ratio: 16 / 9;
+    background: radial-gradient(120% 90% at 50% 55%, #101109 0%, #0A0B08 45%, var(--void) 100%);
+    border: 1px solid var(--rule);
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    isolation: isolate;
+  }
+
+  #haze {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.75;
+    z-index: 0;
+  }
+
+  .theater::after {
+    content: "";
+    position: absolute;
+    inset: -60px;
+    background-image: var(--grain);
+    opacity: 0.14;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 3;
+    animation: jitter 0.7s steps(2, end) infinite;
+  }
+
+  /* vignette, so the card sits in the dark rather than on it */
+  .theater::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(78% 62% at 50% 50%, transparent 40%, rgba(0,0,0,0.72) 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  @keyframes jitter {
+    0%   { transform: translate(0, 0); }
+    50%  { transform: translate(-14px, 9px); }
+    100% { transform: translate(7px, -11px); }
+  }
+
+  /* ---------- the card ---------- */
+
+  .card {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.06em;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(38px, 9.4vw, 104px);
+    line-height: 1;
+    transform: scaleX(0.9);          /* condensed look, font stack or not */
+    transform-origin: center;
+    white-space: nowrap;
+  }
+
+  .replaying .card { animation: push-in 7s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+
+  @keyframes push-in {
+    from { transform: scaleX(0.9) scale(1.0); }
+    to   { transform: scaleX(0.9) scale(1.055); }
+  }
+
+  .plain {
+    color: var(--ash);
+    letter-spacing: -0.012em;
+    padding-top: 0.09em;
+    opacity: 0;
+  }
+
+  .gap { width: 0.26em; }
+
+  /* element tile */
+  .el {
+    position: relative;
+    display: inline-grid;
+    grid-template-rows: auto 1fr auto;
+    justify-items: start;
+    background: linear-gradient(180deg, #4A7A29 0%, var(--box) 58%, #33591B 100%);
+    border: 0.035em solid var(--box-edge);
+    color: var(--symbol);
+    padding: 0.07em 0.13em 0.06em;
+    min-width: 1.02em;
+    box-shadow: inset 0 0.02em 0 rgba(220, 240, 180, 0.22),
+                0 0.03em 0.14em rgba(0, 0, 0, 0.6);
+    opacity: 0;
+  }
+
+  .el .num {
+    font-family: var(--meta);
+    font-size: 0.155em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: rgba(232, 245, 205, 0.9);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .el .sym {
+    font-size: 1em;
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    justify-self: center;
+    padding: 0 0.02em;
+    text-shadow: 0 0.015em 0.02em rgba(0, 0, 0, 0.45);
+  }
+
+  .el .name {
+    font-family: var(--meta);
+    font-size: 0.108em;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(232, 245, 205, 0.82);
+    justify-self: center;
+    padding-top: 0.35em;
+  }
+
+  /* ---------- entrance sequence ---------- */
+
+  .replaying .s   { animation: slam-left  0.62s cubic-bezier(0.16, 0.9, 0.24, 1) 0.25s both; }
+  .replaying .w1  { animation: settle     0.75s cubic-bezier(0.2, 0.7, 0.3, 1)   0.52s both; }
+  .replaying .ba  { animation: slam-right 0.62s cubic-bezier(0.16, 0.9, 0.24, 1) 0.86s both; }
+  .replaying .w2  { animation: settle     0.75s cubic-bezier(0.2, 0.7, 0.3, 1)   1.12s both; }
+  .replaying .lower { animation: rise 1.1s ease-out 2.15s both; }
+
+  @keyframes slam-left {
+    from { opacity: 0; transform: translateX(-0.55em) scale(1.22); filter: blur(9px); }
+    60%  { opacity: 1; filter: blur(0.6px); }
+    to   { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+  }
+
+  @keyframes slam-right {
+    from { opacity: 0; transform: translateX(0.55em) scale(1.22); filter: blur(9px); }
+    60%  { opacity: 1; filter: blur(0.6px); }
+    to   { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+  }
+
+  @keyframes settle {
+    from { opacity: 0; transform: translateY(0.1em); filter: blur(5px); }
+    to   { opacity: 0.94; transform: translateY(0); filter: blur(0); }
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- lower third ---------- */
+
+  .lower {
+    position: absolute;
+    z-index: 2;
+    left: 0;
+    right: 0;
+    bottom: clamp(14px, 5%, 40px);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: clamp(14px, 4vw, 46px);
+    padding: 0 clamp(14px, 5vw, 60px);
+    opacity: 0;
+  }
+
+  .fact {
+    display: grid;
+    gap: 3px;
+    font-size: clamp(8px, 1.05vw, 11px);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--dust);
+    text-align: center;
+  }
+
+  .fact b {
+    font-weight: 700;
+    color: #E4D9C4;
+  }
+
+  .fact span {
+    color: rgba(200, 169, 126, 0.6);
+    letter-spacing: 0.18em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- controls under the frame ---------- */
+
+  .bar {
+    width: min(100%, 1080px);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .caption {
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #6E6C64;
+  }
+
+  .caption em {
+    font-style: normal;
+    color: var(--dust);
+  }
+
+  button {
+    font-family: var(--meta);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--symbol);
+    background: transparent;
+    border: 1px solid #35502180;
+    padding: 9px 20px;
+    cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+  }
+
+  button:hover { background: #3F6B221F; border-color: var(--box); }
+  button:focus-visible { outline: 2px solid var(--symbol); outline-offset: 3px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .theater::after { animation: none; }
+    .replaying .card { animation: none; }
+    .replaying .s,
+    .replaying .ba,
+    .replaying .w1,
+    .replaying .w2,
+    .replaying .lower {
+      animation: fade-only 0.5s ease both;
+    }
+    .replaying .w1 { animation-delay: 0.15s; }
+    .replaying .ba { animation-delay: 0.3s; }
+    .replaying .w2 { animation-delay: 0.45s; }
+    .replaying .lower { animation-delay: 0.8s; }
+    @keyframes fade-only { from { opacity: 0; } to { opacity: 1; } }
+  }
+</style>
+
+<div class="theater">
+  <canvas id="haze"></canvas>
+
+  <div class="card" id="card">
+    <span class="el s">
+      <span class="num">16</span>
+      <span class="sym">S</span>
+      <span class="name">Sulfur</span>
+    </span>
+    <span class="plain w1">aing</span>
+    <span class="gap"></span>
+    <span class="el ba">
+      <span class="num">56</span>
+      <span class="sym">Ba</span>
+      <span class="name">Barium</span>
+    </span>
+    <span class="plain w2">d</span>
+  </div>
+
+  <div class="lower">
+    <span class="fact"><b>Sulfur</b><span>16 &middot; Nonmetal &middot; 32.06 u</span></span>
+    <span class="fact"><b>Barium</b><span>56 &middot; Alkaline earth &middot; 137.33 u</span></span>
+  </div>
+</div>
+
+<div class="bar">
+  <p class="caption">Title card &mdash; <em>Saing Bad</em></p>
+  <button id="replay" type="button">Replay</button>
+</div>
+
+<script>
+  const stage = document.querySelector('.theater');
+  const replay = document.getElementById('replay');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function run() {
+    stage.classList.remove('replaying');
+    void stage.offsetWidth;          // force reflow so the sequence restarts
+    stage.classList.add('replaying');
+  }
+
+  replay.addEventListener('click', run);
+  run();
+
+  /* ---- drifting desert haze ---- */
+  const canvas = document.getElementById('haze');
+  const ctx = canvas.getContext('2d');
+  let plumes = [];
+  let raf = null;
+
+  function size() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = canvas.getBoundingClientRect();
+    canvas.width = Math.max(1, Math.round(r.width * dpr));
+    canvas.height = Math.max(1, Math.round(r.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return r;
+  }
+
+  function seed() {
+    const r = size();
+    plumes = Array.from({ length: 9 }, () => ({
+      x: Math.random() * r.width,
+      y: r.height * (0.35 + Math.random() * 0.75),
+      radius: r.height * (0.22 + Math.random() * 0.4),
+      drift: (Math.random() - 0.5) * 0.22,
+      lift: -0.035 - Math.random() * 0.05,
+      alpha: 0.05 + Math.random() * 0.07,
+      warm: Math.random() > 0.55
+    }));
+  }
+
+  function draw() {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    ctx.clearRect(0, 0, w, h);
+    ctx.globalCompositeOperation = 'lighter';
+
+    for (const p of plumes) {
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+      const tint = p.warm ? '176, 142, 92' : '104, 128, 72';
+      g.addColorStop(0, 'rgba(' + tint + ',' + p.alpha + ')');
+      g.addColorStop(1, 'rgba(' + tint + ',0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      p.x += p.drift;
+      p.y += p.lift;
+      if (p.y + p.radius < 0) {
+        p.y = h + p.radius;
+        p.x = Math.random() * w;
+      }
+      if (p.x - p.radius > w) p.x = -p.radius;
+      if (p.x + p.radius < 0) p.x = w + p.radius;
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    raf = requestAnimationFrame(draw);
+  }
+
+  function start() {
+    if (raf) cancelAnimationFrame(raf);
+    seed();
+    if (reduced.matches) { draw(); cancelAnimationFrame(raf); raf = null; }
+    else raf = requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', start);
+  reduced.addEventListener('change', start);
+  start();
+</script>
