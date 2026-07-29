@@ -1,0 +1,2340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>THREE OF CLUBS</title>
+<!-- viewport: no user scaling; viewport-fit=cover so we can use safe-area insets on notched phones -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#000000" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="description" content="A first-person survival-puzzle. Eight rooms. Two doors. One rule." />
+<style>
+/* ============================================================================
+   THREE OF CLUBS — styles
+   Everything here is layout/HUD. All 3D visuals are generated in JS.
+   Palette: wet grey concrete, black, emergency red, one sickly green exit light.
+   ========================================================================== */
+:root{
+  --red:#e01a22;
+  --red-dim:#7a0c11;
+  --green:#5ef08a;
+  --grey:#9aa0a4;
+  --ink:#05070a;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+}
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html,body{
+  width:100%; height:100%; background:#000; overflow:hidden; position:fixed;
+  overscroll-behavior:none;                 /* kills pull-to-refresh */
+  touch-action:none;                        /* kills double-tap zoom + pan */
+  -webkit-user-select:none; user-select:none;
+  -webkit-touch-callout:none;
+  font-family:"SF Mono",ui-monospace,Menlo,Consolas,"Courier New",monospace;
+  color:#cfd4d8;
+}
+canvas#gl{ position:fixed; inset:0; width:100%; height:100%; display:block; }
+
+/* ---------------------------------------------------------------- HUD ---- */
+#hud{ position:fixed; inset:0; pointer-events:none; z-index:10;
+      padding: calc(8px + var(--safe-t)) calc(10px + var(--safe-r)) calc(8px + var(--safe-b)) calc(10px + var(--safe-l)); }
+#hud.hide{ display:none; }
+.hud-row{ display:flex; justify-content:space-between; align-items:flex-start; }
+.tag{ font-size:12px; letter-spacing:.18em; color:#8d9499; text-shadow:0 0 8px #000; }
+.tag b{ color:#dfe4e8; font-weight:600; }
+#lives{ display:flex; gap:6px; align-items:center; }
+.pip{ width:11px; height:11px; background:var(--red); box-shadow:0 0 10px var(--red);
+      clip-path:polygon(50% 0,100% 38%,82% 100%,18% 100%,0 38%); }
+.pip.off{ background:#2a2d30; box-shadow:none; }
+
+#timer{ position:absolute; top:calc(6px + var(--safe-t)); left:50%; transform:translateX(-50%);
+        font-size:min(11vw,58px); font-weight:800; letter-spacing:.06em; color:var(--red);
+        text-shadow:0 0 18px rgba(224,26,34,.75),0 0 46px rgba(224,26,34,.35); line-height:1;
+        font-variant-numeric:tabular-nums; }
+#timer.warn{ animation:tpulse .5s steps(2,end) infinite; }
+@keyframes tpulse{ 50%{ opacity:.35; } }
+
+#crosshair{ position:absolute; left:50%; top:50%; width:5px; height:5px; margin:-2.5px 0 0 -2.5px;
+            border-radius:50%; background:rgba(230,235,240,.75); box-shadow:0 0 6px #000; }
+
+#subtitle{ position:absolute; left:50%; bottom:26%; transform:translateX(-50%); width:min(88vw,760px);
+           text-align:center; font-size:clamp(12px,3.2vw,17px); letter-spacing:.06em; color:#e8edf1;
+           text-shadow:0 2px 12px #000,0 0 3px #000; opacity:0; transition:opacity .25s; }
+#subtitle.on{ opacity:1; }
+
+/* interact prompt + 1.5s hold ring */
+#prompt{ position:absolute; left:50%; bottom:calc(16% + var(--safe-b)); transform:translateX(-50%);
+         display:none; flex-direction:column; align-items:center; gap:10px; }
+#prompt.on{ display:flex; }
+#ring{ width:56px; height:56px; border-radius:50%; display:grid; place-items:center;
+       background:conic-gradient(var(--red) calc(var(--p,0)*1turn), rgba(255,255,255,.10) 0);
+       -webkit-mask:radial-gradient(circle, transparent 20px, #000 21px);
+               mask:radial-gradient(circle, transparent 20px, #000 21px); }
+#promptText{ font-size:clamp(11px,2.8vw,14px); letter-spacing:.16em; color:#e8edf1;
+             text-shadow:0 0 10px #000; background:rgba(4,6,9,.55); padding:6px 12px; border:1px solid #23282c; }
+
+#battery{ position:absolute; left:50%; bottom:calc(9% + var(--safe-b)); transform:translateX(-50%);
+          width:150px; height:7px; border:1px solid #3a4045; display:none; background:rgba(0,0,0,.5); }
+#battery.on{ display:block; }
+#battery i{ display:block; height:100%; background:var(--green); box-shadow:0 0 10px var(--green); width:100%; }
+
+/* full-screen effect layers */
+#vignette{ position:fixed; inset:0; pointer-events:none; z-index:9; opacity:0; transition:opacity .4s;
+  background:radial-gradient(ellipse at center, rgba(0,0,0,0) 38%, rgba(120,0,6,.42) 78%, rgba(150,0,8,.75) 100%);
+  mix-blend-mode:screen; }
+#chroma{ position:fixed; inset:0; pointer-events:none; z-index:9; opacity:0;
+  background:radial-gradient(ellipse at 49.4% 50%, rgba(255,0,0,0) 45%, rgba(255,40,40,.20) 100%); mix-blend-mode:screen; }
+#smoke{ position:fixed; inset:0; pointer-events:none; z-index:8; opacity:0; transition:opacity 1.2s;
+  background:linear-gradient(180deg, rgba(60,50,44,.92), rgba(30,25,22,.72)); }
+#flash{ position:fixed; inset:0; pointer-events:none; z-index:20; opacity:0; background:#fff; }
+#flash.red{ background:#ff1f22; }
+
+/* ------------------------------------------------------- touch controls -- */
+#touch{ position:fixed; inset:0; z-index:12; display:none; }
+#touch.on{ display:block; }
+#stick{ position:absolute; width:132px; height:132px; border-radius:50%; border:2px solid rgba(200,210,220,.22);
+        background:rgba(10,14,18,.28); opacity:0; transition:opacity .18s; pointer-events:none; }
+#stick.on{ opacity:1; }
+#stick i{ position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px; border-radius:50%;
+          background:rgba(215,225,235,.30); border:2px solid rgba(230,240,250,.45); }
+.btn{ position:absolute; min-width:76px; min-height:76px; border-radius:50%; display:grid; place-items:center;
+      background:rgba(12,16,20,.42); border:2px solid rgba(200,210,220,.28); color:#e6ebef;
+      font-size:11px; letter-spacing:.12em; text-align:center; backdrop-filter:blur(2px); }
+.btn:active,.btn.held{ background:rgba(224,26,34,.34); border-color:var(--red); }
+#bCrouch{ right:calc(18px + var(--safe-r)); bottom:calc(20px + var(--safe-b)); }
+#bInteract{ right:calc(18px + var(--safe-r)); bottom:calc(112px + var(--safe-b)); display:none;
+            border-color:rgba(224,26,34,.6); }
+#bInteract.on{ display:grid; }
+#bLight{ right:calc(108px + var(--safe-r)); bottom:calc(24px + var(--safe-b)); min-width:64px; min-height:64px;
+         font-size:10px; display:none; }
+#bLight.on{ display:grid; }
+#bPause{ position:fixed; top:calc(6px + var(--safe-t)); right:calc(10px + var(--safe-r)); z-index:13;
+         min-width:56px; min-height:56px; border-radius:12px; display:none; place-items:center;
+         background:rgba(12,16,20,.42); border:1px solid rgba(200,210,220,.25); color:#e6ebef; font-size:16px; }
+#bPause.on{ display:grid; }
+
+/* ------------------------------------------------------------- screens --- */
+.screen{ position:fixed; inset:0; z-index:30; display:none; flex-direction:column; align-items:center;
+         justify-content:center; gap:18px; text-align:center; overflow-y:auto;
+         padding: calc(24px + var(--safe-t)) calc(20px + var(--safe-r)) calc(24px + var(--safe-b)) calc(20px + var(--safe-l));
+         background:radial-gradient(ellipse at center, #0b0e11 0%, #000 72%); }
+.screen.on{ display:flex; }
+h1{ font-size:clamp(30px,9vw,74px); letter-spacing:.16em; font-weight:800; color:#eef2f5; line-height:1.05;
+    text-shadow:0 0 30px rgba(224,26,34,.45); }
+h1 .club{ color:var(--red); text-shadow:0 0 26px var(--red); }
+h2{ font-size:clamp(17px,4.6vw,28px); letter-spacing:.2em; color:var(--red); text-shadow:0 0 20px rgba(224,26,34,.5); }
+.sub{ font-size:clamp(11px,2.9vw,14px); letter-spacing:.22em; color:#7d858b; }
+.panel{ width:min(660px,94vw); border:1px solid #1e2226; background:rgba(8,11,14,.72); padding:16px 18px; text-align:left; }
+.panel h3{ font-size:12px; letter-spacing:.24em; color:var(--red); margin-bottom:10px; font-weight:700; }
+.panel ul{ list-style:none; display:flex; flex-direction:column; gap:7px; }
+.panel li{ font-size:clamp(11px,2.9vw,14px); color:#b9c0c6; line-height:1.5; padding-left:16px; position:relative; }
+.panel li::before{ content:"·"; position:absolute; left:2px; color:var(--red); }
+.warnbox{ border:1px solid var(--red-dim); background:rgba(80,4,8,.28); padding:12px 14px; width:min(660px,94vw);
+          font-size:clamp(11px,3vw,14px); color:#ffb3b6; letter-spacing:.1em; }
+.keys{ display:grid; grid-template-columns:auto 1fr; gap:8px 14px; font-size:clamp(11px,2.8vw,13px); }
+.keys b{ color:#eef2f5; font-weight:600; letter-spacing:.08em; }
+.keys span{ color:#98a0a6; }
+.row{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+button.ui{ pointer-events:auto; min-height:56px; padding:0 26px; font-family:inherit; font-size:13px; letter-spacing:.18em;
+  color:#eef2f5; background:rgba(18,22,26,.9); border:1px solid #333a40; cursor:pointer; transition:.15s; }
+button.ui:hover{ border-color:var(--red); color:#fff; box-shadow:0 0 22px rgba(224,26,34,.28); }
+button.ui.primary{ background:var(--red-dim); border-color:var(--red); color:#fff; }
+button.ui.primary:hover{ background:var(--red); }
+button.ui:disabled{ opacity:.35; cursor:default; }
+.stats{ display:grid; grid-template-columns:repeat(2,minmax(120px,1fr)); gap:8px 26px; width:min(520px,92vw);
+        font-size:clamp(11px,2.9vw,14px); }
+.stats div{ display:flex; justify-content:space-between; border-bottom:1px dotted #23282c; padding:5px 0; }
+.stats i{ font-style:normal; color:#8d9499; letter-spacing:.14em; }
+.stats b{ color:#eef2f5; }
+#tabs{ display:flex; gap:0; }
+#tabs button{ min-height:44px; }
+#tabs button.act{ border-color:var(--red); color:#fff; }
+.hidden{ display:none !important; }
+
+/* rotate-your-phone nag */
+#rotate{ position:fixed; inset:0; z-index:60; display:none; flex-direction:column; align-items:center;
+         justify-content:center; gap:20px; background:#000; text-align:center; padding:24px; }
+#rotate.on{ display:flex; }
+#rotate .ph{ width:56px; height:96px; border:3px solid var(--red); border-radius:9px; animation:rot 1.6s ease-in-out infinite; }
+@keyframes rot{ 0%,30%{ transform:rotate(0); } 60%,100%{ transform:rotate(-90deg); } }
+
+/* victory: the card flip */
+#cardStage{ perspective:1000px; width:180px; height:252px; }
+#card{ position:relative; width:100%; height:100%; transform-style:preserve-3d; transform:rotateY(180deg);
+       transition:transform 1.5s cubic-bezier(.3,.9,.25,1); }
+#card.flip{ transform:rotateY(0deg); }
+#card > div{ position:absolute; inset:0; backface-visibility:hidden; border-radius:10px; }
+#cardFront{ background:#f2f4f6; color:#0a0c0e; box-shadow:0 0 60px rgba(255,255,255,.25);
+            display:grid; grid-template-rows:auto 1fr auto; padding:10px 12px; }
+#cardFront .corner{ font-size:20px; font-weight:800; line-height:1; }
+#cardFront .corner.b{ transform:rotate(180deg); text-align:right; }
+#cardFront .pips{ display:grid; place-items:center; font-size:44px; line-height:1.05; }
+#cardBack{ transform:rotateY(180deg); background:
+   repeating-linear-gradient(45deg,#5c0d12 0 7px,#3d080c 7px 14px); border:5px solid #f2f4f6; }
+#toast{ position:fixed; left:50%; bottom:calc(14px + var(--safe-b)); transform:translateX(-50%); z-index:40;
+        background:rgba(6,9,12,.9); border:1px solid #2a3035; padding:9px 16px; font-size:12px; letter-spacing:.14em;
+        color:#cfd4d8; opacity:0; transition:opacity .3s; pointer-events:none; }
+#toast.on{ opacity:1; }
+@media (max-height:430px){ .screen{ gap:10px; } .panel{ padding:10px 14px; } h1{ font-size:clamp(24px,7vw,44px);} }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<!-- ============================== HUD ==================================== -->
+<div id="hud" class="hide">
+  <div class="hud-row">
+    <div class="tag">ROOM <b id="roomNo">1</b> / 8</div>
+    <div id="lives"><span class="tag">LIVES</span><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
+  </div>
+  <div id="timer">2:00</div>
+  <div id="crosshair"></div>
+  <div id="subtitle"></div>
+  <div id="prompt"><div id="ring"></div><div id="promptText">HOLD E</div></div>
+  <div id="battery"><i></i></div>
+</div>
+
+<div id="vignette"></div>
+<div id="chroma"></div>
+<div id="smoke"></div>
+<div id="flash"></div>
+
+<!-- ========================= touch controls ============================== -->
+<div id="touch">
+  <div id="stick"><i></i></div>
+  <div class="btn" id="bCrouch">CROUCH</div>
+  <div class="btn" id="bInteract">HOLD</div>
+  <div class="btn" id="bLight">LIGHT</div>
+</div>
+<div class="btn" id="bPause">II</div>
+
+<!-- ============================= screens ================================= -->
+<div class="screen on" id="sTitle">
+  <div class="sub">A ROOM-ESCAPE NIGHTMARE</div>
+  <h1>THREE OF <span class="club">CLUBS</span></h1>
+  <div class="sub">EIGHT ROOMS &nbsp;·&nbsp; TWO DOORS &nbsp;·&nbsp; ONE RULE</div>
+  <div class="row">
+    <button class="ui primary" id="btnStart">ENTER</button>
+    <button class="ui" id="btnCheckpoint" disabled>CHECKPOINT · ROOM 4</button>
+  </div>
+  <div class="row">
+    <button class="ui" id="btnHow">HOW TO PLAY</button>
+    <button class="ui" id="btnQual">GRAPHICS: HIGH</button>
+    <button class="ui" id="btnMute">SOUND: ON</button>
+  </div>
+  <div class="sub" id="bestLine">NO RECORD</div>
+</div>
+
+<div class="screen" id="sHow">
+  <h2>HOW TO PLAY</h2>
+  <div class="panel">
+    <h3>THE GAME</h3>
+    <ul>
+      <li><b>Goal:</b> clear 8 rooms alive.</li>
+      <li><b>One rule:</b> pick LIVE, not DIE.</li>
+      <li><b>120 seconds per room.</b> The timer runs out, you die.</li>
+      <li>Search the room for clues before choosing. The obvious answer is often the trap.</li>
+      <li>Walk to a door and <b>hold interact for 1.5s</b> to commit. Tapping does nothing.</li>
+      <li>One hit is death. You have 3 lives, then it all starts again at Room 1.</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h3>CONTROLS</h3>
+    <div id="tabs" class="row" style="margin-bottom:12px">
+      <button class="ui" id="tabKey">KEYBOARD</button>
+      <button class="ui" id="tabTouch">TOUCH</button>
+    </div>
+    <div class="keys" id="keyMap">
+      <b>W A S D</b><span>Move</span>
+      <b>MOUSE</b><span>Look (click to lock the pointer)</span>
+      <b>E (hold)</b><span>Interact / commit to a door</span>
+      <b>CTRL / C</b><span>Crouch — duck under sweeping beams</span>
+      <b>F</b><span>Flashlight, when you have one</span>
+      <b>ESC</b><span>Pause</span>
+    </div>
+    <div class="keys hidden" id="touchMap">
+      <b>LEFT THUMB</b><span>Virtual joystick — move</span>
+      <b>RIGHT HALF</b><span>Drag anywhere to look</span>
+      <b>CROUCH</b><span>Bottom-right button — duck under beams</span>
+      <b>HOLD</b><span>Appears near doors and objects. Press and hold 1.5s.</span>
+      <b>LIGHT</b><span>Flashlight, when you have one</span>
+      <b>II</b><span>Top-right — pause</span>
+    </div>
+  </div>
+  <div class="warnbox">⚠ THE LAST ROOM DOES NOT PLAY FAIR.</div>
+  <div class="row"><button class="ui primary" id="btnHowBack">BACK</button></div>
+</div>
+
+<div class="screen" id="sPause">
+  <h2>PAUSED</h2>
+  <div class="row">
+    <button class="ui primary" id="btnResume">RESUME</button>
+    <button class="ui" id="btnPauseHow">HOW TO PLAY</button>
+  </div>
+  <div class="row">
+    <button class="ui" id="btnQual2">GRAPHICS: HIGH</button>
+    <button class="ui" id="btnMute2">SOUND: ON</button>
+    <button class="ui" id="btnQuit">ABANDON RUN</button>
+  </div>
+</div>
+
+<div class="screen" id="sDeath">
+  <h2 id="deathTitle">YOU DIED</h2>
+  <div class="sub" id="deathCause">THE GRID FIRED</div>
+  <div class="panel">
+    <h3>WHAT YOU MISSED</h3>
+    <ul>
+      <li>The correct door was the <b id="deathDoor">LEFT</b> door.</li>
+      <li id="deathClue">—</li>
+    </ul>
+  </div>
+  <div class="stats" id="deathStats"></div>
+  <div class="row">
+    <button class="ui primary" id="btnRetry">TRY AGAIN</button>
+    <button class="ui" id="btnDeathTitle">TITLE</button>
+  </div>
+</div>
+
+<div class="screen" id="sWin">
+  <h2>YOU WALKED OUT</h2>
+  <div id="cardStage"><div id="card">
+    <div id="cardFront">
+      <div class="corner">3<br>♣</div>
+      <div class="pips">♣ ♣<br>♣</div>
+      <div class="corner b">3<br>♣</div>
+    </div>
+    <div id="cardBack"></div>
+  </div></div>
+  <div class="sub">THREE OF CLUBS · CLEARED</div>
+  <div class="stats" id="winStats"></div>
+  <div class="row">
+    <button class="ui primary" id="btnAgain">PLAY AGAIN</button>
+    <button class="ui" id="btnWinTitle">TITLE</button>
+  </div>
+</div>
+
+<div id="rotate"><div class="ph"></div><div class="sub">ROTATE YOUR PHONE</div>
+  <div class="sub" style="color:#555">LANDSCAPE RECOMMENDED</div></div>
+<div id="toast"></div>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+/* ============================================================================
+ * THREE OF CLUBS
+ * A first-person survival-puzzle. Single file, no build step, no assets.
+ * Everything (geometry, textures, audio) is generated at runtime.
+ *
+ * Layout of this file:
+ *   1.  Config + platform detection
+ *   2.  DOM refs & small UI helpers
+ *   3.  Math / texture utilities
+ *   4.  Audio engine (Web Audio, fully synthesized)
+ *   5.  Input (keyboard + pointer lock, touch joystick + drag-look + buttons)
+ *   6.  Renderer, scene, shared materials
+ *   7.  Building blocks (walls, doors, placards, props, decals)
+ *   8.  Effects (laser grid, flashlight, fire, sprinklers, dust, shake)
+ *   9.  The 8 room definitions
+ *  10.  Player controller + collision
+ *  11.  Game state machine + main loop
+ * ========================================================================== */
+import * as THREE from 'three';
+
+/* ---------------------------------------------------------------------------
+ * 1. CONFIG + PLATFORM
+ * ------------------------------------------------------------------------ */
+const IS_TOUCH = (('ontouchstart' in window) || navigator.maxTouchPoints > 0) &&
+                 window.matchMedia('(pointer: coarse)').matches;
+
+const CFG = {
+  ROOM_W: 16, ROOM_D: 20, ROOM_H: 5,    // interior dimensions, metres
+  DOOR_X: 3.3,                           // doors sit at ±DOOR_X on the far wall
+  EYE_STAND: 1.66, EYE_CROUCH: 0.95,
+  SPEED: 4.0, SPEED_CROUCH: 1.9,
+  ACCEL: 26, FRICTION: 12,
+  PLAYER_R: 0.36,
+  HOLD_TIME: 1.5,                        // seconds to commit to a door
+  LIVES: 3,
+  ROOM_TIME: 120,
+};
+
+// Quality is user-switchable; defaults to LOW on touch devices.
+const Q = {
+  high: !IS_TOUCH,
+  get shadows(){ return this.high; },
+  get motes(){ return this.high ? 420 : 130; },
+  get lights(){ return this.high ? 4 : 2; },     // ceiling strip lights that are real lights
+  get shadowSize(){ return this.high ? 1024 : 512; },
+  get dpr(){ return Math.min(window.devicePixelRatio || 1, this.high ? 2 : 1.5); },
+};
+
+/* ---------------------------------------------------------------------------
+ * 2. DOM
+ * ------------------------------------------------------------------------ */
+const $ = (id) => document.getElementById(id);
+const el = {
+  canvas:$('gl'), hud:$('hud'), timer:$('timer'), roomNo:$('roomNo'), lives:$('lives'),
+  prompt:$('prompt'), promptText:$('promptText'), ring:$('ring'), subtitle:$('subtitle'),
+  battery:$('battery'), batteryFill:$('battery').firstElementChild,
+  vignette:$('vignette'), chroma:$('chroma'), smoke:$('smoke'), flash:$('flash'),
+  touch:$('touch'), stick:$('stick'), stickKnob:$('stick').firstElementChild,
+  bCrouch:$('bCrouch'), bInteract:$('bInteract'), bLight:$('bLight'), bPause:$('bPause'),
+  sTitle:$('sTitle'), sHow:$('sHow'), sPause:$('sPause'), sDeath:$('sDeath'), sWin:$('sWin'),
+  rotate:$('rotate'), toast:$('toast'), card:$('card'),
+};
+
+function showScreen(name){
+  for (const s of ['sTitle','sHow','sPause','sDeath','sWin']) el[s].classList.toggle('on', s===name);
+  el.hud.classList.toggle('hide', name !== null);
+  el.bPause.classList.toggle('on', name===null && IS_TOUCH);
+  el.touch.classList.toggle('on', name===null && IS_TOUCH);
+}
+let toastTimer = 0;
+function toast(msg, ms=1800){
+  el.toast.textContent = msg; el.toast.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>el.toast.classList.remove('on'), ms);
+}
+function buzz(pattern){ if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e){} } }
+
+/* ---------------------------------------------------------------------------
+ * 3. UTILITIES
+ * ------------------------------------------------------------------------ */
+const clamp = (v,a,b) => v<a?a:v>b?b:v;
+const lerp  = (a,b,t) => a + (b-a)*t;
+const rand  = (a,b) => a + Math.random()*(b-a);
+const damp  = (a,b,l,dt) => lerp(a,b,1-Math.exp(-l*dt));   // frame-rate independent lerp
+
+function makeCanvas(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
+function texFrom(canvas, repeat){
+  const t = new THREE.CanvasTexture(canvas);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  if (repeat){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat[0], repeat[1]); }
+  return t;
+}
+
+/** Grey poured-concrete surface with blotches, speckle and form-tie holes. */
+function makeConcreteTexture(dark=false){
+  const c = makeCanvas(256,256), g = c.getContext('2d');
+  g.fillStyle = dark ? '#4b4f52' : '#7d8285'; g.fillRect(0,0,256,256);
+  for (let i=0;i<180;i++){                              // damp blotching
+    const x=Math.random()*256, y=Math.random()*256, r=5+Math.random()*30;
+    const a = Math.random()*0.05;
+    g.fillStyle = Math.random()<0.5 ? `rgba(20,24,26,${a})` : `rgba(190,198,204,${a*0.7})`;
+    g.beginPath(); g.arc(x,y,r,0,6.3); g.fill();
+  }
+  const img = g.getImageData(0,0,256,256), d = img.data;  // fine speckle
+  for (let i=0;i<d.length;i+=4){
+    const n = (Math.random()-0.5)*26;
+    d[i]+=n; d[i+1]+=n; d[i+2]+=n;
+  }
+  g.putImageData(img,0,0);
+  g.strokeStyle='rgba(15,18,20,.22)'; g.lineWidth=2;      // form-board seams
+  g.beginPath(); g.moveTo(0,128); g.lineTo(256,128); g.moveTo(128,0); g.lineTo(128,256); g.stroke();
+  g.fillStyle='rgba(10,12,14,.35)';                       // tie holes
+  for (const p of [[64,64],[192,64],[64,192],[192,192]]){ g.beginPath(); g.arc(p[0],p[1],3,0,6.3); g.fill(); }
+  return c;
+}
+
+/** Hand-scrawled text (blood, chalk, scratches) drawn onto a transparent canvas.
+ *  The canvas is sized to the content so decals keep the right aspect ratio. */
+function scrawlCanvas(lines, opt={}){
+  const color = opt.color || '#8d1119';
+  const size  = opt.size  || 70;
+  const lh    = size*1.32;
+  // measure first so the bitmap hugs the text
+  const probe = makeCanvas(8,8).getContext('2d');
+  probe.font = `900 ${size}px "Courier New",monospace`;
+  const textW = Math.max(...lines.map(l => probe.measureText(l).width));
+  const w = Math.ceil(textW + size*1.2);
+  const h = Math.ceil(lines.length*lh + size*1.4);
+  const c = makeCanvas(w,h), g = c.getContext('2d');
+  g.clearRect(0,0,w,h);
+  g.textAlign='center'; g.textBaseline='middle';
+  g.shadowColor = color; g.shadowBlur = opt.glow ?? 6;
+  const y0 = h/2 - (lines.length-1)*lh/2;
+  lines.forEach((line,i)=>{
+    g.save();
+    g.translate(w/2, y0 + i*lh);
+    g.rotate((Math.random()-0.5)*0.035);
+    g.font = `900 ${size}px "Courier New",monospace`;
+    g.fillStyle = color;
+    // Draw twice with a tiny offset so the strokes look wet and uneven.
+    g.globalAlpha = 0.55; g.fillText(line, 2, 2);
+    g.globalAlpha = 1.0;  g.fillText(line, 0, 0);
+    g.restore();
+    if (opt.drips !== false){                        // paint runs
+      g.globalAlpha = 0.5; g.fillStyle = color;
+      for (let d=0; d<3; d++){
+        const dx = w*0.5 + (Math.random()-0.5)*w*0.55;
+        const dy = y0 + i*lh + size*0.35;
+        g.fillRect(dx, dy, 2+Math.random()*2, 12+Math.random()*46);
+      }
+      g.globalAlpha = 1;
+    }
+  });
+  return c;
+}
+
+/** Tally scratches: `n` gouges in a wall, drawn in groups of five. */
+function tallyCanvas(n, color='#c9cfd4'){
+  const c = makeCanvas(512,256), g = c.getContext('2d');
+  g.strokeStyle=color; g.lineWidth=6; g.lineCap='round'; g.shadowColor='rgba(0,0,0,.7)'; g.shadowBlur=4;
+  for (let i=0;i<n;i++){
+    const grp = Math.floor(i/5), idx = i%5;
+    const x = 60 + grp*110 + idx*17;
+    g.beginPath();
+    if (idx===4){ g.moveTo(x-72, 60+rand(-5,5)); g.lineTo(x+6, 196+rand(-5,5)); }   // the slash
+    else { g.moveTo(x, 56+rand(-6,6)); g.lineTo(x+rand(-8,8), 200+rand(-6,6)); }
+    g.stroke();
+  }
+  return c;
+}
+
+/** A LIVE / DIE placard: dark steel plate with glowing engraved letters. */
+function placardCanvas(text, color){
+  const c = makeCanvas(512,256), g = c.getContext('2d');
+  g.fillStyle='#0a0d10'; g.fillRect(0,0,512,256);
+  g.strokeStyle='#2a3036'; g.lineWidth=10; g.strokeRect(5,5,502,246);
+  g.textAlign='center'; g.textBaseline='middle';
+  g.font='900 132px "Courier New",monospace';
+  g.shadowColor=color; g.shadowBlur=48; g.fillStyle=color;
+  g.fillText(text, 256, 132);
+  g.shadowBlur=14; g.fillStyle='#ffffff'; g.globalAlpha=.55; g.fillText(text, 256, 132);
+  return c;
+}
+
+/** Soft radial dot, used for dust motes and light glows. */
+function dotCanvas(inner='rgba(255,255,255,1)', outer='rgba(255,255,255,0)'){
+  const c = makeCanvas(64,64), g = c.getContext('2d');
+  const grd = g.createRadialGradient(32,32,0,32,32,32);
+  grd.addColorStop(0, inner); grd.addColorStop(1, outer);
+  g.fillStyle=grd; g.fillRect(0,0,64,64);
+  return c;
+}
+
+/** Irregular blood pool for the floor. */
+function bloodCanvas(){
+  const c = makeCanvas(256,256), g = c.getContext('2d');
+  g.clearRect(0,0,256,256);
+  for (let i=0;i<26;i++){
+    const x=128+rand(-56,56), y=128+rand(-56,56), r=rand(14,52);
+    g.fillStyle=`rgba(${Math.floor(rand(48,96))},4,8,${rand(.30,.72)})`;
+    g.beginPath(); g.arc(x,y,r,0,6.3); g.fill();
+  }
+  for (let i=0;i<16;i++){                              // splatter
+    g.fillStyle='rgba(70,3,7,.55)';
+    g.beginPath(); g.arc(128+rand(-118,118),128+rand(-118,118), rand(2,8),0,6.3); g.fill();
+  }
+  return c;
+}
+
+/** Torn paper note with typed/hand text. */
+function noteCanvas(lines){
+  const c = makeCanvas(512,384), g = c.getContext('2d');
+  g.fillStyle='#cdc6b4'; g.fillRect(0,0,512,384);
+  g.fillStyle='rgba(120,105,80,.35)';
+  for (let i=0;i<40;i++) g.fillRect(rand(0,512),rand(0,384),rand(2,26),rand(2,10));
+  g.strokeStyle='rgba(60,50,35,.5)'; g.lineWidth=4; g.strokeRect(2,2,508,380);
+  g.fillStyle='#20180f'; g.textAlign='center'; g.textBaseline='middle';
+  const lh=54, y0=192-(lines.length-1)*lh/2;
+  lines.forEach((l,i)=>{ g.font=`bold ${l.length>22?32:40}px "Courier New",monospace`; g.fillText(l,256,y0+i*lh); });
+  return c;
+}
+
+/** Flame billboard texture (additive). */
+function flameCanvas(){
+  const c = makeCanvas(128,128), g = c.getContext('2d');
+  const grd = g.createRadialGradient(64,86,2,64,80,62);
+  grd.addColorStop(0,'rgba(255,246,200,1)');
+  grd.addColorStop(.28,'rgba(255,168,40,.92)');
+  grd.addColorStop(.62,'rgba(214,58,12,.42)');
+  grd.addColorStop(1,'rgba(80,10,0,0)');
+  g.fillStyle=grd; g.beginPath(); g.ellipse(64,80,52,62,0,0,6.3); g.fill();
+  return c;
+}
+
+/* ---------------------------------------------------------------------------
+ * 4. AUDIO — everything synthesized, no files.
+ * ------------------------------------------------------------------------ */
+const Audio = {
+  ctx:null, master:null, muted:false, noiseBuf:null,
+  drone:null, hum:null, fire:null, rain:null,
+
+  init(){
+    if (this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    this.ctx = new AC();
+    this.master = this.ctx.createGain();
+    this.master.gain.value = this.muted ? 0 : 0.85;
+    this.master.connect(this.ctx.destination);
+    // one second of white noise, reused by every noise-based sound
+    const len = this.ctx.sampleRate;
+    this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const d = this.noiseBuf.getChannelData(0);
+    for (let i=0;i<len;i++) d[i] = Math.random()*2-1;
+  },
+  resume(){ if (this.ctx && this.ctx.state==='suspended') this.ctx.resume(); },
+  suspend(){ if (this.ctx && this.ctx.state==='running') this.ctx.suspend(); },
+  setMuted(m){ this.muted=m; if (this.master) this.master.gain.value = m?0:0.85; },
+  now(){ return this.ctx ? this.ctx.currentTime : 0; },
+
+  /** A looping noise source through a filter — used for drone beds. */
+  _noiseLoop(type, freq, gain, q=1){
+    const src = this.ctx.createBufferSource(); src.buffer=this.noiseBuf; src.loop=true;
+    const f = this.ctx.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=q;
+    const g = this.ctx.createGain(); g.gain.value=gain;
+    src.connect(f); f.connect(g); g.connect(this.master); src.start();
+    return { src, filter:f, gain:g, stop(){ try{ src.stop(); }catch(e){} } };
+  },
+
+  /** Low, room-tone drone that sits under the whole game. */
+  startDrone(){
+    if (!this.ctx || this.drone) return;
+    const g = this.ctx.createGain(); g.gain.value = 0.0; g.connect(this.master);
+    const oscs = [];
+    for (const [f,type,amp] of [[41.2,'sine',.55],[55,'triangle',.28],[82.4,'sine',.16]]){
+      const o = this.ctx.createOscillator(); o.type=type; o.frequency.value=f;
+      const og = this.ctx.createGain(); og.gain.value=amp;
+      o.connect(og); og.connect(g); o.start(); oscs.push(o);
+    }
+    // slow filtered air movement over the top
+    const air = this._noiseLoop('bandpass', 320, 0.05, 0.7);
+    const lfo = this.ctx.createOscillator(); lfo.frequency.value=0.06;
+    const lfoG = this.ctx.createGain(); lfoG.gain.value=170;
+    lfo.connect(lfoG); lfoG.connect(air.filter.frequency); lfo.start();
+    g.gain.linearRampToValueAtTime(0.16, this.now()+3);
+    this.drone = { g, oscs, air, lfo };
+  },
+
+  /** Heartbeat: two thumps. Called by the game at an accelerating rate. */
+  heartbeat(intensity=1){
+    if (!this.ctx || this.muted) return;
+    const t0 = this.now();
+    for (const [off, amp] of [[0, 1],[0.19, 0.62]]){
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type='sine'; o.frequency.setValueAtTime(74, t0+off);
+      o.frequency.exponentialRampToValueAtTime(34, t0+off+0.16);
+      g.gain.setValueAtTime(0.0001, t0+off);
+      g.gain.exponentialRampToValueAtTime(0.42*amp*intensity, t0+off+0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0+off+0.20);
+      o.connect(g); g.connect(this.master); o.start(t0+off); o.stop(t0+off+0.24);
+    }
+  },
+
+  /** Single timer beep. `hi` for the last ten seconds. */
+  beep(hi=false){
+    if (!this.ctx || this.muted) return;
+    const t0=this.now(), o=this.ctx.createOscillator(), g=this.ctx.createGain();
+    o.type='square'; o.frequency.value = hi ? 1320 : 820;
+    g.gain.setValueAtTime(0.0001,t0);
+    g.gain.exponentialRampToValueAtTime(hi?0.16:0.10, t0+0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+(hi?0.13:0.09));
+    o.connect(g); g.connect(this.master); o.start(t0); o.stop(t0+0.16);
+  },
+
+  /** Rising whine as the ceiling grid charges, then the discharge crack. */
+  laser(){
+    if (!this.ctx || this.muted) return;
+    const t0=this.now();
+    const o=this.ctx.createOscillator(), g=this.ctx.createGain(), f=this.ctx.createBiquadFilter();
+    o.type='sawtooth'; f.type='bandpass'; f.Q.value=7;
+    o.frequency.setValueAtTime(180,t0); o.frequency.exponentialRampToValueAtTime(2600,t0+0.9);
+    f.frequency.setValueAtTime(400,t0);  f.frequency.exponentialRampToValueAtTime(4200,t0+0.9);
+    g.gain.setValueAtTime(0.0001,t0);
+    g.gain.exponentialRampToValueAtTime(0.30,t0+0.55);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+1.05);
+    o.connect(f); f.connect(g); g.connect(this.master); o.start(t0); o.stop(t0+1.1);
+    // the hit
+    const n=this.ctx.createBufferSource(); n.buffer=this.noiseBuf;
+    const nf=this.ctx.createBiquadFilter(); nf.type='lowpass'; nf.frequency.value=5200;
+    const ng=this.ctx.createGain();
+    ng.gain.setValueAtTime(0.0001,t0+0.9);
+    ng.gain.exponentialRampToValueAtTime(0.55,t0+0.93);
+    ng.gain.exponentialRampToValueAtTime(0.0001,t0+1.9);
+    n.connect(nf); nf.connect(ng); ng.connect(this.master); n.start(t0+0.9); n.stop(t0+2.0);
+  },
+
+  /** Heavy steel door sliding then slamming into its stop. */
+  door(){
+    if (!this.ctx || this.muted) return;
+    const t0=this.now();
+    const n=this.ctx.createBufferSource(); n.buffer=this.noiseBuf; n.loop=true;
+    const f=this.ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=420; f.Q.value=1.6;
+    const g=this.ctx.createGain(); g.gain.setValueAtTime(0.0001,t0);
+    g.gain.linearRampToValueAtTime(0.22,t0+0.12);
+    g.gain.linearRampToValueAtTime(0.14,t0+0.9);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+1.25);
+    n.connect(f); f.connect(g); g.connect(this.master); n.start(t0); n.stop(t0+1.3);
+    const o=this.ctx.createOscillator(), og=this.ctx.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(120,t0+1.0); o.frequency.exponentialRampToValueAtTime(38,t0+1.35);
+    og.gain.setValueAtTime(0.5,t0+1.0); og.gain.exponentialRampToValueAtTime(0.0001,t0+1.5);
+    o.connect(og); og.connect(this.master); o.start(t0+1.0); o.stop(t0+1.55);
+  },
+
+  /** Short confirmation click when a hold begins / an object gives way. */
+  click(freq=520){
+    if (!this.ctx || this.muted) return;
+    const t0=this.now(), o=this.ctx.createOscillator(), g=this.ctx.createGain();
+    o.type='triangle'; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.14,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+0.1);
+    o.connect(g); g.connect(this.master); o.start(t0); o.stop(t0+0.12);
+  },
+
+  /** Whiteout whoosh between rooms. */
+  whoosh(){
+    if (!this.ctx || this.muted) return;
+    const t0=this.now();
+    const n=this.ctx.createBufferSource(); n.buffer=this.noiseBuf;
+    const f=this.ctx.createBiquadFilter(); f.type='bandpass'; f.Q.value=1.1;
+    f.frequency.setValueAtTime(220,t0); f.frequency.exponentialRampToValueAtTime(5200,t0+0.7);
+    const g=this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001,t0); g.gain.linearRampToValueAtTime(0.30,t0+0.25);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+1.0);
+    n.connect(f); f.connect(g); g.connect(this.master); n.start(t0); n.stop(t0+1.05);
+  },
+
+  /** Death sting. */
+  death(){
+    if (!this.ctx || this.muted) return;
+    const t0=this.now();
+    for (const f of [110, 73.4, 55]){
+      const o=this.ctx.createOscillator(), g=this.ctx.createGain();
+      o.type='sawtooth'; o.frequency.setValueAtTime(f,t0);
+      o.frequency.exponentialRampToValueAtTime(f*0.5,t0+2.2);
+      g.gain.setValueAtTime(0.0001,t0); g.gain.linearRampToValueAtTime(0.14,t0+0.06);
+      g.gain.exponentialRampToValueAtTime(0.0001,t0+2.4);
+      o.connect(g); g.connect(this.master); o.start(t0); o.stop(t0+2.5);
+    }
+  },
+
+  /** Victory arpeggio — cold, not triumphant. */
+  victory(){
+    if (!this.ctx || this.muted) return;
+    const t0=this.now();
+    [220,293.7,349.2,440,587.3].forEach((f,i)=>{
+      const o=this.ctx.createOscillator(), g=this.ctx.createGain();
+      o.type='triangle'; o.frequency.value=f;
+      const s=t0+i*0.22;
+      g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(0.16,s+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001,s+1.4);
+      o.connect(g); g.connect(this.master); o.start(s); o.stop(s+1.5);
+    });
+  },
+
+  /** Mains hum from an energised door frame. Gain is driven by proximity. */
+  startHum(){
+    if (!this.ctx || this.hum) return;
+    const g=this.ctx.createGain(); g.gain.value=0; g.connect(this.master);
+    const oscs=[];
+    for (const [f,a] of [[60,.5],[120,.3],[180,.14],[240,.07]]){
+      const o=this.ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f;
+      const og=this.ctx.createGain(); og.gain.value=a;
+      o.connect(og); og.connect(g); o.start(); oscs.push(o);
+    }
+    this.hum={g,oscs};
+  },
+  setHum(v){ if (this.hum) this.hum.g.gain.value = clamp(v,0,1)*0.22; },
+  stopHum(){ if (this.hum){ this.hum.oscs.forEach(o=>{try{o.stop()}catch(e){}}); this.hum=null; } },
+
+  /** Roaring fire bed. */
+  startFire(){ if (!this.ctx || this.fire) return; this.fire = this._noiseLoop('lowpass', 620, 0.0, 0.9); },
+  setFire(v){ if (this.fire) this.fire.gain.gain.value = clamp(v,0,1)*0.26; },
+  stopFire(){ if (this.fire){ this.fire.stop(); this.fire=null; } },
+
+  /** Sprinkler downpour. */
+  startRain(){ if (!this.ctx || this.rain) return; this.rain = this._noiseLoop('highpass', 2400, 0.0, 0.5); },
+  setRain(v){ if (this.rain) this.rain.gain.gain.value = clamp(v,0,1)*0.20; },
+  stopRain(){ if (this.rain){ this.rain.stop(); this.rain=null; } },
+
+  stopAllLoops(){ this.stopHum(); this.stopFire(); this.stopRain(); },
+};
+
+/* ---------------------------------------------------------------------------
+ * 5. INPUT
+ * ------------------------------------------------------------------------ */
+const Input = {
+  keys:new Set(),
+  move:{x:0,y:0},          // -1..1, x = strafe, y = forward
+  lookDX:0, lookDY:0,      // consumed each frame
+  crouch:false,
+  interact:false,
+  locked:false,
+  _stickId:null, _lookId:null, _stickOrigin:{x:0,y:0},
+
+  init(){
+    /* ---- keyboard ---- */
+    addEventListener('keydown', e=>{
+      if (e.repeat) return;
+      const k = e.code;
+      this.keys.add(k);
+      if (k==='Escape'){ Game.togglePause(); }
+      if (k==='KeyF'){ Game.toggleFlashlight(); }
+      // Space/Enter shouldn't scroll or re-trigger focused buttons mid-game
+      if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(k) && Game.state==='play') e.preventDefault();
+    });
+    addEventListener('keyup', e=> this.keys.delete(e.code));
+    addEventListener('blur', ()=> this.keys.clear());
+
+    /* ---- pointer lock look (desktop) ---- */
+    el.canvas.addEventListener('click', ()=>{
+      if (Game.state==='play' && !IS_TOUCH && !this.locked) el.canvas.requestPointerLock();
+    });
+    document.addEventListener('pointerlockchange', ()=>{
+      this.locked = document.pointerLockElement === el.canvas;
+      // Losing the lock mid-game (Esc, alt-tab) pauses rather than leaving the
+      // player standing blind with a running clock.
+      if (!this.locked && Game.state==='play' && !IS_TOUCH) Game.pause();
+    });
+    addEventListener('mousemove', e=>{
+      if (!this.locked) return;
+      this.lookDX += e.movementX * 0.0022;
+      this.lookDY += e.movementY * 0.0022;
+    });
+
+    /* ---- touch: joystick (left) + drag-look (right) ---- */
+    const startTouch = (t) => {
+      const half = innerWidth * 0.46;
+      if (t.clientX < half && this._stickId===null){
+        this._stickId = t.identifier;
+        this._stickOrigin = {x:t.clientX, y:t.clientY};
+        el.stick.style.left = (t.clientX-66)+'px';
+        el.stick.style.top  = (t.clientY-66)+'px';
+        el.stick.classList.add('on');
+      } else if (this._lookId===null){
+        this._lookId = t.identifier;
+        this._lookLast = {x:t.clientX, y:t.clientY};
+      }
+    };
+    el.touch.addEventListener('touchstart', e=>{
+      e.preventDefault();
+      for (const t of e.changedTouches) startTouch(t);
+    }, {passive:false});
+    el.touch.addEventListener('touchmove', e=>{
+      e.preventDefault();
+      for (const t of e.changedTouches){
+        if (t.identifier===this._stickId){
+          const dx = t.clientX - this._stickOrigin.x, dy = t.clientY - this._stickOrigin.y;
+          const max = 52, len = Math.hypot(dx,dy) || 1;
+          const k = Math.min(len, max)/len;
+          const kx = dx*k, ky = dy*k;
+          el.stickKnob.style.transform = `translate(${kx}px,${ky}px)`;
+          const dead = 8;
+          this.move.x = Math.abs(kx)>dead ? clamp(kx/max,-1,1) : 0;
+          this.move.y = Math.abs(ky)>dead ? clamp(-ky/max,-1,1) : 0;
+        } else if (t.identifier===this._lookId){
+          this.lookDX += (t.clientX - this._lookLast.x) * 0.0045;
+          this.lookDY += (t.clientY - this._lookLast.y) * 0.0045;
+          this._lookLast = {x:t.clientX, y:t.clientY};
+        }
+      }
+    }, {passive:false});
+    const endTouch = e=>{
+      for (const t of e.changedTouches){
+        if (t.identifier===this._stickId){
+          this._stickId=null; this.move.x=0; this.move.y=0;
+          el.stickKnob.style.transform=''; el.stick.classList.remove('on');
+        }
+        if (t.identifier===this._lookId) this._lookId=null;
+      }
+    };
+    el.touch.addEventListener('touchend', endTouch, {passive:false});
+    el.touch.addEventListener('touchcancel', endTouch, {passive:false});
+
+    /* ---- on-screen buttons (their own touch handling, isolated) ---- */
+    const hold = (node, on, off) => {
+      const down = e=>{ e.preventDefault(); e.stopPropagation(); node.classList.add('held'); on(); };
+      const up   = e=>{ e.preventDefault(); e.stopPropagation(); node.classList.remove('held'); off && off(); };
+      node.addEventListener('touchstart', down, {passive:false});
+      node.addEventListener('touchend',   up,   {passive:false});
+      node.addEventListener('touchcancel',up,   {passive:false});
+      node.addEventListener('mousedown',  down);
+      node.addEventListener('mouseup',    up);
+      node.addEventListener('mouseleave', e=>{ if (node.classList.contains('held')) up(e); });
+    };
+    hold(el.bCrouch, ()=> this.crouch=true,  ()=> this.crouch=false);
+    hold(el.bInteract, ()=> this.interact=true, ()=> this.interact=false);
+    el.bLight.addEventListener('touchstart', e=>{ e.preventDefault(); e.stopPropagation(); Game.toggleFlashlight(); }, {passive:false});
+    el.bPause.addEventListener('click', e=>{ e.preventDefault(); Game.togglePause(); });
+
+    /* ---- kill browser gestures ---- */
+    for (const ev of ['gesturestart','gesturechange','gestureend']) addEventListener(ev, e=>e.preventDefault(), {passive:false});
+    document.addEventListener('dblclick', e=>e.preventDefault(), {passive:false});
+    document.addEventListener('contextmenu', e=>e.preventDefault());
+  },
+
+  /** Aggregate keyboard + touch into a single movement vector. */
+  poll(){
+    if (!IS_TOUCH){
+      const k=this.keys;
+      this.move.x = (k.has('KeyD')||k.has('ArrowRight')?1:0) - (k.has('KeyA')||k.has('ArrowLeft')?1:0);
+      this.move.y = (k.has('KeyW')||k.has('ArrowUp')?1:0)   - (k.has('KeyS')||k.has('ArrowDown')?1:0);
+      this.crouch = k.has('ControlLeft')||k.has('ControlRight')||k.has('KeyC');
+      this.interact = k.has('KeyE');
+    }
+    const dx=this.lookDX, dy=this.lookDY; this.lookDX=0; this.lookDY=0;
+    return {dx,dy};
+  },
+};
+
+/* ---------------------------------------------------------------------------
+ * 6. RENDERER / SCENE / SHARED MATERIALS
+ * ------------------------------------------------------------------------ */
+const renderer = new THREE.WebGLRenderer({
+  canvas: el.canvas, antialias: Q.high, powerPreference:'high-performance', stencil:false,
+});
+renderer.setPixelRatio(Q.dpr);
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.shadowMap.enabled = Q.shadows;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05070a);
+const FOG_BASE = 0.030;                       // room 8's smoke raises this
+scene.fog = new THREE.FogExp2(0x0d1116, FOG_BASE);
+
+const camera = new THREE.PerspectiveCamera(IS_TOUCH?78:72, innerWidth/innerHeight, 0.05, 90);
+const camRig = new THREE.Object3D();       // holds camera so shake can offset it
+camRig.add(camera); scene.add(camRig);
+
+// shared geometry — every solid in the game is a scaled unit box or plane
+const GEO = {
+  box: new THREE.BoxGeometry(1,1,1),
+  plane: new THREE.PlaneGeometry(1,1),
+  planeSeg: new THREE.PlaneGeometry(1,1,6,6),   // subdivided, for big lit surfaces
+  cyl: new THREE.CylinderGeometry(1,1,1,10),
+};
+
+// One concrete bitmap, re-used through several textures with different tiling
+// so a 16m wall and a 20m floor don't share one smeared stretch of UV.
+const CONCRETE_A = makeConcreteTexture(false), CONCRETE_B = makeConcreteTexture(true);
+const TEX = {
+  concrete:      texFrom(CONCRETE_A, [7,3]),   // walls (16m x 5m)
+  concreteFloor: texFrom(CONCRETE_A, [8,10]),  // floor  (16m x 20m)
+  concreteDark:  texFrom(CONCRETE_B, [9,3]),   // side walls (20m x 5m)
+  concreteCeil:  texFrom(CONCRETE_B, [7,8]),
+  dot: texFrom(dotCanvas()),
+  glowRed: texFrom(dotCanvas('rgba(255,90,80,1)','rgba(255,0,0,0)')),
+  glowGreen: texFrom(dotCanvas('rgba(150,255,190,1)','rgba(0,255,120,0)')),
+  flame: texFrom(flameCanvas()),
+  blood: texFrom(bloodCanvas()),
+};
+const MAT = {
+  wall:    new THREE.MeshPhongMaterial({ color:0x6f7478, map:TEX.concrete, shininess:5, specular:0x14171a }),
+  wallDark:new THREE.MeshPhongMaterial({ color:0x53585c, map:TEX.concreteDark, shininess:4, specular:0x0f1113 }),
+  floor:   new THREE.MeshPhongMaterial({ color:0x5c6165, map:TEX.concreteFloor, shininess:26, specular:0x394349 }),
+  ceiling: new THREE.MeshPhongMaterial({ color:0x44494d, map:TEX.concreteCeil, shininess:2 }),
+  steel:   new THREE.MeshPhongMaterial({ color:0x353b40, shininess:34, specular:0x4c545a }),
+  steelDark:new THREE.MeshPhongMaterial({ color:0x22272b, shininess:26, specular:0x3a4046 }),
+  rust:    new THREE.MeshPhongMaterial({ color:0x5a3a2a, shininess:8 }),
+  water:   new THREE.MeshPhongMaterial({ color:0x1b262c, shininess:120, specular:0xa8c0d0,
+                                         transparent:true, opacity:0.42 }),
+  cloth:   new THREE.MeshPhongMaterial({ color:0x2a2f34, shininess:2 }),
+  flesh:   new THREE.MeshPhongMaterial({ color:0x8a7566, shininess:6 }),
+  redGlow: new THREE.MeshBasicMaterial({ color:0xff2a22, fog:true }),
+  greenGlow:new THREE.MeshBasicMaterial({ color:0x66ffa0, fog:true }),
+  lampOn:  new THREE.MeshBasicMaterial({ color:0xdfe8ef, fog:true }),
+  lampOff: new THREE.MeshBasicMaterial({ color:0x2b3136, fog:true }),
+};
+for (const m of Object.values(MAT)) m.userData.shared = true;
+
+// Ambient + a single hero light so the room reads even on LOW quality.
+const ambient = new THREE.AmbientLight(0x3b4650, 1.15);
+scene.add(ambient);
+const hemi = new THREE.HemisphereLight(0x54677a, 0x0f1215, 0.5);
+scene.add(hemi);
+
+/* ---------------------------------------------------------------------------
+ * 7. BUILDING BLOCKS
+ * Every helper pushes into the current room group so teardown is one call.
+ * ------------------------------------------------------------------------ */
+let roomGroup = null;
+const disposables = [];     // per-room textures/materials/geometries
+
+function trackDispose(x){ disposables.push(x); return x; }
+
+function box(mat, sx,sy,sz, x,y,z, ry=0, cast=false, receive=true){
+  const m = new THREE.Mesh(GEO.box, mat);
+  m.scale.set(sx,sy,sz); m.position.set(x,y,z); m.rotation.y = ry;
+  m.castShadow = cast && Q.shadows; m.receiveShadow = receive && Q.shadows;
+  roomGroup.add(m); return m;
+}
+function quad(mat, w,h, x,y,z, rx=0,ry=0,rz=0, seg=false){
+  const m = new THREE.Mesh(seg?GEO.planeSeg:GEO.plane, mat);
+  m.scale.set(w,h,1); m.position.set(x,y,z); m.rotation.set(rx,ry,rz);
+  m.receiveShadow = Q.shadows;
+  roomGroup.add(m); return m;
+}
+/** A flat graphic stuck on a surface (text, blood, handprints). */
+/** `h` of 0 means "derive height from the bitmap", which keeps text unsquashed. */
+function decal(canvas, w,h, x,y,z, rot={}, opt={}){
+  if (!h) h = w * canvas.height / canvas.width;
+  const tex = trackDispose(texFrom(canvas));
+  // `lit:true` decals need a light source to be readable — that is how the
+  // blackout room hides its clues until the flashlight finds them.
+  const mat = trackDispose(opt.lit
+    ? new THREE.MeshPhongMaterial({ map:tex, transparent:true, depthWrite:false,
+        side:THREE.DoubleSide, shininess:0, color:0xffffff, opacity:opt.opacity ?? 1 })
+    : new THREE.MeshBasicMaterial({ map:tex, transparent:true, depthWrite:false,
+        side:THREE.DoubleSide, fog:true, opacity:opt.opacity ?? 1 }));
+  const m = new THREE.Mesh(GEO.plane, mat);
+  m.scale.set(w,h,1); m.position.set(x,y,z);
+  m.rotation.set(rot.x||0, rot.y||0, rot.z||0);
+  m.renderOrder = 2; roomGroup.add(m); return m;
+}
+/** Additive glow sprite — cheap fake bloom for placards, lamps, flame. */
+function glow(tex, size, x,y,z, color=0xffffff, opacity=0.8){
+  const mat = trackDispose(new THREE.SpriteMaterial({
+    map:tex, color, transparent:true, opacity, blending:THREE.AdditiveBlending, depthWrite:false, fog:true }));
+  const s = new THREE.Sprite(mat);
+  s.scale.set(size,size,1); s.position.set(x,y,z);
+  roomGroup.add(s); return s;
+}
+
+/** A low-poly humanoid built from boxes. Returns the group + limb refs. */
+function humanoid(color=0x2a2f34, skin=0x8a7566){
+  const g = new THREE.Group();
+  const body = trackDispose(new THREE.MeshPhongMaterial({ color, shininess:3 }));
+  const head = trackDispose(new THREE.MeshPhongMaterial({ color:skin, shininess:6 }));
+  const mk = (mat,sx,sy,sz,x,y,z)=>{
+    const m=new THREE.Mesh(GEO.box,mat); m.scale.set(sx,sy,sz); m.position.set(x,y,z);
+    m.castShadow = Q.shadows; g.add(m); return m;
+  };
+  mk(body,0.46,0.62,0.26, 0,1.16,0);            // torso
+  mk(head,0.22,0.26,0.22, 0,1.58,0);            // head
+  const armL = mk(body,0.13,0.52,0.14, -0.30,1.18,0);
+  const armR = mk(body,0.13,0.52,0.14,  0.30,1.18,0);
+  const legL = mk(body,0.16,0.72,0.18, -0.13,0.50,0);
+  const legR = mk(body,0.16,0.72,0.18,  0.13,0.50,0);
+  return { group:g, armL, armR, legL, legR };
+}
+
+/* ---------------------------------------------------------------------------
+ * 8. EFFECTS
+ * ------------------------------------------------------------------------ */
+const FX = {
+  shake:0, shakeT:0,
+  flashT:0, flashRed:false,
+  addShake(v){ this.shake = Math.max(this.shake, v); },
+  flash(red=false, t=0.35){ this.flashT=t; this.flashMax=t; this.flashRed=red;
+    el.flash.classList.toggle('red', red); },
+  update(dt){
+    this.shake = damp(this.shake, 0, 4.5, dt);
+    this.shakeT += dt;
+    if (this.flashT > 0){
+      this.flashT -= dt;
+      el.flash.style.opacity = clamp(this.flashT/this.flashMax, 0, 1).toFixed(3);
+    } else el.flash.style.opacity = '0';
+  },
+  applyShake(){
+    const s = this.shake;
+    if (s < 0.0005){ camRig.position.set(0,0,0); camRig.rotation.z = 0; return; }
+    camRig.position.set(
+      Math.sin(this.shakeT*61)*s*0.13,
+      Math.sin(this.shakeT*83)*s*0.13,
+      Math.sin(this.shakeT*47)*s*0.09);
+    camRig.rotation.z = Math.sin(this.shakeT*39)*s*0.035;
+  },
+};
+
+/** Slowly drifting dust, lit by the strip lights. Points, updated on CPU. */
+function makeDust(count){
+  const pos = new Float32Array(count*3), vel = new Float32Array(count*3);
+  for (let i=0;i<count;i++){
+    pos[i*3]   = rand(-CFG.ROOM_W/2, CFG.ROOM_W/2);
+    pos[i*3+1] = rand(0.1, CFG.ROOM_H);
+    pos[i*3+2] = rand(-CFG.ROOM_D/2, CFG.ROOM_D/2);
+    vel[i*3]   = rand(-0.05,0.05); vel[i*3+1] = rand(-0.02,0.05); vel[i*3+2] = rand(-0.05,0.05);
+  }
+  const geo = trackDispose(new THREE.BufferGeometry());
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  const mat = trackDispose(new THREE.PointsMaterial({
+    map:TEX.dot, size:0.045, transparent:true, opacity:0.5, depthWrite:false,
+    blending:THREE.AdditiveBlending, sizeAttenuation:true, color:0xa8b6c2, fog:true }));
+  const pts = new THREE.Points(geo, mat);
+  pts.userData.vel = vel;
+  pts.frustumCulled = false;
+  roomGroup.add(pts);
+  return pts;
+}
+function updateDust(pts, dt){
+  if (!pts) return;
+  const p = pts.geometry.attributes.position.array, v = pts.userData.vel;
+  const hw = CFG.ROOM_W/2, hd = CFG.ROOM_D/2;
+  for (let i=0;i<p.length;i+=3){
+    p[i] += v[i]*dt; p[i+1] += v[i+1]*dt; p[i+2] += v[i+2]*dt;
+    if (p[i+1] > CFG.ROOM_H) p[i+1] = 0.05;
+    if (p[i+1] < 0) p[i+1] = CFG.ROOM_H;
+    if (p[i] >  hw) p[i] = -hw; if (p[i] < -hw) p[i] = hw;
+    if (p[i+2] >  hd) p[i+2] = -hd; if (p[i+2] < -hd) p[i+2] = hd;
+  }
+  pts.geometry.attributes.position.needsUpdate = true;
+}
+
+/** The ceiling laser grid: emitter rails plus the beams that kill you. */
+function makeLaserGrid(){
+  const rails = new THREE.Group();
+  const railMat = MAT.steelDark;
+  for (let x=-6; x<=6; x+=3){
+    const m = new THREE.Mesh(GEO.box, railMat);
+    m.scale.set(0.09, 0.09, CFG.ROOM_D-0.4); m.position.set(x, CFG.ROOM_H-0.12, 0);
+    rails.add(m);
+  }
+  for (let z=-8; z<=8; z+=4){
+    const m = new THREE.Mesh(GEO.box, railMat);
+    m.scale.set(CFG.ROOM_W-0.4, 0.09, 0.09); m.position.set(0, CFG.ROOM_H-0.12, z);
+    rails.add(m);
+  }
+  roomGroup.add(rails);
+
+  // Beam meshes are created hidden and only revealed on the kill.
+  const beams = new THREE.Group(); beams.visible = false;
+  const bMat = trackDispose(new THREE.MeshBasicMaterial({
+    color:0xff3a2e, transparent:true, opacity:0.9, blending:THREE.AdditiveBlending, depthWrite:false, fog:false }));
+  for (let x=-6; x<=6; x+=3) for (let z=-8; z<=8; z+=4){
+    const m = new THREE.Mesh(GEO.box, bMat);
+    m.scale.set(0.06, CFG.ROOM_H, 0.06); m.position.set(x, CFG.ROOM_H/2, z);
+    beams.add(m);
+  }
+  roomGroup.add(beams);
+  return { rails, beams, mat:bMat };
+}
+
+/* ---------------------------------------------------------------------------
+ * 9. ROOMS
+ *
+ * Each entry is a spec. `R` is the live room runtime handed to build/update.
+ * `correct` is the *physical* side that survives, independent of the placards.
+ * `labels` is what the placards read when the room opens.
+ * `clue` is echoed on the death screen as "what you missed".
+ * ------------------------------------------------------------------------ */
+
+/** Shared: which door mesh sits on which side. */
+function doorPos(side){ return new THREE.Vector3(side==='left' ? -CFG.DOOR_X : CFG.DOOR_X, 1.05, -CFG.ROOM_D/2 + 0.16); }
+
+const ROOMS = [
+/* ---- 1. Tutorial --------------------------------------------------------- */
+{
+  n:1, time:120, correct:'left', labels:{left:'LIVE', right:'DIE'},
+  clue:'The wall said the signs were honest — in this room only. LIVE meant LIVE.',
+  build(R){
+    // Big obvious clue on the left wall; a short restatement between the doors.
+    decal(scrawlCanvas(['THE SIGNS','DO NOT LIE.','NOT YET.'],{color:'#a51520',size:74}),
+          7.4,0, -CFG.ROOM_W/2+0.06,2.4, -1.0, {y:Math.PI/2});
+    decal(scrawlCanvas(['READ THE SIGNS'],{color:'#8e1119',size:56}),
+          4.0,0, 0,1.55, -CFG.ROOM_D/2+0.06);
+    decal(scrawlCanvas(['WALK. LOOK. READ.','THEN CHOOSE.'],{color:'#8a9298',size:60,glow:2,drips:false}),
+          6,0, 0,2.3, CFG.ROOM_D/2-0.06, {y:Math.PI});
+    decal(scrawlCanvas(['HOLD TO OPEN A DOOR'],{color:'#6f7a80',size:52,drips:false}),
+          5,0, CFG.ROOM_W/2-0.06,1.9, 2, {y:-Math.PI/2});
+    prop_bloodPool(-2.0, -6.0, 2.2);
+    prop_barrel(5.6, 2.0);
+    prop_barrel(6.4, 3.4);
+  },
+},
+/* ---- 2. The riddle in blood --------------------------------------------- */
+{
+  n:2, time:120, correct:'right', labels:{left:'LIVE', right:'DIE'},
+  clue:'"The mouth that says LIVE eats." The placard promising life was the trap — you wanted the door marked DIE.',
+  build(R){
+    decal(scrawlCanvas(['THE MOUTH THAT SAYS','"LIVE" — IT EATS.','THE MOUTH THAT SAYS','"DIE" ONLY WARNS.'],
+          {color:'#8e1119',size:56}), 7.6,0, -CFG.ROOM_W/2+0.06,2.5, -1.0, {y:Math.PI/2});
+    decal(scrawlCanvas(['FOUR WENT LEFT.','NONE CAME BACK.'],{color:'#7c0f16',size:62}),
+          6,0, CFG.ROOM_W/2-0.06,2.4, 1.0, {y:-Math.PI/2});
+    prop_note(['A WARNING IS NOT','A THREAT.','READ IT AGAIN.'], -1.2, 1.55, CFG.ROOM_D/2-0.08, Math.PI);
+    prop_bloodPool(-3.3, -8.2, 3.0);
+    prop_bloodPool(-2.2, -5.0, 1.6);
+    prop_body(-3.0, -7.4, 0.5);
+    prop_barrel(-6.2, 4.0);
+  },
+},
+/* ---- 3. Water and a live wire ------------------------------------------- */
+{
+  n:3, time:120, correct:'left', labels:{left:'LIVE', right:'DIE'},
+  clue:'The severed cable ran into the water under the RIGHT door and it hummed. The honest placard was the left one.',
+  build(R){
+    R.state.humSide = 'right';
+    decal(scrawlCanvas(['DO NOT TOUCH','THE WATER','WHERE IT SINGS'],{color:'#8e1119',size:60}),
+          4.2,0, 0,1.5, -CFG.ROOM_D/2+0.06);
+    decal(scrawlCanvas(['LISTEN.'],{color:'#8a9298',size:86,drips:false}),
+          3.4,0, -CFG.ROOM_W/2+0.06,2.6, 3, {y:Math.PI/2});
+
+    // Cable: a chain of thin boxes snaking from a wall junction to the right door.
+    const cableMat = trackDispose(new THREE.MeshPhongMaterial({ color:0x14181b, shininess:20 }));
+    let cx = CFG.ROOM_W/2-0.5, cz = 4.0;
+    const tx = CFG.DOOR_X, tz = -CFG.ROOM_D/2 + 0.7;
+    for (let i=0;i<24;i++){
+      const t = i/23;
+      const x = lerp(cx,tx,t) + Math.sin(t*9)*0.55;
+      const z = lerp(cz,tz,t);
+      const seg = box(cableMat, 0.09, 0.09, 0.7, x, 0.07, z, Math.atan2(0.55*9*Math.cos(t*9)/23, (tz-cz)/23));
+      seg.receiveShadow = false;
+    }
+    // Sparking end — small additive flicker sprite
+    R.state.spark = glow(TEX.glowRed, 1.1, CFG.DOOR_X-0.15, 0.16, -CFG.ROOM_D/2+1.0, 0x88ccff, 0.0);
+    prop_junctionBox(CFG.ROOM_W/2-0.22, 1.7, 4.0);
+    prop_bloodPool(CFG.DOOR_X, -7.4, 2.4);
+    prop_body(CFG.DOOR_X+0.8, -7.8, 1.9, 0x1a1a1a);   // scorched
+    prop_barrel(-6.0, -2.0);
+  },
+  update(R, dt){
+    // Hum swells as the player nears the electrified frame; the spark blinks.
+    const d = player.pos.distanceTo(doorPos(R.state.humSide));
+    Audio.setHum(clamp(1 - (d-1.2)/7, 0, 1));
+    const s = R.state.spark;
+    if (s) s.material.opacity = Math.random()<0.06 ? rand(0.4,1.0) : Math.max(0, s.material.opacity - dt*3);
+  },
+  enter(){ Audio.startHum(); },
+  leave(){ Audio.stopHum(); },
+},
+/* ---- 4. Two survivors ---------------------------------------------------- */
+{
+  n:4, time:120, correct:'left', labels:{left:'DIE', right:'LIVE'},
+  clue:'The man who ran took the door marked LIVE and the grid cut him in half. The other door was the way out.',
+  build(R){
+    decal(scrawlCanvas(['WATCH SOMEONE ELSE','GO FIRST.'],{color:'#8a9298',size:56,drips:false}),
+          6,0, -CFG.ROOM_W/2+0.06,2.6, 2.0, {y:Math.PI/2});
+    prop_bloodPool(1.0, -3.0, 2.0);
+    prop_barrel(-6.4, -5.0); prop_barrel(-5.4, -5.8);
+
+    // The panicker (runs to the LIVE-labelled right door and dies).
+    const a = humanoid(0x36414a, 0x9c8574);
+    a.group.position.set(-1.6, 0, 1.6); a.group.rotation.y = Math.PI;
+    roomGroup.add(a.group);
+    // The one who stays, pressed into the corner.
+    const b = humanoid(0x2a2426, 0x8a7566);
+    b.group.position.set(-6.2, 0, -1.2); b.group.rotation.y = 0.9;
+    b.group.scale.setScalar(0.96);
+    roomGroup.add(b.group);
+
+    R.state.npcA = a; R.state.npcB = b; R.state.phase = 0;
+    R.colliders.push({x:-6.2, z:-1.2, r:0.5});
+  },
+  update(R, dt){
+    const s = R.state, el5 = R.spec.time - R.timeLeft;   // seconds elapsed in room
+    const a = s.npcA;
+    // Scripted beats, keyed off elapsed time.
+    if (s.phase===0 && el5>3){ s.phase=1; Game.say('"Don\'t. Don\'t pick yet." — the woman in the corner'); }
+    if (s.phase===1 && el5>8){ s.phase=2; Game.say('"I\'ve seen four rooms. The signs lie more than they don\'t."'); }
+    if (s.phase===2 && el5>14){ s.phase=3; Game.say('"NO — I\'m not waiting, it says LIVE, it SAYS LIVE—"'); Audio.click(300); }
+    if (s.phase===3){
+      // Sprint to the right-hand door.
+      const tgt = new THREE.Vector3(CFG.DOOR_X, 0, -CFG.ROOM_D/2+1.2);
+      const dir = tgt.clone().sub(a.group.position); dir.y=0;
+      const dist = dir.length();
+      if (dist > 0.15){
+        dir.normalize();
+        a.group.position.addScaledVector(dir, 5.2*dt);
+        a.group.rotation.y = Math.atan2(dir.x, dir.z) + Math.PI;
+        const t = performance.now()*0.014;
+        a.legL.rotation.x = Math.sin(t)*0.9; a.legR.rotation.x = -Math.sin(t)*0.9;
+        a.armL.rotation.x = -Math.sin(t)*0.8; a.armR.rotation.x = Math.sin(t)*0.8;
+      } else { s.phase=4; s.killT=0; Audio.laser(); Game.say('—'); }
+    }
+    if (s.phase===4){
+      s.killT += dt;
+      if (s.killT > 0.9 && !s.killed){
+        s.killed = true;
+        // Localised beam over the NPC, then he drops.
+        const beam = box(trackDispose(new THREE.MeshBasicMaterial({
+          color:0xff3a2e, transparent:true, opacity:1, blending:THREE.AdditiveBlending, depthWrite:false, fog:false })),
+          0.09, CFG.ROOM_H, 0.09, a.group.position.x, CFG.ROOM_H/2, a.group.position.z);
+        s.beam = beam;
+        FX.flash(true, 0.22); FX.addShake(0.7); buzz(30);
+        prop_bloodPool(a.group.position.x, a.group.position.z, 2.6);
+        Game.say('The grid takes him at the waist. He does not scream for long.');
+      }
+      if (s.killed){
+        // fold the body over
+        a.group.rotation.x = damp(a.group.rotation.x, -Math.PI/2*0.92, 6, dt);
+        a.group.position.y = damp(a.group.position.y, 0.16, 6, dt);
+        if (s.beam) s.beam.material.opacity = Math.max(0, s.beam.material.opacity - dt*1.6);
+      }
+      if (s.killT > 4.2 && !s.after){ s.after=true; Game.say('"...he read the sign. That\'s all he did." — the woman'); }
+    }
+  },
+},
+/* ---- 5. Blackout, flashlight, sweeping beams ----------------------------- */
+{
+  n:5, time:120, correct:'right', labels:{left:'LIVE', right:'DIE'},
+  dark:true, flashlight:true,
+  clue:'Bloody handprints climbed the RIGHT door — someone got it open. The placards were reversed.',
+  build(R){
+    // These clues are LIT — invisible without the flashlight.
+    decal(scrawlCanvas(['SHE WENT THROUGH','THE RIGHT ONE.','I HEARD HER LAUGH.'],{color:'#7d1119',size:52,glow:0}),
+          6.4,0, CFG.ROOM_W/2-0.06,2.4, -1.5, {y:-Math.PI/2}, {lit:true});
+    decal(scrawlCanvas(['DUCK.'],{color:'#8a9298',size:96,drips:false,glow:0}),
+          3,0, -CFG.ROOM_W/2+0.06,2.2, 5.0, {y:Math.PI/2}, {lit:true});
+    // handprints climbing the right-hand door
+    for (let i=0;i<5;i++){
+      decal(handCanvas(), 0.34,0.42,
+        CFG.DOOR_X - 0.5 + i*0.22, 0.55 + i*0.34, -CFG.ROOM_D/2+0.20, {}, {lit:true, opacity:0.9});
+    }
+    prop_bloodPool(2.0, -6.0, 2.4);
+    prop_body(-2.4, 3.0, 1.2);
+    prop_barrel(6.0, -3.0);
+
+    // Three sweeping beams at chest height. Crouch or die.
+    const bm = trackDispose(new THREE.MeshBasicMaterial({
+      color:0xff2a22, transparent:true, opacity:0.85, blending:THREE.AdditiveBlending, depthWrite:false, fog:false }));
+    R.state.sweeps = [];
+    for (let i=0;i<3;i++){
+      const m = box(bm, CFG.ROOM_W-0.3, 0.05, 0.05, 0, 1.34, -6 + i*6);
+      const g = glow(TEX.glowRed, 1.6, 0, 1.34, -6 + i*6, 0xff3020, 0.35);
+      R.state.sweeps.push({ mesh:m, glow:g, z:-6+i*6, dir: i%2 ? 1 : -1, speed: 2.0 + i*0.35 });
+    }
+  },
+  update(R, dt){
+    for (const s of R.state.sweeps){
+      s.z += s.dir * s.speed * dt;
+      if (s.z >  CFG.ROOM_D/2-1.5){ s.z =  CFG.ROOM_D/2-1.5; s.dir = -1; }
+      if (s.z < -CFG.ROOM_D/2+1.5){ s.z = -CFG.ROOM_D/2+1.5; s.dir =  1; }
+      s.mesh.position.z = s.z; s.glow.position.z = s.z;
+      s.glow.position.x = player.pos.x;                 // glow follows view for a cheap flare
+      // Kill check: standing head crosses the beam plane.
+      const head = player.eye + 0.12;
+      if (Math.abs(player.pos.z - s.z) < 0.34 && head > 1.20) Game.kill('beam');
+    }
+  },
+},
+/* ---- 6. The placards swap ------------------------------------------------ */
+{
+  n:6, time:120, correct:'left', labels:{left:'LIVE', right:'DIE'}, swapAt:60,
+  clue:'At 1:00 the placards silently swapped. The water drained to the LEFT — the door never moved, only the words.',
+  build(R){
+    decal(scrawlCanvas(['THE WORDS MOVE.','THE DOOR','DOES NOT.'],{color:'#8e1119',size:56}),
+          4.2,0, 0,1.5, -CFG.ROOM_D/2+0.06);
+    decal(scrawlCanvas(['FOLLOW THE WATER OUT'],{color:'#7c0f16',size:52}),
+          6.4,0, -CFG.ROOM_W/2+0.06,2.3, -2.0, {y:Math.PI/2});
+    decal(scrawlCanvas(['CHECK AGAIN','AT ONE MINUTE'],{color:'#8a9298',size:54,drips:false}),
+          5.6,0, CFG.ROOM_W/2-0.06,2.3, 2.0, {y:-Math.PI/2});
+    // Drain grate in the floor, hard against the left-hand door.
+    prop_grate(-CFG.DOOR_X, -CFG.ROOM_D/2+2.0, true);
+    // Debris drifting toward the drain sells the flow direction.
+    R.state.flotsam = [];
+    const fm = trackDispose(new THREE.MeshPhongMaterial({ color:0x3a3f44, shininess:2 }));
+    for (let i=0;i<7;i++){
+      const m = box(fm, rand(0.12,0.3), 0.03, rand(0.12,0.3), rand(-5,5), 0.055, rand(-6,7), rand(0,3));
+      R.state.flotsam.push(m);
+    }
+    prop_bloodPool(3.0, -4.0, 2.0);
+    prop_barrel(6.2, 5.0);
+  },
+  update(R, dt){
+    // Everything floats slowly toward the drain by the left door.
+    const dx = -CFG.DOOR_X, dz = -CFG.ROOM_D/2+2.0;
+    for (const m of R.state.flotsam){
+      const vx = (dx - m.position.x), vz = (dz - m.position.z);
+      const l = Math.hypot(vx,vz)||1;
+      m.position.x += vx/l*0.16*dt; m.position.z += vz/l*0.16*dt;
+      m.rotation.y += dt*0.25;
+      if (l < 0.6){ m.position.set(rand(-5,5), 0.055, rand(2,8)); }
+    }
+    // THE TWIST: at the 60s mark the placards trade places, in silence.
+    if (!R.state.swapped && R.timeLeft <= 60){
+      R.state.swapped = true;
+      Game.swapPlacards();
+      // No sound, no message. Only a flicker you might catch.
+      FX.flash(false, 0.06);
+    }
+  },
+},
+/* ---- 7. Split clue, half the clock -------------------------------------- */
+{
+  n:7, time:60, correct:'left', labels:{left:'DIE', right:'LIVE'},
+  clue:'Seven marks on one wall, "an odd count means the placards lie" on the other. Seven is odd — the DIE door was the way out.',
+  build(R){
+    decal(scrawlCanvas(['SEVEN OF US CAME IN'],{color:'#8e1119',size:56}),
+          6.4,0, -CFG.ROOM_W/2+0.06,3.0, -3.0, {y:Math.PI/2});
+    decal(tallyCanvas(7,'#c9cfd4'), 5.2,2.6, -CFG.ROOM_W/2+0.06,1.7, -3.0, {y:Math.PI/2});
+    decal(scrawlCanvas(['AN ODD COUNT MEANS','THE PLACARDS LIE'],{color:'#7c0f16',size:52}),
+          6.8,0, CFG.ROOM_W/2-0.06,2.5, 3.0, {y:-Math.PI/2});
+    decal(scrawlCanvas(['BOTH WALLS.','YOU HAVE ONE MINUTE.'],{color:'#8a9298',size:48,drips:false}),
+          6,0, 0,2.6, CFG.ROOM_D/2-0.06, {y:Math.PI});
+    prop_body(5.0, -2.0, 2.6);
+    prop_bloodPool(5.0, -2.0, 2.2);
+    prop_barrel(-6.4, 6.0); prop_barrel(6.4, -6.0);
+  },
+},
+/* ---- 8. FINALE: fire, smoke, and a door that lies by being honest -------- */
+{
+  n:8, time:120, correct:'right', labels:{left:'DIE', right:'LIVE'},
+  fire:true,
+  clue:'The LIVE door was on fire. Behind the grate on the left wall was a sprinkler valve — open it first, then take LIVE.',
+  build(R){
+    R.state.sprinklersOn = false;
+    R.state.grateOpen = false;
+    R.state.smoke = 0;
+
+    decal(scrawlCanvas(['THE WAY OUT','IS TRUE'],{color:'#8e1119',size:62}),
+          4.2,0, 0,1.85, -CFG.ROOM_D/2+0.06);
+    decal(scrawlCanvas(['IT IS ALSO','ON FIRE'],{color:'#6a0d13',size:56}),
+          4.0,0, 0,0.85, -CFG.ROOM_D/2+0.06);
+
+    // Fire across the right (LIVE) doorway plus scattered burning debris.
+    R.state.flames = [];
+    const fireAt = (x,z,scale)=>{
+      const mat = trackDispose(new THREE.SpriteMaterial({
+        map:TEX.flame, color:0xffffff, transparent:true, opacity:0.95,
+        blending:THREE.AdditiveBlending, depthWrite:false, fog:true }));
+      const s = new THREE.Sprite(mat);
+      s.position.set(x, 0.6*scale, z); s.scale.set(1.5*scale, 2.0*scale, 1);
+      roomGroup.add(s);
+      R.state.flames.push({ s, base:scale, ph:rand(0,6.3) });
+      return s;
+    };
+    for (let i=-2;i<=2;i++) fireAt(CFG.DOOR_X + i*0.42, -CFG.ROOM_D/2+0.75, 1.25 - Math.abs(i)*0.12);
+    fireAt(4.6, -5.0, 0.9); fireAt(2.2, -7.4, 0.8); fireAt(6.2, -1.4, 0.7); fireAt(-1.0,-8.6,0.6);
+    R.state.fireLight = new THREE.PointLight(0xff7a2a, 40, 18, 1.4);
+    R.state.fireLight.position.set(CFG.DOOR_X, 1.4, -CFG.ROOM_D/2+1.2);
+    roomGroup.add(R.state.fireLight);
+
+    // The hidden solve: a bolted grate on the left wall.
+    R.state.grate = prop_wallGrate(-CFG.ROOM_W/2+0.10, 1.30, -3.0);
+    // The valve behind it — built now, hidden until the grate comes off.
+    const vg = new THREE.Group();
+    const wheel = new THREE.Mesh(GEO.cyl, MAT.rust);
+    wheel.scale.set(0.28,0.05,0.28); wheel.rotation.z = Math.PI/2; wheel.position.set(0.02,0,0);
+    const stem = new THREE.Mesh(GEO.box, MAT.steel);
+    stem.scale.set(0.16,0.08,0.08); stem.position.set(-0.08,0,0);
+    vg.add(wheel, stem);
+    vg.position.set(-CFG.ROOM_W/2+0.34, 1.30, -3.0);
+    vg.visible = false;
+    roomGroup.add(vg);
+    R.state.valve = vg;
+
+    // Ceiling sprinkler heads (dormant).
+    R.state.heads = [];
+    for (let x=-5;x<=5;x+=5) for (let z=-6;z<=6;z+=6){
+      const h = box(MAT.rust, 0.10,0.16,0.10, x, CFG.ROOM_H-0.26, z);
+      R.state.heads.push(h);
+    }
+    // Rain particles, hidden until the valve turns.
+    const n = Q.high ? 900 : 340;
+    const pos = new Float32Array(n*3);
+    for (let i=0;i<n;i++){
+      pos[i*3]=rand(-CFG.ROOM_W/2,CFG.ROOM_W/2);
+      pos[i*3+1]=rand(0,CFG.ROOM_H);
+      pos[i*3+2]=rand(-CFG.ROOM_D/2,CFG.ROOM_D/2);
+    }
+    const rg = trackDispose(new THREE.BufferGeometry());
+    rg.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    const rm = trackDispose(new THREE.PointsMaterial({
+      map:TEX.dot, color:0xbcd6e6, size:0.06, transparent:true, opacity:0.75,
+      depthWrite:false, blending:THREE.AdditiveBlending, fog:true }));
+    const rain = new THREE.Points(rg, rm); rain.visible=false; rain.frustumCulled=false;
+    roomGroup.add(rain);
+    R.state.rain = rain;
+
+    prop_body(-4.0, -6.0, 1.0, 0x201a18);
+    prop_bloodPool(-4.0, -6.0, 2.2);
+    prop_barrel(-6.6, 2.0);
+
+    /* -- interactables: the grate, then the valve --------------------------- */
+    R.interactables.push({
+      pos:new THREE.Vector3(-CFG.ROOM_W/2+0.5, 1.30, -3.0), radius:1.9, hold:1.2,
+      label:()=> 'PRY THE GRATE',
+      enabled:()=> !R.state.grateOpen,
+      action:()=>{
+        R.state.grateOpen = true;
+        R.state.grate.visible = false;
+        R.state.valve.visible = true;
+        Audio.click(210); Audio.door(); FX.addShake(0.25); buzz(35);
+        Game.say('The grate comes away. There is a valve behind it, seized with rust.');
+      },
+    });
+    R.interactables.push({
+      pos:new THREE.Vector3(-CFG.ROOM_W/2+0.6, 1.30, -3.0), radius:1.9, hold:1.8,
+      label:()=> 'TURN THE VALVE',
+      enabled:()=> R.state.grateOpen && !R.state.sprinklersOn,
+      action:()=>{
+        R.state.sprinklersOn = true;
+        R.state.rain.visible = true;
+        Audio.startRain(); Audio.click(160);
+        buzz([25,60,25]);
+        Game.say('Somewhere above, a pipe lets go.');
+      },
+    });
+  },
+  update(R, dt){
+    const s = R.state;
+    // --- flame animation -------------------------------------------------
+    const t = performance.now()*0.004;
+    for (const f of s.flames){
+      const k = s.sprinklersOn ? Math.max(0, f.s.material.opacity - dt*0.55) : 0.95;
+      f.s.material.opacity = k;
+      const w = 1 + Math.sin(t*3.1 + f.ph)*0.10;
+      const h = 1 + Math.sin(t*4.7 + f.ph*1.7)*0.16;
+      f.s.scale.set(1.5*f.base*w*(k/0.95||0.001), 2.0*f.base*h*(k/0.95||0.001), 1);
+    }
+    if (s.fireLight){
+      const target = s.sprinklersOn ? 0 : 40 + Math.sin(t*9)*10;
+      s.fireLight.intensity = damp(s.fireLight.intensity, Math.max(0,target), 3, dt);
+    }
+    // --- smoke: visibility falls off over the room's life ----------------
+    if (!s.sprinklersOn){
+      s.smoke = clamp(s.smoke + dt/95, 0, 1);
+      Audio.setFire(0.35 + s.smoke*0.65);
+    } else {
+      s.smoke = damp(s.smoke, 0, 1.1, dt);
+      s.fireVol = damp(s.fireVol ?? 1, 0, 1.4, dt);
+      Audio.setFire(s.fireVol);
+      Audio.setRain(1);
+      // rain fall
+      const p = s.rain.geometry.attributes.position.array;
+      for (let i=1;i<p.length;i+=3){
+        p[i] -= 7.5*dt;
+        if (p[i] < 0.02) p[i] = CFG.ROOM_H - 0.3;
+      }
+      s.rain.geometry.attributes.position.needsUpdate = true;
+    }
+    el.smoke.style.opacity = (s.smoke*0.62).toFixed(3);
+    scene.fog.density = FOG_BASE + s.smoke*0.13;
+
+    // Standing in open flame is also fatal — the fire is not scenery.
+    if (!s.sprinklersOn){
+      for (const f of s.flames){
+        if (f.base > 0.85 && player.pos.distanceTo(new THREE.Vector3(f.s.position.x, player.pos.y, f.s.position.z)) < 0.85)
+          { Game.kill('burn'); break; }
+      }
+    }
+  },
+  /** The LIVE door only saves you once the fire is out. */
+  resolve(side, R){
+    if (side === 'left') return 'die';
+    return R.state.sprinklersOn ? 'win' : 'burn';
+  },
+  enter(){ Audio.startFire(); Audio.setFire(0.35); },
+  leave(){ Audio.stopFire(); Audio.stopRain(); el.smoke.style.opacity='0'; scene.fog.density=FOG_BASE; },
+},
+];
+
+/* --- prop constructors (used by the room specs above) --------------------- */
+function prop_bloodPool(x,z,size){
+  const m = decal(bloodCanvas(), size, size, x, 0.035, z, {x:-Math.PI/2}, {opacity:0.92});
+  m.material.depthWrite = false;
+  return m;
+}
+function prop_body(x,z,rot=0,color=0x2a2f34){
+  const h = humanoid(color);
+  h.group.position.set(x, 0.10, z);
+  h.group.rotation.set(-Math.PI/2*0.96, rot, 0.2);
+  roomGroup.add(h.group);
+  return h;
+}
+function prop_barrel(x,z){
+  const m = new THREE.Mesh(GEO.cyl, MAT.rust);
+  m.scale.set(0.34, 0.92, 0.34); m.position.set(x, 0.46, z);
+  m.castShadow = Q.shadows; m.receiveShadow = Q.shadows;
+  roomGroup.add(m);
+  currentRoom && currentRoom.colliders.push({x, z, r:0.44});
+  return m;
+}
+function prop_note(lines, x,y,z, ry){
+  return decal(noteCanvas(lines), 0.62, 0.46, x,y,z, {y:ry});
+}
+function prop_junctionBox(x,y,z){
+  const m = box(MAT.steelDark, 0.14, 0.5, 0.4, x, y, z);
+  glow(TEX.glowRed, 0.5, x-0.12, y, z, 0x3388ff, 0.5);
+  return m;
+}
+function prop_grate(x,z,floor){
+  const m = box(MAT.steelDark, 0.9, 0.06, 0.9, x, 0.04, z);
+  for (let i=-1;i<=1;i++) box(MAT.steel, 0.9, 0.03, 0.06, x, 0.075, z + i*0.26);
+  return m;
+}
+function prop_wallGrate(x,y,z){
+  const g = new THREE.Group();
+  const plate = new THREE.Mesh(GEO.box, MAT.steelDark);
+  plate.scale.set(0.08, 0.56, 0.72); plate.position.set(0,0,0);
+  g.add(plate);
+  for (let i=-2;i<=2;i++){
+    const s = new THREE.Mesh(GEO.box, MAT.steel);
+    s.scale.set(0.10, 0.05, 0.72); s.position.set(0.01, i*0.11, 0);
+    g.add(s);
+  }
+  g.position.set(x,y,z);
+  roomGroup.add(g);
+  return g;
+}
+/** Bloody handprint. */
+function handCanvas(){
+  const c = makeCanvas(128,160), g = c.getContext('2d');
+  g.fillStyle='rgba(122,10,16,.85)';
+  g.beginPath(); g.ellipse(64,110,30,34,0,0,6.3); g.fill();          // palm
+  const fingers = [[30,58,9,34,-0.3],[50,44,9,40,-0.1],[70,42,9,42,0.06],[90,52,9,36,0.26],[104,102,10,22,1.1]];
+  for (const [x,y,w,h,r] of fingers){
+    g.save(); g.translate(x,y); g.rotate(r);
+    g.beginPath(); g.ellipse(0,0,w,h,0,0,6.3); g.fill(); g.restore();
+  }
+  return c;
+}
+
+/* ---------------------------------------------------------------------------
+ * 10. PLAYER
+ * ------------------------------------------------------------------------ */
+const player = {
+  pos: new THREE.Vector3(0, 0, CFG.ROOM_D/2 - 3),
+  vel: new THREE.Vector3(),
+  yaw: 0, pitch: 0,          // yaw 0 == looking down -Z, i.e. toward the doors
+  eye: CFG.EYE_STAND,
+  crouching:false,
+  bob:0,
+  reset(){
+    this.pos.set(0, 0, CFG.ROOM_D/2 - 3);
+    this.vel.set(0,0,0);
+    this.yaw = 0; this.pitch = 0; this.bob=0;
+    this.eye = CFG.EYE_STAND; this.crouching=false;
+  },
+  update(dt, look){
+    // --- look ----------------------------------------------------------
+    this.yaw   -= look.dx;
+    this.pitch  = clamp(this.pitch - look.dy, -1.35, 1.35);
+
+    // --- move ----------------------------------------------------------
+    this.crouching = Input.crouch;
+    const targetEye = this.crouching ? CFG.EYE_CROUCH : CFG.EYE_STAND;
+    this.eye = damp(this.eye, targetEye, 12, dt);
+
+    const speed = this.crouching ? CFG.SPEED_CROUCH : CFG.SPEED;
+    let mx = Input.move.x, my = Input.move.y;
+    const ml = Math.hypot(mx,my);
+    if (ml > 1){ mx/=ml; my/=ml; }
+
+    // Camera looks down -Z at yaw 0, so forward is (-sin, -cos) and right is
+    // (cos, -sin). W always walks toward whatever the camera is facing.
+    const fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw);
+    const rx =  Math.cos(this.yaw), rz = -Math.sin(this.yaw);
+    const wishX = fx*my + rx*mx, wishZ = fz*my + rz*mx;
+
+    this.vel.x += wishX * CFG.ACCEL * dt;
+    this.vel.z += wishZ * CFG.ACCEL * dt;
+    const fr = Math.exp(-CFG.FRICTION*dt);
+    this.vel.x *= fr; this.vel.z *= fr;
+    const sp = Math.hypot(this.vel.x, this.vel.z);
+    if (sp > speed){ this.vel.x = this.vel.x/sp*speed; this.vel.z = this.vel.z/sp*speed; }
+
+    this.pos.x += this.vel.x * dt;
+    this.pos.z += this.vel.z * dt;
+
+    // --- collide -------------------------------------------------------
+    const hw = CFG.ROOM_W/2 - CFG.PLAYER_R, hd = CFG.ROOM_D/2 - CFG.PLAYER_R;
+    this.pos.x = clamp(this.pos.x, -hw, hw);
+    this.pos.z = clamp(this.pos.z, -hd, hd);
+    if (currentRoom){
+      for (const c of currentRoom.colliders){
+        const dx = this.pos.x - c.x, dz = this.pos.z - c.z;
+        const d = Math.hypot(dx,dz), min = c.r + CFG.PLAYER_R;
+        if (d < min && d > 0.0001){
+          this.pos.x = c.x + dx/d*min;
+          this.pos.z = c.z + dz/d*min;
+        }
+      }
+    }
+
+    // --- head bob ------------------------------------------------------
+    this.bob += sp * dt * 9;
+    const bobY = Math.sin(this.bob)*0.028*Math.min(sp/CFG.SPEED,1);
+    const bobX = Math.cos(this.bob*0.5)*0.020*Math.min(sp/CFG.SPEED,1);
+
+    camera.position.set(this.pos.x + bobX, this.eye + bobY, this.pos.z);
+    camera.rotation.order = 'YXZ';
+    camera.rotation.set(this.pitch, this.yaw, 0);
+  },
+};
+
+/* ---------------------------------------------------------------------------
+ * 11. GAME
+ * ------------------------------------------------------------------------ */
+let currentRoom = null;
+let flashlight = null, flashTarget = null;
+
+const Score = {
+  best:null,               // in-memory only, as specified
+  roomsCleared:0, deaths:0, totalTime:0, lives:CFG.LIVES,
+  resetRun(startRoom=0){ this.roomsCleared=startRoom; this.deaths=0; this.totalTime=0; this.lives=CFG.LIVES; },
+  fmt(t){ const m=Math.floor(t/60), s=Math.floor(t%60); return `${m}:${String(s).padStart(2,'0')}`; },
+  submit(won){
+    const entry = { rooms:this.roomsCleared, time:this.totalTime, lives:this.lives, deaths:this.deaths, won };
+    if (!this.best ||
+        entry.rooms > this.best.rooms ||
+        (entry.rooms === this.best.rooms && entry.time < this.best.time)) this.best = entry;
+    this.renderBest();
+  },
+  renderBest(){
+    const b = this.best;
+    $('bestLine').textContent = b
+      ? `BEST · ${b.rooms}/8 ROOMS · ${this.fmt(b.time)} · ${b.deaths} DEATH${b.deaths===1?'':'S'}${b.won?' · CLEARED':''}`
+      : 'NO RECORD';
+  },
+};
+
+const Game = {
+  state:'title',            // title | how | play | pause | death | win | transition
+  roomIndex:0,
+  checkpointUnlocked:false, // becomes true after the first full clear
+  usingCheckpoint:false,
+  holdT:0, holdTarget:null,
+  lastBeepSecond:-1,
+  heartT:0,
+  sayT:0,
+  flashOn:false, battery:1,
+  timeInRoom:0,
+
+  /* -- room lifecycle -------------------------------------------------- */
+  buildRoom(index){
+    this.teardown();
+    const spec = ROOMS[index];
+    roomGroup = new THREE.Group();
+    scene.add(roomGroup);
+
+    const R = {
+      spec, index, timeLeft:spec.time, colliders:[], interactables:[], state:{}, doors:{}, placards:{},
+      labels:{ left:spec.labels.left, right:spec.labels.right },
+      dust:null, opened:false,
+    };
+    currentRoom = R;
+
+    /* ---- shell ---- */
+    const W=CFG.ROOM_W, D=CFG.ROOM_D, H=CFG.ROOM_H;
+    const uvWall = (m,rx,ry)=>{ m.material = m.material; };  // (textures repeat via material map)
+    // Floor + ceiling
+    quad(MAT.floor, W, D, 0,0,0, -Math.PI/2,0,0, true);
+    quad(MAT.ceiling, W, D, 0,H,0, Math.PI/2,0,0, true);
+    // Walls (planes facing inward)
+    quad(MAT.wall, W, H, 0,H/2,-D/2, 0,0,0, true);            // far wall (doors)
+    quad(MAT.wall, W, H, 0,H/2, D/2, 0,Math.PI,0, true);      // near wall
+    quad(MAT.wallDark, D, H, -W/2,H/2,0, 0,Math.PI/2,0, true);
+    quad(MAT.wallDark, D, H,  W/2,H/2,0, 0,-Math.PI/2,0, true);
+    // Skirting + a few pilasters so the box reads as a real structure
+    for (const x of [-W/2+0.12, W/2-0.12]) for (let z=-8; z<=8; z+=4)
+      box(MAT.wallDark, 0.22, H, 0.5, x, H/2, z);
+    box(MAT.steelDark, W, 0.2, 0.2, 0, 0.1, -D/2+0.12);
+
+    /* ---- standing water ---- */
+    const water = quad(MAT.water, W-0.1, D-0.1, 0, 0.05, 0, -Math.PI/2,0,0);
+    water.renderOrder = 1;
+    R.water = water;
+
+    /* ---- ceiling strip lights (flickering) ---- */
+    R.lamps = [];
+    const lampZ = [-6, -1, 4, 8];
+    for (let i=0;i<lampZ.length;i++){
+      const z = lampZ[i];
+      const housing = box(MAT.steelDark, 1.9, 0.14, 0.28, 0, H-0.10, z);
+      const tube = box(MAT.lampOn, 1.7, 0.06, 0.16, 0, H-0.20, z);
+      const lamp = { tube, light:null, on:true, phase:rand(0,10), z };
+      if (i < Q.lights && !spec.dark){
+        const l = new THREE.PointLight(0xc4d8e8, 26, 22, 1.45);
+        l.position.set(0, H-0.35, z);
+        if (Q.shadows && i===0){ l.castShadow = true; l.shadow.mapSize.set(Q.shadowSize,Q.shadowSize);
+                                 l.shadow.camera.far = 20; l.shadow.bias = -0.004; }
+        roomGroup.add(l); lamp.light = l;
+        glow(TEX.dot, 1.4, 0, H-0.3, z, 0xbcd6ea, 0.30);
+      }
+      if (spec.dark){ tube.material = MAT.lampOff; lamp.on = false; }
+      R.lamps.push(lamp);
+    }
+    // The one sickly green exit light — always on, never enough.
+    const exitLamp = box(MAT.greenGlow, 0.5, 0.16, 0.08, 0, 3.9, -D/2+0.1);
+    glow(TEX.glowGreen, 2.2, 0, 3.9, -D/2+0.3, 0x55ff99, 0.55);
+    const gl = new THREE.PointLight(0x55ff9a, spec.dark?16:9, 13, 1.5);
+    gl.position.set(0, 3.7, -D/2+0.8); roomGroup.add(gl);
+
+    /* ---- the two doors ---- */
+    for (const side of ['left','right']){
+      const x = side==='left' ? -CFG.DOOR_X : CFG.DOOR_X;
+      const frame = new THREE.Group();
+      // recessed dark opening behind the door leaf
+      box(trackDispose(new THREE.MeshBasicMaterial({color:0x02040a})), 1.5, 2.35, 0.05, x, 1.18, -D/2+0.02);
+      const leaf = box(MAT.steel, 1.42, 2.28, 0.14, x, 1.14, -D/2+0.10, 0, true);
+      // frame surround
+      box(MAT.steelDark, 0.14, 2.6, 0.22, x-0.78, 1.3, -D/2+0.12);
+      box(MAT.steelDark, 0.14, 2.6, 0.22, x+0.78, 1.3, -D/2+0.12);
+      box(MAT.steelDark, 1.72, 0.16, 0.22, x, 2.52, -D/2+0.12);
+      // rivets
+      for (let i=0;i<4;i++) box(MAT.steel, 0.07,0.07,0.05, x-0.55+i*0.37, 0.35, -D/2+0.19);
+
+      // placard above the door
+      const pTex = trackDispose(texFrom(placardCanvas(R.labels[side], R.labels[side]==='LIVE'?'#5effa0':'#ff3b34')));
+      const pMat = trackDispose(new THREE.MeshBasicMaterial({ map:pTex, fog:true }));
+      const placard = box(pMat, 1.28, 0.62, 0.06, x, 2.95, -D/2+0.16);
+      const pGlow = glow(TEX.dot, 1.9, x, 2.95, -D/2+0.34,
+                         R.labels[side]==='LIVE'?0x5effa0:0xff3b34, 0.45);
+      R.doors[side] = { leaf, x, openT:0, opening:false };
+      R.placards[side] = { mesh:placard, glow:pGlow, mat:pMat, tex:pTex };
+
+      // interactable
+      R.interactables.push({
+        pos: doorPos(side), radius: 2.0, hold: CFG.HOLD_TIME,
+        label: ()=> `HOLD · ${R.labels[side]} DOOR`,
+        enabled: ()=> !R.opened,
+        action: ()=> this.commitDoor(side),
+      });
+    }
+
+    /* ---- the huge red wall display over the doors ---- */
+    const dispCanvas = makeCanvas(1024,314);   // 3.27:1, matching the 4.9x1.5 panel
+    const dispTex = trackDispose(texFrom(dispCanvas));
+    const dispMat = trackDispose(new THREE.MeshBasicMaterial({ map:dispTex, fog:true }));
+    box(MAT.steelDark, 5.4, 1.9, 0.16, 0, 4.05, -D/2+0.12);
+    const disp = box(dispMat, 4.9, 1.5, 0.06, 0, 4.05, -D/2+0.21);
+    glow(TEX.glowRed, 5.4, 0, 4.05, -D/2+0.5, 0xff2a22, 0.30);
+    R.display = { canvas:dispCanvas, tex:dispTex, mesh:disp, lastSec:-1 };
+
+    /* ---- laser grid + atmosphere ---- */
+    R.laser = makeLaserGrid();
+    R.dust = makeDust(Q.motes);
+
+    /* ---- room-specific content ---- */
+    if (spec.build) spec.build(R);
+
+    // Sort interactables so room-specific ones (grate/valve) win ties near doors.
+    R.interactables.reverse();
+
+    player.reset();
+    this.timeInRoom = 0;
+    this.lastBeepSecond = -1;
+    el.roomNo.textContent = String(spec.n);
+    this.updateDisplay(R, true);
+    if (spec.enter) spec.enter(R);
+
+    // Flashlight only exists where the room grants it.
+    this.setFlashlight(!!spec.flashlight);
+    return R;
+  },
+
+  teardown(){
+    if (currentRoom && currentRoom.spec.leave) currentRoom.spec.leave(currentRoom);
+    Audio.stopAllLoops();
+    if (roomGroup){
+      roomGroup.traverse(o=>{
+        if (o.isMesh || o.isPoints || o.isSprite){
+          if (o.geometry && !Object.values(GEO).includes(o.geometry)) o.geometry.dispose();
+        }
+      });
+      scene.remove(roomGroup);
+    }
+    for (const d of disposables){ if (d && d.dispose) d.dispose(); }
+    disposables.length = 0;
+    roomGroup = null; currentRoom = null;
+    scene.fog.density = FOG_BASE;
+    el.smoke.style.opacity = '0';
+  },
+
+  /* -- flashlight ------------------------------------------------------- */
+  setFlashlight(enable){
+    if (enable && !flashlight){
+      flashlight = new THREE.SpotLight(0xdfe8f4, 90, 26, 0.46, 0.5, 1.2);
+      flashTarget = new THREE.Object3D();
+      camera.add(flashlight); camera.add(flashTarget);
+      flashTarget.position.set(0,0,-6);
+      flashlight.target = flashTarget;
+      flashlight.position.set(0.1,-0.1,0);
+      this.flashOn = true; this.battery = 1;
+      el.battery.classList.add('on');
+      el.bLight.classList.toggle('on', IS_TOUCH);
+    } else if (!enable && flashlight){
+      camera.remove(flashlight); camera.remove(flashTarget);
+      flashlight.dispose && flashlight.dispose();
+      flashlight = null; flashTarget = null;
+      el.battery.classList.remove('on'); el.bLight.classList.remove('on');
+    }
+  },
+  toggleFlashlight(){
+    if (!flashlight || this.state!=='play') return;
+    this.flashOn = !this.flashOn && this.battery > 0.01;
+    Audio.click(this.flashOn?680:340);
+  },
+
+  /* -- placards --------------------------------------------------------- */
+  swapPlacards(){
+    const R = currentRoom; if (!R) return;
+    const a = R.labels.left; R.labels.left = R.labels.right; R.labels.right = a;
+    for (const side of ['left','right']){
+      const p = R.placards[side];
+      const label = R.labels[side];
+      const col = label==='LIVE' ? '#5effa0' : '#ff3b34';
+      const c = placardCanvas(label, col);
+      const g = p.tex.image.getContext('2d');
+      g.clearRect(0,0,512,256); g.drawImage(c,0,0);
+      p.tex.needsUpdate = true;
+      p.glow.material.color.set(label==='LIVE'?0x5effa0:0xff3b34);
+    }
+  },
+
+  /* -- the wall countdown ----------------------------------------------- */
+  updateDisplay(R, force){
+    const sec = Math.max(0, Math.ceil(R.timeLeft));
+    if (!force && sec === R.display.lastSec) return;
+    R.display.lastSec = sec;
+    const g = R.display.canvas.getContext('2d');
+    const m = Math.floor(sec/60), s = sec%60;
+    const txt = `${m}:${String(s).padStart(2,'0')}`;
+    g.fillStyle = '#0a0204'; g.fillRect(0,0,1024,314);
+    g.textAlign='center'; g.textBaseline='middle';
+    g.font='900 240px "Courier New",monospace';
+    const hot = sec <= 20;
+    g.shadowColor = hot ? '#ff2a22' : '#c8121a'; g.shadowBlur = hot ? 80 : 46;
+    g.fillStyle = hot ? '#ff6a60' : '#e8202a';
+    g.fillText(txt, 512, 168);
+    g.shadowBlur = 0;
+    R.display.tex.needsUpdate = true;
+
+    // HUD
+    el.timer.textContent = txt;
+    el.timer.classList.toggle('warn', sec <= 10);
+  },
+
+  /* -- interaction ------------------------------------------------------ */
+  updateInteract(dt){
+    const R = currentRoom;
+    if (!R || R.opened){ this.clearPrompt(); return; }
+    // Nearest enabled interactable the player is roughly facing.
+    let best = null, bestD = Infinity;
+    const fwd = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
+    for (const it of R.interactables){
+      if (it.enabled && !it.enabled()) continue;
+      const dx = it.pos.x - player.pos.x, dz = it.pos.z - player.pos.z;
+      const d = Math.hypot(dx,dz);
+      if (d > it.radius) continue;
+      const dot = (dx/(d||1))*fwd.x + (dz/(d||1))*fwd.z;
+      if (d > 0.7 && dot < 0.12) continue;              // must be looking at it
+      if (d < bestD){ bestD = d; best = it; }
+    }
+    if (!best){ this.clearPrompt(); return; }
+
+    el.prompt.classList.add('on');
+    el.promptText.textContent = typeof best.label==='function' ? best.label() : best.label;
+    el.bInteract.classList.toggle('on', IS_TOUCH);
+
+    if (this.holdTarget !== best){ this.holdTarget = best; this.holdT = 0; }
+    if (Input.interact){
+      if (this.holdT === 0){ Audio.click(420); buzz(12); }
+      this.holdT += dt;
+      const p = clamp(this.holdT / best.hold, 0, 1);
+      el.ring.style.setProperty('--p', p.toFixed(3));
+      if (p >= 1){
+        this.holdT = 0; this.clearPrompt();
+        buzz(30);
+        best.action();
+      }
+    } else if (this.holdT > 0){
+      this.holdT = Math.max(0, this.holdT - dt*2.2);
+      el.ring.style.setProperty('--p', clamp(this.holdT/best.hold,0,1).toFixed(3));
+    }
+  },
+  clearPrompt(){
+    el.prompt.classList.remove('on');
+    el.bInteract.classList.remove('on');
+    this.holdTarget = null; this.holdT = 0;
+    el.ring.style.setProperty('--p','0');
+  },
+
+  /* -- committing to a door --------------------------------------------- */
+  commitDoor(side){
+    const R = currentRoom;
+    const outcome = R.spec.resolve ? R.spec.resolve(side, R) : (side===R.spec.correct ? 'win' : 'die');
+    if (outcome === 'win'){
+      R.opened = true;
+      R.doors[side].opening = true;
+      Audio.door(); buzz([15,40,15]);
+      Game.say('');
+      setTimeout(()=> this.clearRoom(), 1150);
+    } else {
+      this.kill(outcome === 'burn' ? 'burn' : 'grid', side);
+    }
+  },
+
+  clearRoom(){
+    if (this.state !== 'play') return;
+    this.state = 'transition';
+    Score.roomsCleared = Math.max(Score.roomsCleared, this.roomIndex + 1);
+    Audio.whoosh();
+    // whiteout
+    el.flash.classList.remove('red');
+    el.flash.style.transition = 'opacity .38s ease-in';
+    el.flash.style.opacity = '1';
+    setTimeout(()=>{
+      const next = this.roomIndex + 1;
+      if (next >= ROOMS.length){ this.win(); return; }
+      this.roomIndex = next;
+      this.buildRoom(next);
+      this.state = 'play';
+      el.flash.style.transition = 'opacity .7s ease-out';
+      el.flash.style.opacity = '0';
+      setTimeout(()=>{ el.flash.style.transition=''; }, 750);
+      this.say(`ROOM ${next+1}`, 2200);
+    }, 420);
+  },
+
+  /* -- death ------------------------------------------------------------ */
+  kill(cause, side){
+    if (this.state !== 'play') return;
+    this.state = 'dying';
+    this.clearPrompt();
+    Score.deaths++;
+    Score.lives--;
+    buzz([90, 50, 220]);
+
+    const R = currentRoom;
+    if (cause === 'grid' || cause === 'timeout' || cause === 'beam'){
+      Audio.laser();
+      if (R && R.laser){ R.laser.beams.visible = true; R.laser.mat.opacity = 1; }
+      FX.addShake(1.2);
+      setTimeout(()=> FX.flash(true, 0.9), cause==='beam' ? 60 : 780);
+    } else {
+      FX.flash(true, 0.9); FX.addShake(0.9);
+    }
+    Audio.death();
+    setTimeout(()=> this.showDeath(cause, side), 1500);
+  },
+
+  showDeath(cause, side){
+    const R = currentRoom;
+    const spec = R ? R.spec : ROOMS[this.roomIndex];
+    this.state = 'death';
+    document.exitPointerLock && document.exitPointerLock();
+    $('deathTitle').textContent = Score.lives > 0 ? 'YOU DIED' : 'NO LIVES LEFT';
+    $('deathCause').textContent = ({
+      grid:'YOU CHOSE THE WRONG DOOR',
+      timeout:'THE CLOCK REACHED ZERO',
+      beam:'YOU STOOD UP IN A SWEEPING BEAM',
+      burn:'YOU WALKED INTO THE FIRE',
+    })[cause] || 'THE GRID FIRED';
+    $('deathDoor').textContent = spec.correct.toUpperCase();
+    $('deathClue').innerHTML = spec.clue;
+    $('deathStats').innerHTML = statRows([
+      ['ROOM', `${spec.n} / 8`],
+      ['ROOMS CLEARED', String(Score.roomsCleared)],
+      ['RUN TIME', Score.fmt(Score.totalTime)],
+      ['LIVES LEFT', String(Math.max(0,Score.lives))],
+      ['DEATHS', String(Score.deaths)],
+    ]);
+    $('btnRetry').textContent = Score.lives > 0
+      ? 'RETRY ROOM ' + spec.n
+      : (this.checkpointUnlocked && this.roomIndex >= 3 ? 'RESTART AT CHECKPOINT' : 'RESTART FROM ROOM 1');
+    Score.submit(false);
+    showScreen('sDeath');
+    this.teardown();
+    el.vignette.style.opacity='0'; el.chroma.style.opacity='0';
+  },
+
+  win(){
+    this.state = 'win';
+    document.exitPointerLock && document.exitPointerLock();
+    Score.roomsCleared = 8;
+    this.checkpointUnlocked = true;
+    $('btnCheckpoint').disabled = false;
+    Audio.victory();
+    $('winStats').innerHTML = statRows([
+      ['ROOMS CLEARED', '8 / 8'],
+      ['TOTAL TIME', Score.fmt(Score.totalTime)],
+      ['LIVES REMAINING', String(Score.lives)],
+      ['DEATHS', String(Score.deaths)],
+    ]);
+    Score.submit(true);
+    showScreen('sWin');
+    el.card.classList.remove('flip');
+    setTimeout(()=> el.card.classList.add('flip'), 500);
+    this.teardown();
+    el.flash.style.opacity='0'; el.vignette.style.opacity='0'; el.chroma.style.opacity='0';
+  },
+
+  /* -- subtitles -------------------------------------------------------- */
+  say(text, ms=3800){
+    el.subtitle.textContent = text;
+    el.subtitle.classList.toggle('on', !!text);
+    clearTimeout(this._sayTimer);
+    if (text) this._sayTimer = setTimeout(()=> el.subtitle.classList.remove('on'), ms);
+  },
+
+  /* -- flow ------------------------------------------------------------- */
+  start(fromCheckpoint=false){
+    Audio.init(); Audio.resume(); Audio.startDrone();
+    requestFullscreenIfPossible();
+    this.usingCheckpoint = fromCheckpoint;
+    this.roomIndex = fromCheckpoint ? 3 : 0;
+    Score.resetRun(fromCheckpoint ? 3 : 0);
+    this.buildRoom(this.roomIndex);
+    this.state = 'play';
+    showScreen(null);
+    if (!IS_TOUCH) el.canvas.requestPointerLock();
+    this.say(fromCheckpoint ? 'CHECKPOINT · ROOM 4' : 'ROOM 1', 2600);
+  },
+  retry(){
+    Audio.resume();
+    if (Score.lives <= 0){
+      // out of lives: back to room 1, or to the checkpoint once it is earned
+      const cp = this.checkpointUnlocked && this.roomIndex >= 3;
+      this.start(cp);
+      return;
+    }
+    this.buildRoom(this.roomIndex);
+    this.state = 'play';
+    showScreen(null);
+    if (!IS_TOUCH) el.canvas.requestPointerLock();
+    this.say(`ROOM ${this.roomIndex+1}`, 2000);
+  },
+  pause(){
+    if (this.state !== 'play') return;
+    this.state = 'pause';
+    Audio.suspend();
+    document.exitPointerLock && document.exitPointerLock();
+    showScreen('sPause');
+  },
+  resume(){
+    if (this.state !== 'pause') return;
+    this.state = 'play';
+    Audio.resume();
+    showScreen(null);
+    if (!IS_TOUCH) el.canvas.requestPointerLock();
+  },
+  togglePause(){
+    if (this.state==='play') this.pause();
+    else if (this.state==='pause') this.resume();
+  },
+  quitToTitle(){
+    this.teardown();
+    this.state='title';
+    Audio.resume();
+    this.clearPrompt(); this.say('');
+    el.vignette.style.opacity='0'; el.chroma.style.opacity='0'; el.flash.style.opacity='0';
+    showScreen('sTitle');
+  },
+
+  /* -- per-frame -------------------------------------------------------- */
+  update(dt){
+    const R = currentRoom;
+    if (this.state !== 'play' || !R) return;
+
+    // clock
+    R.timeLeft -= dt;
+    Score.totalTime += dt;
+    this.timeInRoom += dt;
+    this.updateDisplay(R);
+    if (R.timeLeft <= 0){ R.timeLeft = 0; this.updateDisplay(R,true); this.kill('timeout'); return; }
+
+    // beeps + heartbeat
+    const sec = Math.ceil(R.timeLeft);
+    if (sec !== this.lastBeepSecond){
+      this.lastBeepSecond = sec;
+      if (sec <= 10) Audio.beep(true);
+      else if (sec <= 30 && sec % 5 === 0) Audio.beep(false);
+      else if (sec === 60) Audio.beep(false);
+    }
+    if (R.timeLeft < 30){
+      const rate = lerp(1.35, 0.42, 1 - R.timeLeft/30);   // faster as it drains
+      this.heartT += dt;
+      if (this.heartT >= rate){ this.heartT = 0; Audio.heartbeat(clamp(1.4 - R.timeLeft/30, .5, 1.2)); }
+    } else this.heartT = 0;
+
+    // red vignette + chromatic edge under 20s
+    const warn = clamp((20 - R.timeLeft)/20, 0, 1);
+    el.vignette.style.opacity = (warn*0.9).toFixed(3);
+    el.chroma.style.opacity = (warn*0.55*(0.7+0.3*Math.sin(performance.now()*0.008))).toFixed(3);
+
+    // lamp flicker
+    for (const l of R.lamps){
+      if (!l.light && !l.on) continue;
+      const n = Math.sin(performance.now()*0.011 + l.phase) + Math.sin(performance.now()*0.037 + l.phase*3);
+      const flick = n > 1.72 ? rand(0.05,0.4) : 1;
+      if (l.light) l.light.intensity = 26 * flick;
+      l.tube.material = flick < 0.5 ? MAT.lampOff : MAT.lampOn;
+    }
+
+    // flashlight battery
+    if (flashlight){
+      if (this.flashOn){
+        this.battery = clamp(this.battery - dt/70, 0, 1);
+        if (this.battery <= 0) this.flashOn = false;
+      } else {
+        this.battery = clamp(this.battery + dt/240, 0, 1);   // trickle recovery
+      }
+      const bat = this.battery;
+      flashlight.intensity = this.flashOn ? 90 * (0.35 + 0.65*bat) * (Math.random()<0.02?0.3:1) : 0;
+      el.batteryFill.style.width = (bat*100).toFixed(0)+'%';
+      el.batteryFill.style.background = bat<0.25 ? '#e01a22' : '#5ef08a';
+      el.bLight.classList.toggle('held', this.flashOn);
+    }
+
+    // door slide animation
+    for (const side of ['left','right']){
+      const d = R.doors[side];
+      if (d.opening){
+        d.openT = Math.min(1, d.openT + dt*0.9);
+        d.leaf.position.y = 1.14 + d.openT*2.5;
+      }
+    }
+
+    // water shimmer (cheap: nudge specular by moving the plane a hair)
+    R.water.position.y = 0.05 + Math.sin(performance.now()*0.0011)*0.004;
+
+    updateDust(R.dust, dt);
+    if (R.spec.update) R.spec.update(R, dt);
+  },
+};
+
+function statRows(rows){
+  return rows.map(([k,v])=>`<div><i>${k}</i><b>${v}</b></div>`).join('');
+}
+
+/* ---------------------------------------------------------------------------
+ * Fullscreen / orientation
+ * ------------------------------------------------------------------------ */
+function requestFullscreenIfPossible(){
+  if (!IS_TOUCH) return;
+  const e = document.documentElement;
+  const fn = e.requestFullscreen || e.webkitRequestFullscreen;
+  if (fn) { try { fn.call(e).then(()=>{
+    if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(()=>{});
+  }).catch(()=>{}); } catch(err){} }
+}
+function checkOrientation(){
+  const portrait = innerHeight > innerWidth;
+  el.rotate.classList.toggle('on', IS_TOUCH && portrait);
+}
+
+/* ---------------------------------------------------------------------------
+ * UI wiring
+ * ------------------------------------------------------------------------ */
+function setQualityLabel(){
+  const t = 'GRAPHICS: ' + (Q.high ? 'HIGH' : 'LOW');
+  $('btnQual').textContent = t; $('btnQual2').textContent = t;
+}
+function setMuteLabel(){
+  const t = 'SOUND: ' + (Audio.muted ? 'OFF' : 'ON');
+  $('btnMute').textContent = t; $('btnMute2').textContent = t;
+}
+function toggleQuality(){
+  Q.high = !Q.high;
+  renderer.setPixelRatio(Q.dpr);
+  renderer.shadowMap.enabled = Q.shadows;
+  setQualityLabel();
+  toast(Q.high ? 'HIGH — shadows, more lights, more dust' : 'LOW — no shadows, fewer lights');
+  // rebuild the live room so the change takes effect immediately
+  if (currentRoom && (Game.state==='play' || Game.state==='pause')){
+    const idx = Game.roomIndex, left = currentRoom.timeLeft;
+    Game.buildRoom(idx);
+    currentRoom.timeLeft = left;
+  }
+}
+$('btnStart').onclick = ()=> Game.start(false);
+$('btnCheckpoint').onclick = ()=> Game.start(true);
+$('btnHow').onclick = ()=> { Game._howFrom='sTitle'; showScreen('sHow'); };
+$('btnPauseHow').onclick = ()=> { Game._howFrom='sPause'; showScreen('sHow'); };
+$('btnHowBack').onclick = ()=> showScreen(Game._howFrom || 'sTitle');
+$('btnQual').onclick = toggleQuality;
+$('btnQual2').onclick = toggleQuality;
+$('btnMute').onclick = $('btnMute2').onclick = ()=>{ Audio.init(); Audio.setMuted(!Audio.muted); setMuteLabel(); };
+$('btnResume').onclick = ()=> Game.resume();
+$('btnQuit').onclick = ()=> Game.quitToTitle();
+$('btnRetry').onclick = ()=> Game.retry();
+$('btnDeathTitle').onclick = ()=> Game.quitToTitle();
+$('btnAgain').onclick = ()=> Game.start(false);
+$('btnWinTitle').onclick = ()=> Game.quitToTitle();
+$('tabKey').onclick = ()=> setCtrlTab(false);
+$('tabTouch').onclick = ()=> setCtrlTab(true);
+function setCtrlTab(touch){
+  $('keyMap').classList.toggle('hidden', touch);
+  $('touchMap').classList.toggle('hidden', !touch);
+  $('tabKey').classList.toggle('act', !touch);
+  $('tabTouch').classList.toggle('act', touch);
+}
+setCtrlTab(IS_TOUCH);     // control diagram auto-picks the player's device
+setQualityLabel(); setMuteLabel(); Score.renderBest();
+
+// lives pips (cached — this is touched every frame)
+const PIPS = [...el.lives.querySelectorAll('.pip')];
+let lastLives = -1;
+function renderLives(){
+  if (Score.lives === lastLives) return;
+  lastLives = Score.lives;
+  PIPS.forEach((p,i)=> p.classList.toggle('off', i >= Score.lives));
+}
+
+/* ---------------------------------------------------------------------------
+ * Resize / visibility
+ * ------------------------------------------------------------------------ */
+function onResize(){
+  const w = innerWidth, h = innerHeight;
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Q.dpr);
+  renderer.setSize(w,h,false);
+  checkOrientation();
+}
+addEventListener('resize', onResize);
+addEventListener('orientationchange', ()=> setTimeout(onResize, 250));
+
+document.addEventListener('visibilitychange', ()=>{
+  if (document.hidden){
+    Audio.suspend();
+    if (Game.state==='play') Game.pause();
+  } else if (Game.state !== 'play' && Game.state !== 'pause'){
+    Audio.resume();
+  }
+});
+
+/* ---------------------------------------------------------------------------
+ * MAIN LOOP
+ * ------------------------------------------------------------------------ */
+let last = performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  let dt = (now - last)/1000; last = now;
+  dt = Math.min(dt, 0.05);                 // never let a stall teleport the player
+
+  const look = Input.poll();
+  if (Game.state === 'play'){
+    player.update(dt, look);
+    Game.update(dt);
+    Game.updateInteract(dt);
+    renderLives();
+  }
+  FX.update(dt);
+  FX.applyShake();
+  renderer.render(scene, camera);
+}
+
+/* ---------------------------------------------------------------------------
+ * BOOT
+ * ------------------------------------------------------------------------ */
+Input.init();
+onResize();
+checkOrientation();
+showScreen('sTitle');
+// The title screen renders an empty scene; that's fine and cheap.
+requestAnimationFrame(frame);
+
+/* Debug / balancing hook. Open the console and use:
+ *   TOC.jump(6)          jump straight into room 6 (1-based)
+ *   TOC.setTime(15)      set the current room's clock
+ *   TOC.state()          dump run state
+ *   TOC.god = true       ignore all kill triggers
+ * Handy when tuning the numbers listed in the README.
+ */
+window.TOC = {
+  god:false,
+  Game, player, ROOMS, Score, CFG, Q,
+  jump(n){ Game.start(false); Game.roomIndex = clamp(n,1,8)-1; Game.buildRoom(Game.roomIndex); Game.state='play'; },
+  setTime(t){ if (currentRoom){ currentRoom.timeLeft = t; Game.updateDisplay(currentRoom, true); } },
+  state(){ return { state:Game.state, room:Game.roomIndex+1, timeLeft:currentRoom?+currentRoom.timeLeft.toFixed(1):null,
+                    lives:Score.lives, deaths:Score.deaths, pos:player.pos.toArray().map(v=>+v.toFixed(2)),
+                    quality:Q.high?'high':'low', touch:IS_TOUCH }; },
+};
+
+// A first user gesture anywhere unlocks audio on iOS/Android.
+const unlock = ()=>{ Audio.init(); Audio.resume(); removeEventListener('pointerdown', unlock); removeEventListener('keydown', unlock); };
+addEventListener('pointerdown', unlock);
+addEventListener('keydown', unlock);
+</script>
+</body>
+</html>
