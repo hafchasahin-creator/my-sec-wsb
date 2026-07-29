@@ -9,11 +9,7 @@
       }
     },
     "components": {
-      "minecraft:icon": {
-        "textures": {
-          "default": "serious_punch"
-        }
-      },
+      "minecraft:icon": "opm_serious_punch",
       "minecraft:display_name": {
         "value": "Serious Series: Serious Punch"
       },

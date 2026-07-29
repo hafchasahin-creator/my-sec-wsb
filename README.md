@@ -127,61 +127,99 @@ One item: **Serious Series: Serious Punch**, a red glove that hits like Saitama.
 Craft it with **8 netherite ingots + 1 nether star + 1 netherite block**
 (nether star centre, netherite block bottom-centre, netherite ingots everywhere else).
 
-## How it works
+## Controls
 
 | Input | Result |
 | --- | --- |
-| **Tap the use button** | Serious Punch in the direction you are looking |
-| **Sneak + tap** | Cycle the power tier (announced in chat) |
-| **Hit a mob normally** | One punch, one kill — anything, any health, plus a small crater |
-| `!punch normal` / `serious` / `killer` / `apocalypse` | Set the power tier by name |
-| `!punch status` | Show the current tier and its numbers |
-| `!punch stop` | Abort a punch that is still detonating |
+| **Tap the use button** | Fire the selected move where you are looking |
+| **Sneak + tap** | Switch to the next move (announced in chat and on the action bar) |
+| **Hit a mob normally** | One punch, one kill — anything, any health, plus a crater |
+| `!punch list` | Show all moves and which one is selected |
+| `!punch <name>` | Jump straight to a move, e.g. `!punch apocalypse` |
+| `!punch stop` | Abort a move that is still running |
 
-The punch fires a trench of chained explosions along your view, then an expanding
-shockwave of rings around the point where it lands. Every mob in range is deleted; players
-in range take 1000 damage and get their camera shaken.
+## The seven moves
 
-## How much damage — the four tiers
+Sneak + tap cycles through these in order. The list wraps, so there is always a way back
+down off APOCALYPSE.
 
-| Tier | Trench | Shockwave | Detonations | Ground erased | Effect on a phone |
-| --- | --- | --- | --- | --- | --- |
-| **Normal Punch** *(default)* | 24 long × 8 wide | — | 7 | ~24 × 8 | none, runs at full FPS |
-| **Serious Punch** | 96 long × 18 wide | 48 radius | ~135 | ~96 × 96 | a few seconds of heavy lag |
-| **Killer Move** | 192 long × 26 wide | 128 radius, 3 layers | ~1,360 | ~256 × 256 | freezes for roughly 10–30 s |
-| **APOCALYPSE** | 384 long × 34 wide | 320 radius, 3 layers | ~9,100 | ~640 × 640 (≈1,600 chunks) | **will hang, and may crash the game** |
+| # | Move | What it does | Terrain deleted | Time to finish |
+| --- | --- | --- | --- | --- |
+| 1 | **Normal Punch** | A 40-block tunnel | ~330k blocks | instant |
+| 2 | **Consecutive Normal Punches** | 14 punches fanned across your view | ~7.8M blocks | ~1.7 s |
+| 3 | **Serious Punch** *(default)* | 224-block trench + 160-wide crater + shockwave | ~3.9M blocks | ~4.6 s |
+| 4 | **Serious Series: Table Flip** | Rips a 192-wide slab of ground out and throws everything on it skyward | ~1M blocks | ~0.6 s |
+| 5 | **Serious Series: Sideways Jumps** | 8 punches at once, one down every compass line | ~6.8M blocks | ~0.8 s |
+| 6 | **Killer Move: Serious Series** | A 340-block sphere of nothing | ~21M blocks | ~8 s, stalls hard |
+| 7 | **APOCALYPSE** | 800 blocks across, ~1,600 chunks | **~270M blocks** | **will hang, may crash** |
 
-APOCALYPSE is the "blow up almost the whole world" setting and it does exactly that: a
-640 × 640 block hole, roughly a whole region file, with three stacked layers of blasts so
-it eats downward as well as outward. It is **off by default** and takes a deliberate
-opt-in, because a mistap on it can end a world. Back the world up first.
+"Terrain deleted" is real deleted volume, not explosion radius — see below.
 
-The wielder always gets Resistance V and Fire Resistance for the duration, so you survive
-your own punch — but you will still fall into the crater you just made.
+Everything within the move's kill radius dies: mobs are removed outright, players take
+2000 damage and get their camera shaken. The wielder gets Resistance V and Fire Resistance
+for the duration, so you survive your own punch — but you will still fall into the hole.
 
-## Why it does not simply lock up on the lower tiers
+## Why it hits so much harder than an explosion
 
-Every explosion goes onto one shared queue, drained at a fixed budget per tick
-(`blastsPerTick`, 4 → 48 depending on tier). Nothing tries to detonate thousands of
-charges inside a single frame. `maxDetonations` is a second, hard cap per punch. That is
-what keeps Normal and Serious playable while still letting the top tier do what it says on
-the tin.
+Explosions alone pockmark terrain and leave floating debris, and their damage falls off
+sharply with distance. So each move is built out of three primitives, not one:
 
-If a punch is taking too long, `!punch stop` empties the queue immediately.
+- **carve** — a `/fill` of air over a 32×32×32 box, deleting 32,768 blocks in one command.
+  This is where nearly all the destruction comes from. The crater is carved as a grid of
+  these boxes, nearest the centre first, so the hole opens outwards.
+- **blast** — `createExplosion` for the ragged rim, the sound, and the shove.
+- **launch** — an upward impulse on everything in radius (Table Flip).
+
+A `/fill` is capped at 32,768 blocks by the game, which is exactly why the boxes are 32³.
+
+## Why the small moves do not lock the game up
+
+Every carve, blast and launch goes onto one shared queue, drained at a fixed budget per
+tick (`perTick`, 8 → 64 depending on the move). Nothing tries to run a whole move inside a
+single frame. `maxJobs` is a second, hard cap per activation. That is what keeps Normal
+Punch instant and Serious Punch to a few seconds of stutter, while still letting
+APOCALYPSE do what it says on the tin.
+
+If a move is taking too long, **`!punch stop`** empties the queue immediately.
 
 ## Installing on mobile
 
-Same as above: download **`dist/OnePunchMan.mcaddon`**, tap it, then activate
-**One Punch Man BP** on your world. On spawn, chat shows:
+Download **`dist/OnePunchMan.mcaddon`**, tap it, then activate **One Punch Man BP** on
+your world. On spawn, chat shows:
 
 ```
-[Serious Punch] v1.0.0 loaded — power: Normal Punch
+[Serious Punch] v1.1.0 loaded — 7 moves, selected: Serious Punch
 ```
+
+## If the item icon does not show
+
+The icon lives in the **resource** pack, so a missing icon almost always means the
+resource pack is not applied — the behaviour pack alone still gives you a working item
+with a correct name and no picture.
+
+1. Open the world → **Resource Packs** → **Active**. If **One Punch Man RP** is not
+   listed there, activate it manually. The behaviour pack declares it as a dependency and
+   Minecraft usually pulls it in automatically, but that does not always happen on an
+   import over a previous version.
+2. If you installed an earlier build, **delete both old packs** first under
+   **Settings → Storage → Resource Packs / Behavior Packs**. Importing over a cached copy
+   can keep the old, broken texture.
+3. Turn on **Settings → Creator → Content Log GUI**. It names the pack and file for any
+   texture that failed to load.
+
+The icon is declared with the string shorthand `"minecraft:icon": "opm_serious_punch"`,
+and `opm_serious_punch` is the key in `resource_packs/one_punch_rp/textures/item_texture.json`.
+Both the shorthand and the `{"textures": {"default": ...}}` object form are valid at
+format version 1.20.60 and above; the shorthand is used here because it is the form the
+Bedrock Wiki troubleshooting guide recommends and it has one less place to go wrong. The
+texture key is namespaced (`opm_` prefix) so it cannot collide with a key from another
+pack, which is the other classic cause of a blank icon.
 
 ## Turning off terrain damage
 
-In `behavior_packs/one_punch_bp/scripts/main.js`, set `CONFIG.breaksBlocks` to `false`.
-The punch keeps its full range, knockback and entity damage but leaves the world intact.
+In `behavior_packs/one_punch_bp/scripts/main.js`, set `CONFIG.carveTerrain` and
+`CONFIG.breaksBlocks` to `false`. The moves keep their full range, knockback and entity
+damage but leave the world intact.
 
 ---
 
@@ -203,7 +241,7 @@ behavior_packs/one_punch_bp/
   manifest.json          BP manifest, min_engine_version 1.21.0
   items/serious_punch.json
   recipes/serious_punch.json
-  scripts/main.js        tiers, detonation queue, punch geometry
+  scripts/main.js        7 moves, job queue, carve/blast/launch primitives
   texts/                 pack name strings
 resource_packs/one_punch_rp/
   manifest.json          RP manifest
@@ -241,11 +279,12 @@ ranges, cooldowns — sits in the `CONFIG` object at the top of
 To stop the Cataclysm Hammer and Meteor Staff from destroying terrain, set
 `hammer.breaksBlocks` and `staff.breaksBlocks` to `false`.
 
-For One Punch Man the same applies to the `TIERS` array and the `CONFIG` object in
-`behavior_packs/one_punch_bp/scripts/main.js`. Every tier is a plain object — raise
-`reach`, `shockwave` and `maxDetonations` for more devastation, or raise `blastsPerTick`
-to make a punch finish sooner at the cost of a harder freeze while it runs. Each field is
-documented in the comment above `TIERS`.
+For One Punch Man the same applies to the `MOVES` array and the `CONFIG` object in
+`behavior_packs/one_punch_bp/scripts/main.js`. Every move is a plain object — raise
+`reach`, `crater`, `shockwave` and `maxJobs` for more devastation, or raise `perTick` to
+make a move finish sooner at the cost of a harder freeze while it runs. Each field is
+documented in the comment above `MOVES`, and `DEFAULT_MOVE` picks which one is selected in
+a fresh world.
 
 ## Compatibility notes
 
@@ -270,6 +309,8 @@ documented in the comment above `TIERS`.
   `world.beforeEvents.chatSend`, which is not exposed on every 1.21 build, so the
   subscription is wrapped. If chat commands do nothing on your device, sneak + tap still
   cycles the power tier — that path uses nothing but `isSneaking`.
-- **Explosion budget:** the top One Punch Man tier is intentionally past what a phone can
-  survive. That is the requested behaviour, not a bug; drop to Killer Move or Serious
+- **Destruction budget:** the top One Punch Man move is intentionally past what a phone
+  can survive. That is the requested behaviour, not a bug; drop to Killer Move or Serious
   Punch for something that finishes.
+- **No Intl:** Bedrock's script engine ships without full `Intl`, so the script formats
+  numbers with plain arithmetic rather than `toLocaleString`.
