@@ -1,2 +1,8 @@
 __pycache__/
 *.pyc
+
+# Ad renderer: node deps and per-episode intermediates
+tools/adgen/node_modules/
+dist/ads/episodes/
+dist/ads/preview_*.png
+dist/ads/smoke.mp4

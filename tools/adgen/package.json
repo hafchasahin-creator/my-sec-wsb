@@ -1,0 +1,15 @@
+{
+  "name": "mirinda-adgen",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Procedural renderer for the Mirinda animated ad campaign.",
+  "scripts": {
+    "smoke": "node render.js --smoke",
+    "all": "node render.js --all"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.3",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0"
+  }
+}
