@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "opm:serious_punch"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "NNN",
+      "NSN",
+      "NBN"
+    ],
+    "key": {
+      "N": {
+        "item": "minecraft:netherite_ingot"
+      },
+      "S": {
+        "item": "minecraft:nether_star"
+      },
+      "B": {
+        "item": "minecraft:netherite_block"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "opm:serious_punch",
+      "count": 1
+    }
+  }
+}

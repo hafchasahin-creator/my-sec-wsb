@@ -1,0 +1,61 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "One Punch Man BP",
+    "description": "Serious Series: Serious Punch. World-ending fist. Behavior Pack.",
+    "uuid": "7bc1f708-c10c-450e-b2bb-874bd5b5c974",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "5d8f8bf4-9ba4-4911-bd00-d5b976413d45",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "b531e710-864d-44d5-921a-bd7431cfe2b6",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "c4171bf7-9f21-44bf-92ae-2d71748d3c83",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "One Punch Man Add-on"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

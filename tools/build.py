@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Validate and package Arcane Arsenal.
+"""Validate and package every add-on in this repository.
 
-Checks that every JSON file parses, that manifest UUIDs are unique, that the
-behaviour pack's resource-pack dependency points at the real resource pack, and
-that every item icon resolves all the way down to a PNG on disk. Then zips the
-two packs into dist/ArcaneArsenal.mcaddon.
+Checks that every JSON file parses, that manifest UUIDs are unique across all
+packs, that each behaviour pack's resource-pack dependency points at the real
+resource pack, and that every item icon resolves all the way down to a PNG on
+disk. Then zips each pack pair into its own .mcaddon under dist/.
 
-Usage:  python3 tools/build.py
+Usage:
+    python3 tools/build.py              # all add-ons
+    python3 tools/build.py one_punch    # just the one whose key matches
 """
 
 import json
@@ -14,12 +16,24 @@ import os
 import sys
 import zipfile
 
-BP = os.path.join("behavior_packs", "arcane_arsenal_bp")
-RP = os.path.join("resource_packs", "arcane_arsenal_rp")
 DIST = "dist"
-ADDON = os.path.join(DIST, "ArcaneArsenal.mcaddon")
+
+# key -> (behaviour pack dir, resource pack dir, output .mcaddon name)
+ADDONS = {
+    "arcane": (
+        os.path.join("behavior_packs", "arcane_arsenal_bp"),
+        os.path.join("resource_packs", "arcane_arsenal_rp"),
+        "ArcaneArsenal.mcaddon",
+    ),
+    "one_punch": (
+        os.path.join("behavior_packs", "one_punch_bp"),
+        os.path.join("resource_packs", "one_punch_rp"),
+        "OnePunchMan.mcaddon",
+    ),
+}
 
 errors = []
+seen_uuids = {}
 
 
 def fail(message):
@@ -42,55 +56,55 @@ def walk_json(root):
                 yield os.path.join(base, name)
 
 
-def validate():
+def validate(key, bp, rp):
     documents = {}
-    for root in (BP, RP):
+    for root in (bp, rp):
         if not os.path.isdir(root):
-            fail(f"missing pack directory: {root}")
+            fail(f"[{key}] missing pack directory: {root}")
             continue
         for path in walk_json(root):
             documents[path] = load_json(path)
 
-    bp_manifest = documents.get(os.path.join(BP, "manifest.json"))
-    rp_manifest = documents.get(os.path.join(RP, "manifest.json"))
+    bp_manifest = documents.get(os.path.join(bp, "manifest.json"))
+    rp_manifest = documents.get(os.path.join(rp, "manifest.json"))
     if not bp_manifest or not rp_manifest:
         return
 
-    # UUIDs must all be distinct.
-    uuids = []
-    for manifest in (bp_manifest, rp_manifest):
-        uuids.append(manifest["header"]["uuid"])
-        uuids.extend(module["uuid"] for module in manifest["modules"])
-    duplicates = {u for u in uuids if uuids.count(u) > 1}
-    if duplicates:
-        fail(f"duplicate UUIDs across manifests: {sorted(duplicates)}")
+    # UUIDs must be distinct within this add-on *and* across every other one,
+    # or Minecraft will import one pack on top of another.
+    for manifest, path in ((bp_manifest, bp), (rp_manifest, rp)):
+        ids = [manifest["header"]["uuid"]]
+        ids.extend(module["uuid"] for module in manifest["modules"])
+        for uuid in ids:
+            if uuid in seen_uuids:
+                fail(f"[{key}] UUID {uuid} in {path} already used by {seen_uuids[uuid]}")
+            else:
+                seen_uuids[uuid] = path
 
     # The behaviour pack must depend on this resource pack.
     rp_uuid = rp_manifest["header"]["uuid"]
-    dependency_uuids = [
-        dep.get("uuid") for dep in bp_manifest.get("dependencies", [])
-    ]
+    dependency_uuids = [dep.get("uuid") for dep in bp_manifest.get("dependencies", [])]
     if rp_uuid not in dependency_uuids:
-        fail(f"behaviour pack does not depend on resource pack {rp_uuid}")
+        fail(f"[{key}] behaviour pack does not depend on resource pack {rp_uuid}")
 
     # The script entry point must exist.
     for module in bp_manifest["modules"]:
         if module["type"] == "script":
-            entry = os.path.join(BP, module["entry"])
+            entry = os.path.join(bp, module["entry"])
             if not os.path.isfile(entry):
-                fail(f"script entry not found: {entry}")
+                fail(f"[{key}] script entry not found: {entry}")
 
     # Icons: item -> item_texture.json key -> png on disk.
-    atlas_path = os.path.join(RP, "textures", "item_texture.json")
+    atlas_path = os.path.join(rp, "textures", "item_texture.json")
     atlas = documents.get(atlas_path)
     if atlas is None:
-        fail(f"missing {atlas_path}")
+        fail(f"[{key}] missing {atlas_path}")
         return
     texture_data = atlas.get("texture_data", {})
 
     identifiers = []
     for path, doc in documents.items():
-        if not path.startswith(os.path.join(BP, "items")) or doc is None:
+        if not path.startswith(os.path.join(bp, "items")) or doc is None:
             continue
         item = doc.get("minecraft:item", {})
         identifier = item.get("description", {}).get("identifier")
@@ -106,57 +120,60 @@ def validate():
         icon = item.get("components", {}).get("minecraft:icon")
         if isinstance(icon, dict) and "texture" in icon and version >= (1, 20, 60):
             fail(
-                f"{path}: minecraft:icon uses the deprecated 'texture' field at "
-                f"format_version {doc['format_version']} - use "
+                f"[{key}] {path}: minecraft:icon uses the deprecated 'texture' field "
+                f"at format_version {doc['format_version']} - use "
                 f'{{"textures": {{"default": ...}}}} instead'
             )
             continue
 
         if isinstance(icon, dict):
-            key = icon.get("textures", {}).get("default") or icon.get("texture")
+            key_name = icon.get("textures", {}).get("default") or icon.get("texture")
         else:
-            key = icon
-        if not key:
-            fail(f"{path}: no minecraft:icon texture")
+            key_name = icon
+        if not key_name:
+            fail(f"[{key}] {path}: no minecraft:icon texture")
             continue
-        if key not in texture_data:
-            fail(f"{path}: icon '{key}' missing from item_texture.json")
+        if key_name not in texture_data:
+            fail(f"[{key}] {path}: icon '{key_name}' missing from item_texture.json")
             continue
-        png = os.path.join(RP, texture_data[key]["textures"] + ".png")
+        png = os.path.join(rp, texture_data[key_name]["textures"] + ".png")
         if not os.path.isfile(png):
-            fail(f"{path}: icon '{key}' points at missing file {png}")
+            fail(f"[{key}] {path}: icon '{key_name}' points at missing file {png}")
 
-    # Recipes must produce items that actually exist.
+    # Recipes must produce items that actually exist. Anything outside the
+    # minecraft: namespace has to be one of ours.
     for path, doc in documents.items():
-        if not path.startswith(os.path.join(BP, "recipes")) or doc is None:
+        if not path.startswith(os.path.join(bp, "recipes")) or doc is None:
             continue
         recipe = doc.get("minecraft:recipe_shaped", {})
         result = recipe.get("result", {})
         result_item = result.get("item") if isinstance(result, dict) else result
-        if result_item and result_item.startswith("arcane:"):
+        if result_item and not result_item.startswith("minecraft:"):
             if result_item not in identifiers:
-                fail(f"{path}: result '{result_item}' has no item definition")
+                fail(f"[{key}] {path}: result '{result_item}' has no item definition")
 
     # Every custom item needs a display name in the language file.
-    lang_path = os.path.join(RP, "texts", "en_US.lang")
+    lang_path = os.path.join(rp, "texts", "en_US.lang")
     lang = ""
     if os.path.isfile(lang_path):
         with open(lang_path, encoding="utf-8") as handle:
             lang = handle.read()
     for identifier in identifiers:
         if identifier and f"item.{identifier}=" not in lang:
-            fail(f"{lang_path}: no name entry for {identifier}")
+            fail(f"[{key}] {lang_path}: no name entry for {identifier}")
 
-    print(f"Validated {len(documents)} JSON files, {len(identifiers)} items.")
+    print(f"[{key}] validated {len(documents)} JSON files, {len(identifiers)} items.")
 
 
-def package():
+def package(key, bp, rp, addon_name):
     os.makedirs(DIST, exist_ok=True)
-    if os.path.exists(ADDON):
-        os.remove(ADDON)
+    addon = os.path.join(DIST, addon_name)
+    if os.path.exists(addon):
+        os.remove(addon)
 
-    with zipfile.ZipFile(ADDON, "w", zipfile.ZIP_DEFLATED) as archive:
-        for root, folder in ((BP, "arcane_arsenal_bp"), (RP, "arcane_arsenal_rp")):
+    with zipfile.ZipFile(addon, "w", zipfile.ZIP_DEFLATED) as archive:
+        for root in (bp, rp):
+            folder = os.path.basename(root)
             for base, _dirs, files in os.walk(root):
                 for name in sorted(files):
                     source = os.path.join(base, name)
@@ -165,15 +182,33 @@ def package():
                     ).replace(os.sep, "/")
                     archive.write(source, arcname)
 
-    size = os.path.getsize(ADDON)
-    print(f"Packaged {ADDON} ({size:,} bytes)")
+    size = os.path.getsize(addon)
+    print(f"[{key}] packaged {addon} ({size:,} bytes)")
 
 
-if __name__ == "__main__":
-    validate()
+def main():
+    wanted = sys.argv[1:] or list(ADDONS)
+    unknown = [name for name in wanted if name not in ADDONS]
+    if unknown:
+        print(f"unknown add-on(s): {', '.join(unknown)}", file=sys.stderr)
+        print(f"known: {', '.join(ADDONS)}", file=sys.stderr)
+        return 2
+
+    for key in wanted:
+        bp, rp, addon_name = ADDONS[key]
+        validate(key, bp, rp)
+
     if errors:
         print("\nBuild failed:", file=sys.stderr)
         for error in errors:
             print(f"  - {error}", file=sys.stderr)
-        sys.exit(1)
-    package()
+        return 1
+
+    for key in wanted:
+        bp, rp, addon_name = ADDONS[key]
+        package(key, bp, rp, addon_name)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,14 +1,22 @@
-# Arcane Arsenal
+# Minecraft Bedrock add-ons
 
-A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six
-legendary weapons with scripted magic effects.
+Two self-contained **Bedrock Edition** add-ons (each a behaviour pack + resource pack):
+
+| Add-on | What it adds | Package |
+| --- | --- | --- |
+| **[Arcane Arsenal](#arcane-arsenal)** | Six legendary weapons with scripted magic effects | `dist/ArcaneArsenal.mcaddon` |
+| **[One Punch Man](#one-punch-man)** | *Serious Series: Serious Punch* — a world-ending fist | `dist/OnePunchMan.mcaddon` |
+
+They are independent: install either one, or both at once.
 
 Built and tested against the format versions available in **Bedrock 1.21.0** — the build
-running in the attached screenshot (`1.21.0.26`, Android / Pocket Edition). It uses only
+running in the attached screenshot (`1.21.0.26`, Android / Pocket Edition). Both use only
 **stable** item components and the **stable** `@minecraft/server 1.11.0` scripting module,
-so **no experimental toggles are required** and it works on phones and tablets.
+so **no experimental toggles are required** and they work on phones and tablets.
 
 ---
+
+# Arcane Arsenal
 
 ## The weapons
 
@@ -108,6 +116,75 @@ is in range the spell lands where your view meets the ground, up to 40–48 bloc
 
 ---
 
+# One Punch Man
+
+One item: **Serious Series: Serious Punch**, a red glove that hits like Saitama.
+
+```
+/give @s opm:serious_punch
+```
+
+Craft it with **8 netherite ingots + 1 nether star + 1 netherite block**
+(nether star centre, netherite block bottom-centre, netherite ingots everywhere else).
+
+## How it works
+
+| Input | Result |
+| --- | --- |
+| **Tap the use button** | Serious Punch in the direction you are looking |
+| **Sneak + tap** | Cycle the power tier (announced in chat) |
+| **Hit a mob normally** | One punch, one kill — anything, any health, plus a small crater |
+| `!punch normal` / `serious` / `killer` / `apocalypse` | Set the power tier by name |
+| `!punch status` | Show the current tier and its numbers |
+| `!punch stop` | Abort a punch that is still detonating |
+
+The punch fires a trench of chained explosions along your view, then an expanding
+shockwave of rings around the point where it lands. Every mob in range is deleted; players
+in range take 1000 damage and get their camera shaken.
+
+## How much damage — the four tiers
+
+| Tier | Trench | Shockwave | Detonations | Ground erased | Effect on a phone |
+| --- | --- | --- | --- | --- | --- |
+| **Normal Punch** *(default)* | 24 long × 8 wide | — | 7 | ~24 × 8 | none, runs at full FPS |
+| **Serious Punch** | 96 long × 18 wide | 48 radius | ~135 | ~96 × 96 | a few seconds of heavy lag |
+| **Killer Move** | 192 long × 26 wide | 128 radius, 3 layers | ~1,360 | ~256 × 256 | freezes for roughly 10–30 s |
+| **APOCALYPSE** | 384 long × 34 wide | 320 radius, 3 layers | ~9,100 | ~640 × 640 (≈1,600 chunks) | **will hang, and may crash the game** |
+
+APOCALYPSE is the "blow up almost the whole world" setting and it does exactly that: a
+640 × 640 block hole, roughly a whole region file, with three stacked layers of blasts so
+it eats downward as well as outward. It is **off by default** and takes a deliberate
+opt-in, because a mistap on it can end a world. Back the world up first.
+
+The wielder always gets Resistance V and Fire Resistance for the duration, so you survive
+your own punch — but you will still fall into the crater you just made.
+
+## Why it does not simply lock up on the lower tiers
+
+Every explosion goes onto one shared queue, drained at a fixed budget per tick
+(`blastsPerTick`, 4 → 48 depending on tier). Nothing tries to detonate thousands of
+charges inside a single frame. `maxDetonations` is a second, hard cap per punch. That is
+what keeps Normal and Serious playable while still letting the top tier do what it says on
+the tin.
+
+If a punch is taking too long, `!punch stop` empties the queue immediately.
+
+## Installing on mobile
+
+Same as above: download **`dist/OnePunchMan.mcaddon`**, tap it, then activate
+**One Punch Man BP** on your world. On spawn, chat shows:
+
+```
+[Serious Punch] v1.0.0 loaded — power: Normal Punch
+```
+
+## Turning off terrain damage
+
+In `behavior_packs/one_punch_bp/scripts/main.js`, set `CONFIG.breaksBlocks` to `false`.
+The punch keeps its full range, knockback and entity damage but leaves the world intact.
+
+---
+
 ## Repository layout
 
 ```
@@ -122,23 +199,38 @@ resource_packs/arcane_arsenal_rp/
   textures/item_texture.json
   textures/items/*.png   6 hand-made 16x16 icons
   texts/en_US.lang       item display names
+behavior_packs/one_punch_bp/
+  manifest.json          BP manifest, min_engine_version 1.21.0
+  items/serious_punch.json
+  recipes/serious_punch.json
+  scripts/main.js        tiers, detonation queue, punch geometry
+  texts/                 pack name strings
+resource_packs/one_punch_rp/
+  manifest.json          RP manifest
+  textures/item_texture.json
+  textures/items/serious_punch.png
+  texts/en_US.lang       item display name
 tools/
-  gen_textures.py        regenerates every icon (stdlib only)
-  build.py               validates the packs and writes the .mcaddon
+  gen_textures.py        regenerates the Arcane Arsenal icons (stdlib only)
+  gen_opm_textures.py    regenerates the Serious Punch icon (stdlib only)
+  build.py               validates every add-on and writes the .mcaddon files
 dist/ArcaneArsenal.mcaddon
+dist/OnePunchMan.mcaddon
 ```
 
 ## Rebuilding
 
 ```bash
-python3 tools/gen_textures.py      # redraw the icons (add --preview for ASCII art)
-python3 tools/build.py             # validate + repackage dist/ArcaneArsenal.mcaddon
+python3 tools/gen_textures.py       # redraw the Arcane icons (--preview for ASCII art)
+python3 tools/gen_opm_textures.py   # redraw the Serious Punch icon
+python3 tools/build.py              # validate + repackage both .mcaddon files
+python3 tools/build.py one_punch    # just one add-on: arcane | one_punch
 ```
 
-`build.py` fails loudly if any JSON is malformed, if manifest UUIDs collide, if the
-behaviour pack loses its resource-pack dependency, if an item icon does not resolve to a
-real PNG, if a recipe produces an item that does not exist, or if an item has no name in
-`en_US.lang`.
+`build.py` fails loudly if any JSON is malformed, if manifest UUIDs collide (within an
+add-on *or* between add-ons), if a behaviour pack loses its resource-pack dependency, if
+an item icon does not resolve to a real PNG, if a recipe produces an item that does not
+exist, or if an item has no name in `en_US.lang`.
 
 ## Tuning
 
@@ -148,6 +240,12 @@ ranges, cooldowns — sits in the `CONFIG` object at the top of
 
 To stop the Cataclysm Hammer and Meteor Staff from destroying terrain, set
 `hammer.breaksBlocks` and `staff.breaksBlocks` to `false`.
+
+For One Punch Man the same applies to the `TIERS` array and the `CONFIG` object in
+`behavior_packs/one_punch_bp/scripts/main.js`. Every tier is a plain object — raise
+`reach`, `shockwave` and `maxDetonations` for more devastation, or raise `blastsPerTick`
+to make a punch finish sooner at the cost of a harder freeze while it runs. Each field is
+documented in the comment above `TIERS`.
 
 ## Compatibility notes
 
@@ -168,3 +266,10 @@ To stop the Cataclysm Hammer and Meteor Staff from destroying terrain, set
   single effect instead of breaking the add-on.
 - Mobs that pick up these weapons get the effects too — the script reads the attacker's
   main hand rather than assuming a player.
+- **Optional APIs are probed, not assumed:** One Punch Man's `!punch` chat commands need
+  `world.beforeEvents.chatSend`, which is not exposed on every 1.21 build, so the
+  subscription is wrapped. If chat commands do nothing on your device, sneak + tap still
+  cycles the power tier — that path uses nothing but `isSneaking`.
+- **Explosion budget:** the top One Punch Man tier is intentionally past what a phone can
+  survive. That is the requested behaviour, not a bug; drop to Killer Move or Serious
+  Punch for something that finishes.

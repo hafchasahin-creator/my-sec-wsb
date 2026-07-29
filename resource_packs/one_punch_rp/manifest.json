@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "One Punch Man RP",
+    "description": "Texture and name for the Serious Punch glove. Resource Pack.",
+    "uuid": "c4171bf7-9f21-44bf-92ae-2d71748d3c83",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "4487326b-51a1-4c97-84e7-f7868ce49b2b",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "One Punch Man Add-on"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}
