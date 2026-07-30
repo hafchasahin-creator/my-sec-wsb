@@ -41,6 +41,9 @@ const MAX_MARKERS = 32;
  *  "open the marker menu" as well. */
 const markerTicks = new Map();
 
+/** playerId -> "tick:x,y,z" of the last tap, to drop duplicate events. */
+const markerTaps = new Map();
+
 export function lastMarkerTick(player) {
   return markerTicks.get(player.id) ?? -1;
 }
@@ -239,12 +242,20 @@ function writeMarkers(player, list) {
 }
 
 export function addMarker(player, block) {
+  const pos = { x: block.location.x, y: block.location.y, z: block.location.z };
+
+  // Some game versions report one tap through two different events. The same
+  // block, from the same player, on the same tick, is that duplicate - not a
+  // second marker.
+  const tap = `${system.currentTick}:${pos.x},${pos.y},${pos.z}`;
+  if (markerTaps.get(player.id) === tap) return;
+  markerTaps.set(player.id, tap);
+
   const list = markers(player);
   if (list.length >= MAX_MARKERS) {
     say(player, `§c[Parkour] Marker limit reached (${MAX_MARKERS}).`);
     return;
   }
-  const pos = { x: block.location.x, y: block.location.y, z: block.location.z };
   list.push(pos);
   writeMarkers(player, list);
   markerTicks.set(player.id, system.currentTick);

@@ -142,17 +142,34 @@ course clears the previous one first unless you turn that off.
 When you join a world with the pack active, chat shows:
 
 ```
-[Skyline Parkour] v1.0.0 loaded - tap the Parkour Compass to play.
+[Skyline Parkour] v1.0.1 loaded - tap the Parkour Compass to play. (no compass? type !pk kit in chat)
 ```
 
-If that line does **not** appear, the behaviour pack's scripts are not running — check
-that you activated **Skyline Parkour BP** (not just the resource pack) on this world.
+**Nothing happened at all?** Turn cheats on for the world and run this in chat:
 
-If items show up as blank squares, the resource pack is not active: **Settings → Resource
-Packs** on the world, activate **Skyline Parkour RP**.
+```
+/give @s parkour:course_compass
+```
 
-For anything else, turn on **Settings → Creator → Content Log GUI**; it names the pack and
-file for any load error.
+- **"Unknown item"** → the behaviour pack is not active on this world. Re-check
+  *Edit World → Behaviour Packs → Skyline Parkour BP → Activate*. If the pack is greyed
+  out there, the game is older than `min_engine_version` (1.21.0).
+- **You get the compass, but there was no chat line on join** → the pack is active but its
+  scripts are not running. Turn on **Settings → Creator → Content Log GUI**; it names the
+  file and the error.
+- **You get the compass and the chat line** → everything works; type `!pk` to open the menu.
+
+Two more:
+
+- Items look like blank squares → the resource pack is off. **Edit World → Resource Packs
+  → Skyline Parkour RP → Activate**.
+- Re-installing an older copy? Delete the old **Skyline Parkour BP** and **RP** first
+  (Settings → Storage → Packs). Importing over a cached copy can keep the old files.
+
+The greeting and the starter kit are handled twice over — once from `playerSpawn`, and
+again from a sweep of the player list every 5 seconds — because on a single-player world
+the host can finish spawning *before* the script starts, and then `playerSpawn` never
+fires for them.
 
 ## Tuning
 

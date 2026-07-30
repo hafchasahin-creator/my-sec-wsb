@@ -5,7 +5,7 @@
  * `python3 tools/build_parkour.py` to repackage the .mcaddon.
  */
 
-export const VERSION = "1.0.0";
+export const VERSION = "1.0.1";
 
 export const ITEMS = {
   COMPASS: "parkour:course_compass",

@@ -61,39 +61,76 @@ safe(() =>
   })
 );
 
+/**
+ * Tapping a block with the marker. Older builds report this as `itemUseOn`,
+ * newer ones as `playerInteractWithBlock`; both are subscribed to, and
+ * addMarker ignores a second call in the same tick.
+ */
+function markerTap(player, block, itemStack) {
+  if (safe(() => itemStack?.typeId) !== ITEMS.MARKER) return;
+  if (!player || !block) return;
+  game.addMarker(player, block);
+}
+
 safe(() =>
-  world.afterEvents.itemUseOn?.subscribe((event) => {
-    if (safe(() => event.itemStack?.typeId) !== ITEMS.MARKER) return;
-    if (!event.source || !event.block) return;
-    game.addMarker(event.source, event.block);
-  })
+  world.afterEvents.itemUseOn?.subscribe((event) =>
+    markerTap(event.source, event.block, event.itemStack)
+  )
+);
+
+safe(() =>
+  world.afterEvents.playerInteractWithBlock?.subscribe((event) =>
+    markerTap(event.player, event.block, event.itemStack)
+  )
 );
 
 /* ------------------------------------------------------------------ *
  * Joining
+ *
+ * playerSpawn on its own is not enough. On a single-player world the host
+ * can finish spawning before the script module has started, and then the
+ * event never fires for them - no greeting, and no starter kit. So the
+ * player list is swept as well, which catches anyone the event missed.
  * ------------------------------------------------------------------ */
+
+const greeted = new Set();
+
+function welcome(player) {
+  if (!player || greeted.has(player.id)) return;
+  greeted.add(player.id);
+
+  say(
+    player,
+    `§6[Skyline Parkour] §fv${VERSION} loaded - tap the §eParkour Compass§f to play. ` +
+      `§7(no compass? type §f!pk kit§7 in chat)`
+  );
+
+  if (!CONFIG.giveCompassOnFirstJoin) return;
+  if (safe(() => player.getDynamicProperty(KIT_FLAG))) return;
+  // A short delay, so the inventory is definitely there to put things in.
+  safe(() =>
+    system.runTimeout(() => {
+      game.giveKit(player, true);
+      safe(() => player.setDynamicProperty(KIT_FLAG, true));
+    }, 20)
+  );
+}
 
 safe(() =>
   world.afterEvents.playerSpawn.subscribe((event) => {
-    if (!event.initialSpawn) return;
-    const player = event.player;
-
-    say(
-      player,
-      `§6[Skyline Parkour] §fv${VERSION} loaded - tap the §eParkour Compass§f to play.`
-    );
-
-    if (!CONFIG.giveCompassOnFirstJoin) return;
-    if (safe(() => player.getDynamicProperty(KIT_FLAG))) return;
-    // A short delay, so the inventory is definitely there to put things in.
-    safe(() =>
-      system.runTimeout(() => {
-        game.giveKit(player, true);
-        safe(() => player.setDynamicProperty(KIT_FLAG, true));
-      }, 20)
-    );
+    if (event.initialSpawn) welcome(event.player);
   })
 );
+
+safe(() =>
+  world.afterEvents.playerLeave?.subscribe((event) => {
+    greeted.delete(event.playerId);
+  })
+);
+
+system.runInterval(() => {
+  for (const player of world.getAllPlayers()) welcome(player);
+}, 100);
 
 /* ------------------------------------------------------------------ *
  * Commands: /scriptevent pk:... and !pk in chat
