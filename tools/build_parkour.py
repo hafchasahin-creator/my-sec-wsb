@@ -25,6 +25,8 @@ OTHER_MANIFESTS = (
 )
 DIST = "dist"
 ADDON = os.path.join(DIST, "SkylineParkour.mcaddon")
+BP_PACK = os.path.join(DIST, "SkylineParkour_BP.mcpack")
+RP_PACK = os.path.join(DIST, "SkylineParkour_RP.mcpack")
 NAMESPACE = "parkour:"
 
 IMPORT_RE = re.compile(r"""from\s+["']([^"']+)["']""")
@@ -228,23 +230,33 @@ def validate():
     )
 
 
-def package():
-    os.makedirs(DIST, exist_ok=True)
-    if os.path.exists(ADDON):
-        os.remove(ADDON)
-
-    with zipfile.ZipFile(ADDON, "w", zipfile.ZIP_DEFLATED) as archive:
-        for root, folder in ((BP, "skyline_parkour_bp"), (RP, "skyline_parkour_rp")):
+def write_zip(path, roots):
+    """roots: (source directory, folder name inside the zip) pairs."""
+    if os.path.exists(path):
+        os.remove(path)
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        for root, folder in roots:
             for base, _dirs, files in os.walk(root):
                 for name in sorted(files):
                     source = os.path.join(base, name)
-                    arcname = os.path.join(
-                        folder, os.path.relpath(source, root)
+                    inner = os.path.relpath(source, root)
+                    arcname = (
+                        os.path.join(folder, inner) if folder else inner
                     ).replace(os.sep, "/")
                     archive.write(source, arcname)
+    print(f"Packaged {path} ({os.path.getsize(path):,} bytes)")
 
-    size = os.path.getsize(ADDON)
-    print(f"Packaged {ADDON} ({size:,} bytes)")
+
+def package():
+    os.makedirs(DIST, exist_ok=True)
+
+    # Both packs together - one tap installs everything.
+    write_zip(ADDON, ((BP, "skyline_parkour_bp"), (RP, "skyline_parkour_rp")))
+
+    # And each pack on its own, for installing them one at a time. A .mcpack
+    # holds a single pack at the root of the zip, not in a subfolder.
+    write_zip(BP_PACK, ((BP, ""),))
+    write_zip(RP_PACK, ((RP, ""),))
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ toggles**, and are built for phones and tablets.
 
 | Add-on | What it adds | Download |
 | --- | --- | --- |
-| **[Skyline Parkour](#skyline-parkour)** | Tap a compass and a parkour course is built in the sky above you: checkpoints, timer, personal bests | `dist/SkylineParkour.mcaddon` |
+| **[Skyline Parkour](#skyline-parkour)** | Tap a compass and a parkour course is built in the sky above you: checkpoints, timer, personal bests | `dist/SkylineParkour.mcaddon` (or the two `.mcpack` files) |
 | **[Arcane Arsenal](#arcane-arsenal)** | Six legendary weapons with scripted magic effects | `dist/ArcaneArsenal.mcaddon` |
 
 ---
@@ -23,6 +23,9 @@ Falling off never kills you: you are put straight back on your last checkpoint.
 
 1. Download **`dist/SkylineParkour.mcaddon`** onto the phone or tablet.
 2. **Tap the file.** Minecraft opens and imports both packs by itself.
+   (Prefer them separately? `dist/SkylineParkour_BP.mcpack` and
+   `dist/SkylineParkour_RP.mcpack` are the same two packs as single-pack files —
+   tap the RP first, then the BP.)
 3. Create or edit a world → **Behaviour Packs** → activate **Skyline Parkour BP**.
    (The resource pack comes along automatically. Leave every experimental toggle **off**.)
 4. Join the world. All three items — **Parkour Compass**, **Checkpoint Marker**, **Leap
@@ -178,7 +181,9 @@ resource_packs/skyline_parkour_rp/
 tools/
   gen_parkour_textures.py   regenerates the icons (stdlib only)
   build_parkour.py          validates the packs and writes the .mcaddon
-dist/SkylineParkour.mcaddon
+dist/SkylineParkour.mcaddon        both packs, one tap
+dist/SkylineParkour_BP.mcpack      behaviour pack on its own
+dist/SkylineParkour_RP.mcpack      resource pack on its own
 ```
 
 ```bash
