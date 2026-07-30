@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Horror Mode RP",
+    "description": "The Watcher, the dread fog, and the totem texture. Resource Pack.",
+    "uuid": "0e7a5d57-58a7-4bea-84e6-904ef7f5aa0c",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "fb5ed653-7357-4696-b06d-83fa0f1f946c",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Horror Mode Add-on"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

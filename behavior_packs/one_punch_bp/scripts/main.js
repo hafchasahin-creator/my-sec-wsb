@@ -955,42 +955,69 @@ world.afterEvents.entityHurt.subscribe((event) => {
 });
 
 /* ------------------------------------------------------------------ *
- * Chat control - a convenience on top of sneak+tap. Wrapped because
- * beforeEvents.chatSend is not exposed on every 1.21 build.
+ * Chat control via /scriptevent
+ *
+ * Typed in chat as:
+ *   /scriptevent opm:list
+ *   /scriptevent opm:move serious
+ *   /scriptevent opm:next
+ *   /scriptevent opm:stop
+ *
+ * Reading plain chat words instead would need world.beforeEvents.chatSend,
+ * which is an EXPERIMENTAL API - it does nothing unless the world has the Beta
+ * APIs toggle on. scriptEventReceive is stable, so this path works on a default
+ * world. It does need cheats enabled, because that is what /scriptevent needs;
+ * sneak + tap remains the control that works with no cheats and no chat.
  * ------------------------------------------------------------------ */
 
-safe(() =>
-  world.beforeEvents.chatSend.subscribe((event) => {
-    const message = event.message.trim();
-    if (!message.startsWith("!punch")) return;
-    event.cancel = true;
+function describeMoves(player) {
+  tell(player, "§c[Serious Punch]§r moves — §7/scriptevent opm:move <name>§r");
+  for (const move of MOVES) {
+    const marker = move === currentMove() ? "§f>§r " : "  ";
+    tell(player, `${marker}${move.colour}${move.key}§r — ${move.name}`);
+  }
+  tell(player, "§7opm:stop cancels a punch that is still running.§r");
+}
 
-    const player = event.sender;
-    const argument = message.slice("!punch".length).trim().toLowerCase();
+system.afterEvents.scriptEventReceive.subscribe((event) => {
+  const id = event.id.toLowerCase();
+  if (!id.startsWith("opm:")) return;
 
-    system.run(() => {
-      if (argument === "stop") {
-        tell(player, `§7[Serious Punch] cancelled ${abort()} pending jobs§r`);
-        return;
-      }
-      if (!argument || argument === "list" || argument === "status") {
-        tell(player, `§c[Serious Punch]§r moves — §7!punch <name>§r`);
-        for (const move of MOVES) {
-          const marker = move === currentMove() ? "§f>§r " : "  ";
-          tell(player, `${marker}${move.colour}${move.key}§r — ${move.name}`);
+  const action = id.slice("opm:".length);
+  const player = event.sourceEntity;
+  const argument = (event.message ?? "").trim().toLowerCase();
+
+  try {
+    switch (action) {
+      case "stop":
+        if (player) tell(player, `§7[Serious Punch] cancelled ${abort()} pending jobs§r`);
+        else abort();
+        break;
+      case "next":
+        if (player) announceMove(player, setMove(moveIndex() + 1));
+        break;
+      case "move": {
+        const index = MOVES.findIndex((move) => move.key === argument);
+        if (index < 0) {
+          if (player) tell(player, "§c[Serious Punch] no such move. opm:list§r");
+          break;
         }
-        tell(player, "§7!punch stop cancels a punch that is still running.§r");
-        return;
+        if (player) announceMove(player, setMove(index));
+        else setMove(index);
+        break;
       }
-      const index = MOVES.findIndex((move) => move.key === argument);
-      if (index < 0) {
-        tell(player, "§c[Serious Punch] no such move. !punch list§r");
-        return;
-      }
-      announceMove(player, setMove(index));
-    });
-  })
-);
+      case "list":
+      case "status":
+        if (player) describeMoves(player);
+        break;
+      default:
+        if (player) tell(player, "§c[Serious Punch] unknown command. opm:list§r");
+        break;
+    }
+  } catch (err) {
+    console.warn(`[One Punch Man] command failed: ${err}`);
+  }
+});
 
 /* ------------------------------------------------------------------ *
  * Load confirmation
@@ -1003,7 +1030,10 @@ world.afterEvents.playerSpawn.subscribe((event) => {
     event.player,
     `§c[Serious Punch]§r v${VERSION} loaded — ${MOVES.length} moves, selected: ${move.colour}${move.name}§r`
   );
-  tell(event.player, "§7Sneak + tap to change move. Tap to punch. !punch list§r");
+  tell(
+    event.player,
+    "§7Sneak + tap to change move. Tap to punch. /scriptevent opm:list§r"
+  );
 });
 
 console.warn(

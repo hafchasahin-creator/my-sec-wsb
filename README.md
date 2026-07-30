@@ -1,16 +1,17 @@
 # Minecraft Bedrock add-ons
 
-Two self-contained **Bedrock Edition** add-ons (each a behaviour pack + resource pack):
+Three self-contained **Bedrock Edition** add-ons (each a behaviour pack + resource pack):
 
 | Add-on | What it adds | Package |
 | --- | --- | --- |
 | **[Arcane Arsenal](#arcane-arsenal)** | Six legendary weapons with scripted magic effects | `dist/ArcaneArsenal.mcaddon` |
-| **[One Punch Man](#one-punch-man)** | *Serious Series: Serious Punch* — a world-ending fist | `dist/OnePunchMan.mcaddon` |
+| **[One Punch Man](#one-punch-man)** | *Serious Series: Serious Punch* — a world-ending fist, 7 moves | `dist/OnePunchMan.mcaddon` |
+| **[Horror Mode](#horror-mode)** | Turns the world hostile on a typed chat command: The Watcher, dread fog, whispers | `dist/HorrorMode.mcaddon` |
 
-They are independent: install either one, or both at once.
+They are independent: install any one, or all three at once.
 
 Built and tested against the format versions available in **Bedrock 1.21.0** — the build
-running in the attached screenshot (`1.21.0.26`, Android / Pocket Edition). Both use only
+running in the attached screenshot (`1.21.0.26`, Android / Pocket Edition). All three use only
 **stable** item components and the **stable** `@minecraft/server 1.11.0` scripting module,
 so **no experimental toggles are required** and they work on phones and tablets.
 
@@ -134,9 +135,13 @@ Craft it with **8 netherite ingots + 1 nether star + 1 netherite block**
 | **Tap the use button** | Fire the selected move where you are looking |
 | **Sneak + tap** | Switch to the next move (announced in chat and on the action bar) |
 | **Hit a mob normally** | One punch, one kill — anything, any health, plus a crater |
-| `!punch list` | Show all moves and which one is selected |
-| `!punch <name>` | Jump straight to a move, e.g. `!punch apocalypse` |
-| `!punch stop` | Abort a move that is still running |
+| `/scriptevent opm:list` | Show all moves and which one is selected |
+| `/scriptevent opm:move <name>` | Jump straight to a move, e.g. `opm:move apocalypse` |
+| `/scriptevent opm:next` | Step to the next move |
+| `/scriptevent opm:stop` | Abort a move that is still running |
+
+The `/scriptevent` commands need **cheats enabled** on the world, because that is what
+`/scriptevent` itself needs. Sneak + tap needs nothing and always works.
 
 ## The seven moves
 
@@ -180,11 +185,12 @@ single frame. `maxJobs` is a second, hard cap per activation. That is what keeps
 Punch instant and Serious Punch to a few seconds of stutter, while still letting
 APOCALYPSE do what it says on the tin.
 
-If a move is taking too long, **`!punch stop`** empties the queue immediately.
+If a move is taking too long, **`/scriptevent opm:stop`** empties the queue immediately.
 
 ## Installing on mobile
 
-Download **`dist/OnePunchMan.mcaddon`**, tap it, then activate **One Punch Man BP** on
+Download **`dist/OnePunchMan.mcaddon
+dist/HorrorMode.mcaddon`**, tap it, then activate **One Punch Man BP** on
 your world. On spawn, chat shows:
 
 ```
@@ -223,6 +229,110 @@ damage but leave the world intact.
 
 ---
 
+# Horror Mode
+
+Nothing happens when you install this. It waits until you type a command in chat:
+
+```
+/scriptevent horror:on
+```
+
+From that moment the world turns on you.
+
+## Commands
+
+All typed straight into chat.
+
+| Command | Effect |
+| --- | --- |
+| `/scriptevent horror:on` | Engage horror mode |
+| `/scriptevent horror:off` | Stand down: clears the storm, fog, effects and every Watcher |
+| `/scriptevent horror:toggle` | Flip it |
+| `/scriptevent horror:level 1` | Intensity 1–3 (see below) |
+| `/scriptevent horror:scare` | Force a jumpscare right now |
+| `/scriptevent horror:watcher` | Spawn a Watcher behind you immediately |
+| `/scriptevent horror:status` | Report state and level |
+
+`/scriptevent` needs **cheats enabled** on the world. If cheats are off, craft the
+**Cursed Totem** instead — tap it to toggle horror mode, sneak + tap to change level. It
+does exactly the same thing and needs no commands at all.
+
+```
+/give @s horror:dread_totem
+```
+
+Recipe: bone on top, **soul sand + eye of ender + soul sand** across the middle, rotten
+flesh at the bottom.
+
+## What it does
+
+**Atmosphere, always on while engaged**
+
+- The world is held at **night** in a **thunderstorm**, re-applied every 20 seconds so the
+  daylight cycle cannot claw it back.
+- A custom **fog** clamps your view to ~22 blocks in a near-black haze — this is a real
+  fog definition in the resource pack, not a potion effect, so it cannot be milked off.
+- **Positioned ambient sounds** play 4–14 blocks away from you at random: cave ambience,
+  ghast moans, distant footsteps, a door closing, warden heartbeats. They are played with
+  `Player.playSound`, so each player hears their own — nobody else can tell you it was
+  nothing.
+- **Whispers** arrive in chat in dark italic grey. Twelve lines, picked at random.
+
+**The Watcher** *(level 2+)*
+
+A silent, unkillable humanoid with no AI at all. It has **zero behaviour components** —
+that is deliberate. A mob with pathfinding walks at you like every other mob; one that
+only ever moves while you are not looking reads as something else entirely.
+
+- It appears **18–30 blocks behind you**, off to one side, dropped onto solid ground.
+- It always **turns to face you**, re-aimed every second.
+- **Look at it and it is gone** — within about a 21° cone of your view. You get a scream,
+  sometimes a whisper, and at level 3 a few seconds of Darkness.
+- At level 3 it **creeps ~7 blocks closer every second you are not looking at it**, with
+  the occasional footstep. Let it reach 3 blocks and it strikes: 7 damage, blindness,
+  slowness, camera shake, and then it is gone again.
+- It is invulnerable (`damage_sensor` refuses all damage) and immune to knockback. You
+  cannot fight it. You can only look at it.
+
+**Jumpscares** *(level 2+)*
+
+Red title text, a close-range scream, camera shake and a moment of blindness.
+
+## The three levels
+
+| Level | Name | Ambience | Whispers | Jumpscares | The Watcher |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Unsettling | 25% / s | 5% / s | — | — |
+| 2 | Haunted *(default)* | 35% / s | 9% / s | 1.2% / s | appears, vanishes when seen |
+| 3 | Hunted | 50% / s | 14% / s | 3% / s | stalks, closes in, strikes, plus Darkness pulses |
+
+Percentages are per player per second, so level 2 averages a jumpscare about every 80
+seconds and a Watcher roughly every 17 seconds once one is gone.
+
+## Cost while switched off
+
+The whole mod is one interval running once a second that returns immediately when the mode
+is off. Installing it and never turning it on costs essentially nothing.
+
+## Installing on mobile
+
+Download **`dist/HorrorMode.mcaddon`**, tap it, then activate **Horror Mode BP** on your
+world. On spawn, chat shows:
+
+```
+[Horror Mode] v1.0.0 installed — currently off.
+```
+
+Make sure **Horror Mode RP** is active too, or you get no fog and The Watcher renders as
+an untextured shape.
+
+## Turning it down
+
+`LEVELS` and `CONFIG` at the top of `behavior_packs/horror_bp/scripts/main.js` hold every
+number: sound frequency, gaze cone, how far The Watcher spawns and how fast it closes.
+
+---
+
 ## Repository layout
 
 ```
@@ -248,12 +358,30 @@ resource_packs/one_punch_rp/
   textures/item_texture.json
   textures/items/serious_punch.png
   texts/en_US.lang       item display name
+behavior_packs/horror_bp/
+  manifest.json          BP manifest, min_engine_version 1.21.0
+  entities/watcher.json  The Watcher - no AI, invulnerable, script-driven
+  items/dread_totem.json
+  recipes/dread_totem.json
+  scripts/main.js        state, atmosphere loop, Watcher logic, /scriptevent
+  texts/                 pack name strings
+resource_packs/horror_rp/
+  manifest.json          RP manifest
+  entity/watcher.json    client entity, vanilla geometry.humanoid.custom
+  render_controllers/watcher.json
+  fogs/dread.json        the near-black 22-block fog
+  textures/entity/watcher.png    64x64 skin
+  textures/items/dread_totem.png
+  textures/item_texture.json
+  texts/en_US.lang       item display name
 tools/
   gen_textures.py        regenerates the Arcane Arsenal icons (stdlib only)
   gen_opm_textures.py    regenerates the Serious Punch icon (stdlib only)
+  gen_horror_textures.py regenerates The Watcher skin and totem icon (stdlib only)
   build.py               validates every add-on and writes the .mcaddon files
 dist/ArcaneArsenal.mcaddon
 dist/OnePunchMan.mcaddon
+dist/HorrorMode.mcaddon
 ```
 
 ## Rebuilding
@@ -261,8 +389,9 @@ dist/OnePunchMan.mcaddon
 ```bash
 python3 tools/gen_textures.py       # redraw the Arcane icons (--preview for ASCII art)
 python3 tools/gen_opm_textures.py   # redraw the Serious Punch icon
-python3 tools/build.py              # validate + repackage both .mcaddon files
-python3 tools/build.py one_punch    # just one add-on: arcane | one_punch
+python3 tools/gen_horror_textures.py # redraw The Watcher skin and the totem
+python3 tools/build.py              # validate + repackage all three .mcaddon files
+python3 tools/build.py one_punch    # just one: arcane | one_punch | horror
 ```
 
 `build.py` fails loudly if any JSON is malformed, if manifest UUIDs collide (within an
@@ -305,10 +434,13 @@ a fresh world.
   single effect instead of breaking the add-on.
 - Mobs that pick up these weapons get the effects too — the script reads the attacker's
   main hand rather than assuming a player.
-- **Optional APIs are probed, not assumed:** One Punch Man's `!punch` chat commands need
-  `world.beforeEvents.chatSend`, which is not exposed on every 1.21 build, so the
-  subscription is wrapped. If chat commands do nothing on your device, sneak + tap still
-  cycles the power tier — that path uses nothing but `isSneaking`.
+- **`chatSend` is experimental, `scriptEventReceive` is not.** Reading plain chat words
+  needs `world.beforeEvents.chatSend`, which Microsoft's own stable API reference lists
+  only under the experimental moniker — it does nothing unless the world has the **Beta
+  APIs** toggle on. Both add-ons therefore take typed commands through
+  `system.afterEvents.scriptEventReceive` (`/scriptevent <namespace>:<action>`), which is
+  stable. That does require cheats; the controls that need neither cheats nor chat are
+  sneak + tap (One Punch Man) and the Cursed Totem (Horror Mode).
 - **Destruction budget:** the top One Punch Man move is intentionally past what a phone
   can survive. That is the requested behaviour, not a bug; drop to Killer Move or Serious
   Punch for something that finishes.

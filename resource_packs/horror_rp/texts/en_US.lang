@@ -1,0 +1,9 @@
+## Horror Mode - English (US)
+
+pack.name=Horror Mode RP
+pack.description=The Watcher, the dread fog, and the totem texture.
+
+item.horror:dread_totem=Cursed Totem
+item.horror:dread_totem.name=Cursed Totem
+
+entity.horror:watcher.name=?

@@ -30,6 +30,11 @@ ADDONS = {
         os.path.join("resource_packs", "one_punch_rp"),
         "OnePunchMan.mcaddon",
     ),
+    "horror": (
+        os.path.join("behavior_packs", "horror_bp"),
+        os.path.join("resource_packs", "horror_rp"),
+        "HorrorMode.mcaddon",
+    ),
 }
 
 errors = []

@@ -1,0 +1,45 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "horror:watcher",
+      "is_spawnable": false,
+      "is_summonable": true
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "horror",
+          "watcher",
+          "inanimate"
+        ]
+      },
+      "minecraft:health": {
+        "value": 1024,
+        "max": 1024
+      },
+      "minecraft:collision_box": {
+        "width": 0.6,
+        "height": 2.4
+      },
+      "minecraft:physics": {},
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": false
+      },
+      "minecraft:knockback_resistance": {
+        "value": 1.0
+      },
+      "minecraft:fire_immune": true,
+      "minecraft:damage_sensor": {
+        "triggers": [
+          {
+            "cause": "all",
+            "deals_damage": false
+          }
+        ]
+      },
+      "minecraft:persistent": {}
+    }
+  }
+}

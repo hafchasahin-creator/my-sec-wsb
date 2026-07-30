@@ -1,0 +1,61 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Horror Mode BP",
+    "description": "Type /scriptevent horror:on in chat. Then regret it. Behavior Pack.",
+    "uuid": "1ff7f052-fa59-486e-93e0-78faf2c23591",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "5217034a-79cd-4b96-91c9-8e0b936c9149",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "5af2209b-598f-4f69-b43f-a30316f24014",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "0e7a5d57-58a7-4bea-84e6-904ef7f5aa0c",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Horror Mode Add-on"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

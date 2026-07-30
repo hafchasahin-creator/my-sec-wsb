@@ -1,0 +1,39 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "horror:dread_totem"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " B ",
+      "SES",
+      " R "
+    ],
+    "key": {
+      "B": {
+        "item": "minecraft:bone"
+      },
+      "S": {
+        "item": "minecraft:soul_sand"
+      },
+      "E": {
+        "item": "minecraft:ender_eye"
+      },
+      "R": {
+        "item": "minecraft:rotten_flesh"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "horror:dread_totem",
+      "count": 1
+    }
+  }
+}
