@@ -11,7 +11,6 @@
     "component_groups": {
       "bodyguard:hired": {
         "minecraft:is_tamed": {},
-        "minecraft:sittable": {},
         "minecraft:healable": {
           "items": [
             {
@@ -23,9 +22,6 @@
               "heal_amount": 20
             }
           ]
-        },
-        "minecraft:behavior.stay_while_sitting": {
-          "priority": 2
         },
         "minecraft:behavior.follow_owner": {
           "priority": 5,
@@ -65,20 +61,92 @@
             }
           ]
         },
-        "minecraft:damage_sensor": {
-          "triggers": [
+
+        "minecraft:shooter": {
+          "def": "bodyguard:cannon_shell"
+        },
+        "minecraft:behavior.ranged_attack": {
+          "priority": 2,
+          "burst_shots": 1,
+          "attack_interval_min": 2.5,
+          "attack_interval_max": 4.0,
+          "attack_radius": 24,
+          "attack_radius_min": 7,
+          "ranged_fov": 120,
+          "speed_multiplier": 1.0
+        },
+
+        "minecraft:interact": {
+          "interactions": [
             {
-              "cause": "entity_attack",
-              "deals_damage": false,
-              "on_damage": {
+              "on_interact": {
                 "filters": {
-                  "test": "is_owner",
+                  "test": "is_family",
                   "subject": "other",
-                  "value": true
-                }
-              }
+                  "value": "player"
+                },
+                "event": "bodyguard:tap_once",
+                "target": "self"
+              },
+              "use_item": false,
+              "swing": true,
+              "interact_text": "action.interact.order"
             }
           ]
+        }
+      },
+
+      "bodyguard:order_window": {
+        "minecraft:timer": {
+          "looping": false,
+          "time": 1.5,
+          "time_down_event": {
+            "event": "bodyguard:order_window_closed"
+          }
+        },
+        "minecraft:interact": {
+          "interactions": [
+            {
+              "on_interact": {
+                "filters": {
+                  "test": "is_family",
+                  "subject": "other",
+                  "value": "player"
+                },
+                "event": "bodyguard:fetch_food",
+                "target": "self"
+              },
+              "use_item": false,
+              "swing": true,
+              "interact_text": "action.interact.fetch"
+            }
+          ]
+        }
+      },
+
+      "bodyguard:fetching": {
+        "minecraft:spawn_entity": [
+          {
+            "min_wait_time": 5,
+            "max_wait_time": 8,
+            "num_to_spawn": 2,
+            "single_use": true,
+            "spawn_item": "bread"
+          },
+          {
+            "min_wait_time": 7,
+            "max_wait_time": 11,
+            "num_to_spawn": 1,
+            "single_use": true,
+            "spawn_item": "cooked_beef"
+          }
+        ],
+        "minecraft:timer": {
+          "looping": false,
+          "time": 14,
+          "time_down_event": {
+            "event": "bodyguard:done_fetching"
+          }
         }
       }
     },
@@ -146,6 +214,29 @@
           }
         ]
       },
+      "minecraft:damage_sensor": {
+        "triggers": [
+          {
+            "cause": "entity_attack",
+            "deals_damage": false,
+            "on_damage": {
+              "filters": {
+                "test": "is_owner",
+                "subject": "other",
+                "value": true
+              }
+            }
+          },
+          {
+            "cause": "explosion",
+            "deals_damage": false
+          },
+          {
+            "cause": "entity_explosion",
+            "deals_damage": false
+          }
+        ]
+      },
       "minecraft:tameable": {
         "probability": 1.0,
         "tame_items": [
@@ -188,6 +279,39 @@
         "add": {
           "component_groups": [
             "bodyguard:hired"
+          ]
+        }
+      },
+      "bodyguard:tap_once": {
+        "add": {
+          "component_groups": [
+            "bodyguard:order_window"
+          ]
+        }
+      },
+      "bodyguard:order_window_closed": {
+        "remove": {
+          "component_groups": [
+            "bodyguard:order_window"
+          ]
+        }
+      },
+      "bodyguard:fetch_food": {
+        "remove": {
+          "component_groups": [
+            "bodyguard:order_window"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "bodyguard:fetching"
+          ]
+        }
+      },
+      "bodyguard:done_fetching": {
+        "remove": {
+          "component_groups": [
+            "bodyguard:fetching"
           ]
         }
       }

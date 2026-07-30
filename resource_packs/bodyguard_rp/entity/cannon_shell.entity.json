@@ -1,0 +1,20 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "bodyguard:cannon_shell",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/cannon_shell"
+      },
+      "geometry": {
+        "default": "geometry.cannon_shell"
+      },
+      "render_controllers": [
+        "controller.render.bodyguard"
+      ]
+    }
+  }
+}

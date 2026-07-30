@@ -7,7 +7,7 @@ toggles**, and are built for phones and tablets.
 | Add-on | What it adds | Download |
 | --- | --- | --- |
 | **[Skyline Parkour](#skyline-parkour)** | Tap a compass and a parkour course is built in the sky above you: checkpoints, timer, personal bests | `dist/SkylineParkour.mcaddon` (or the two `.mcpack` files) |
-| **[Bodyguard](#bodyguard)** | Hire a suited bodyguard who follows you and fights anything that attacks you | `dist/Bodyguard.mcaddon` |
+| **[Bodyguard](#bodyguard)** | Hire a suited bodyguard with a rocket launcher who follows you, fights anything that attacks you, and fetches food on command | `dist/Bodyguard.mcaddon` |
 | **[Arcane Arsenal](#arcane-arsenal)** | Six legendary weapons with scripted magic effects | `dist/ArcaneArsenal.mcaddon` |
 
 ---
@@ -232,8 +232,9 @@ to a PNG, if a recipe pattern and key disagree, or if an item has no name in `en
 
 # Bodyguard
 
-A hired bodyguard in a black suit, white shirt, red tie and sunglasses. He follows you,
-kills anything that attacks you, and cannot be hurt by you.
+A hired bodyguard in a black suit, white shirt, red tie and sunglasses, carrying a
+shoulder-fired launcher. He follows you, blows up anything that attacks you, fetches food
+when you ask, and cannot be hurt by you.
 
 **This add-on has no scripts at all.** Everything is done with vanilla entity behaviours,
 so there is no script module version to get wrong and nothing that can fail to load on a
@@ -262,14 +263,16 @@ that moment - he knows who his owner is, and only follows that player.
 ## What he does
 
 - **Follows you.** Starts moving when you get 5 blocks away, stops 2 blocks from you.
+- **Fires explosive shells.** Anything he is angry at, from 7 to 24 blocks away, gets a
+  shell with a **power 12** explosion - three times TNT. Read the warning below.
+- **Punches** at close range instead of shooting, so he does not level the ground you are
+  standing on.
 - **Fights whatever attacks you.** Anything that hurts you becomes his target, instantly.
 - **Fights what you fight.** Hit a mob and he joins in.
 - **Hunts monsters near you.** Zombies, skeletons, creepers, spiders and slimes within
   16 blocks, on sight.
-- **Cannot be hurt by you.** Your own hits deal him no damage, so a stray swing while
-  fighting never kills him.
-- **Sits and stays.** Tap him with an empty hand to make him hold a position; tap again to
-  bring him along.
+- **Fetches food** - see below.
+- **Cannot be hurt by you**, and is immune to explosions, including his own.
 - **Heals.** Feed him cooked beef (+10) or a golden apple (+20) when he is hurt.
 - **Takes a name tag**, and never despawns.
 
@@ -278,17 +281,58 @@ Monsters treat him as a villager, which is what makes them come for him instead 
 | | |
 | --- | --- |
 | Health | 40 (20 hearts) - twice a player |
-| Damage | 7 per hit |
+| Melee damage | 7 per hit |
+| Shell damage | 14 on impact, plus a power 12 explosion |
+| Firing range | 7 to 24 blocks, a shot every 2.5-4 seconds |
 | Speed | 0.3 walking, 1.25x while following you |
 | Knockback resistance | 60% |
 | Doors | He opens and closes them to keep up |
+
+## Ordering food - double tap
+
+Look at him and **tap twice, quickly** (within 1.5 seconds). The button on screen says
+**Order** on the first tap and **Find Food** on the second.
+
+He then goes looking, and 5-11 seconds later drops **2 bread and a steak** at his feet -
+and since he is following you, that is at your feet. After 14 seconds he goes back to
+normal and you can order again.
+
+A single tap does nothing, on purpose: it only opens the 1.5 second window that the second
+tap needs. That is how the double tap is detected without any scripting.
+
+## Careful: he really does blow things up
+
+A power 12 shell leaves a crater far bigger than TNT. He will fire it at a zombie standing
+next to your house, and **you take that damage too** - he is immune, you are not.
+
+Two things worth knowing:
+
+- **Keep your buildings:** run `/gamerule mobGriefing false` in the world. He still fires,
+  the shells still hurt monsters, but no blocks break. This is the switch to use if you
+  want him around a base.
+- **Stand behind him**, not next to his target. He will not fire at anything closer than
+  7 blocks, which is what keeps most shots away from your own feet.
+
+To change the blast, open `behavior_packs/bodyguard_bp/entities/cannon_shell.json` and
+edit `"power"` in `minecraft:explode`:
+
+| power | roughly |
+| --- | --- |
+| 4 | one TNT - safe near a base |
+| 8 | a small nuke |
+| 12 | the default: a crater you can see from far away |
+| 20+ | expect the phone to stutter badly and your world to have a hole in it |
+
+`"causes_fire": false` is off deliberately; turning it on sets the landscape alight.
 
 ## Layout and rebuilding
 
 ```
 behavior_packs/bodyguard_bp/
   manifest.json           BP manifest, no script module at all
-  entities/bodyguard.json the entity: base state, hired state, hire event
+  entities/bodyguard.json the entity: base state, hired state, the order
+                          window and the fetching state, and their events
+  entities/cannon_shell.json  the explosive projectile he fires
   items/hire_contract.json    minecraft:entity_placer spawns him
   recipes/hire_contract.json
 resource_packs/bodyguard_rp/
@@ -296,8 +340,9 @@ resource_packs/bodyguard_rp/
   models/entity/bodyguard.geo.json  humanoid geometry, 64x64 UV
   animations/bodyguard.animation.json  walk and head-turn, defined here rather
                                     than borrowed from vanilla
-  render_controllers/               one plain controller
-  textures/entity/bodyguard.png     the suit
+  render_controllers/               one plain controller, shared by both entities
+  textures/entity/bodyguard.png     the suit and the launcher
+  textures/entity/cannon_shell.png  the shell
   textures/items/                   contract icon, spawn egg icon
 tools/
   gen_bodyguard_textures.py   redraws the skin, the icon and the pack icons
@@ -325,8 +370,14 @@ Open `behavior_packs/bodyguard_bp/entities/bodyguard.json`:
 
 - `minecraft:health` / `minecraft:attack` - how tough and how hard he hits.
 - `behavior.follow_owner` - `start_distance` and `stop_distance` for how close he sticks.
+- `behavior.ranged_attack` - `attack_radius`, `attack_radius_min` (how close a target has
+  to be before he stops shooting and starts punching) and the reload interval.
 - `behavior.nearest_attackable_target` - `within_radius`, and the families he hunts.
 - `minecraft:tameable` - `tame_items`, what you pay him with.
+- The `bodyguard:fetching` group - which food he brings and how much.
+- The `bodyguard:order_window` timer - how fast the double tap has to be.
+
+And in `entities/cannon_shell.json`, `minecraft:explode` - the blast itself.
 
 Then re-run `python3 tools/build_bodyguard.py`.
 

@@ -34,6 +34,11 @@ SHINE = (78, 92, 112, 255)
 SHOE = (16, 16, 20, 255)
 MOUTH = (146, 96, 78, 255)
 BUTTON = (96, 98, 110, 255)
+METAL = (58, 62, 74, 255)
+METAL_LIGHT = (86, 92, 108, 255)
+METAL_DARK = (26, 28, 34, 255)
+BRASS = (198, 156, 62, 255)
+GLOW = (255, 138, 46, 255)
 
 
 # --------------------------------------------------------------------------
@@ -173,12 +178,45 @@ def build_skin():
     rect(grid, 0, 29, 15, 31, SHOE)
     rect(grid, 8, 16, 11, 19, SHOE)          # sole
 
+    # ---- Launcher on the right arm, uv [0, 32] ----
+    # A 3x3x12 box unwraps as: top (12,32) and bottom (15,32), each 3 wide by
+    # 12 tall, then the four side faces in a row at y 44: east, muzzle, west,
+    # breech.
+    rect(grid, 0, 32, 29, 46, METAL)
+    for x0 in (12, 15):                      # the two long faces on the top strip
+        rect(grid, x0, 32, x0 + 2, 43, METAL)
+        rect(grid, x0, 34, x0 + 2, 35, BRASS)
+        rect(grid, x0, 40, x0 + 2, 40, METAL_DARK)
+        rect(grid, x0 + 2, 32, x0 + 2, 43, METAL_LIGHT)
+    for x0, x1 in ((0, 11), (15, 26)):       # east and west sides of the barrel
+        rect(grid, x0, 44, x1, 46, METAL)
+        rect(grid, x0, 44, x1, 44, METAL_LIGHT)
+        rect(grid, x0 + 2, 45, x0 + 8, 45, TIE)
+        rect(grid, x1 - 1, 44, x1, 46, BRASS)
+    rect(grid, 12, 44, 14, 46, METAL_DARK)   # muzzle
+    dot(grid, 13, 45, GLOW)
+    rect(grid, 27, 44, 29, 46, BRASS)        # breech
+    dot(grid, 28, 45, METAL_DARK)
+
     # ---- Left leg, uv [16, 48] ----
     rect(grid, 16, 52, 31, 63, SUIT)
     rect(grid, 20, 48, 23, 51, SUIT)
     rect(grid, 16, 61, 31, 63, SHOE)
     rect(grid, 24, 48, 27, 51, SHOE)
 
+    return grid
+
+
+def build_shell():
+    """The 4x4x4 explosive shell: a 16x16 sheet, six faces of hot metal."""
+    grid = canvas(16, 16)
+    rect(grid, 0, 0, 15, 7, METAL)
+    for x0, y0 in ((4, 0), (8, 0), (0, 4), (4, 4), (8, 4), (12, 4)):
+        rect(grid, x0, y0, x0 + 3, y0 + 3, METAL)
+        rect(grid, x0 + 1, y0 + 1, x0 + 2, y0 + 2, GLOW)
+        dot(grid, x0, y0, METAL_DARK)
+        dot(grid, x0 + 3, y0 + 3, METAL_DARK)
+        dot(grid, x0 + 1, y0 + 1, (255, 226, 140, 255))
     return grid
 
 
@@ -271,6 +309,7 @@ def main():
         os.path.join(RP, "textures", "items", "bodyguard_spawn_egg.png"),
         build_spawn_egg(),
     )
+    write_png(os.path.join(RP, "textures", "entity", "cannon_shell.png"), build_shell())
 
     # Pack icon: the face, scaled up 8x so it is readable in the pack list.
     face = [row[8:16] for row in skin[8:16]]
@@ -287,7 +326,7 @@ def main():
         print("\n=== jacket front ===")
         print(preview(skin, 20, 20, 27, 31))
 
-    print("Wrote the bodyguard skin, 2 item icons and 2 pack icons.")
+    print("Wrote the bodyguard skin, the shell, 2 item icons and 2 pack icons.")
 
 
 if __name__ == "__main__":

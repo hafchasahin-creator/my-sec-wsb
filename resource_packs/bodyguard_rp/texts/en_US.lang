@@ -7,3 +7,6 @@ entity.bodyguard:bodyguard.name=Bodyguard
 item.spawn_egg.entity.bodyguard:bodyguard.name=Spawn Bodyguard
 item.bodyguard:hire_contract=Bodyguard Contract
 item.bodyguard:hire_contract.name=Bodyguard Contract
+
+action.interact.order=Order
+action.interact.fetch=Find Food
