@@ -168,3 +168,72 @@ To stop the Cataclysm Hammer and Meteor Staff from destroying terrain, set
   single effect instead of breaking the add-on.
 - Mobs that pick up these weapons get the effects too — the script reads the attacker's
   main hand rather than assuming a player.
+
+---
+
+# Also in this repo: NEON PAC (`index.html`)
+
+An arcade-faithful Pac-Man that plays itself, with the uploaded
+**MONTAGEM PERIGOSA (Super Slowed)** track as its soundtrack. It is a **single
+self-contained file** — no build step, no server, no assets folder. Open
+`index.html` in any modern browser and press **Start with sound**.
+
+## What's in it
+
+**The game is the real thing, not an approximation:**
+
+- the original 28×31 maze, 240 pellets + 4 energizers, tunnel wrap-around
+- all four ghost personalities — Blinky chases, Pinky aims four tiles ahead
+  (including the original up-direction overflow bug), Inky vectors off Blinky,
+  Clyde bails out inside eight tiles
+- the arcade scatter/chase wave table, Cruise Elroy, the four junctions where
+  ghosts may not turn upward, fright timings and flash counts per level
+- ghost-house release by personal dot counters, switching to the global counter
+  after a death, plus the 4s/3s forced-exit timer
+- per-level speed table (Pac, ghosts, fright, tunnel, Elroy) from the Dossier
+- fruit at 70 and 170 pellets, 200/400/800/1600 ghost chain, extra life at 10,000
+
+**The bot** re-plans about twenty times a second:
+
+1. breadth-first search from every ghost, respecting the fact that ghosts cannot
+   reverse, gives the earliest time each one can reach each tile
+2. a second search from Pac-Man gives his own arrival times, so every tile gets a
+   *margin* — how many seconds of daylight he has there
+3. it scores each legal first move on what it can safely eat (pellets, energizers,
+   fruit, frightened ghosts), how much room it keeps behind that move, and whether
+   a ghost is bearing down the corridor with no side exit
+4. if nothing clears the safety bar it relaxes the bar in stages rather than
+   panicking, and only then falls back to pure evasion
+5. a hunger term makes it press harder the longer it goes without a pellet, so the
+   last thirty dots of a level don't sit forever behind a patrolling ghost
+
+Tick **Show bot vision** to see the threat map (red) and the safe zone (green).
+
+Three presets trade greed against caution. Measured over three 60-second runs each:
+
+| Preset | Avg score | Avg deaths |
+| --- | --- | --- |
+| Greedy | ~5,200 | 3.0 |
+| Balanced (default) | ~7,400 | 2.3 |
+| Cautious | ~4,300 | 1.7 |
+
+## Audio
+
+The mp3 is embedded as base64 and decoded into an `AudioBuffer` at start, which
+keeps the FFT visualiser working even from `file://`. On top of the track there
+is a small synthesised arcade layer — waka, energizer, ghost-eaten chain, fruit,
+death, and a siren whose pitch rises as the maze empties. Music ducks under the
+death jingle. Music and SFX have independent toggles and volume sliders.
+
+## Controls
+
+| | |
+| --- | --- |
+| Arrows / WASD | steer (this switches the bot off) |
+| B | toggle the bot |
+| P / Space | pause |
+| M | mute |
+| R | restart |
+
+Touch devices get a d-pad and swipe control. The **Speed** slider runs the whole
+simulation from 0.5× to 2×.
