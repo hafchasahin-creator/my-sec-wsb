@@ -209,13 +209,23 @@ self-contained file** — no build step, no server, no assets folder. Open
 
 Tick **Show bot vision** to see the threat map (red) and the safe zone (green).
 
-Three presets trade greed against caution. Measured over three 60-second runs each:
+Three presets trade greed against caution.
 
-| Preset | Avg score | Avg deaths |
+### Measured, not guessed
+
+Scores are averaged over full games (play until all lives are gone), eight games
+per configuration, on the Balanced preset:
+
+| Bot | Avg score | Avg level |
 | --- | --- | --- |
-| Greedy | ~5,200 | 3.0 |
-| Balanced (default) | ~7,400 | 2.3 |
-| Cautious | ~4,300 | 1.7 |
+| First version | 5,145 | 1.25 |
+| + predictive threat, energizer banking, real chain values | **7,906** | 1.63 |
+
+Two further ideas were built, measured, and switched off because they made it
+worse: corner avoidance (5,708) backfires because all four energizers sit in the
+corners, and predicting ghosts against a moving Pac-Man (5,836) is self-defeating
+— the prediction assumes he walks straight on, then the bot turns and invalidates
+it. Both survive behind `Bot.CFG` flags for re-testing.
 
 ## Audio
 

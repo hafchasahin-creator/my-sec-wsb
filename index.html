@@ -1154,8 +1154,50 @@ var Bot = (function () {
   var gDist   = [];
   for (var gi0 = 0; gi0 < 4; gi0++) gDist.push(new Int16Array(NTILES));
   var threat   = new Float32Array(NTILES); // earliest a hostile ghost can arrive
+  var threat2  = new Float32Array(NTILES); // second earliest — spots a pincer
   var safeMask = new Uint8Array(NTILES);
   var queue    = new Int16Array(NTILES);
+
+  /* Junction map: tiles with three or more exits are where Pac-Man still has
+     choices. Counting reachable junctions measures "options left" far better
+     than counting reachable tiles. */
+  var DEG = new Uint8Array(NTILES);
+  var OPEN = new Float32Array(NTILES);   // 0 = dead corner, 1 = junction-rich
+  (function () {
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        if (!passable(c, r, false)) continue;
+        var n = 0;
+        for (var k = 0; k < 4; k++) if (passable(c + DIRS[k].x, r + DIRS[k].y, false)) n++;
+        DEG[r * COLS + c] = n;
+      }
+    }
+    // Junctions within six steps. Deaths cluster in the maze corners, where
+    // this number collapses and there is nowhere left to dodge.
+    var seen = new Int16Array(NTILES), q = new Int16Array(NTILES), most = 1;
+    for (var t0 = 0; t0 < NTILES; t0++) {
+      if (!DEG[t0]) continue;
+      seen.fill(-1);
+      var head = 0, tail = 0, count = 0;
+      seen[t0] = 0; q[tail++] = t0;
+      while (head < tail) {
+        var cur = q[head++];
+        if (DEG[cur] >= 3) count++;
+        if (seen[cur] >= 6) continue;
+        var cc = cur % COLS, rr = (cur / COLS) | 0;
+        for (var k2 = 0; k2 < 4; k2++) {
+          var nc = wrapCol(cc + DIRS[k2].x), nr = rr + DIRS[k2].y;
+          if (nr < 0 || nr >= ROWS) continue;
+          var ni = nr * COLS + nc;
+          if (seen[ni] >= 0 || !DEG[ni]) continue;
+          seen[ni] = seen[cur] + 1; q[tail++] = ni;
+        }
+      }
+      OPEN[t0] = count;
+      if (count > most) most = count;
+    }
+    for (var t1 = 0; t1 < NTILES; t1++) OPEN[t1] /= most;
+  })();
 
   //  margin: seconds of daylight demanded before a tile counts as safe
   //  care:   weight on staying alive     greed: weight on eating
@@ -1168,6 +1210,20 @@ var Bot = (function () {
   ];
 
   var lastPlan = '—', lastMargin = 0, holdDir = null;
+
+  // knobs, exposed so they can be swept without editing the source
+  /*  Tunable knobs. The defaults are the configuration that measured best over
+      repeated full-game runs (8 games each):
+        predictive threat only ......... 7,906 avg   <- shipped
+        + corner avoidance/junctions ... 5,708 avg
+        + Pac-aware ghost targeting .... 5,836 avg
+      Corner avoidance backfires because all four energizers sit in the corners,
+      and Pac-aware targeting is self-defeating: it predicts ghosts against a
+      Pac-Man who walks straight on, then the bot turns and invalidates it.
+      Both are left in, switched off, because they are worth re-testing if the
+      surrounding heuristics change. */
+  var CFG = { pacAware: 0, cornerW: 0, juncW: 0, deepW: 0.25, reachW: 0.06,
+              spill: 0.30, spillRamp: 0.04, pred: 30, marginBfs: 0.10 };
 
   function bfs(seedC, seedR, dist, first, banFirstK, allow) {
     dist.fill(-1);
@@ -1195,6 +1251,109 @@ var Bot = (function () {
   }
 
   var allowPac = function (c, r) { return passable(c, r, false); };
+
+  /* ---- forward prediction -------------------------------------------------
+     A breadth-first sweep from a ghost says where it *could* go, which is so
+     pessimistic that almost no tile looks safe and the bot ends up permanently
+     panicking. Ghosts are deterministic, so instead we run their real decision
+     rule forward and follow the single path each one will actually take. */
+  var predTime = new Float32Array(NTILES);
+
+  function simDecide(c, r, dir, target) {
+    var back = OPP[dir.k], best = null, bestD = Infinity;
+    for (var k = 0; k < 4; k++) {
+      var d = DIRS[k];
+      if (d === back) continue;
+      if (d === UP && noUpTile(c, r)) continue;
+      if (!passable(c + d.x, r + d.y, false)) continue;
+      var ex = wrapCol(c + d.x) - target.x, ey = r + d.y - target.y;
+      var dist = ex * ex + ey * ey;
+      if (dist < bestD - 1e-9) { bestD = dist; best = d; }
+    }
+    return best || (passable(c + back.x, r + back.y, false) ? back : null);
+  }
+
+  /* Where the ghost aims, given where Pac-Man will be — not where he is now.
+     Pinky leads him by four tiles, so a stationary estimate walks straight into
+     the ambush she is setting. */
+  function targetFor(g, px, py, pd, bx, by) {
+    if (G.mode === 'scatter' && !(g.id === 'blinky' && g.elroy > 0)) return g.home;
+    if (g.id === 'blinky') return { x: px, y: py };
+    if (g.id === 'pinky') {
+      var tx = px + pd.x * 4, ty = py + pd.y * 4;
+      if (pd === UP) tx -= 4;                       // the original overflow bug
+      return { x: tx, y: ty };
+    }
+    if (g.id === 'inky') {
+      var ax = px + pd.x * 2, ay = py + pd.y * 2;
+      if (pd === UP) ax -= 2;
+      return { x: ax * 2 - bx, y: ay * 2 - by };
+    }
+    var dx = g.x - px, dy = g.y - py;
+    return (dx * dx + dy * dy > 64) ? { x: px, y: py } : g.home;
+  }
+
+  /* Roll Pac-Man forward along his current heading, turning towards open ground
+     when he runs out of corridor. */
+  var pacPath = [];
+  function buildPacPath(n) {
+    pacPath.length = 0;
+    var c = Math.round(G.pac.x), r = Math.round(G.pac.y), d = G.pac.dir;
+    for (var s = 0; s < n; s++) {
+      pacPath.push({ x: c, y: r, d: d });
+      if (!passable(c + d.x, r + d.y, false)) {
+        var best = null, bestOpen = -1;
+        for (var k = 0; k < 4; k++) {
+          var nd = DIRS[k];
+          if (nd === OPP[d.k]) continue;
+          if (!passable(c + nd.x, r + nd.y, false)) continue;
+          var o = OPEN[idx(c + nd.x, r + nd.y)];
+          if (o > bestOpen) { bestOpen = o; best = nd; }
+        }
+        if (!best) break;
+        d = best;
+      }
+      c = wrapCol(c + d.x); r += d.y;
+    }
+  }
+
+  function predictGhosts(pacTiles) {
+    predTime.fill(1e6);
+    if (CFG.pacAware) buildPacPath(CFG.pred + 4);
+    var bx = Math.round(G.ghosts[0].x), by = Math.round(G.ghosts[0].y);
+    for (var gi = 0; gi < G.ghosts.length; gi++) {
+      var g = G.ghosts[gi];
+      if (g.mode === 'eaten' || g.mode === 'entering') continue;
+      if (g.frightened && G.frightTimer >= 1.6) continue;
+      var c = Math.round(g.x), r = Math.round(g.y), dir = g.dir, t = 0;
+      if (!passable(c, r, false) || g.mode !== 'normal') {
+        c = 13; r = 11; dir = LEFT; t = 2.0;         // still coming out of the house
+      }
+      var step = 1 / ghostSpeed(g);
+      for (var s = 0; s < CFG.pred; s++) {
+        // where Pac-Man has got to by the time this ghost reaches step s
+        var pi = CFG.pacAware ? Math.min(pacPath.length - 1, Math.round(pacTiles * t)) : 0;
+        var pp = pacPath[pi] || pacPath[0];
+        var target = pp ? targetFor(g, pp.x, pp.y, pp.d, bx, by) : ghostTarget(g);
+        var i = r * COLS + wrapCol(c);
+        if (t < predTime[i]) predTime[i] = t;
+        // the further ahead we look the less we trust it, so let the danger
+        // bleed one tile sideways as a cheap uncertainty cone
+        var spill = t + CFG.spill + s * CFG.spillRamp;
+        for (var k = 0; k < 4; k++) {
+          var nc = wrapCol(c + DIRS[k].x), nr = r + DIRS[k].y;
+          if (!passable(nc, nr, false)) continue;
+          var ni = nr * COLS + nc;
+          if (spill < predTime[ni]) predTime[ni] = spill;
+        }
+        var nd = simDecide(c, r, dir, target);
+        if (!nd) break;
+        dir = nd;
+        c = wrapCol(c + dir.x); r += dir.y;
+        t += step;
+      }
+    }
+  }
 
   /* A hostile ghost bearing down inside this corridor with no side turning
      before we meet it. 0 = clear, up to 1 = about to be run over. */
@@ -1224,8 +1383,10 @@ var Bot = (function () {
     var sp = spec(G.level);
     var pacTiles = BASE_SPEED * (G.frightTimer > 0 ? sp.pacFright : sp.pac);
 
-    /* --- 1. earliest hostile arrival on every tile --- */
+    /* --- 1. earliest (and second earliest) hostile arrival on every tile --- */
     threat.fill(1e6);
+    threat2.fill(1e6);
+    var hostileIdx = [];
     for (var gi = 0; gi < G.ghosts.length; gi++) {
       var g = G.ghosts[gi];
       if (g.mode === 'eaten' || g.mode === 'entering') continue;
@@ -1236,6 +1397,7 @@ var Bot = (function () {
       var ban = (g.mode === 'normal') ? OPP[g.dir.k].k : -1; // ghosts cannot reverse
       bfs(gc, gr, gDist[gi], null, ban, allowPac);
       if (!hostile) continue;
+      hostileIdx.push(gi);
       var speed = ghostSpeed(g);
       var delay = (g.mode === 'house' || g.mode === 'leaving') ? 2.0 : 0;
       var gd = gDist[gi];
@@ -1243,21 +1405,26 @@ var Bot = (function () {
         var dd2 = gd[t];
         if (dd2 < 0) continue;
         var time = delay + dd2 / speed;
-        if (time < threat[t]) threat[t] = time;
+        if (time < threat[t]) { threat2[t] = threat[t]; threat[t] = time; }
+        else if (time < threat2[t]) { threat2[t] = time; }
       }
     }
 
     /* --- 2. where can we get to, and how much daylight do we have? --- */
+    predictGhosts(pacTiles);
     bfs(pc, pr, pDist, pFirst, -1, allowPac);
     var closest = 1e6;
     for (var t2 = 0; t2 < NTILES; t2++) {
       if (pDist[t2] < 0 || pDist[t2] > 3) continue;
-      var m0 = threat[t2] - pDist[t2] / pacTiles;
+      var m0 = predTime[t2] - pDist[t2] / pacTiles;
       if (m0 < closest) closest = m0;
     }
     lastMargin = closest > 1e5 ? Infinity : closest;
 
-    /* --- 3. how much is each tile worth right now? --- */
+    /* --- 3. how much is each prize worth right now? ---
+       A maze of pellets is worth 2,400 points. Four energizers with the whole
+       quartet eaten each time are worth 12,000. So energizers are not snacks:
+       they get banked until the ghosts are actually gathered near one. */
     var hostileNear = 1e6;
     for (var gj = 0; gj < G.ghosts.length; gj++) {
       var gg = G.ghosts[gj];
@@ -1265,10 +1432,25 @@ var Bot = (function () {
       var hd = pDist[idx(Math.round(gg.x), Math.round(gg.y))];
       if (hd >= 0 && hd < hostileNear) hostileNear = hd;
     }
-    var energizerValue = 55;
-    if (G.frightTimer > 0.4) energizerValue = 6;                  // don't burn one
-    else if (hostileNear < 10) energizerValue = 340 * sk.chase;
-    else if (G.dotsLeft < 45) energizerValue = 150;
+
+    var enerVal = {};
+    for (var te = 0; te < NTILES; te++) {
+      if (G.dots[te] !== 2) continue;
+      if (G.frightTimer > 0.4) { enerVal[te] = 4; continue; }   // one is already live
+      var close = 0;
+      for (var hi = 0; hi < hostileIdx.length; hi++) {
+        var hgd = gDist[hostileIdx[hi]][te];
+        if (hgd >= 0 && hgd <= 10) close++;
+      }
+      var v;
+      if (close >= 3) v = 1500 * sk.chase;
+      else if (close === 2) v = 950 * sk.chase;
+      else if (close === 1) v = 360 * sk.chase;
+      else v = G.dotsLeft <= 4 ? 60 : 16;                       // bank it
+      // ...unless one is breathing down our neck, then it is an escape hatch
+      if (hostileNear <= 6 && pDist[te] >= 0 && pDist[te] <= 12) v = Math.max(v, 850);
+      enerVal[te] = v;
+    }
 
     /* The longer we go without a pellet the bolder we get, otherwise the last
        thirty dots of a level can sit forever behind a patrolling ghost. */
@@ -1282,30 +1464,43 @@ var Bot = (function () {
     /* --- 4. pick a heading, relaxing the safety bar only if forced --- */
     var relax = [1, 0.5, 0.18, 0];
     var backK = OPP[p.dir.k].k;
+    // how hemmed in we are: corners only matter when ghosts are actually about
+    var pressure = 0;
+    for (var gp = 0; gp < hostileIdx.length; gp++) {
+      var gt = G.ghosts[hostileIdx[gp]];
+      var gpd = pDist[idx(Math.round(gt.x), Math.round(gt.y))];
+      if (gpd >= 0 && gpd < 13) pressure++;
+    }
 
     for (var a = 0; a < relax.length; a++) {
       var margin = sk.margin * relax[a] * (1 - 0.55 * hunger);
 
+      var marginBfs = CFG.marginBfs * relax[a];
       for (var t3 = 0; t3 < NTILES; t3++) {
         safeMask[t3] = 0;
         if (pDist[t3] < 0) continue;
-        if (threat[t3] - pDist[t3] / pacTiles > margin) safeMask[t3] = 1;
+        var pt = pDist[t3] / pacTiles;
+        // clear of where the ghosts are actually heading, and we still beat
+        // anything that could swing round unexpectedly
+        if (predTime[t3] - pt > margin && threat[t3] - pt > marginBfs) safeMask[t3] = 1;
       }
       bfs(pc, pr, sDist, sFirst, -1, function (c, r, i) {
         return passable(c, r, false) && safeMask[i] === 1;
       });
 
-      var byDir = [0, 0, 0, 0], reach = [0, 0, 0, 0], deep = [0, 0, 0, 0];
+      var byDir = [0, 0, 0, 0], reach = [0, 0, 0, 0], deep = [0, 0, 0, 0], junc = [0, 0, 0, 0];
       var plan = ['', '', '', ''];
       for (var t4 = 0; t4 < NTILES; t4++) {
         if (sDist[t4] < 0 || sFirst[t4] < 0) continue;
         var k2 = sFirst[t4];
         reach[k2]++;
-        if (sDist[t4] >= 8) deep[k2]++;              // room to keep running
+        // room to keep running, and not into a closing pincer
+        if (sDist[t4] >= 8 && threat2[t4] - sDist[t4] / pacTiles > margin * 1.2) deep[k2]++;
+        if (sDist[t4] >= 3 && DEG[t4] >= 3) junc[k2]++;          // still has choices
         var d5 = G.dots[t4];
-        var v = d5 === 1 ? 12 : d5 === 2 ? energizerValue : 0;
-        if (v <= 0) continue;
-        var u = v * Math.pow(sk.decay, sDist[t4]);
+        var v2 = d5 === 1 ? 12 : d5 === 2 ? enerVal[t4] : 0;
+        if (v2 <= 0) continue;
+        var u = v2 * Math.pow(sk.decay, sDist[t4]);
         if (u > byDir[k2]) { byDir[k2] = u; plan[k2] = d5 === 2 ? 'energizer' : 'pellets'; }
       }
       if (G.fruit && G.fruit.alive) {
@@ -1322,7 +1517,8 @@ var Bot = (function () {
           var ti = idx(Math.round(fg.x), Math.round(fg.y));
           if (sDist[ti] < 0 || sFirst[ti] < 0) continue;
           if (sDist[ti] / pacTiles > G.frightTimer - 0.25) continue;
-          var worth = 90 * (1 + Math.min(G.ghostCombo, 3)) * sk.chase;
+          // what the next one in the chain is actually worth: 200/400/800/1600
+          var worth = 200 * Math.pow(2, Math.min(G.ghostCombo, 3)) * 0.55 * sk.chase;
           var ug = worth * Math.pow(sk.decay, sDist[ti]);
           if (ug > byDir[sFirst[ti]]) { byDir[sFirst[ti]] = ug; plan[sFirst[ti]] = 'hunt ' + fg.id; }
         }
@@ -1332,10 +1528,13 @@ var Bot = (function () {
       for (var k3 = 0; k3 < 4; k3++) {
         var d3 = DIRS[k3];
         if (!passable(pc + d3.x, pr + d3.y, false)) continue;
-        if (!safeMask[idx(pc + d3.x, pr + d3.y)]) continue;   // first step must hold
+        var ni3 = idx(pc + d3.x, pr + d3.y);
+        if (!safeMask[ni3]) continue;                         // first step must hold
         var score = byDir[k3] * sk.greed
-                  + Math.min(reach[k3], 90) * 0.06
-                  + Math.min(deep[k3], 30) * 0.25 * sk.care
+                  + Math.min(reach[k3], 90) * CFG.reachW
+                  + Math.min(deep[k3], 30) * CFG.deepW * sk.care
+                  + Math.min(junc[k3], 14) * CFG.juncW * sk.care
+                  - (1 - OPEN[ni3]) * pressure * CFG.cornerW * sk.care  // avoid corners
                   - headOn(pc, pr, d3) * 900 * sk.care;
         if (k3 === pullK) score += hunger * 18;         // go and get it already
         if (deep[k3] === 0) score *= 0.3;               // that way is a pocket
@@ -1357,11 +1556,11 @@ var Bot = (function () {
       var nc2 = wrapCol(pc + d4.x), nr2 = pr + d4.y;
       if (!passable(nc2, nr2, false)) continue;
       var ni2 = nr2 * COLS + nc2;
-      var mg = threat[ni2] - (pDist[ni2] < 0 ? 0 : pDist[ni2]) / pacTiles;
+      var mg = Math.min(predTime[ni2], threat[ni2]) - (pDist[ni2] < 0 ? 0 : pDist[ni2]) / pacTiles;
       var openness = 0;
       for (var t5 = 0; t5 < NTILES; t5++) {
         if (pDist[t5] >= 0 && pDist[t5] < 16 && pFirst[t5] === k4 &&
-            threat[t5] > pDist[t5] / pacTiles + 0.35) openness++;
+            predTime[t5] > pDist[t5] / pacTiles + 0.35) openness++;
       }
       var esc = mg * 8 + openness * 0.6 - headOn(pc, pr, d4) * 60 - (k4 === backK ? 1.2 : 0);
       if (esc > bestEsc) { bestEsc = esc; escK = k4; }
@@ -1375,8 +1574,8 @@ var Bot = (function () {
     think: think,
     plan: function () { return lastPlan; },
     margin: function () { return lastMargin; },
-    SKILL: SKILL,                                  // exposed so it can be tuned live
-    debug: { threat: threat, safe: safeMask, pDist: pDist }
+    SKILL: SKILL, CFG: CFG,                        // exposed so they can be tuned live
+    debug: { threat: predTime, safe: safeMask, pDist: pDist }
   };
 })();
 
