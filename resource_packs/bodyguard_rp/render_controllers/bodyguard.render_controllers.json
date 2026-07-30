@@ -2,14 +2,14 @@
   "format_version": "1.10.0",
   "render_controllers": {
     "controller.render.bodyguard": {
-      "geometry": "Geometry.default",
+      "geometry": "geometry.default",
       "materials": [
         {
-          "*": "Material.default"
+          "*": "material.default"
         }
       ],
       "textures": [
-        "Texture.default"
+        "texture.default"
       ]
     }
   }

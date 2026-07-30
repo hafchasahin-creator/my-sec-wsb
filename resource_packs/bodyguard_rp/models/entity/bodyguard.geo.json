@@ -6,9 +6,9 @@
         "identifier": "geometry.bodyguard",
         "texture_width": 64,
         "texture_height": 64,
-        "visible_bounds_width": 1,
-        "visible_bounds_height": 2.5,
-        "visible_bounds_offset": [0, 1.25, 0]
+        "visible_bounds_width": 2,
+        "visible_bounds_height": 3,
+        "visible_bounds_offset": [0, 1.5, 0]
       },
       "bones": [
         {

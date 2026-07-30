@@ -292,10 +292,13 @@ behavior_packs/bodyguard_bp/
   items/hire_contract.json    minecraft:entity_placer spawns him
   recipes/hire_contract.json
 resource_packs/bodyguard_rp/
-  entity/bodyguard.entity.json      model, texture, animations, spawn egg colours
+  entity/bodyguard.entity.json      model, texture, animations, spawn egg
   models/entity/bodyguard.geo.json  humanoid geometry, 64x64 UV
+  animations/bodyguard.animation.json  walk and head-turn, defined here rather
+                                    than borrowed from vanilla
   render_controllers/               one plain controller
   textures/entity/bodyguard.png     the suit
+  textures/items/                   contract icon, spawn egg icon
 tools/
   gen_bodyguard_textures.py   redraws the skin, the icon and the pack icons
   build_bodyguard.py          validates the packs and writes the .mcaddon
@@ -312,7 +315,9 @@ UUIDs clash with either other add-on, if the client entity's identifier, geometr
 texture, render controller or animations do not resolve, if the hired component group
 loses `follow_owner` / `owner_hurt_by_target` / `owner_hurt_target`, if the tame event is
 not defined, if the contract spawns something that is not the bodyguard, or if any name
-is missing from `en_US.lang`.
+is missing from `en_US.lang`. It also rejects `spawn_egg` written with the British
+spelling `base_colour`, which the game silently ignores - that alone leaves the egg with
+no icon at all.
 
 ## Tuning
 

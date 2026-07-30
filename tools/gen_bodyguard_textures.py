@@ -215,6 +215,42 @@ def build_contract():
     return outlined
 
 
+def build_spawn_egg():
+    """A drawn spawn egg. A texture is more reliable than the colour fields:
+    an unrecognised colour key just means no icon is generated at all."""
+    grid = canvas(16, 16)
+
+    shell = [
+        (2, 6, 9), (3, 5, 10), (4, 4, 11), (5, 4, 11), (6, 3, 12), (7, 3, 12),
+        (8, 3, 12), (9, 3, 12), (10, 4, 11), (11, 4, 11), (12, 5, 10), (13, 6, 9),
+    ]
+    for row, x0, x1 in shell:
+        rect(grid, x0, row, x1, row, SUIT)
+
+    # Lit side, so it reads as an egg and not a flat blob.
+    for row, x0, x1 in shell[:6]:
+        rect(grid, x0, row, min(x0 + 1, x1), row, SUIT_LIGHT)
+
+    # Red speckles, the tie colour.
+    for x, y in ((6, 4), (9, 6), (5, 8), (10, 9), (7, 11)):
+        dot(grid, x, y, TIE)
+    dot(grid, 7, 3, SHIRT)
+
+    outlined = [row[:] for row in grid]
+    for y in range(16):
+        for x in range(16):
+            if grid[y][x] != TRANSPARENT:
+                continue
+            neighbours = [
+                grid[y + dy][x + dx]
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+                if 0 <= x + dx < 16 and 0 <= y + dy < 16
+            ]
+            if any(px != TRANSPARENT for px in neighbours):
+                outlined[y][x] = (12, 12, 16, 255)
+    return outlined
+
+
 def preview(grid, x0, y0, x1, y1):
     keys = {
         SKIN: ".", SKIN_SHADE: ",", HAIR: "#", HAIR_LIGHT: "%", SUIT: "8",
@@ -231,6 +267,10 @@ def main():
     skin = build_skin()
     write_png(os.path.join(RP, "textures", "entity", "bodyguard.png"), skin)
     write_png(os.path.join(RP, "textures", "items", "hire_contract.png"), build_contract())
+    write_png(
+        os.path.join(RP, "textures", "items", "bodyguard_spawn_egg.png"),
+        build_spawn_egg(),
+    )
 
     # Pack icon: the face, scaled up 8x so it is readable in the pack list.
     face = [row[8:16] for row in skin[8:16]]
@@ -247,7 +287,7 @@ def main():
         print("\n=== jacket front ===")
         print(preview(skin, 20, 20, 27, 31))
 
-    print("Wrote the bodyguard skin, the contract icon and 2 pack icons.")
+    print("Wrote the bodyguard skin, 2 item icons and 2 pack icons.")
 
 
 if __name__ == "__main__":

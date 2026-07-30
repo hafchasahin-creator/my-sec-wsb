@@ -4,6 +4,9 @@
   "texture_data": {
     "hire_contract": {
       "textures": "textures/items/hire_contract"
+    },
+    "bodyguard_spawn_egg": {
+      "textures": "textures/items/bodyguard_spawn_egg"
     }
   }
 }

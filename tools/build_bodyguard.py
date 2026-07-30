@@ -59,6 +59,11 @@ def manifest_uuids(manifest):
     return uuids
 
 
+def texture_data_of(documents):
+    atlas = documents.get(os.path.join(RP, "textures", "item_texture.json"))
+    return (atlas or {}).get("texture_data", {})
+
+
 def read_text(path):
     if not os.path.isfile(path):
         return ""
@@ -191,18 +196,49 @@ def validate():
         if name not in controllers:
             fail(f"{client_path}: render controller '{name}' is not defined")
 
+    # Animations must be defined in this pack. Referencing a vanilla animation
+    # identifier that does not exist on the player's version is a load error
+    # for the whole client entity, and a load error there means an invisible
+    # mob, so the pack ships its own.
+    defined_animations = set()
+    for path, doc in documents.items():
+        if not path.startswith(os.path.join(RP, "animations")) or doc is None:
+            continue
+        defined_animations.update(doc.get("animations", {}))
+
     animations = description.get("animations", {})
+    for short_name, animation_id in animations.items():
+        if animation_id not in defined_animations:
+            fail(
+                f"{client_path}: animation '{animation_id}' ({short_name}) is not "
+                f"defined in {RP}/animations"
+            )
     for animation in description.get("scripts", {}).get("animate", []):
         name = animation if isinstance(animation, str) else list(animation)[0]
         if name not in animations:
             fail(f"{client_path}: animate entry '{name}' is not in the animations map")
 
-    if "spawn_egg" not in description:
+    # The spawn egg. The colour keys are spelled the American way; the British
+    # spelling is silently ignored and the egg ends up with no icon at all.
+    spawn_egg = description.get("spawn_egg")
+    if not spawn_egg:
         fail(f"{client_path}: no spawn_egg, so the egg would be an invisible item")
+    else:
+        for wrong in ("base_colour", "overlay_colour"):
+            if wrong in spawn_egg:
+                fail(
+                    f"{client_path}: spawn_egg uses '{wrong}', which the game ignores "
+                    f"- use '{wrong.replace('colour', 'color')}' or a texture"
+                )
+        texture = spawn_egg.get("texture")
+        if texture:
+            if texture not in texture_data_of(documents):
+                fail(f"{client_path}: spawn egg texture '{texture}' is not in item_texture.json")
+        elif not (spawn_egg.get("base_color") and spawn_egg.get("overlay_color")):
+            fail(f"{client_path}: spawn_egg needs a texture, or base_color and overlay_color")
 
     # ---- items and recipes ----
-    atlas = documents.get(os.path.join(RP, "textures", "item_texture.json"))
-    texture_data = (atlas or {}).get("texture_data", {})
+    texture_data = texture_data_of(documents)
 
     identifiers = []
     for path, doc in sorted(documents.items()):
