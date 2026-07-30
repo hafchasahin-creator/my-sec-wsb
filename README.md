@@ -7,6 +7,7 @@ toggles**, and are built for phones and tablets.
 | Add-on | What it adds | Download |
 | --- | --- | --- |
 | **[Skyline Parkour](#skyline-parkour)** | Tap a compass and a parkour course is built in the sky above you: checkpoints, timer, personal bests | `dist/SkylineParkour.mcaddon` (or the two `.mcpack` files) |
+| **[Bodyguard](#bodyguard)** | Hire a suited bodyguard who follows you and fights anything that attacks you | `dist/Bodyguard.mcaddon` |
 | **[Arcane Arsenal](#arcane-arsenal)** | Six legendary weapons with scripted magic effects | `dist/ArcaneArsenal.mcaddon` |
 
 ---
@@ -142,7 +143,7 @@ course clears the previous one first unless you turn that off.
 When you join a world with the pack active, chat shows:
 
 ```
-[Skyline Parkour] v1.0.1 loaded - tap the Parkour Compass to play. (no compass? type !pk kit in chat)
+[Skyline Parkour] v1.0.2 loaded - tap the Parkour Compass to play. (no compass? type !pk kit in chat)
 ```
 
 **Nothing happened at all?** Turn cheats on for the world and run this in chat:
@@ -229,6 +230,103 @@ to a PNG, if a recipe pattern and key disagree, or if an item has no name in `en
 
 ---
 
+# Bodyguard
+
+A hired bodyguard in a black suit, white shirt, red tie and sunglasses. He follows you,
+kills anything that attacks you, and cannot be hurt by you.
+
+**This add-on has no scripts at all.** Everything is done with vanilla entity behaviours,
+so there is no script module version to get wrong and nothing that can fail to load on a
+1.21.0 device.
+
+## Play it on your phone — 4 steps
+
+1. Download **`dist/Bodyguard.mcaddon`** onto the phone.
+2. **Tap the file.** Minecraft imports both packs.
+3. Create or edit a world → **Behaviour Packs** → activate **Bodyguard BP**.
+4. Join, get a bodyguard (below), and **tap him while holding a gold ingot** to hire him.
+
+## Getting one
+
+Three ways, use whichever suits the world:
+
+| Way | How |
+| --- | --- |
+| **Craft a contract** | 1 paper between 2 gold ingots, in a row, on a crafting table. Tap the ground with the **Bodyguard Contract** and he appears. |
+| **Spawn egg** | Creative inventory → search **Bodyguard**. |
+| **Command** | `/summon bodyguard:bodyguard` |
+
+Then **hire him**: hold a **gold ingot** (or an **emerald**) and tap him. He is yours from
+that moment - he knows who his owner is, and only follows that player.
+
+## What he does
+
+- **Follows you.** Starts moving when you get 5 blocks away, stops 2 blocks from you.
+- **Fights whatever attacks you.** Anything that hurts you becomes his target, instantly.
+- **Fights what you fight.** Hit a mob and he joins in.
+- **Hunts monsters near you.** Zombies, skeletons, creepers, spiders and slimes within
+  16 blocks, on sight.
+- **Cannot be hurt by you.** Your own hits deal him no damage, so a stray swing while
+  fighting never kills him.
+- **Sits and stays.** Tap him with an empty hand to make him hold a position; tap again to
+  bring him along.
+- **Heals.** Feed him cooked beef (+10) or a golden apple (+20) when he is hurt.
+- **Takes a name tag**, and never despawns.
+
+Monsters treat him as a villager, which is what makes them come for him instead of you.
+
+| | |
+| --- | --- |
+| Health | 40 (20 hearts) - twice a player |
+| Damage | 7 per hit |
+| Speed | 0.3 walking, 1.25x while following you |
+| Knockback resistance | 60% |
+| Doors | He opens and closes them to keep up |
+
+## Layout and rebuilding
+
+```
+behavior_packs/bodyguard_bp/
+  manifest.json           BP manifest, no script module at all
+  entities/bodyguard.json the entity: base state, hired state, hire event
+  items/hire_contract.json    minecraft:entity_placer spawns him
+  recipes/hire_contract.json
+resource_packs/bodyguard_rp/
+  entity/bodyguard.entity.json      model, texture, animations, spawn egg colours
+  models/entity/bodyguard.geo.json  humanoid geometry, 64x64 UV
+  render_controllers/               one plain controller
+  textures/entity/bodyguard.png     the suit
+tools/
+  gen_bodyguard_textures.py   redraws the skin, the icon and the pack icons
+  build_bodyguard.py          validates the packs and writes the .mcaddon
+dist/Bodyguard.mcaddon
+```
+
+```bash
+python3 tools/gen_bodyguard_textures.py   # redraw (add --preview for ASCII art)
+python3 tools/build_bodyguard.py          # validate + repackage
+```
+
+`build_bodyguard.py` fails the build if a script module ever appears in the manifest, if
+UUIDs clash with either other add-on, if the client entity's identifier, geometry,
+texture, render controller or animations do not resolve, if the hired component group
+loses `follow_owner` / `owner_hurt_by_target` / `owner_hurt_target`, if the tame event is
+not defined, if the contract spawns something that is not the bodyguard, or if any name
+is missing from `en_US.lang`.
+
+## Tuning
+
+Open `behavior_packs/bodyguard_bp/entities/bodyguard.json`:
+
+- `minecraft:health` / `minecraft:attack` - how tough and how hard he hits.
+- `behavior.follow_owner` - `start_distance` and `stop_distance` for how close he sticks.
+- `behavior.nearest_attackable_target` - `within_radius`, and the families he hunts.
+- `minecraft:tameable` - `tame_items`, what you pay him with.
+
+Then re-run `python3 tools/build_bodyguard.py`.
+
+---
+
 # Arcane Arsenal
 
 A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six
@@ -309,7 +407,7 @@ v1.0.0 shipped with invisible item icons. If you already installed it:
 When you spawn into a world with the behaviour pack active, chat shows:
 
 ```
-[Arcane Arsenal] v1.0.1 loaded - 6 weapons armed.
+[Arcane Arsenal] v1.0.2 loaded - 6 weapons armed.
 ```
 
 If that line does **not** appear, the behaviour pack's scripts are not running, and no

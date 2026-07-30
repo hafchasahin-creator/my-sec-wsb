@@ -1,0 +1,9 @@
+## Bodyguard - English (US)
+
+pack.name=Bodyguard RP
+pack.description=Model, suit texture and names for the Bodyguard.
+
+entity.bodyguard:bodyguard.name=Bodyguard
+item.spawn_egg.entity.bodyguard:bodyguard.name=Spawn Bodyguard
+item.bodyguard:hire_contract=Bodyguard Contract
+item.bodyguard:hire_contract.name=Bodyguard Contract

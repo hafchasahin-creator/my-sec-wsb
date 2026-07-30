@@ -1,0 +1,46 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Bodyguard BP",
+    "description": "Hire a bodyguard who follows you and fights anything that attacks you. Behavior Pack.",
+    "uuid": "f1a30578-92be-41bd-834f-fa9fa55aad4c",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "5dd2baa5-4294-4f41-ad31-a7d9e37638f1",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "80f1c91d-98fa-439a-b828-b67ad286acf3",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Bodyguard"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

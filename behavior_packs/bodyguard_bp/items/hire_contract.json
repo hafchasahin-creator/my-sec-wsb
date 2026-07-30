@@ -1,0 +1,30 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "bodyguard:hire_contract",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hire_contract"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Bodyguard Contract"
+      },
+      "minecraft:max_stack_size": 16,
+      "minecraft:entity_placer": {
+        "entity": "bodyguard:bodyguard"
+      },
+      "minecraft:tags": {
+        "tags": [
+          "bodyguard:tool"
+        ]
+      }
+    }
+  }
+}

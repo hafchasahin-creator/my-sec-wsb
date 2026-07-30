@@ -30,7 +30,18 @@ RP_PACK = os.path.join(DIST, "SkylineParkour_RP.mcpack")
 NAMESPACE = "parkour:"
 
 IMPORT_RE = re.compile(r"""from\s+["']([^"']+)["']""")
-KNOWN_MODULES = {"@minecraft/server", "@minecraft/server-ui"}
+
+# Script module versions that exist in Minecraft 1.21.0, this pack's
+# min_engine_version. These are pinned deliberately: asking for a module
+# version the client does not have makes Minecraft reject the whole behaviour
+# pack, with no items and no scripts and nothing in chat to explain it.
+# @minecraft/server 1.11.0 shipped with 1.21.0; 1.12.0 with 1.21.20.
+# @minecraft/server-ui 1.1.0 shipped with 1.20.0; 1.2.0 with 1.21.20.
+REQUIRED_MODULES = {
+    "@minecraft/server": "1.11.0",
+    "@minecraft/server-ui": "1.1.0",
+}
+KNOWN_MODULES = set(REQUIRED_MODULES)
 
 errors = []
 
@@ -138,10 +149,19 @@ def validate():
     rp_uuid = rp_manifest["header"]["uuid"]
     if rp_uuid not in [dep.get("uuid") for dep in dependencies]:
         fail(f"behaviour pack does not depend on resource pack {rp_uuid}")
-    module_names = {dep.get("module_name") for dep in dependencies}
-    for required in KNOWN_MODULES:
-        if required not in module_names:
-            fail(f"{BP}/manifest.json: missing dependency on {required}")
+    declared = {
+        dep["module_name"]: dep.get("version")
+        for dep in dependencies
+        if dep.get("module_name")
+    }
+    for name, version in REQUIRED_MODULES.items():
+        if name not in declared:
+            fail(f"{BP}/manifest.json: missing dependency on {name}")
+        elif declared[name] != version:
+            fail(
+                f"{BP}/manifest.json: {name} is pinned to {version} for "
+                f"min_engine_version 1.21.0, found {declared[name]}"
+            )
 
     check_scripts(bp_manifest)
 

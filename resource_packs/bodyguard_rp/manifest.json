@@ -1,13 +1,13 @@
 {
   "format_version": 2,
   "header": {
-    "name": "Skyline Parkour RP",
-    "description": "Icons and names for the Skyline Parkour tools. Resource Pack.",
-    "uuid": "dbea55d5-8b1f-494e-bf6a-64b443ccc2e2",
+    "name": "Bodyguard RP",
+    "description": "Model, suit texture and names for the Bodyguard. Resource Pack.",
+    "uuid": "80f1c91d-98fa-439a-b828-b67ad286acf3",
     "version": [
       1,
       0,
-      2
+      0
     ],
     "min_engine_version": [
       1,
@@ -18,17 +18,17 @@
   "modules": [
     {
       "type": "resources",
-      "uuid": "f34c4288-476a-4fb6-84c2-8966fb77a7bd",
+      "uuid": "9cec9328-d5d0-4fa4-b522-b4428b20d5c2",
       "version": [
         1,
         0,
-        2
+        0
       ]
     }
   ],
   "metadata": {
     "authors": [
-      "Skyline Parkour"
+      "Bodyguard"
     ],
     "license": "MIT",
     "product_type": "addon"

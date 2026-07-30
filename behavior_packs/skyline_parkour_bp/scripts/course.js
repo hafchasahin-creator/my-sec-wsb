@@ -7,7 +7,7 @@
  * empty air. Existing builds are never overwritten.
  */
 
-import { system } from "@minecraft/server";
+import { BlockPermutation, system } from "@minecraft/server";
 import { BLOCKS, CONFIG, DIFFICULTIES } from "./config.js";
 import {
   clamp,
@@ -258,6 +258,38 @@ export function countObstructions(dimension, plan) {
  * Building and clearing (spread over ticks so nothing lag spikes)
  * ------------------------------------------------------------------ */
 
+/**
+ * Placing a block by id.
+ *
+ * `Block.setType` takes a BlockType on some builds and a plain id string on
+ * others, so resolve a permutation first and only fall back to setType. The
+ * resolved permutations are cached - a course reuses a handful of block ids.
+ */
+const permutations = new Map();
+
+function permutationFor(id) {
+  if (!permutations.has(id)) {
+    permutations.set(id, safe(() => BlockPermutation.resolve(id)));
+  }
+  return permutations.get(id);
+}
+
+function place(dimension, pos, id) {
+  const block = safe(() => dimension.getBlock(pos));
+  if (!block) return;
+
+  const permutation = permutationFor(id);
+  if (permutation) {
+    try {
+      block.setPermutation(permutation);
+      return;
+    } catch {
+      /* fall through to setType */
+    }
+  }
+  safe(() => block.setType(id));
+}
+
 function drain(items, apply, onDone) {
   let index = 0;
   const handle = system.runInterval(() => {
@@ -275,19 +307,11 @@ function drain(items, apply, onDone) {
 }
 
 export function buildCourse(dimension, plan, onDone) {
-  return drain(
-    plan.blocks,
-    ({ pos, id }) => safe(() => dimension.getBlock(pos)?.setType(id)),
-    onDone
-  );
+  return drain(plan.blocks, ({ pos, id }) => place(dimension, pos, id), onDone);
 }
 
 export function clearBlocks(dimension, positions, onDone) {
-  return drain(
-    positions,
-    (pos) => safe(() => dimension.getBlock(pos)?.setType("minecraft:air")),
-    onDone
-  );
+  return drain(positions, (pos) => place(dimension, pos, "minecraft:air"), onDone);
 }
 
 /* ------------------------------------------------------------------ *
