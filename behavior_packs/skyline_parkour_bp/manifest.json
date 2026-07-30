@@ -1,0 +1,65 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Skyline Parkour BP",
+    "description": "Tap-to-play parkour: generated courses, checkpoints, timer and records. Behavior Pack.",
+    "uuid": "cedfe358-aacf-4c54-841a-8e804bef12f6",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "17504f4a-e5d9-40b8-aec6-280a6844b7c8",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "1389f0d9-0b17-4f04-80e9-260bd1c70598",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "dbea55d5-8b1f-494e-bf6a-64b443ccc2e2",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "1.2.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Skyline Parkour"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

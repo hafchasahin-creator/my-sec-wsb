@@ -1,3 +1,212 @@
+# Minecraft Bedrock add-ons
+
+Two self-contained add-ons, each a behaviour pack + resource pack. Both target
+**Bedrock 1.21.0**, use only **stable** components and script APIs, need **no experimental
+toggles**, and are built for phones and tablets.
+
+| Add-on | What it adds | Download |
+| --- | --- | --- |
+| **[Skyline Parkour](#skyline-parkour)** | Tap a compass and a parkour course is built in the sky above you: checkpoints, timer, personal bests | `dist/SkylineParkour.mcaddon` |
+| **[Arcane Arsenal](#arcane-arsenal)** | Six legendary weapons with scripted magic effects | `dist/ArcaneArsenal.mcaddon` |
+
+---
+
+# Skyline Parkour
+
+A parkour minigame that builds its own courses. Tap **New course**, pick a difficulty,
+and a course of floating pads rises into the sky above you — gold checkpoints along the
+way, an emerald finish pad at the end, a timer and your personal best on screen.
+
+Falling off never kills you: you are put straight back on your last checkpoint.
+
+## Play it on your phone — 4 steps
+
+1. Download **`dist/SkylineParkour.mcaddon`** onto the phone or tablet.
+2. **Tap the file.** Minecraft opens and imports both packs by itself.
+3. Create or edit a world → **Behaviour Packs** → activate **Skyline Parkour BP**.
+   (The resource pack comes along automatically. Leave every experimental toggle **off**.)
+4. Join the world. All three items — **Parkour Compass**, **Checkpoint Marker**, **Leap
+   Charm** — are handed to you the first time you join. Hold the compass, tap the **use
+   button** on the right of the screen, then tap **New course → Submit**.
+
+That is it. The course builds, you are placed on the diamond start pad, and the timer
+starts. Run to the emerald pad to finish.
+
+If tapping the `.mcaddon` file does nothing, rename it to `SkylineParkour.zip` and copy
+the two folders inside it into:
+
+```
+Android/data/com.mojang.minecraftpe/files/games/com.mojang/behavior_packs/skyline_parkour_bp
+Android/data/com.mojang.minecraftpe/files/games/com.mojang/resource_packs/skyline_parkour_rp
+```
+
+On Windows those two folders live under
+`%localappdata%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang\`.
+
+## The three items
+
+| Item | Tap it to | Craft |
+| --- | --- | --- |
+| **Parkour Compass** | Open the menu: new course, replay, records, teleport to checkpoint, clear course | Compass + 4 gold ingots |
+| **Checkpoint Marker** | Tap blocks to build your own course by hand. Sneak + tap the air to clear the markers | 4 wool + gold nugget + 2 sticks |
+| **Leap Charm** | Launch yourself forward — handy for practising a jump. 3s cooldown, no fall damage | 3 feathers + rabbit's foot + gold ingot |
+
+Everything is also reachable without the items — see [Commands](#commands).
+
+## Difficulties
+
+| Difficulty | Pads | Jumps | Extras |
+| --- | --- | --- | --- |
+| **Easy** | 3×3 | 3 blocks apart, 1 block up or down | — |
+| **Normal** | 2×2 | 3 blocks, sometimes 4 | — |
+| **Hard** | single block | 3–4 blocks, drops of up to 2 | 10% packed-ice pads |
+| **Insane** | single block | 4 blocks, 5 when falling | 22% packed-ice pads |
+
+Every jump in every table is one a Bedrock player can actually make: the generator never
+asks for more than one block of height gain, never a 4-block jump upwards, and only uses
+5-block gaps when you are dropping two blocks at the same time.
+
+Course length is a slider: **5 to 60 jumps**, with a checkpoint every 5 jumps.
+
+## While you are running
+
+The action bar shows `Time · CP 2/4 · PB 1:20.0 · Falls 3`.
+
+- **Gold pad** = checkpoint. Touch it and that becomes your respawn point.
+- **Emerald pad** = finish. Touching it stops the clock and saves your time.
+- **Falling** puts you back on your last checkpoint (or the start, if you have not reached
+  one). While a run is active you get hidden Resistance and Saturation, so you cannot die
+  on a course and hunger cannot stop you sprinting.
+- Turn checkpoints **off** in the setup form for a hardcore run: any fall restarts the
+  timer from the start pad.
+
+Times are stored per difficulty *and* length, so `hard · 20 jumps` keeps its own record.
+Personal bests live on you, the best time on the world — **Records** in the menu shows both.
+
+## Seeds
+
+Every course has a seed, printed in chat when it is built. Type that seed into the setup
+form and you get the exact same course again — same pads, same turns — so you can race a
+friend on identical ground. **Rebuild & replay saved course** in the menu regenerates your
+last course from its seed, which also repairs anything you broke.
+
+## Building a course by hand
+
+1. Hold the **Checkpoint Marker**.
+2. Tap the block you want to start on, then tap blocks along your route.
+3. The last block you tap is the finish.
+4. Open the compass menu → **Build your own course** → **Start custom run**.
+
+Your markers get the same timer, checkpoint and fall-recovery behaviour as a generated
+course. Sneak + tap the air to clear them.
+
+## Commands
+
+Chat (no cheats needed):
+
+```
+!pk                                  open the menu
+!pk start hard 30                    start a course (difficulty, jumps, optional seed)
+!pk replay                           rebuild and rerun your saved course
+!pk cp                               go back to your last checkpoint
+!pk stop                             stop the run
+!pk clear                            delete the course blocks
+!pk custom                           run your marker course
+!pk kit                              give yourself the three items
+```
+
+The same things work as script events, for command blocks and buttons:
+
+```
+/scriptevent pk:menu
+/scriptevent pk:start hard 30 12345
+/scriptevent pk:clear
+```
+
+## Where courses get built
+
+Courses are placed **30 blocks above you by default** (a slider in the setup form, 8–90).
+Nothing is ever built over your base: the whole course is planned in memory first and
+every single block — plus 3 blocks of head-room over each pad — is checked for air. If
+anything is in the way the course is lifted 12 blocks and re-checked up to three times,
+and if it still does not fit nothing is placed at all and the game tells you to move.
+
+**Clear the course blocks** in the menu removes every block it placed, and building a new
+course clears the previous one first unless you turn that off.
+
+## Troubleshooting
+
+When you join a world with the pack active, chat shows:
+
+```
+[Skyline Parkour] v1.0.0 loaded - tap the Parkour Compass to play.
+```
+
+If that line does **not** appear, the behaviour pack's scripts are not running — check
+that you activated **Skyline Parkour BP** (not just the resource pack) on this world.
+
+If items show up as blank squares, the resource pack is not active: **Settings → Resource
+Packs** on the world, activate **Skyline Parkour RP**.
+
+For anything else, turn on **Settings → Creator → Content Log GUI**; it names the pack and
+file for any load error.
+
+## Tuning
+
+Every number lives in `behavior_packs/skyline_parkour_bp/scripts/config.js` — jump tables,
+pad sizes, checkpoint spacing, fall grace, block palettes, the Leap Charm's power. Edit it
+and re-run `python3 tools/build_parkour.py`.
+
+## Layout and rebuilding
+
+```
+behavior_packs/skyline_parkour_bp/
+  manifest.json          BP manifest, min_engine_version 1.21.0
+  items/*.json           3 item definitions, format_version 1.21.0
+  recipes/*.json         3 shaped recipes
+  scripts/config.js      all tuning
+  scripts/util.js        helpers (positions, time, seeded random)
+  scripts/course.js      plan -> check for air -> build -> clear, and saving a course
+  scripts/run.js         the run: falls, checkpoints, finish, HUD
+  scripts/records.js     personal bests and world records
+  scripts/game.js        the actions behind the menu
+  scripts/menu.js        the tap menus (@minecraft/server-ui)
+  scripts/main.js        event wiring only
+resource_packs/skyline_parkour_rp/
+  textures/items/*.png   3 hand-made 16x16 icons
+  texts/en_US.lang       item display names
+tools/
+  gen_parkour_textures.py   regenerates the icons (stdlib only)
+  build_parkour.py          validates the packs and writes the .mcaddon
+dist/SkylineParkour.mcaddon
+```
+
+```bash
+python3 tools/gen_parkour_textures.py   # redraw the icons (add --preview for ASCII art)
+python3 tools/build_parkour.py          # validate + repackage the .mcaddon
+```
+
+`build_parkour.py` fails loudly if any JSON is malformed, if UUIDs collide (including with
+Arcane Arsenal, so both add-ons can be installed at once), if the behaviour pack loses its
+resource-pack or module dependencies, if any `import` in the scripts does not resolve to a
+real file, if a script file is unreachable from `main.js`, if an item icon does not resolve
+to a PNG, if a recipe pattern and key disagree, or if an item has no name in `en_US.lang`.
+
+## Compatibility notes
+
+- **Modules:** `@minecraft/server 1.11.0` and `@minecraft/server-ui 1.2.0`, both stable in
+  1.21.0. No experiments, no beta APIs.
+- **Touch first:** every feature is reachable by tapping. Forms are retried when the game
+  reports `UserBusy`, which is what happens if a menu is asked for while another screen is
+  still closing.
+- **API drift:** `applyKnockback` changed shape between script API versions, so the Leap
+  Charm tries both forms; `itemUseOn` is subscribed defensively; every sound, particle and
+  title call is wrapped, so a device missing one cosmetic id loses that effect only.
+- **Never blocks the tick:** courses are built and cleared at 48 blocks per tick, so even a
+  60-jump course never stalls the game.
+
+---
+
 # Arcane Arsenal
 
 A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six

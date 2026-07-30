@@ -1,0 +1,11 @@
+## Skyline Parkour - English (US)
+
+pack.name=Skyline Parkour RP
+pack.description=Icons and names for the Skyline Parkour tools.
+
+item.parkour:course_compass=Parkour Compass
+item.parkour:course_compass.name=Parkour Compass
+item.parkour:checkpoint_marker=Checkpoint Marker
+item.parkour:checkpoint_marker.name=Checkpoint Marker
+item.parkour:leap_charm=Leap Charm
+item.parkour:leap_charm.name=Leap Charm

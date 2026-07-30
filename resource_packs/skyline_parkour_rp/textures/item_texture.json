@@ -1,0 +1,15 @@
+{
+  "resource_pack_name": "skyline_parkour",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "course_compass": {
+      "textures": "textures/items/course_compass"
+    },
+    "checkpoint_marker": {
+      "textures": "textures/items/checkpoint_marker"
+    },
+    "leap_charm": {
+      "textures": "textures/items/leap_charm"
+    }
+  }
+}

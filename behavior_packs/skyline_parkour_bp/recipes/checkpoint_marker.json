@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "parkour:checkpoint_marker"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "WWG",
+      "WWS",
+      "  S"
+    ],
+    "key": {
+      "W": {
+        "item": "minecraft:wool"
+      },
+      "G": {
+        "item": "minecraft:gold_nugget"
+      },
+      "S": {
+        "item": "minecraft:stick"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "parkour:checkpoint_marker",
+      "count": 1
+    }
+  }
+}

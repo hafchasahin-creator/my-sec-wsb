@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Skyline Parkour RP",
+    "description": "Icons and names for the Skyline Parkour tools. Resource Pack.",
+    "uuid": "dbea55d5-8b1f-494e-bf6a-64b443ccc2e2",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "f34c4288-476a-4fb6-84c2-8966fb77a7bd",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Skyline Parkour"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

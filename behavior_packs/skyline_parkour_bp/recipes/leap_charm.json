@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "parkour:leap_charm"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " F ",
+      "FRF",
+      " G "
+    ],
+    "key": {
+      "F": {
+        "item": "minecraft:feather"
+      },
+      "R": {
+        "item": "minecraft:rabbit_foot"
+      },
+      "G": {
+        "item": "minecraft:gold_ingot"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "parkour:leap_charm",
+      "count": 1
+    }
+  }
+}
