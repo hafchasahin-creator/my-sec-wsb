@@ -1,14 +1,15 @@
 # Minecraft Bedrock add-ons
 
-Two self-contained add-ons for **Bedrock 1.21.0** (Android / Pocket Edition included):
+Three self-contained add-ons for **Bedrock 1.21.0** (Android / Pocket Edition included):
 
 | Add-on | What it adds | Docs | Download |
 | --- | --- | --- | --- |
 | **Arcane Arsenal** | Six legendary weapons with scripted magic effects | below | `dist/ArcaneArsenal.mcaddon` |
+| **Onetap Armory** | Five weapons that kill anything in one tap, each with its own animation and ability | [ONETAP_ARMORY.md](ONETAP_ARMORY.md) | `dist/OnetapArmory.mcaddon` |
 | **Luxury Estate** | A furnished three-storey luxury villa built from one item, plus six decorative blocks | [LUXURY_HOUSE.md](LUXURY_HOUSE.md) | `dist/LuxuryEstate.mcaddon` |
 
-Both are built and packaged by `python3 tools/build.py` (or `tools/build.py arcane` /
-`tools/build.py luxury` for one at a time).
+All three are built and packaged by `python3 tools/build.py` (or `tools/build.py arcane` /
+`onetap` / `luxury` for one at a time).
 
 ---
 

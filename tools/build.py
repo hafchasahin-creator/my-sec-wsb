@@ -25,6 +25,12 @@ ADDONS = {
         "namespace": "arcane",
         "addon": os.path.join(DIST, "ArcaneArsenal.mcaddon"),
     },
+    "onetap": {
+        "bp": os.path.join("behavior_packs", "onetap_armory_bp"),
+        "rp": os.path.join("resource_packs", "onetap_armory_rp"),
+        "namespace": "onetap",
+        "addon": os.path.join(DIST, "OnetapArmory.mcaddon"),
+    },
     "luxury": {
         "bp": os.path.join("behavior_packs", "luxury_house_bp"),
         "rp": os.path.join("resource_packs", "luxury_house_rp"),

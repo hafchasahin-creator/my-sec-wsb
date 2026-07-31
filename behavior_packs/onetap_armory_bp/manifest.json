@@ -1,0 +1,61 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Onetap Armory BP",
+    "description": "Five one-tap weapons, each with its own animation and ability. Behavior Pack.",
+    "uuid": "fa51acd8-d311-4513-8205-26504232d494",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "27451870-3c22-4cc3-be54-48678cefe097",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "1381931d-51f2-4a5a-8f5c-77d1193e20a0",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "4d044cf1-329f-4479-a9b0-29e8a6823c39",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Onetap Armory"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}
