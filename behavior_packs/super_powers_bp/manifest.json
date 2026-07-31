@@ -1,0 +1,65 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Super Powers BP",
+    "description": "Six super powers: speed, flight, laser eyes, invisibility, teleport and time stop. Behavior Pack.",
+    "uuid": "01b5da83-76e6-4eeb-a90b-62781ced9ec4",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "83914622-8078-4ec4-b0b8-024430ab0576",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "2641e884-46c7-4cdd-bc40-88a00b1c04d2",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "b5a2535e-2ba0-4fd1-ba4c-5d6d464329f9",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "1.1.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Super Powers"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

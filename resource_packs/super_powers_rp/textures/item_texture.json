@@ -1,0 +1,27 @@
+{
+  "resource_pack_name": "super_powers",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "speed_core": {
+      "textures": "textures/items/speed_core"
+    },
+    "flight_core": {
+      "textures": "textures/items/flight_core"
+    },
+    "laser_core": {
+      "textures": "textures/items/laser_core"
+    },
+    "invisibility_core": {
+      "textures": "textures/items/invisibility_core"
+    },
+    "teleport_core": {
+      "textures": "textures/items/teleport_core"
+    },
+    "timestop_core": {
+      "textures": "textures/items/timestop_core"
+    },
+    "power_band": {
+      "textures": "textures/items/power_band"
+    }
+  }
+}

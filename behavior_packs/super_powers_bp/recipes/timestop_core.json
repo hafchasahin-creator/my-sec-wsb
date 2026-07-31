@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "sp:timestop_core"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " C ",
+      "IDI",
+      " C "
+    ],
+    "key": {
+      "C": {
+        "item": "minecraft:clock"
+      },
+      "I": {
+        "item": "minecraft:iron_ingot"
+      },
+      "D": {
+        "item": "minecraft:diamond"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "sp:timestop_core",
+      "count": 1
+    }
+  }
+}

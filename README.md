@@ -1,12 +1,13 @@
 # Minecraft Bedrock add-ons
 
-Two self-contained add-ons, each a behaviour pack + resource pack. Both target
+Four self-contained add-ons, each a behaviour pack + resource pack. All target
 **Bedrock 1.21.0**, use only **stable** components and script APIs, need **no experimental
 toggles**, and are built for phones and tablets.
 
 | Add-on | What it adds | Download |
 | --- | --- | --- |
 | **[Skyline Parkour](#skyline-parkour)** | Tap a compass and a parkour course is built in the sky above you: checkpoints, timer, personal bests | `dist/SkylineParkour.mcaddon` (or the two `.mcpack` files) |
+| **[Super Powers](#super-powers)** | Six powers - speed, flight, laser eyes, invisibility, teleport, time stop - with a tap menu, cooldowns and crafting | `dist/SuperPowers.mcaddon` |
 | **[Bodyguard](#bodyguard)** | Hire a suited bodyguard with a rocket launcher who follows you, fights anything that attacks you, and fetches food on command | `dist/Bodyguard.mcaddon` |
 | **[Arcane Arsenal](#arcane-arsenal)** | Six legendary weapons with scripted magic effects | `dist/ArcaneArsenal.mcaddon` |
 
@@ -227,6 +228,137 @@ to a PNG, if a recipe pattern and key disagree, or if an item has no name in `en
   title call is wrapped, so a device missing one cosmetic id loses that effect only.
 - **Never blocks the tick:** courses are built and cleared at 48 blocks per tick, so even a
   60-jump course never stalls the game.
+
+---
+
+# Super Powers
+
+Six powers, one tap menu, a countdown bar on screen, and a craftable item for each.
+Everything is per-player, so it works the same in a world with friends in it.
+
+## Play it on your phone - 4 steps
+
+1. Download **`dist/SuperPowers.mcaddon`** onto the phone.
+2. **Tap the file.** Minecraft imports both packs.
+3. Create or edit a world -> **Behaviour Packs** -> activate **Super Powers BP**.
+   Leave every experimental toggle **off**; none are needed.
+4. Join. A **Power Band** is put in your inventory the first time. Hold it, tap the use
+   button, and pick a power.
+
+## The six powers
+
+| Power | What it does | Lasts | Recharge |
+| --- | --- | --- | --- |
+| **Super Speed** | Speed XX (+400%, a true 5x), high jumps, and fall damage is healed straight back | 20s | 10s |
+| **Flight** | Real flight, the same movement creative mode uses, with slow falling for a feather landing | 60s | 15s |
+| **Laser Eyes** | A continuous beam that follows your view: 3 damage every other tick out to 24 blocks, and it cuts through blocks on a list you control | 3s | 8s |
+| **Invisibility** | Vanilla invisibility, plus nearby hostiles are made to forget you are there. Hitting something gives you away | 30s | 15s |
+| **Teleportation** | Blink to whatever you are aiming at, up to 48 blocks, landing on solid ground with head-room checked | instant | 5s |
+| **Time Stop** | Every hostile mob within 16 blocks is pinned with slowness and weakness at maximum, and arrows hang in mid air | 8s | 30s |
+
+Recharge is counted **from when a power ends**, not from when it starts, so the wait is a
+real one.
+
+## Three ways to use a power
+
+- **The Power Band** - tap it, tap a power. Powers that are recharging are greyed out with
+  their countdown. This is the whole add-on in one item.
+- **The power items** - hold a core and tap the use button. Tapping a running power again
+  switches it off.
+- **Chat** - `!sp` opens the menu, `!sp flight` fires a power directly, `!sp off` stops the
+  running one, `!sp kit` hands you all seven items. Command blocks can use
+  `/scriptevent sp:flight` and friends.
+
+While a power runs the action bar shows a ten-segment bar and the seconds left. When one
+is recharging it shows the countdown instead. The rest of the time it stays quiet, so it
+does not fight with other add-ons for the same line.
+
+## Crafting
+
+| Item | Recipe |
+| --- | --- |
+| Power Band | Gold ingot x4 around a diamond |
+| Speed Core | Feather / sugar + diamond + sugar / redstone |
+| Flight Core | Phantom membrane x4 around a diamond, ender pearl below |
+| Laser Core | Redstone x3 around a diamond, blaze powder below |
+| Invisibility Core | Glass x3 around a diamond, fermented spider eye below |
+| Teleport Core | Ender pearl x3 around a diamond, obsidian below |
+| Time Stop Core | Clock x2, iron ingot x2, diamond |
+
+All recipes are crafting-table shaped recipes, unlocked from the start.
+
+## Settings
+
+**Power Band -> Settings** has five toggles, saved per player:
+
+- Laser eyes break blocks
+- Time stop freezes arrows
+- No fall damage while running
+- Invisibility makes mobs forget you
+- Show the power bar on screen
+
+Deeper numbers - durations, cooldowns, the speed amplifier, laser range and damage, the
+list of blocks the laser may break, the time stop radius - all live in
+`behavior_packs/super_powers_bp/scripts/config.js`.
+
+## Built for a phone
+
+- The tick loop only touches players who have a power running; everyone else costs one
+  action-bar update every four ticks.
+- The laser draws one particle every 1.5 blocks and raycasts once per tick, so a 24 block
+  beam is about 16 particles rather than a hundred.
+- Effects are re-applied on a one-second beat instead of being added for their whole
+  duration, which is also why a power ends cleanly without needing an effect-removal API.
+- Time stop queries entities once per tick inside a 16 block radius, not per mob.
+
+## Honest notes
+
+- **Sounds are vanilla sound ids** chosen per power (beacon hum for time stop, blaze shot
+  for the laser, and so on). Shipping genuinely new audio would mean shipping `.ogg`
+  files, which are not something this repo can generate; the ids are listed in `SOUNDS` in
+  `config.js` and can be swapped for your own if you add the audio.
+- **Particles are original**: five particle definitions in the resource pack, drawn from
+  one hand-generated 16x16 sheet, plus a few vanilla ones layered underneath so something
+  always shows even if a definition is rejected.
+- **Flight** asks the game for `ability @s mayfly true`. If a world refuses it, the power
+  falls back to a hover - slow falling, with a lift while you look up. A creative player's
+  own flight is never touched.
+- **Invisibility** clears mob targets through `setTarget`, which not every build exposes.
+  Where it is missing you get plain vanilla invisibility rather than an error.
+
+## Layout and rebuilding
+
+```
+behavior_packs/super_powers_bp/
+  manifest.json            @minecraft/server 1.11.0, @minecraft/server-ui 1.1.0
+  items/*.json             7 items, each with its cooldown category
+  recipes/*.json           7 shaped recipes
+  scripts/config.js        every number, in one file
+  scripts/state.js         per-player powers, cooldowns, settings
+  scripts/engine.js        activation rules, tick loop, action bar
+  scripts/powers/*.js      one file per power
+  scripts/menu.js          the tap menus
+  scripts/main.js          event wiring only
+resource_packs/super_powers_rp/
+  particles/*.json         5 original particle effects
+  textures/particle/       the 16x16 sheet they index into
+  textures/items/*.png     7 hand-generated icons
+tools/
+  gen_superpowers_textures.py   redraws every texture
+  build_superpowers.py          validates the packs and writes the .mcaddon
+dist/SuperPowers.mcaddon
+```
+
+```bash
+python3 tools/gen_superpowers_textures.py   # redraw (add --preview for ASCII art)
+python3 tools/build_superpowers.py          # validate + repackage
+```
+
+`build_superpowers.py` fails the build if the script module versions drift from the ones
+1.21.0 actually has, if an `import` does not resolve, if a script file is unreachable, if
+an item icon does not reach a PNG, if an item has no recipe or no name, if a power in
+`config.js` has no item, if an item's cooldown category does not match the one the scripts
+start, or if the scripts spawn a `sp:` particle the resource pack does not define.
 
 ---
 

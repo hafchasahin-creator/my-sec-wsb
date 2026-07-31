@@ -1,0 +1,19 @@
+## Super Powers - English (US)
+
+pack.name=Super Powers RP
+pack.description=Icons, particles and names for the Super Powers add-on.
+
+item.sp:speed_core=Speed Core
+item.sp:speed_core.name=Speed Core
+item.sp:flight_core=Flight Core
+item.sp:flight_core.name=Flight Core
+item.sp:laser_core=Laser Core
+item.sp:laser_core.name=Laser Core
+item.sp:invisibility_core=Invisibility Core
+item.sp:invisibility_core.name=Invisibility Core
+item.sp:teleport_core=Teleport Core
+item.sp:teleport_core.name=Teleport Core
+item.sp:timestop_core=Time Stop Core
+item.sp:timestop_core.name=Time Stop Core
+item.sp:power_band=Power Band
+item.sp:power_band.name=Power Band

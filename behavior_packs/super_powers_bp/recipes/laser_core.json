@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "sp:laser_core"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " R ",
+      "RDR",
+      " B "
+    ],
+    "key": {
+      "R": {
+        "item": "minecraft:redstone"
+      },
+      "D": {
+        "item": "minecraft:diamond"
+      },
+      "B": {
+        "item": "minecraft:blaze_powder"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "sp:laser_core",
+      "count": 1
+    }
+  }
+}

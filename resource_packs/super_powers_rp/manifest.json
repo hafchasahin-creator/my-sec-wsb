@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Super Powers RP",
+    "description": "Icons, particles and names for the Super Powers add-on. Resource Pack.",
+    "uuid": "b5a2535e-2ba0-4fd1-ba4c-5d6d464329f9",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "be848af7-8442-45de-bd8b-985abe87a971",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Super Powers"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

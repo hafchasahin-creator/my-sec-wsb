@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "sp:invisibility_core"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " G ",
+      "GDG",
+      " E "
+    ],
+    "key": {
+      "G": {
+        "item": "minecraft:glass"
+      },
+      "D": {
+        "item": "minecraft:diamond"
+      },
+      "E": {
+        "item": "minecraft:fermented_spider_eye"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "sp:invisibility_core",
+      "count": 1
+    }
+  }
+}
