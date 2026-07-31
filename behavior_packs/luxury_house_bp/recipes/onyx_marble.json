@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "luxury:onyx_marble"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "MMM",
+      "MCM",
+      "MMM"
+    ],
+    "key": {
+      "M": {
+        "item": "luxury:marble"
+      },
+      "C": {
+        "item": "minecraft:coal"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "luxury:onyx_marble",
+      "count": 8
+    }
+  }
+}

@@ -1,3 +1,17 @@
+# Minecraft Bedrock add-ons
+
+Two self-contained add-ons for **Bedrock 1.21.0** (Android / Pocket Edition included):
+
+| Add-on | What it adds | Docs | Download |
+| --- | --- | --- | --- |
+| **Arcane Arsenal** | Six legendary weapons with scripted magic effects | below | `dist/ArcaneArsenal.mcaddon` |
+| **Luxury Estate** | A furnished three-storey luxury villa built from one item, plus six decorative blocks | [LUXURY_HOUSE.md](LUXURY_HOUSE.md) | `dist/LuxuryEstate.mcaddon` |
+
+Both are built and packaged by `python3 tools/build.py` (or `tools/build.py arcane` /
+`tools/build.py luxury` for one at a time).
+
+---
+
 # Arcane Arsenal
 
 A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six
@@ -132,7 +146,7 @@ dist/ArcaneArsenal.mcaddon
 
 ```bash
 python3 tools/gen_textures.py      # redraw the icons (add --preview for ASCII art)
-python3 tools/build.py             # validate + repackage dist/ArcaneArsenal.mcaddon
+python3 tools/build.py arcane      # validate + repackage dist/ArcaneArsenal.mcaddon
 ```
 
 `build.py` fails loudly if any JSON is malformed, if manifest UUIDs collide, if the

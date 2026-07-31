@@ -1,0 +1,12 @@
+{
+  "resource_pack_name": "luxury_house",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "villa_deed": {
+      "textures": "textures/items/villa_deed"
+    },
+    "wrecking_permit": {
+      "textures": "textures/items/wrecking_permit"
+    }
+  }
+}

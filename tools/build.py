@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Validate and package Arcane Arsenal.
+"""Validate and package the add-ons in this repository.
 
-Checks that every JSON file parses, that manifest UUIDs are unique, that the
-behaviour pack's resource-pack dependency points at the real resource pack, and
-that every item icon resolves all the way down to a PNG on disk. Then zips the
-two packs into dist/ArcaneArsenal.mcaddon.
+For every add-on it checks that each JSON file parses, that manifest UUIDs are
+unique, that the behaviour pack's resource-pack dependency points at the real
+resource pack, that every item icon and block texture resolves all the way down
+to a PNG on disk, that recipes produce items or blocks that exist, and that
+everything custom has a display name. Then it zips each pair of packs into a
+.mcaddon.
 
-Usage:  python3 tools/build.py
+Usage:  python3 tools/build.py [addon ...]     (default: every add-on)
 """
 
 import json
@@ -14,10 +16,22 @@ import os
 import sys
 import zipfile
 
-BP = os.path.join("behavior_packs", "arcane_arsenal_bp")
-RP = os.path.join("resource_packs", "arcane_arsenal_rp")
 DIST = "dist"
-ADDON = os.path.join(DIST, "ArcaneArsenal.mcaddon")
+
+ADDONS = {
+    "arcane": {
+        "bp": os.path.join("behavior_packs", "arcane_arsenal_bp"),
+        "rp": os.path.join("resource_packs", "arcane_arsenal_rp"),
+        "namespace": "arcane",
+        "addon": os.path.join(DIST, "ArcaneArsenal.mcaddon"),
+    },
+    "luxury": {
+        "bp": os.path.join("behavior_packs", "luxury_house_bp"),
+        "rp": os.path.join("resource_packs", "luxury_house_rp"),
+        "namespace": "luxury",
+        "addon": os.path.join(DIST, "LuxuryEstate.mcaddon"),
+    },
+}
 
 errors = []
 
@@ -42,19 +56,40 @@ def walk_json(root):
                 yield os.path.join(base, name)
 
 
-def validate():
+def texture_exists(rp, atlas_path, atlas, key, source):
+    """Resolve an atlas key down to a PNG, reporting where it broke."""
+    if atlas is None:
+        fail(f"{source}: {atlas_path} is missing, so '{key}' cannot resolve")
+        return
+    entry = atlas.get("texture_data", {}).get(key)
+    if entry is None:
+        fail(f"{source}: texture '{key}' missing from {atlas_path}")
+        return
+    textures = entry["textures"]
+    if isinstance(textures, list):
+        textures = textures[0]
+    png = os.path.join(rp, textures + ".png")
+    if not os.path.isfile(png):
+        fail(f"{source}: texture '{key}' points at missing file {png}")
+
+
+def validate(spec):
+    bp = spec["bp"]
+    rp = spec["rp"]
+    namespace = spec["namespace"]
+
     documents = {}
-    for root in (BP, RP):
+    for root in (bp, rp):
         if not os.path.isdir(root):
             fail(f"missing pack directory: {root}")
             continue
         for path in walk_json(root):
             documents[path] = load_json(path)
 
-    bp_manifest = documents.get(os.path.join(BP, "manifest.json"))
-    rp_manifest = documents.get(os.path.join(RP, "manifest.json"))
+    bp_manifest = documents.get(os.path.join(bp, "manifest.json"))
+    rp_manifest = documents.get(os.path.join(rp, "manifest.json"))
     if not bp_manifest or not rp_manifest:
-        return
+        return 0, 0
 
     # UUIDs must all be distinct.
     uuids = []
@@ -63,34 +98,30 @@ def validate():
         uuids.extend(module["uuid"] for module in manifest["modules"])
     duplicates = {u for u in uuids if uuids.count(u) > 1}
     if duplicates:
-        fail(f"duplicate UUIDs across manifests: {sorted(duplicates)}")
+        fail(f"{bp}: duplicate UUIDs across manifests: {sorted(duplicates)}")
 
     # The behaviour pack must depend on this resource pack.
     rp_uuid = rp_manifest["header"]["uuid"]
-    dependency_uuids = [
-        dep.get("uuid") for dep in bp_manifest.get("dependencies", [])
-    ]
+    dependency_uuids = [dep.get("uuid") for dep in bp_manifest.get("dependencies", [])]
     if rp_uuid not in dependency_uuids:
-        fail(f"behaviour pack does not depend on resource pack {rp_uuid}")
+        fail(f"{bp}: behaviour pack does not depend on resource pack {rp_uuid}")
 
     # The script entry point must exist.
     for module in bp_manifest["modules"]:
         if module["type"] == "script":
-            entry = os.path.join(BP, module["entry"])
+            entry = os.path.join(bp, module["entry"])
             if not os.path.isfile(entry):
                 fail(f"script entry not found: {entry}")
 
-    # Icons: item -> item_texture.json key -> png on disk.
-    atlas_path = os.path.join(RP, "textures", "item_texture.json")
-    atlas = documents.get(atlas_path)
-    if atlas is None:
-        fail(f"missing {atlas_path}")
-        return
-    texture_data = atlas.get("texture_data", {})
+    item_atlas_path = os.path.join(rp, "textures", "item_texture.json")
+    block_atlas_path = os.path.join(rp, "textures", "terrain_texture.json")
+    item_atlas = documents.get(item_atlas_path)
+    block_atlas = documents.get(block_atlas_path)
 
+    # Items: icon -> item_texture.json key -> png on disk.
     identifiers = []
-    for path, doc in documents.items():
-        if not path.startswith(os.path.join(BP, "items")) or doc is None:
+    for path, doc in sorted(documents.items()):
+        if not path.startswith(os.path.join(bp, "items")) or doc is None:
             continue
         item = doc.get("minecraft:item", {})
         identifier = item.get("description", {}).get("identifier")
@@ -99,7 +130,7 @@ def validate():
         # minecraft:icon changed shape at format_version 1.20.60: the flat
         # "texture" string is deprecated and is silently ignored by the game,
         # which shows up in-game as an item with a completely blank icon.
-        # Reject it rather than shipping an invisible weapon again.
+        # Reject it rather than shipping an invisible item again.
         version = tuple(
             int(part) for part in str(doc.get("format_version", "0")).split(".")
         )
@@ -119,44 +150,97 @@ def validate():
         if not key:
             fail(f"{path}: no minecraft:icon texture")
             continue
-        if key not in texture_data:
-            fail(f"{path}: icon '{key}' missing from item_texture.json")
-            continue
-        png = os.path.join(RP, texture_data[key]["textures"] + ".png")
-        if not os.path.isfile(png):
-            fail(f"{path}: icon '{key}' points at missing file {png}")
+        texture_exists(rp, item_atlas_path, item_atlas, key, path)
 
-    # Recipes must produce items that actually exist.
-    for path, doc in documents.items():
-        if not path.startswith(os.path.join(BP, "recipes")) or doc is None:
+    # Blocks: every material instance texture -> terrain_texture.json -> png.
+    block_identifiers = []
+    for path, doc in sorted(documents.items()):
+        if not path.startswith(os.path.join(bp, "blocks")) or doc is None:
             continue
-        recipe = doc.get("minecraft:recipe_shaped", {})
+        block = doc.get("minecraft:block", {})
+        identifier = block.get("description", {}).get("identifier")
+        block_identifiers.append(identifier)
+
+        components = block.get("components", {})
+        instances = components.get("minecraft:material_instances")
+        if not instances:
+            fail(f"{path}: no minecraft:material_instances, the block has no texture")
+            continue
+        for face, instance in instances.items():
+            if not isinstance(instance, dict):
+                continue  # an alias onto another face
+            key = instance.get("texture")
+            if not key:
+                fail(f"{path}: material instance '{face}' has no texture")
+                continue
+            texture_exists(rp, block_atlas_path, block_atlas, key, path)
+
+    known = set(identifiers) | set(block_identifiers)
+
+    # Recipes must produce something that exists, from ingredients that exist.
+    for path, doc in sorted(documents.items()):
+        if not path.startswith(os.path.join(bp, "recipes")) or doc is None:
+            continue
+        recipe = doc.get("minecraft:recipe_shaped") or doc.get(
+            "minecraft:recipe_shapeless"
+        )
+        if recipe is None:
+            fail(f"{path}: not a shaped or shapeless recipe")
+            continue
+
         result = recipe.get("result", {})
         result_item = result.get("item") if isinstance(result, dict) else result
-        if result_item and result_item.startswith("arcane:"):
-            if result_item not in identifiers:
-                fail(f"{path}: result '{result_item}' has no item definition")
+        if result_item and result_item.startswith(f"{namespace}:"):
+            if result_item not in known:
+                fail(f"{path}: result '{result_item}' has no item or block definition")
 
-    # Every custom item needs a display name in the language file.
-    lang_path = os.path.join(RP, "texts", "en_US.lang")
+        ingredients = []
+        for entry in recipe.get("key", {}).values():
+            ingredients.append(entry.get("item") if isinstance(entry, dict) else entry)
+        for entry in recipe.get("ingredients", []):
+            ingredients.append(entry.get("item") if isinstance(entry, dict) else entry)
+        for ingredient in ingredients:
+            if (
+                ingredient
+                and ingredient.startswith(f"{namespace}:")
+                and ingredient not in known
+            ):
+                fail(f"{path}: ingredient '{ingredient}' has no definition")
+
+    # Everything custom needs a display name in the language file.
+    lang_path = os.path.join(rp, "texts", "en_US.lang")
     lang = ""
     if os.path.isfile(lang_path):
         with open(lang_path, encoding="utf-8") as handle:
             lang = handle.read()
     for identifier in identifiers:
         if identifier and f"item.{identifier}=" not in lang:
-            fail(f"{lang_path}: no name entry for {identifier}")
+            fail(f"{lang_path}: no name entry for item {identifier}")
+    for identifier in block_identifiers:
+        if identifier and f"tile.{identifier}.name=" not in lang:
+            fail(f"{lang_path}: no name entry for block {identifier}")
 
-    print(f"Validated {len(documents)} JSON files, {len(identifiers)} items.")
+    # Pack icons are what the player sees in the pack list.
+    for root in (bp, rp):
+        if not os.path.isfile(os.path.join(root, "pack_icon.png")):
+            fail(f"{root}: missing pack_icon.png")
+
+    print(
+        f"{bp}: validated {len(documents)} JSON files, "
+        f"{len(identifiers)} items, {len(block_identifiers)} blocks."
+    )
+    return len(identifiers), len(block_identifiers)
 
 
-def package():
+def package(spec):
     os.makedirs(DIST, exist_ok=True)
-    if os.path.exists(ADDON):
-        os.remove(ADDON)
+    addon = spec["addon"]
+    if os.path.exists(addon):
+        os.remove(addon)
 
-    with zipfile.ZipFile(ADDON, "w", zipfile.ZIP_DEFLATED) as archive:
-        for root, folder in ((BP, "arcane_arsenal_bp"), (RP, "arcane_arsenal_rp")):
+    with zipfile.ZipFile(addon, "w", zipfile.ZIP_DEFLATED) as archive:
+        for root in (spec["bp"], spec["rp"]):
+            folder = os.path.basename(root)
             for base, _dirs, files in os.walk(root):
                 for name in sorted(files):
                     source = os.path.join(base, name)
@@ -165,15 +249,26 @@ def package():
                     ).replace(os.sep, "/")
                     archive.write(source, arcname)
 
-    size = os.path.getsize(ADDON)
-    print(f"Packaged {ADDON} ({size:,} bytes)")
+    size = os.path.getsize(addon)
+    print(f"Packaged {addon} ({size:,} bytes)")
 
 
 if __name__ == "__main__":
-    validate()
+    selected = sys.argv[1:] or list(ADDONS)
+    unknown = [name for name in selected if name not in ADDONS]
+    if unknown:
+        print(f"Unknown add-on(s): {', '.join(unknown)}", file=sys.stderr)
+        print(f"Available: {', '.join(ADDONS)}", file=sys.stderr)
+        sys.exit(2)
+
+    for name in selected:
+        validate(ADDONS[name])
+
     if errors:
         print("\nBuild failed:", file=sys.stderr)
         for error in errors:
             print(f"  - {error}", file=sys.stderr)
         sys.exit(1)
-    package()
+
+    for name in selected:
+        package(ADDONS[name])

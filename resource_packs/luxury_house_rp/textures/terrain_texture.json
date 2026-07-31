@@ -1,0 +1,26 @@
+{
+  "resource_pack_name": "luxury_house",
+  "texture_name": "atlas.terrain",
+  "padding": 8,
+  "num_mip_levels": 4,
+  "texture_data": {
+    "luxury_marble": {
+      "textures": "textures/blocks/luxury_marble"
+    },
+    "luxury_onyx_marble": {
+      "textures": "textures/blocks/luxury_onyx_marble"
+    },
+    "luxury_gilded_marble": {
+      "textures": "textures/blocks/luxury_gilded_marble"
+    },
+    "luxury_crystal_glass": {
+      "textures": "textures/blocks/luxury_crystal_glass"
+    },
+    "luxury_gold_lamp": {
+      "textures": "textures/blocks/luxury_gold_lamp"
+    },
+    "luxury_royal_rug": {
+      "textures": "textures/blocks/luxury_royal_rug"
+    }
+  }
+}

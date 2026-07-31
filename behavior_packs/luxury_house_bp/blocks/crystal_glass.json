@@ -1,0 +1,29 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "luxury:crystal_glass",
+      "menu_category": {
+        "category": "construction",
+        "group": "itemGroup.name.glass"
+      }
+    },
+    "components": {
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "luxury_crystal_glass",
+          "render_method": "blend"
+        }
+      },
+      "minecraft:geometry": "minecraft:geometry.full_block",
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 0.6
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 1.5
+      },
+      "minecraft:map_color": "#BFE3EC",
+      "minecraft:light_dampening": 0
+    }
+  }
+}

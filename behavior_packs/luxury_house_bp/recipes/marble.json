@@ -1,0 +1,29 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "luxury:marble"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "QQ",
+      "QQ"
+    ],
+    "key": {
+      "Q": {
+        "item": "minecraft:quartz_block"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "luxury:marble",
+      "count": 4
+    }
+  }
+}
