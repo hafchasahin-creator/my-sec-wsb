@@ -1,0 +1,28 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "aurora:day_vivid"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 0.7,
+        "fog_end": 1.0,
+        "fog_color": "#b6d2f0",
+        "render_distance_type": "render"
+      },
+      "water": {
+        "fog_start": 0.0,
+        "fog_end": 26.0,
+        "fog_color": "#2f7fa8",
+        "render_distance_type": "fixed"
+      },
+      "weather": {
+        "fog_start": 0.22,
+        "fog_end": 0.92,
+        "fog_color": "#93a6bb",
+        "render_distance_type": "render"
+      }
+    }
+  }
+}

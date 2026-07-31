@@ -1,0 +1,65 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Aurora Visuals BP",
+    "description": "Drives the Aurora fog by time of day and dimension. Optional - the resource pack works on its own.",
+    "uuid": "293a021c-baa2-444c-adb1-69a76a0b0da0",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "5f78e30b-a518-40bb-b631-0220770f308b",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "f4751a52-d01f-44e3-9ad5-c89653455684",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "762eaec0-cee5-477b-b26f-fb537537628b",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "1.1.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Aurora Visuals"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

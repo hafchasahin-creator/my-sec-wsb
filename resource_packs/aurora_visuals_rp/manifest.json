@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Aurora Visuals RP",
+    "description": "Bloomed sun, soft clouds, richer grass and layered distance haze. Resource Pack.",
+    "uuid": "762eaec0-cee5-477b-b26f-fb537537628b",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "923bbb62-c60a-41b2-80a7-0ec2fdb966c3",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Aurora Visuals"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

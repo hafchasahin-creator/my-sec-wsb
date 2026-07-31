@@ -1,0 +1,28 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "aurora:dusk_soft"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 0.76,
+        "fog_end": 1.0,
+        "fog_color": "#e6bb9c",
+        "render_distance_type": "render"
+      },
+      "water": {
+        "fog_start": 0.0,
+        "fog_end": 46.0,
+        "fog_color": "#3d8fb4",
+        "render_distance_type": "fixed"
+      },
+      "weather": {
+        "fog_start": 0.42,
+        "fog_end": 1.0,
+        "fog_color": "#a8b9cc",
+        "render_distance_type": "render"
+      }
+    }
+  }
+}

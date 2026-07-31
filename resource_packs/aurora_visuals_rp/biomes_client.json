@@ -1,0 +1,64 @@
+{
+  "biomes": {
+    "ocean": {
+      "water_surface_color": "#2f7fa8",
+      "water_fog_color": "#1d5f86",
+      "water_surface_transparency": 0.72,
+      "water_fog_distance": 26
+    },
+    "deep_ocean": {
+      "water_surface_color": "#215f86",
+      "water_fog_color": "#123f5e",
+      "water_surface_transparency": 0.72,
+      "water_fog_distance": 26
+    },
+    "warm_ocean": {
+      "water_surface_color": "#28b0c8",
+      "water_fog_color": "#1a86a0",
+      "water_surface_transparency": 0.72,
+      "water_fog_distance": 26
+    },
+    "lukewarm_ocean": {
+      "water_surface_color": "#2c9cb8",
+      "water_fog_color": "#1c7392",
+      "water_surface_transparency": 0.72,
+      "water_fog_distance": 26
+    },
+    "cold_ocean": {
+      "water_surface_color": "#2d6f9c",
+      "water_fog_color": "#1a4f74",
+      "water_surface_transparency": 0.72,
+      "water_fog_distance": 26
+    },
+    "frozen_ocean": {
+      "water_surface_color": "#3a76a8",
+      "water_fog_color": "#22537e",
+      "water_surface_transparency": 0.72,
+      "water_fog_distance": 26
+    },
+    "river": {
+      "water_surface_color": "#3a8fbe",
+      "water_fog_color": "#256a92",
+      "water_surface_transparency": 0.72,
+      "water_fog_distance": 26
+    },
+    "swampland": {
+      "water_surface_color": "#4c6b3c",
+      "water_fog_color": "#33482a",
+      "water_surface_transparency": 0.72,
+      "water_fog_distance": 26
+    },
+    "jungle": {
+      "water_surface_color": "#33a0c0",
+      "water_fog_color": "#1f7794",
+      "water_surface_transparency": 0.72,
+      "water_fog_distance": 26
+    },
+    "plains": {
+      "water_surface_color": "#3a8fbe",
+      "water_fog_color": "#256a92",
+      "water_surface_transparency": 0.72,
+      "water_fog_distance": 26
+    }
+  }
+}

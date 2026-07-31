@@ -1,6 +1,6 @@
 # Minecraft Bedrock add-ons
 
-Four self-contained add-ons, each a behaviour pack + resource pack. All target
+Five self-contained add-ons, each a behaviour pack + resource pack. All target
 **Bedrock 1.21.0**, use only **stable** components and script APIs, need **no experimental
 toggles**, and are built for phones and tablets.
 
@@ -9,6 +9,7 @@ toggles**, and are built for phones and tablets.
 | **[Skyline Parkour](#skyline-parkour)** | Tap a compass and a parkour course is built in the sky above you: checkpoints, timer, personal bests | `dist/SkylineParkour.mcaddon` (or the two `.mcpack` files) |
 | **[Super Powers](#super-powers)** | Six powers - speed, flight, laser eyes, invisibility, teleport, time stop - with a tap menu, cooldowns and crafting | `dist/SuperPowers.mcaddon` |
 | **[Bodyguard](#bodyguard)** | Hire a suited bodyguard with a rocket launcher who follows you, fights anything that attacks you, and fetches food on command | `dist/Bodyguard.mcaddon` |
+| **[Aurora Visuals](#aurora-visuals)** | A visuals pack: bloomed sun, lit moon, soft clouds, richer grass, clear water and haze that follows the time of day | `dist/AuroraVisuals.mcaddon` |
 | **[Arcane Arsenal](#arcane-arsenal)** | Six legendary weapons with scripted magic effects | `dist/ArcaneArsenal.mcaddon` |
 
 ---
@@ -512,6 +513,109 @@ Open `behavior_packs/bodyguard_bp/entities/bodyguard.json`:
 And in `entities/cannon_shell.json`, `minecraft:explode` - the blast itself.
 
 Then re-run `python3 tools/build_bodyguard.py`.
+
+---
+
+# Aurora Visuals
+
+The atmosphere half of a shader, done with the parts of a resource pack that still work
+on modern Bedrock: a sun with real bloom, a moon lit through eight phases, softer clouds,
+richer grass and leaves, clearer water, and distance haze that changes with the time of
+day and the dimension.
+
+## What this is not
+
+Minecraft Bedrock runs **RenderDragon**. It does not load shader code from resource packs
+- the old `.fsh` / `.vsh` files stopped working when RenderDragon replaced the OpenGL
+renderer. Real Bedrock shader packs today ship **compiled engine material binaries** and
+have to be installed by patching the game itself. That is not something a resource pack
+can do, so no `.mcaddon` can give you true lighting, shadows or reflections.
+
+What a resource pack *can* still change is the sky, the fog, and the colour of the world -
+and that is most of what makes a shader screenshot look the way it does. This pack does
+all of it, and costs nothing in frame rate: there is no extra rendering, only different
+textures and fog values.
+
+## Play it on your phone - 4 steps
+
+1. Download **`dist/AuroraVisuals.mcaddon`** onto the phone.
+2. **Tap the file.** Minecraft imports both packs.
+3. Edit your world -> **Resource Packs** -> activate **Aurora Visuals RP**.
+   That alone gives you the sun, moon, clouds, grass and water.
+4. Optional: **Behaviour Packs** -> activate **Aurora Visuals BP** for the time-of-day
+   haze and the `!vis` menu.
+
+## What changes
+
+| | |
+| --- | --- |
+| **Sun** | A 128x128 bloomed disc: hot white core, warm halo, wide soft falloff, faint flare. This is the single biggest difference. |
+| **Moon** | 256x128, eight phases drawn with a proper terminator, subtle craters, soft halo. |
+| **Clouds** | Layered value noise instead of hard blocks, so they read as soft sheets. |
+| **Grass and leaves** | The two 256x256 colour maps, following vanilla's temperature and rainfall layout but pushed richer and cooler in the dry corner. |
+| **Water** | Ten biomes get a clearer surface colour, a deeper fog colour and 26-block underwater visibility instead of vanilla murk. |
+| **Haze** | Ten fog definitions - dawn, day, dusk and night in two strengths, plus the Nether and the End. |
+
+## The haze
+
+With the behaviour pack on, the fog follows the clock:
+
+| Time | Look |
+| --- | --- |
+| Dawn (22800-1200) | Warm sand-coloured haze, close in |
+| Day (1200-10800) | Pale blue, far out - distant hills fade like the screenshot |
+| Dusk (10800-13200) | Deep orange, close in |
+| Night (13200-22800) | Near-black blue, closest of all |
+| Nether / End | Their own, warmer and colder |
+
+Type **`!vis`** in chat for the menu:
+
+- **Vivid** - deep haze, clear water, strongest mood
+- **Soft** - the same colours, pushed much further out
+- **Off** - vanilla fog; the textures still apply
+
+`!vis vivid`, `!vis soft`, `!vis off` skip the menu, and `/scriptevent aurora:soft` works
+from a command block.
+
+The fog is only re-pushed when the answer actually changes, so standing still costs one
+comparison every two seconds.
+
+## If you do want real shaders
+
+You would need a RenderDragon shader pack (Newb X and similar), which replaces the game's
+compiled material files - normally by installing a patched build of Minecraft. That is
+outside what this repo builds, and worth knowing before you download something that claims
+to be a shader `.mcaddon`: if it is only an `.mcaddon`, it is doing what this pack does.
+
+## Layout and rebuilding
+
+```
+resource_packs/aurora_visuals_rp/
+  fogs/*.json               10 fog definitions
+  biomes_client.json        water colours per biome
+  textures/environment/     sun, moon_phases, clouds
+  textures/colormap/        grass, foliage
+behavior_packs/aurora_visuals_bp/
+  scripts/fog.js            which fog, and pushing it with /fog
+  scripts/main.js           the loop, the menu, chat commands
+tools/
+  gen_aurora_textures.py    draws every texture from maths
+  build_aurora.py           validates and packages
+dist/AuroraVisuals.mcaddon      both packs
+dist/AuroraVisuals_RP.mcpack    textures and fog only
+```
+
+```bash
+python3 tools/gen_aurora_textures.py   # redraw (add --preview for ASCII art)
+python3 tools/build_aurora.py          # validate + repackage
+```
+
+A visuals pack fails silently - a texture at the wrong path or a fog id with a typo simply
+does nothing and says nothing - so `build_aurora.py` checks the exact vanilla paths each
+texture must live at and their expected shapes, that every fog the scripts ask for exists,
+that every fog file is actually used, that fog colours are real `#rrggbb` values with
+`fog_start` before `fog_end`, and that the script module versions still match what 1.21.0
+ships.
 
 ---
 
