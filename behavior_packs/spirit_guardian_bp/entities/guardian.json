@@ -1,0 +1,68 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "spirit:guardian",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "is_experimental": false
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "spirit",
+          "guardian",
+          "friendly",
+          "inanimate"
+        ]
+      },
+      "minecraft:collision_box": {
+        "width": 0.7,
+        "height": 1.6
+      },
+      "minecraft:health": {
+        "value": 40,
+        "max": 40
+      },
+      "minecraft:physics": {
+        "has_gravity": false,
+        "has_collision": false
+      },
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": false
+      },
+      "minecraft:knockback_resistance": {
+        "value": 1.0
+      },
+      "minecraft:fire_immune": true,
+      "minecraft:damage_sensor": {
+        "triggers": [
+          {
+            "on_damage": {
+              "filters": {}
+            },
+            "deals_damage": false
+          }
+        ]
+      },
+      "minecraft:can_fly": {},
+      "minecraft:persistent": {},
+      "minecraft:nameable": {
+        "always_show": false,
+        "allow_name_tag_renaming": true
+      },
+      "minecraft:scale": {
+        "value": 1.0
+      },
+      "minecraft:breathable": {
+        "total_supply": 15,
+        "suffocate_time": -1,
+        "breathes_air": true,
+        "breathes_water": true
+      },
+      "minecraft:conditional_bandwidth_optimization": {}
+    },
+    "events": {}
+  }
+}

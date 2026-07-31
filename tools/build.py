@@ -31,6 +31,12 @@ ADDONS = {
         "namespace": "onetap",
         "addon": os.path.join(DIST, "OnetapArmory.mcaddon"),
     },
+    "spirit": {
+        "bp": os.path.join("behavior_packs", "spirit_guardian_bp"),
+        "rp": os.path.join("resource_packs", "spirit_guardian_rp"),
+        "namespace": "spirit",
+        "addon": os.path.join(DIST, "SpiritGuardian.mcaddon"),
+    },
     "luxury": {
         "bp": os.path.join("behavior_packs", "luxury_house_bp"),
         "rp": os.path.join("resource_packs", "luxury_house_rp"),
@@ -77,6 +83,92 @@ def texture_exists(rp, atlas_path, atlas, key, source):
     png = os.path.join(rp, textures + ".png")
     if not os.path.isfile(png):
         fail(f"{source}: texture '{key}' points at missing file {png}")
+
+
+def collect_ids(documents, folder, extract):
+    """Gather declared ids from every JSON under `folder`."""
+    found = set()
+    for path, doc in documents.items():
+        if not path.startswith(folder) or doc is None:
+            continue
+        found.update(extract(doc))
+    return found
+
+
+def geometry_ids(doc):
+    # 1.12 format: a list under minecraft:geometry, each with an identifier.
+    geometries = doc.get("minecraft:geometry")
+    if isinstance(geometries, list):
+        return {
+            geometry.get("description", {}).get("identifier")
+            for geometry in geometries
+            if isinstance(geometry, dict)
+        }
+    # 1.8 format: top-level keys named geometry.<name>.
+    return {key.split(":")[0] for key in doc if key.startswith("geometry.")}
+
+
+def validate_client_entities(rp, documents, entity_identifiers, item_atlas_path, item_atlas):
+    """A client entity that points at a missing model, texture or controller
+    renders as an invisible or bright-pink mob, with nothing in the log to say
+    which reference broke. Resolve all of them here instead."""
+    models = collect_ids(documents, os.path.join(rp, "models"), geometry_ids)
+    controllers = collect_ids(
+        documents,
+        os.path.join(rp, "render_controllers"),
+        lambda doc: set(doc.get("render_controllers", {})),
+    )
+    animations = collect_ids(
+        documents,
+        os.path.join(rp, "animations"),
+        lambda doc: set(doc.get("animations", {})),
+    )
+    animations |= collect_ids(
+        documents,
+        os.path.join(rp, "animation_controllers"),
+        lambda doc: set(doc.get("animation_controllers", {})),
+    )
+
+    described = set()
+    for path, doc in sorted(documents.items()):
+        if not path.startswith(os.path.join(rp, "entity")) or doc is None:
+            continue
+        description = doc.get("minecraft:client_entity", {}).get("description", {})
+        identifier = description.get("identifier")
+        described.add(identifier)
+
+        if identifier not in entity_identifiers:
+            fail(f"{path}: client entity '{identifier}' has no behaviour-pack entity")
+
+        for key, texture in description.get("textures", {}).items():
+            if not os.path.isfile(os.path.join(rp, texture + ".png")):
+                fail(f"{path}: texture '{key}' points at missing file {texture}.png")
+
+        for key, geometry in description.get("geometry", {}).items():
+            if geometry not in models:
+                fail(f"{path}: geometry '{key}' -> '{geometry}' is not defined in {rp}/models")
+
+        for controller in description.get("render_controllers", []):
+            name = controller if isinstance(controller, str) else next(iter(controller))
+            if name not in controllers:
+                fail(f"{path}: render controller '{name}' is not defined in {rp}/render_controllers")
+
+        for key, animation in description.get("animations", {}).items():
+            if animation not in animations:
+                fail(f"{path}: animation '{key}' -> '{animation}' is not defined")
+
+        for name in description.get("scripts", {}).get("animate", []):
+            key = name if isinstance(name, str) else next(iter(name))
+            if key not in description.get("animations", {}):
+                fail(f"{path}: scripts/animate runs '{key}', which is not in animations")
+
+        egg = description.get("spawn_egg", {})
+        if "texture" in egg:
+            texture_exists(rp, item_atlas_path, item_atlas, egg["texture"], path)
+
+    for identifier in entity_identifiers:
+        if identifier not in described:
+            fail(f"{rp}/entity: no client entity for {identifier}, it would be invisible")
 
 
 def validate(spec):
@@ -181,7 +273,25 @@ def validate(spec):
                 continue
             texture_exists(rp, block_atlas_path, block_atlas, key, path)
 
-    known = set(identifiers) | set(block_identifiers)
+    # Entities: server definition, client definition, model, controllers.
+    entity_identifiers = []
+    spawn_eggs = []
+    for path, doc in sorted(documents.items()):
+        if not path.startswith(os.path.join(bp, "entities")) or doc is None:
+            continue
+        description = doc.get("minecraft:entity", {}).get("description", {})
+        identifier = description.get("identifier")
+        if not identifier:
+            fail(f"{path}: entity has no identifier")
+            continue
+        entity_identifiers.append(identifier)
+        if description.get("is_spawnable"):
+            spawn_eggs.append(f"{identifier}_spawn_egg")
+
+    if entity_identifiers:
+        validate_client_entities(rp, documents, entity_identifiers, item_atlas_path, item_atlas)
+
+    known = set(identifiers) | set(block_identifiers) | set(spawn_eggs)
 
     # Recipes must produce something that exists, from ingredients that exist.
     for path, doc in sorted(documents.items()):
@@ -225,6 +335,13 @@ def validate(spec):
     for identifier in block_identifiers:
         if identifier and f"tile.{identifier}.name=" not in lang:
             fail(f"{lang_path}: no name entry for block {identifier}")
+    for identifier in entity_identifiers:
+        if identifier and f"entity.{identifier}.name=" not in lang:
+            fail(f"{lang_path}: no name entry for entity {identifier}")
+    for identifier in spawn_eggs:
+        entity_id = identifier[: -len("_spawn_egg")]
+        if f"item.spawn_egg.entity.{entity_id}.name=" not in lang:
+            fail(f"{lang_path}: no name entry for spawn egg of {entity_id}")
 
     # Pack icons are what the player sees in the pack list.
     for root in (bp, rp):
@@ -232,8 +349,8 @@ def validate(spec):
             fail(f"{root}: missing pack_icon.png")
 
     print(
-        f"{bp}: validated {len(documents)} JSON files, "
-        f"{len(identifiers)} items, {len(block_identifiers)} blocks."
+        f"{bp}: validated {len(documents)} JSON files, {len(identifiers)} items, "
+        f"{len(block_identifiers)} blocks, {len(entity_identifiers)} entities."
     )
     return len(identifiers), len(block_identifiers)
 

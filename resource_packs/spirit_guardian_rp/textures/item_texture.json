@@ -1,0 +1,9 @@
+{
+  "resource_pack_name": "spirit_guardian",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "spirit_guardian_spawn_egg": {
+      "textures": "textures/items/spirit_guardian_spawn_egg"
+    }
+  }
+}
