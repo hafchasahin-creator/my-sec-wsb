@@ -37,6 +37,12 @@ ADDONS = {
         "namespace": "spirit",
         "addon": os.path.join(DIST, "SpiritGuardian.mcaddon"),
     },
+    "saitama": {
+        "bp": os.path.join("behavior_packs", "saitama_bot_bp"),
+        "rp": os.path.join("resource_packs", "saitama_bot_rp"),
+        "namespace": "saitama",
+        "addon": os.path.join(DIST, "SaitamaBot.mcaddon"),
+    },
     "luxury": {
         "bp": os.path.join("behavior_packs", "luxury_house_bp"),
         "rp": os.path.join("resource_packs", "luxury_house_rp"),

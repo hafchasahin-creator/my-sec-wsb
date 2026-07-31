@@ -1,0 +1,61 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Saitama Bot BP",
+    "description": "A hero bot that follows you and one-punches whatever hurts you. Behavior Pack.",
+    "uuid": "0e5781fb-40b0-40ab-94a5-b3c7e6ab9d1c",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "3d93974a-50a0-4287-88e6-9f53ebf32208",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "f6f59fd4-a349-4770-8d3a-5a0d50a527e1",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "c4867dde-fdd3-4b7a-a05b-fec9cbdc5fd8",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Saitama Bot"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

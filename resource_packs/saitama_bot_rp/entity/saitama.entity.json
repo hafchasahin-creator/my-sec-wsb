@@ -1,0 +1,35 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "saitama:hero",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/saitama_hero"
+      },
+      "geometry": {
+        "default": "geometry.saitama_hero"
+      },
+      "render_controllers": [
+        "controller.render.saitama_hero"
+      ],
+      "spawn_egg": {
+        "texture": "saitama_hero_spawn_egg",
+        "texture_index": 0
+      },
+      "animations": {
+        "idle": "animation.saitama_hero.idle",
+        "run": "animation.saitama_hero.run",
+        "punch": "animation.saitama_hero.punch",
+        "state": "controller.animation.saitama_hero.state"
+      },
+      "scripts": {
+        "animate": [
+          "state"
+        ]
+      }
+    }
+  }
+}

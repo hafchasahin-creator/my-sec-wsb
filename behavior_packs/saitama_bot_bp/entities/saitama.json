@@ -1,0 +1,126 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "saitama:hero",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "is_experimental": false
+    },
+    "component_groups": {
+      "saitama:state_idle": {
+        "minecraft:variant": {
+          "value": 0
+        }
+      },
+      "saitama:state_run": {
+        "minecraft:variant": {
+          "value": 1
+        }
+      },
+      "saitama:state_punch": {
+        "minecraft:variant": {
+          "value": 2
+        }
+      }
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "saitama",
+          "hero",
+          "friendly"
+        ]
+      },
+      "minecraft:collision_box": {
+        "width": 0.6,
+        "height": 1.9
+      },
+      "minecraft:health": {
+        "value": 200,
+        "max": 200
+      },
+      "minecraft:physics": {
+        "has_gravity": false,
+        "has_collision": false
+      },
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": false
+      },
+      "minecraft:knockback_resistance": {
+        "value": 1.0
+      },
+      "minecraft:fire_immune": true,
+      "minecraft:damage_sensor": {
+        "triggers": [
+          {
+            "on_damage": {
+              "filters": {}
+            },
+            "deals_damage": false
+          }
+        ]
+      },
+      "minecraft:persistent": {},
+      "minecraft:nameable": {
+        "always_show": true,
+        "allow_name_tag_renaming": true
+      },
+      "minecraft:variant": {
+        "value": 0
+      },
+      "minecraft:scale": {
+        "value": 1.0
+      },
+      "minecraft:breathable": {
+        "total_supply": 15,
+        "suffocate_time": -1,
+        "breathes_air": true,
+        "breathes_water": true
+      },
+      "minecraft:conditional_bandwidth_optimization": {}
+    },
+    "events": {
+      "saitama:set_idle": {
+        "remove": {
+          "component_groups": [
+            "saitama:state_run",
+            "saitama:state_punch"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "saitama:state_idle"
+          ]
+        }
+      },
+      "saitama:set_run": {
+        "remove": {
+          "component_groups": [
+            "saitama:state_idle",
+            "saitama:state_punch"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "saitama:state_run"
+          ]
+        }
+      },
+      "saitama:set_punch": {
+        "remove": {
+          "component_groups": [
+            "saitama:state_idle",
+            "saitama:state_run"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "saitama:state_punch"
+          ]
+        }
+      }
+    }
+  }
+}
