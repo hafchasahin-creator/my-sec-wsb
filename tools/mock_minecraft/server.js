@@ -105,6 +105,8 @@ export class Dimension {
     this.entities = [];
     this.writes = 0;
     this.reads = 0;
+    this.particles = [];
+    this.explosions = [];
     /** Terrain function: (x, y, z) -> block id for anything never written. */
     this.terrain = (x, y, z) => (y < 64 ? "minecraft:stone" : "minecraft:air");
     this.minY = -64;
@@ -134,6 +136,9 @@ export class Dimension {
     if (options?.families) {
       list = list.filter((e) => options.families.some((f) => e.families.includes(f)));
     }
+    if (options?.tags) {
+      list = list.filter((e) => options.tags.every((t) => e.tags.has(t)));
+    }
     if (options?.excludeFamilies) {
       list = list.filter((e) => !options.excludeFamilies.some((f) => e.families.includes(f)));
     }
@@ -151,6 +156,15 @@ export class Dimension {
 
   getPlayers(options) {
     return this.getEntities({ ...options, type: "minecraft:player" });
+  }
+
+  spawnParticle(id, location) {
+    this.particles.push({ id, location });
+  }
+
+  createExplosion(location, radius, options) {
+    this.explosions.push({ location, radius, options });
+    return true;
   }
 
   spawnItem(itemStack, location) {
@@ -187,7 +201,8 @@ const ITEMS = new Set([
   "minecraft:raw_iron",
   "minecraft:apple",
   "minecraft:diamond",
-  "bb:house_builder_remote"
+  "bb:house_builder_remote",
+  "tp:parasite_serum"
 ]);
 
 export class ItemStack {
@@ -202,14 +217,30 @@ export class ItemStack {
 }
 
 class Container {
-  constructor() {
-    this.items = [];
+  constructor(size = 36) {
+    this.size = size;
+    this.slots = new Array(size).fill(undefined);
     this.full = false;
+  }
+
+  /** Everything currently held, for simple assertions. */
+  get items() {
+    return this.slots.filter(Boolean);
   }
 
   addItem(stack) {
     if (this.full) throw new Error("container is full");
-    this.items.push(stack);
+    const i = this.slots.findIndex((s) => s === undefined);
+    if (i < 0) throw new Error("container is full");
+    this.slots[i] = stack;
+  }
+
+  getItem(i) {
+    return this.slots[i];
+  }
+
+  setItem(i, stack) {
+    this.slots[i] = stack;
   }
 }
 
@@ -226,6 +257,7 @@ export class Entity {
     this.nameTag = "";
     this.events = [];
     this.dead = false;
+    this.effects = [];
     this.health = { currentValue: 40, effectiveMax: 40 };
   }
 
@@ -253,6 +285,26 @@ export class Entity {
     return undefined;
   }
 
+  applyDamage(amount) {
+    this.health.currentValue -= amount;
+    if (this.health.currentValue <= 0) this.kill();
+    return true;
+  }
+
+  kill() {
+    if (this.dead) return false;
+    this.dead = true;
+    const i = this.dimension.entities.indexOf(this);
+    if (i >= 0) this.dimension.entities.splice(i, 1);
+    world.afterEvents.entityDie.emit({ deadEntity: this });
+    return true;
+  }
+
+  addEffect(type, duration, options) {
+    this.effects.push({ type, duration, options });
+    return true;
+  }
+
   remove() {
     this.dead = true;
     const i = this.dimension.entities.indexOf(this);
@@ -275,6 +327,10 @@ export class Player extends Entity {
     this.name = name ?? "Tester";
     this.families = ["player", "mob"];
     this.container = new Container();
+    this.actionBars = [];
+    this.onScreenDisplay = {
+      setActionBar: (text) => this.actionBars.push(text)
+    };
     this.messages = [];
     this.sounds = [];
     this.isSneaking = false;

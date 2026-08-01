@@ -1,6 +1,8 @@
-> This repository holds two Bedrock add-ons:
-> **Arcane Arsenal** (below) and **[Builder Buddy](BUILDER_BUDDY.md)** — a companion
-> that follows you, defends you and builds you a house.
+> This repository holds three Bedrock add-ons for **1.21.0**:
+> **Arcane Arsenal** (below), **[Builder Buddy](BUILDER_BUDDY.md)** — a companion that
+> follows you, gathers, crafts and builds you a house — and
+> **[Tiny Parasite](TINY_PARASITE.md)** — a parasite that burrows into anything alive,
+> bursts the body and spreads.
 
 # Arcane Arsenal
 

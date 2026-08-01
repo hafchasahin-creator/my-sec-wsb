@@ -1,0 +1,12 @@
+{
+  "resource_pack_name": "tiny_parasite",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "tp_parasite_serum": {
+      "textures": "textures/items/tp_parasite_serum"
+    },
+    "tp_parasite_spawn_egg": {
+      "textures": "textures/items/tp_parasite_spawn_egg"
+    }
+  }
+}

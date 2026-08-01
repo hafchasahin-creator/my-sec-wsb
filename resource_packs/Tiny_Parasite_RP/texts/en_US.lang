@@ -1,0 +1,10 @@
+## Tiny Parasite - English (US)
+
+pack.name=Tiny Parasite RP
+pack.description=Model, skin, animations and icons for the Tiny Parasite.
+
+entity.tp:parasite.name=Tiny Parasite
+item.spawn_egg.entity.tp:parasite.name=Tiny Parasite Spawn Egg
+
+item.tp:parasite_serum=Antiparasitic Serum
+item.tp:parasite_serum.name=Antiparasitic Serum

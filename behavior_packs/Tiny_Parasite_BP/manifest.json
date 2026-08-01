@@ -1,0 +1,61 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Tiny Parasite BP",
+    "description": "A tiny parasite that hunts anything alive, burrows inside it, bursts the body and spreads to two more. Behaviour Pack.",
+    "uuid": "31ca9052-4829-4146-8f3d-51fa6b258a2d",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "27362105-4d70-44a6-b187-60eaa5f8c3d2",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "3b250b93-2d1f-4cf8-88f8-24fbe1d650f9",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "cd81e8c1-b5da-49d9-9553-6f431340f8e1",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Tiny Parasite"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

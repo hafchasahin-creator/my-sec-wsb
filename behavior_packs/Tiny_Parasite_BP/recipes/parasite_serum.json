@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "tp:parasite_serum"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " G ",
+      " F ",
+      " B "
+    ],
+    "key": {
+      "G": {
+        "item": "minecraft:glowstone_dust"
+      },
+      "F": {
+        "item": "minecraft:fermented_spider_eye"
+      },
+      "B": {
+        "item": "minecraft:glass_bottle"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "tp:parasite_serum",
+      "count": 2
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.tiny_parasite.move": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": ["idle"],
+          "blend_transition": 0.2,
+          "transitions": [{ "crawl": "query.modified_move_speed > 0.05" }]
+        },
+        "crawl": {
+          "animations": ["crawl"],
+          "blend_transition": 0.2,
+          "transitions": [{ "idle": "query.modified_move_speed <= 0.05" }]
+        }
+      }
+    },
+
+    "controller.animation.tiny_parasite.action": {
+      "initial_state": "none",
+      "states": {
+        "none": {
+          "transitions": [
+            { "lunge": "query.variant == 1" },
+            { "burrow": "query.variant == 2" }
+          ]
+        },
+        "lunge": {
+          "animations": ["lunge"],
+          "blend_transition": 0.1,
+          "transitions": [{ "none": "query.variant != 1" }]
+        },
+        "burrow": {
+          "animations": ["burrow"],
+          "blend_transition": 0.05,
+          "transitions": [{ "none": "query.variant != 2" }]
+        }
+      }
+    }
+  }
+}

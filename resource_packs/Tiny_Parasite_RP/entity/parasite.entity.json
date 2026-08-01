@@ -1,0 +1,41 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "tp:parasite",
+      "min_engine_version": "1.21.0",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/parasite"
+      },
+      "geometry": {
+        "default": "geometry.tiny_parasite"
+      },
+      "animations": {
+        "look_at_target": "animation.tiny_parasite.look_at_target",
+        "idle": "animation.tiny_parasite.idle",
+        "crawl": "animation.tiny_parasite.crawl",
+        "lunge": "animation.tiny_parasite.lunge",
+        "burrow": "animation.tiny_parasite.burrow",
+        "move_controller": "controller.animation.tiny_parasite.move",
+        "action_controller": "controller.animation.tiny_parasite.action"
+      },
+      "scripts": {
+        "animate": [
+          "look_at_target",
+          "move_controller",
+          "action_controller"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.tiny_parasite"
+      ],
+      "spawn_egg": {
+        "texture": "tp_parasite_spawn_egg",
+        "texture_index": 0
+      }
+    }
+  }
+}

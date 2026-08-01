@@ -1,0 +1,157 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.tiny_parasite.look_at_target": {
+      "loop": true,
+      "bones": {
+        "head": {
+          "rotation": [
+            "query.target_x_rotation * 0.4",
+            "query.target_y_rotation * 0.5",
+            0
+          ]
+        }
+      }
+    },
+
+    "animation.tiny_parasite.idle": {
+      "loop": true,
+      "animation_length": 2.0,
+      "bones": {
+        "body": {
+          "position": [0, "math.sin(query.life_time * 220) * 0.25", 0],
+          "scale": [
+            "1 + math.sin(query.life_time * 220) * 0.04",
+            "1 + math.sin(query.life_time * 220) * 0.05",
+            "1 + math.sin(query.life_time * 220) * 0.04"
+          ]
+        },
+        "tail": {
+          "rotation": [0, "math.sin(query.life_time * 150) * 12", 0]
+        },
+        "mandibleLeft": {
+          "rotation": [0, "-8 - math.sin(query.life_time * 260) * 8", 0]
+        },
+        "mandibleRight": {
+          "rotation": [0, "8 + math.sin(query.life_time * 260) * 8", 0]
+        },
+        "legFrontLeft": {
+          "rotation": ["math.sin(query.life_time * 190) * 6", 0, 0]
+        },
+        "legFrontRight": {
+          "rotation": ["-math.sin(query.life_time * 190) * 6", 0, 0]
+        }
+      }
+    },
+
+    "animation.tiny_parasite.crawl": {
+      "loop": true,
+      "animation_length": 1.0,
+      "bones": {
+        "body": {
+          "position": [0, "math.abs(math.cos(query.modified_distance_moved * 60)) * 0.5", 0],
+          "rotation": [0, "math.cos(query.modified_distance_moved * 30) * 6", 0]
+        },
+        "legFrontLeft": {
+          "rotation": ["math.cos(query.modified_distance_moved * 60) * 45", 0, 0]
+        },
+        "legMidLeft": {
+          "rotation": ["-math.cos(query.modified_distance_moved * 60) * 45", 0, 0]
+        },
+        "legBackLeft": {
+          "rotation": ["math.cos(query.modified_distance_moved * 60) * 45", 0, 0]
+        },
+        "legFrontRight": {
+          "rotation": ["-math.cos(query.modified_distance_moved * 60) * 45", 0, 0]
+        },
+        "legMidRight": {
+          "rotation": ["math.cos(query.modified_distance_moved * 60) * 45", 0, 0]
+        },
+        "legBackRight": {
+          "rotation": ["-math.cos(query.modified_distance_moved * 60) * 45", 0, 0]
+        },
+        "tail": {
+          "rotation": [0, "math.cos(query.modified_distance_moved * 30) * 22", 0]
+        },
+        "mandibleLeft": {
+          "rotation": [0, "-14 - math.cos(query.modified_distance_moved * 60) * 10", 0]
+        },
+        "mandibleRight": {
+          "rotation": [0, "14 + math.cos(query.modified_distance_moved * 60) * 10", 0]
+        }
+      }
+    },
+
+    "animation.tiny_parasite.lunge": {
+      "loop": true,
+      "animation_length": 0.5,
+      "bones": {
+        "body": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "0.15": [-28, 0, 0],
+            "0.3": [16, 0, 0],
+            "0.5": [0, 0, 0]
+          },
+          "position": {
+            "0.0": [0, 0, 0],
+            "0.15": [0, 1.5, 1],
+            "0.3": [0, 0, -1.5],
+            "0.5": [0, 0, 0]
+          }
+        },
+        "head": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "0.15": [18, 0, 0],
+            "0.3": [-22, 0, 0],
+            "0.5": [0, 0, 0]
+          }
+        },
+        "mandibleLeft": {
+          "rotation": {
+            "0.0": [0, -10, 0],
+            "0.15": [0, -46, 0],
+            "0.3": [0, -4, 0],
+            "0.5": [0, -10, 0]
+          }
+        },
+        "mandibleRight": {
+          "rotation": {
+            "0.0": [0, 10, 0],
+            "0.15": [0, 46, 0],
+            "0.3": [0, 4, 0],
+            "0.5": [0, 10, 0]
+          }
+        }
+      }
+    },
+
+    "animation.tiny_parasite.burrow": {
+      "loop": true,
+      "animation_length": 0.6,
+      "bones": {
+        "root": {
+          "rotation": [0, "query.life_time * 1400", 0],
+          "position": {
+            "0.0": [0, 0, 0],
+            "0.6": [0, -7, 0]
+          },
+          "scale": {
+            "0.0": 1.0,
+            "0.6": 0.35
+          }
+        },
+        "body": {
+          "rotation": [42, 0, 0]
+        },
+        "mandibleLeft": {
+          "rotation": [0, -50, 0]
+        },
+        "mandibleRight": {
+          "rotation": [0, 50, 0]
+        }
+      }
+    }
+  }
+}
