@@ -430,6 +430,175 @@ section("Death during a build");
   );
 }
 
+section("Autonomous survival work");
+{
+  // A clearing with an oak tree and a rock outcrop next to the player.
+  mc.fireScriptEvent("bb:cancel", player); // make sure nothing is still building
+  const wild = mc.resetOverworld((x, y, z) => {
+    if (y < GROUND) return "minecraft:dirt";
+    if (y === GROUND) return "minecraft:grass_block";
+    return "minecraft:air";
+  });
+  const woodsman = new testWorld.Player(wild, { x: 0, y: GROUND + 1, z: 0 }, "Woodsman");
+  wild.entities.push(woodsman);
+
+  // Tree at (4, z=0): trunk plus leaves so it reads as a tree, not a build.
+  for (let dy = 1; dy <= 4; dy++) wild.setId(4, GROUND + dy, 0, "minecraft:oak_log", { pillar_axis: "y" });
+  for (let dy = 5; dy <= 6; dy++) wild.setId(4, GROUND + dy, 0, "minecraft:oak_leaves", {});
+
+  const worker = wild.spawnEntity("bb:builder_buddy", { x: 2, y: GROUND + 1, z: 0 });
+  advance(20);
+
+  check("work is switched on by default", worker.hasTag("bb_work"), [...worker.tags].join(","));
+
+  woodsman.messages.length = 0;
+  advance(400);
+
+  check(
+    "buddy chops wood on its own",
+    woodsman.messages.some((m) => m.includes("wood")),
+    woodsman.messages.slice(0, 4).join(" | ")
+  );
+  const logsLeft = [1, 2, 3, 4].filter(
+    (dy) => wild.getId(4, GROUND + dy, 0) === "minecraft:oak_log"
+  ).length;
+  check("the trunk actually came down", logsLeft < 4, `${logsLeft}/4 logs still standing`);
+  check(
+    "buddy crafts what it gathers",
+    woodsman.messages.some((m) => m.includes("Crafted")),
+    woodsman.messages.slice(0, 8).join(" | ")
+  );
+  check("buddy plays the build pose while working", worker.events.includes("bb:work_start_event"));
+  check("buddy hands control back after a task", worker.events.includes("bb:work_end_event"));
+
+  // Handing supplies over should put real items in the player's inventory.
+  woodsman.messages.length = 0;
+  mc.fireScriptEvent("bb:give", woodsman);
+  check(
+    "buddy hands supplies over",
+    woodsman.messages.some((m) => m.includes("Here you go")),
+    woodsman.messages.join(" | ")
+  );
+  check("items landed in the inventory", woodsman.container.items.length > 0);
+  const stacks = woodsman.container.items;
+  check("no stack exceeds 64", stacks.every((s) => s.amount <= 64));
+
+  // Status readout.
+  woodsman.messages.length = 0;
+  mc.fireScriptEvent("bb:status", woodsman);
+  check("status reports the work mode", woodsman.messages.some((m) => m.includes("Work:")));
+  check("status reports the pack", woodsman.messages.some((m) => m.includes("Pack:")));
+
+  // The toggle has to actually stop the work.
+  mc.fireScriptEvent("bb:work", woodsman);
+  check("work can be switched off", !worker.hasTag("bb_work"));
+  const before = wild.writes;
+  advance(300);
+  check("no work happens once switched off", wild.writes === before, `${wild.writes - before} blocks changed`);
+}
+
+section("The buddy leaves your builds alone");
+{
+  const town = mc.resetOverworld((x, y, z) => {
+    if (y < GROUND) return "minecraft:dirt";
+    if (y === GROUND) return "minecraft:grass_block";
+    return "minecraft:air";
+  });
+  const builder = new testWorld.Player(town, { x: 0, y: GROUND + 1, z: 0 }, "Builder");
+  town.entities.push(builder);
+
+  // A player-built log cabin wall: logs, but no leaves above.
+  for (let dx = 2; dx <= 5; dx++) {
+    for (let dy = 1; dy <= 3; dy++) {
+      town.setId(dx, GROUND + dy, 2, "minecraft:oak_log", { pillar_axis: "y" });
+    }
+  }
+  // And a plank floor, which must never be mined.
+  for (let dx = 2; dx <= 5; dx++) town.setId(dx, GROUND, 3, "minecraft:oak_planks", {});
+
+  town.spawnEntity("bb:builder_buddy", { x: 1, y: GROUND + 1, z: 2 });
+  advance(500);
+
+  let logs = 0;
+  for (let dx = 2; dx <= 5; dx++) {
+    for (let dy = 1; dy <= 3; dy++) {
+      if (town.getId(dx, GROUND + dy, 2) === "minecraft:oak_log") logs++;
+    }
+  }
+  check("bare logs with no leaves are left standing", logs === 12, `${logs}/12 left`);
+
+  let planks = 0;
+  for (let dx = 2; dx <= 5; dx++) if (town.getId(dx, GROUND, 3) === "minecraft:oak_planks") planks++;
+  check("player-placed planks are never mined", planks === 4, `${planks}/4 left`);
+}
+
+section("Lighting up after dark");
+{
+  const dusk = mc.resetOverworld((x, y, z) => {
+    if (y < GROUND) return "minecraft:dirt";
+    if (y === GROUND) return "minecraft:grass_block";
+    return "minecraft:air";
+  });
+  const camper = new testWorld.Player(dusk, { x: 0, y: GROUND + 1, z: 0 }, "Camper");
+  dusk.entities.push(camper);
+  dusk.spawnEntity("bb:builder_buddy", { x: 1, y: GROUND + 1, z: 1 });
+
+  // Drop torches at its feet - it should pocket them, then use one after dark.
+  dusk.spawnItem(new mc.ItemStack("minecraft:torch", 16), { x: 1, y: GROUND + 1, z: 1 });
+  advance(40);
+  check("buddy pockets useful drops", camper.messages.some((m) => m.includes("Picked up")));
+
+  world.timeOfDay = 15000; // night
+  camper.messages.length = 0;
+  advance(400);
+  world.timeOfDay = 6000;
+
+  let torches = 0;
+  for (const p of dusk.blocks.values()) if (p.typeId === "minecraft:torch") torches++;
+  check(
+    "buddy lights the area up at night",
+    torches > 0 || camper.messages.some((m) => m.includes("torch")),
+    `${torches} torches, msgs: ${camper.messages.slice(0, 3).join(" | ")}`
+  );
+}
+
+section("Emergency night shelter");
+{
+  const night = mc.resetOverworld((x, y, z) => {
+    if (y < GROUND) return "minecraft:dirt";
+    if (y === GROUND) return "minecraft:grass_block";
+    return "minecraft:air";
+  });
+  const lost = new testWorld.Player(night, { x: 0, y: GROUND + 1, z: 0 }, "Lost");
+  night.entities.push(lost);
+  night.spawnEntity("bb:builder_buddy", { x: 1, y: GROUND + 1, z: 1 });
+
+  // Hand it a pile of logs; it should craft them up into planks.
+  for (let i = 0; i < 5; i++) {
+    night.spawnItem(new mc.ItemStack("minecraft:oak_log", 64), { x: 1, y: GROUND + 1, z: 1 });
+  }
+
+  world.timeOfDay = 15000;
+  lost.messages.length = 0;
+  advance(1500);
+  world.timeOfDay = 6000;
+
+  check(
+    "buddy throws up a shelter after dark",
+    lost.messages.some((m) => m.includes("shelter")),
+    lost.messages.slice(0, 6).join(" | ")
+  );
+
+  let doors = 0;
+  let walls = 0;
+  for (const p of night.blocks.values()) {
+    if (p.typeId === "minecraft:oak_door") doors++;
+    if (p.typeId === "minecraft:oak_planks") walls++;
+  }
+  check("the shelter has a door", doors === 2, `${doors} door halves`);
+  check("the shelter has walls and a roof", walls > 40, `${walls} planks placed`);
+}
+
 // ---------------------------------------------------------------------------
 
 console.log(`\n${checks - failures}/${checks} checks passed.`);

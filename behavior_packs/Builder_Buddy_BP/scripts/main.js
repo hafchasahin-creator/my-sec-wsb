@@ -9,7 +9,7 @@
  * block state or an unloaded chunk must never stop a build half-finished.
  */
 
-import { world, system, BlockPermutation } from "@minecraft/server";
+import { world, system, BlockPermutation, ItemStack } from "@minecraft/server";
 import { ActionFormData } from "@minecraft/server-ui";
 
 const BOT = "bb:builder_buddy";
@@ -798,9 +798,22 @@ function requestBuild(player) {
     return;
   }
 
-  const bot = nearestBot(player, 24);
+  // Recall rather than refuse: "nothing happened" is the worst answer, and a
+  // buddy that wandered out of range is not a reason to cancel the request.
+  let bot = nearestBot(player, 24);
   if (!bot) {
-    say(player, "No Builder Buddy nearby! Spawn one with the spawn egg first.");
+    bot = nearestBot(player, 128);
+    if (bot) {
+      teleportToPlayer(bot, player);
+      say(player, "Coming! Give me a second.");
+    }
+  }
+  if (!bot) {
+    bot = spawnBuddy(player);
+    if (bot) say(player, "Reporting for duty!");
+  }
+  if (!bot) {
+    say(player, "I can't get to you - make some space and try again.");
     return;
   }
 
@@ -948,6 +961,591 @@ function teleportToPlayer(bot, player) {
 }
 
 // ---------------------------------------------------------------------------
+// Survival autonomy
+//
+// The buddy works while it follows you: chopping trees, mining exposed rock,
+// crafting what it gathers, lighting the area up after dark, replanting and
+// throwing up an emergency shelter at night.
+//
+// There is no pathfinding API on this version, so a task teleports the buddy
+// one step to whatever it is working on and then hands control back to the
+// follow AI. Tasks run one step per companion tick (every half second), which
+// is what makes the work look deliberate instead of instant.
+// ---------------------------------------------------------------------------
+
+/** Shared pack, so supplies survive the buddy dying and being re-summoned. */
+const supplies = {
+  wood: 0,
+  planks: 0,
+  sticks: 0,
+  cobble: 0,
+  coal: 0,
+  torches: 0,
+  saplings: 0,
+  seeds: 0,
+  iron: 0,
+  food: 0
+};
+
+const SUPPLY_ITEMS = {
+  wood: "minecraft:oak_log",
+  planks: "minecraft:oak_planks",
+  sticks: "minecraft:stick",
+  cobble: "minecraft:cobblestone",
+  coal: "minecraft:coal",
+  torches: "minecraft:torch",
+  saplings: "minecraft:oak_sapling",
+  seeds: "minecraft:wheat_seeds",
+  iron: "minecraft:raw_iron",
+  food: "minecraft:apple"
+};
+
+/** Materials worth picking up off the floor. Your gear is left well alone. */
+const PICKUP = {
+  "minecraft:oak_log": "wood",
+  "minecraft:birch_log": "wood",
+  "minecraft:spruce_log": "wood",
+  "minecraft:jungle_log": "wood",
+  "minecraft:acacia_log": "wood",
+  "minecraft:dark_oak_log": "wood",
+  "minecraft:oak_planks": "planks",
+  "minecraft:stick": "sticks",
+  "minecraft:cobblestone": "cobble",
+  "minecraft:coal": "coal",
+  "minecraft:torch": "torches",
+  "minecraft:oak_sapling": "saplings",
+  "minecraft:wheat_seeds": "seeds",
+  "minecraft:raw_iron": "iron",
+  "minecraft:apple": "food"
+};
+
+const MINEABLE = new Set([
+  "minecraft:stone",
+  "minecraft:andesite",
+  "minecraft:diorite",
+  "minecraft:granite",
+  "minecraft:tuff",
+  "minecraft:deepslate",
+  "minecraft:cobbled_deepslate",
+  "minecraft:coal_ore",
+  "minecraft:deepslate_coal_ore",
+  "minecraft:iron_ore",
+  "minecraft:deepslate_iron_ore"
+]);
+
+const PLANTABLE_ON = new Set(["minecraft:grass_block", "minecraft:dirt", "minecraft:coarse_dirt"]);
+
+const LIGHT_SOURCES = ["torch", "lantern", "glowstone", "campfire", "sea_lantern", "shroomlight"];
+
+PALETTE.sapling = [
+  ["minecraft:oak_sapling", {}],
+  ["minecraft:sapling", { sapling_type: "oak" }]
+];
+
+/** Offsets around the buddy, nearest first, so surveys can stop early. */
+const SURVEY_OFFSETS = (() => {
+  const out = [];
+  for (let dx = -6; dx <= 6; dx++) {
+    for (let dz = -6; dz <= 6; dz++) {
+      for (let dy = -3; dy <= 4; dy++) out.push([dx, dy, dz]);
+    }
+  }
+  out.sort(
+    (a, b) =>
+      a[0] * a[0] + a[1] * a[1] + a[2] * a[2] - (b[0] * b[0] + b[1] * b[1] + b[2] * b[2])
+  );
+  return out;
+})();
+
+const SURVEY_BUDGET = 260; // block reads per survey, hard capped for phones
+const TASK_GAP = 60; // ticks of downtime between jobs
+
+function isNight() {
+  try {
+    const t = world.getTimeOfDay();
+    return t >= 13000 && t <= 23000;
+  } catch {
+    return undefined; // not available on this runtime
+  }
+}
+
+function isLightSource(id) {
+  for (const hint of LIGHT_SOURCES) {
+    if (id.includes(hint)) return true;
+  }
+  return false;
+}
+
+/**
+ * One pass over the surroundings that answers every question the task picker
+ * needs, so idle scanning costs a single bounded sweep rather than one per
+ * candidate job.
+ */
+function survey(bot) {
+  const dim = bot.dimension;
+  const bx = Math.floor(bot.location.x);
+  const by = Math.floor(bot.location.y);
+  const bz = Math.floor(bot.location.z);
+  const found = { log: undefined, ore: undefined, plant: undefined, torch: undefined, lit: false };
+  let reads = 0;
+
+  for (const [dx, dy, dz] of SURVEY_OFFSETS) {
+    if (reads >= SURVEY_BUDGET) break;
+    const x = bx + dx;
+    const y = by + dy;
+    const z = bz + dz;
+    const id = typeAt(dim, x, y, z);
+    reads++;
+    if (id === undefined) continue;
+
+    // Checked before the man-made filter: torches are man-made, and knowing
+    // the area is already lit is the whole point.
+    if (isLightSource(id)) found.lit = true;
+    if (looksManMade(id)) continue;
+
+    if (!found.log && (id.endsWith("_log") || id.endsWith("_wood"))) found.log = [x, y, z];
+    if (!found.ore && dy >= -1 && MINEABLE.has(id)) found.ore = [x, y, z];
+    if (!found.plant && PLANTABLE_ON.has(id)) {
+      if (typeAt(dim, x, y + 1, z) === "minecraft:air") found.plant = [x, y + 1, z];
+      reads++;
+    }
+    if (!found.torch && dy >= -2 && dy <= 1 && !isClearable(id) && !isLiquid(id)) {
+      if (typeAt(dim, x, y + 1, z) === "minecraft:air") found.torch = [x, y + 1, z];
+      reads++;
+    }
+  }
+  return found;
+}
+
+/** A trunk with leaves overhead is a tree; a bare log is probably your build. */
+function looksLikeTree(dim, [x, y, z]) {
+  for (let dy = 1; dy <= 6; dy++) {
+    const id = typeAt(dim, x, y + dy, z);
+    if (id === undefined) return false;
+    if (id.endsWith("_leaves")) return true;
+    if (!id.endsWith("_log") && !id.endsWith("_wood") && id !== "minecraft:air") return false;
+  }
+  return false;
+}
+
+/** Rock buried in more rock is a cliff face, not somebody's stone cottage. */
+function looksLikeBedrockSeam(dim, [x, y, z]) {
+  const neighbours = [
+    [x + 1, y, z],
+    [x - 1, y, z],
+    [x, y, z + 1],
+    [x, y, z - 1],
+    [x, y - 1, z],
+    [x, y + 1, z]
+  ];
+  let solid = 0;
+  for (const [nx, ny, nz] of neighbours) {
+    const id = typeAt(dim, nx, ny, nz);
+    if (id === undefined) return false;
+    if (looksManMade(id)) return false;
+    if (MINEABLE.has(id) || id === "minecraft:dirt" || id === "minecraft:gravel") solid++;
+  }
+  return solid >= 3;
+}
+
+function yieldFor(id) {
+  if (id.endsWith("_log") || id.endsWith("_wood")) return ["wood", 1];
+  if (id.includes("coal_ore")) return ["coal", 2];
+  if (id.includes("iron_ore")) return ["iron", 1];
+  if (MINEABLE.has(id)) return ["cobble", 1];
+  return undefined;
+}
+
+function breakBlock(bot, player, x, y, z) {
+  const block = blockAt(bot.dimension, x, y, z);
+  if (!block) return false;
+  const id = block.typeId;
+  if (looksManMade(id)) return false; // never touch anything you built
+  const gain = yieldFor(id);
+  if (!gain) return false;
+
+  const air = perm("air");
+  if (!air) return false;
+  try {
+    block.setPermutation(air);
+  } catch {
+    return false;
+  }
+
+  supplies[gain[0]] += gain[1];
+  try {
+    player.playSound(id.includes("_log") ? "dig.wood" : "dig.stone", {
+      location: { x, y, z },
+      volume: 0.7
+    });
+  } catch {
+    /* sound is cosmetic */
+  }
+  return true;
+}
+
+/** Put the buddy next to a block it is about to work on. */
+function stepBotTo(bot, dim, [x, y, z]) {
+  const spots = [
+    [x + 1, z],
+    [x - 1, z],
+    [x, z + 1],
+    [x, z - 1]
+  ];
+  for (const [sx, sz] of spots) {
+    for (const dy of [0, 1, -1]) {
+      const feet = typeAt(dim, sx, y + dy, sz);
+      const head = typeAt(dim, sx, y + dy + 1, sz);
+      if (feet === undefined) continue;
+      if (isClearable(feet) && head !== undefined && isClearable(head)) {
+        try {
+          bot.teleport(
+            { x: sx + 0.5, y: y + dy, z: sz + 0.5 },
+            { dimension: dim, facingLocation: { x: x + 0.5, y: y + 0.5, z: z + 0.5 } }
+          );
+          return true;
+        } catch {
+          return false;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function beginTask(bot, state, name, steps) {
+  state.task = { name, steps, index: 0 };
+  try {
+    bot.triggerEvent("bb:work_start_event");
+  } catch {
+    /* bot despawned */
+  }
+  setPose(bot, "build");
+}
+
+function endTask(bot, state) {
+  state.task = undefined;
+  state.taskTick = system.currentTick;
+  setPose(bot, "normal");
+  try {
+    bot.triggerEvent("bb:work_end_event");
+  } catch {
+    /* bot despawned */
+  }
+}
+
+// -- individual jobs --------------------------------------------------------
+
+function taskCollect(bot, player, state) {
+  let items;
+  try {
+    items = bot.dimension.getEntities({
+      type: "minecraft:item",
+      location: bot.location,
+      maxDistance: 6
+    });
+  } catch {
+    return false;
+  }
+  if (!items.length) return false;
+
+  let taken = 0;
+  for (const drop of items) {
+    try {
+      const stack = drop.getComponent("minecraft:item")?.itemStack;
+      if (!stack) continue;
+      const slot = PICKUP[stack.typeId];
+      if (!slot) continue; // leave anything that is not raw material
+      supplies[slot] += stack.amount;
+      taken += stack.amount;
+      drop.remove();
+    } catch {
+      /* the drop vanished on its own */
+    }
+  }
+  if (!taken) return false;
+
+  beginTask(bot, state, "collect", [
+    () => {
+      say(player, `Picked up ${taken} bits and pieces for us.`);
+      beep(player, "random.pop", 1.3);
+    }
+  ]);
+  return true;
+}
+
+function taskChop(bot, player, state, target) {
+  const dim = bot.dimension;
+  const [tx, ty, tz] = target;
+  const steps = [
+    () => {
+      stepBotTo(bot, dim, target);
+      say(player, "Getting us some wood.");
+    }
+  ];
+  for (let i = 0; i < 5; i++) {
+    const y = ty + i;
+    steps.push(() => breakBlock(bot, player, tx, y, tz));
+  }
+  steps.push(() => {
+    // Replant so the buddy is not clear-felling the place.
+    const ground = typeAt(dim, tx, ty - 1, tz);
+    if (supplies.saplings > 0 && ground && PLANTABLE_ON.has(ground)) {
+      const sapling = perm("sapling");
+      const block = blockAt(dim, tx, ty, tz);
+      if (sapling && block && block.typeId === "minecraft:air") {
+        try {
+          block.setPermutation(sapling);
+          supplies.saplings--;
+        } catch {
+          /* not plantable after all */
+        }
+      }
+    }
+    if (supplies.wood >= 8) say(player, `That's ${supplies.wood} logs in the pack.`);
+  });
+
+  beginTask(bot, state, "chop", steps);
+  return true;
+}
+
+function taskMine(bot, player, state, target) {
+  const dim = bot.dimension;
+  const [tx, ty, tz] = target;
+  const steps = [
+    () => {
+      stepBotTo(bot, dim, target);
+      say(player, "Mining some stone.");
+    }
+  ];
+  for (const [dx, dy, dz] of [[0, 0, 0], [1, 0, 0], [0, 0, 1], [0, 1, 0]]) {
+    steps.push(() => breakBlock(bot, player, tx + dx, ty + dy, tz + dz));
+  }
+  beginTask(bot, state, "mine", steps);
+  return true;
+}
+
+function taskCraft(bot, player, state) {
+  const made = [];
+
+  if (supplies.wood >= 2) {
+    const logs = Math.min(supplies.wood, 8);
+    supplies.wood -= logs;
+    supplies.planks += logs * 4;
+    made.push(`${logs * 4} planks`);
+  }
+  if (supplies.planks >= 4 && supplies.sticks < 16) {
+    supplies.planks -= 4;
+    supplies.sticks += 8;
+    made.push("8 sticks");
+  }
+  if (supplies.sticks >= 1 && supplies.coal >= 1 && supplies.torches < 32) {
+    supplies.sticks -= 1;
+    supplies.coal -= 1;
+    supplies.torches += 4;
+    made.push("4 torches");
+  }
+  if (!made.length) return false;
+
+  beginTask(bot, state, "craft", [
+    () => {
+      say(player, `Crafted ${made.join(" and ")}.`);
+      beep(player, "random.orb", 1.5);
+    },
+    () => {
+      if (supplies.planks >= 64 && supplies.cobble >= 24) {
+        say(player, "I've got enough materials for a whole house now - just say the word!");
+      }
+    }
+  ]);
+  return true;
+}
+
+function taskLight(bot, player, state, spot) {
+  const torch = perm("torch", { torch_facing_direction: "top" });
+  if (!torch) return false;
+  const block = blockAt(bot.dimension, spot[0], spot[1], spot[2]);
+  if (!block) return false;
+
+  beginTask(bot, state, "light", [
+    () => {
+      try {
+        block.setPermutation(torch);
+        supplies.torches--;
+        say(player, "Putting a torch here - keeps the mobs off.");
+        beep(player, "random.pop", 1.1);
+      } catch {
+        /* something took the spot */
+      }
+    }
+  ]);
+  return true;
+}
+
+function taskPlant(bot, player, state, spot) {
+  const sapling = perm("sapling");
+  if (!sapling) return false;
+  const block = blockAt(bot.dimension, spot[0], spot[1], spot[2]);
+  if (!block) return false;
+
+  beginTask(bot, state, "plant", [
+    () => {
+      try {
+        block.setPermutation(sapling);
+        supplies.saplings--;
+        say(player, "Planted a sapling. It'll be a tree one day!");
+      } catch {
+        /* not plantable */
+      }
+    }
+  ]);
+  return true;
+}
+
+// -- emergency night shelter ------------------------------------------------
+
+const SHELTER_COOLDOWN = 6000; // 5 minutes
+let lastShelterTick = -99999;
+
+/** A one-stage plan: 5x5 hut, door, torch and a crafting table. */
+function makeShelterPlan() {
+  const ops = [];
+  for (let x = 0; x <= 4; x++) {
+    for (let z = 0; z <= 4; z++) {
+      ops.push([x, -1, z, "planks"]);
+      ops.push([x, 3, z, "planks"]);
+      const wall = x === 0 || x === 4 || z === 0 || z === 4;
+      for (let y = 0; y <= 2; y++) {
+        ops.push([x, y, z, wall ? "planks" : "air", undefined, wall ? "set" : "clear"]);
+      }
+    }
+  }
+  ops.push([2, 0, 4, "air"]);
+  ops.push([2, 1, 4, "air"]);
+  ops.push([
+    2,
+    0,
+    4,
+    "door",
+    { direction: 1, upper_block_bit: false, door_hinge_bit: false, open_bit: false }
+  ]);
+  ops.push([
+    2,
+    1,
+    4,
+    "door",
+    { direction: 1, upper_block_bit: true, door_hinge_bit: false, open_bit: false }
+  ]);
+  ops.push([1, 0, 1, "torch", { torch_facing_direction: "top" }]);
+  ops.push([3, 0, 1, "crafting"]);
+
+  return [
+    {
+      name: "Emergency shelter",
+      line: "It's getting dark - throwing up a shelter, quick!",
+      anchor: [2, 6],
+      ops
+    }
+  ];
+}
+
+function shelterSiteOk(dim, ox, oy, oz) {
+  for (let x = -1; x <= 5; x++) {
+    for (let z = -1; z <= 5; z++) {
+      for (let dy = -1; dy <= 4; dy++) {
+        const id = typeAt(dim, ox + x, oy + dy, oz + z);
+        if (id === undefined) return false;
+        if (isLiquid(id)) return false;
+        if (looksManMade(id)) return false;
+        if (dy >= 0 && !isClearable(id)) return false;
+        if (dy === -1 && isClearable(id)) return false; // needs solid ground
+      }
+    }
+  }
+  return true;
+}
+
+function tryShelter(bot, player) {
+  if (job) return false;
+  if (system.currentTick - lastShelterTick < SHELTER_COOLDOWN) return false;
+  if (supplies.planks < 60) return false;
+
+  const dim = player.dimension;
+  const py = Math.floor(player.location.y);
+  for (const [dx, dz] of RING_OFFSETS) {
+    const ox = Math.floor(player.location.x) + dx * 4 - 2;
+    const oz = Math.floor(player.location.z) + dz * 4 - 2;
+    const oy = surfaceY(dim, ox + 2, oz + 2, py);
+    if (oy === undefined) continue;
+    if (!shelterSiteOk(dim, ox, oy, oz)) continue;
+
+    supplies.planks -= 60;
+    lastShelterTick = system.currentTick;
+    job = {
+      player,
+      bot,
+      dim,
+      origin: { ox, oz },
+      oy,
+      stages: makeShelterPlan(),
+      stageIndex: 0,
+      opIndex: 0
+    };
+    setMode(bot, "build");
+    job.handle = system.runInterval(stepJob, PASS_INTERVAL);
+    return true;
+  }
+  return false;
+}
+
+// -- the picker -------------------------------------------------------------
+
+function autonomyTick(bot, player, state) {
+  // Run the current job one step at a time.
+  if (state.task) {
+    const task = state.task;
+    try {
+      task.steps[task.index++]();
+    } catch {
+      /* a step that fails just moves on to the next */
+    }
+    if (task.index >= task.steps.length) endTask(bot, state);
+    return true;
+  }
+
+  if (job) return false; // a house is going up
+  if (!bot.hasTag("bb_work")) return false; // work switched off
+  if (bot.hasTag("bb_stay")) return false; // told to hold position
+  if (system.currentTick - (state.taskTick ?? -9999) < TASK_GAP) return false;
+  if (state.enemyTick && system.currentTick - state.enemyTick < 100) return false; // fighting
+
+  if (distance(bot.location, player.location) > 20) return false;
+
+  if (taskCollect(bot, player, state)) return true;
+
+  const night = isNight();
+  const found = survey(bot);
+
+  // After dark, light comes first, then a roof over your head.
+  if (night !== false && !found.lit && supplies.torches > 0 && found.torch) {
+    return taskLight(bot, player, state, found.torch);
+  }
+  if (night === true && tryShelter(bot, player)) return true;
+
+  if (found.log && looksLikeTree(bot.dimension, found.log)) {
+    return taskChop(bot, player, state, found.log);
+  }
+  if (taskCraft(bot, player, state)) return true;
+  if (found.ore && looksLikeBedrockSeam(bot.dimension, found.ore)) {
+    return taskMine(bot, player, state, found.ore);
+  }
+  if (supplies.saplings > 1 && found.plant) {
+    return taskPlant(bot, player, state, found.plant);
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
 // Per-tick companion logic
 // ---------------------------------------------------------------------------
 
@@ -1004,6 +1602,13 @@ function updateBot(bot) {
     }
   } catch {
     /* query options unsupported - alerts are optional */
+  }
+
+  // Work happens between follow steps; a task in progress owns the buddy's
+  // position, so the follow and stuck logic below has to stand down.
+  if (autonomyTick(bot, player, state)) {
+    state.last = botState(bot);
+    return;
   }
 
   if (bot.hasTag("bb_stay") || bot.hasTag("bb_build")) {
@@ -1081,7 +1686,10 @@ function openMenu(player, attempt) {
     .button("Stay Here")
     .button("Defend Me")
     .button("Build House")
-    .button("Cancel Building");
+    .button("Cancel Building")
+    .button(bot && bot.hasTag("bb_work") ? "Stop Working" : "Start Working")
+    .button("Hand Over Supplies")
+    .button("Status");
 
   form
     .show(player)
@@ -1109,6 +1717,15 @@ function openMenu(player, attempt) {
           break;
         case 4:
           cancelBuild(player);
+          break;
+        case 5:
+          commandWork(player);
+          break;
+        case 6:
+          commandGive(player);
+          break;
+        case 7:
+          commandStatus(player);
           break;
         default:
           break;
@@ -1173,6 +1790,125 @@ function commandSummon(player) {
   }
 }
 
+function commandWork(player) {
+  const bot = nearestBot(player, 48);
+  if (!bot) {
+    say(player, "No Builder Buddy nearby!");
+    return;
+  }
+  if (bot.hasTag("bb_work")) {
+    bot.removeTag("bb_work");
+    say(player, "Alright, I'll stop working and just stick with you.");
+  } else {
+    bot.addTag("bb_work");
+    say(player, "Back to work! I'll gather and craft as we go.");
+  }
+  beep(player, "random.orb", 1.1);
+}
+
+function commandGive(player) {
+  const carried = Object.entries(supplies).filter(([, amount]) => amount > 0);
+  if (!carried.length) {
+    say(player, "My pack is empty - give me a bit of time to gather something.");
+    return;
+  }
+
+  let container;
+  try {
+    container = player.getComponent("minecraft:inventory")?.container;
+  } catch {
+    container = undefined;
+  }
+
+  const handed = [];
+  for (const [slot, amount] of carried) {
+    const itemId = SUPPLY_ITEMS[slot];
+    if (!itemId) continue;
+    let left = amount;
+    while (left > 0) {
+      const count = Math.min(left, 64);
+      let stack;
+      try {
+        stack = new ItemStack(itemId, count);
+      } catch {
+        break; // unknown item on this version
+      }
+      let delivered = false;
+      try {
+        if (container) {
+          container.addItem(stack);
+          delivered = true;
+        }
+      } catch {
+        delivered = false;
+      }
+      if (!delivered) {
+        try {
+          player.dimension.spawnItem(stack, player.location);
+          delivered = true;
+        } catch {
+          /* nowhere to put it */
+        }
+      }
+      if (!delivered) break;
+      left -= count;
+    }
+    const given = amount - left;
+    if (given > 0) {
+      handed.push(`${given} ${slot}`);
+      supplies[slot] -= given;
+    }
+  }
+
+  if (!handed.length) {
+    say(player, "Your pack looks full - make some room and ask me again.");
+    return;
+  }
+  say(player, `Here you go: ${handed.join(", ")}.`);
+  beep(player, "random.pop", 1.2);
+}
+
+function commandStatus(player) {
+  const bot = nearestBot(player, 64);
+  const lines = ["§b--- Builder Buddy status ---§r"];
+
+  if (!bot) {
+    lines.push("§cNo buddy nearby.§7 Use /function builder_buddy_summon.");
+  } else {
+    let mode = "following you";
+    if (bot.hasTag("bb_build")) mode = "building";
+    else if (bot.hasTag("bb_stay")) mode = "holding position";
+    lines.push(`§7Mode: §f${mode}`);
+    lines.push(`§7Work: §f${bot.hasTag("bb_work") ? "on" : "off"}`);
+    try {
+      const hp = bot.getComponent("minecraft:health");
+      if (hp) lines.push(`§7Health: §f${Math.ceil(hp.currentValue)}/${Math.ceil(hp.effectiveMax)}`);
+    } catch {
+      /* no health this tick */
+    }
+  }
+
+  lines.push(`§7Building right now: §f${job ? "yes" : "no"}`);
+  const last = lastBuildTick.get(player.id);
+  if (last !== undefined && system.currentTick - last < BUILD_COOLDOWN) {
+    const left = Math.ceil((BUILD_COOLDOWN - (system.currentTick - last)) / 20);
+    lines.push(`§7House cooldown: §f${left}s remaining`);
+  } else {
+    lines.push("§7House cooldown: §fready");
+  }
+
+  const carried = Object.entries(supplies)
+    .filter(([, amount]) => amount > 0)
+    .map(([slot, amount]) => `${amount} ${slot}`);
+  lines.push(`§7Pack: §f${carried.length ? carried.join(", ") : "empty"}`);
+
+  try {
+    for (const line of lines) player.sendMessage(line);
+  } catch {
+    /* player left */
+  }
+}
+
 function commandHelp(player) {
   const lines = [
     "§b--- Builder Buddy ---§r",
@@ -1185,7 +1921,10 @@ function commandHelp(player) {
     "§f/function builder_buddy_follow§7 - follow you",
     "§f/function builder_buddy_stay§7 - hold position",
     "§f/function builder_buddy_defend§7 - guard this spot",
-    "§f/function builder_buddy_menu§7 - open the control menu"
+    "§f/function builder_buddy_menu§7 - open the control menu",
+    "§f/function builder_buddy_work§7 - toggle gathering and crafting",
+    "§f/function builder_buddy_supplies§7 - hand over what I've gathered",
+    "§f/function builder_buddy_status§7 - what I'm doing and carrying"
   ];
   try {
     for (const line of lines) player.sendMessage(line);
@@ -1206,6 +1945,9 @@ const SCRIPT_EVENTS = {
   "bb:stay": commandStay,
   "bb:defend": commandDefend,
   "bb:help": commandHelp,
+  "bb:work": commandWork,
+  "bb:give": commandGive,
+  "bb:status": commandStatus,
   "bb:menu": (player) => system.run(() => openMenu(player, 0))
 };
 
@@ -1228,7 +1970,9 @@ try {
     }
     if (event.id === "bb:spawned") {
       const player = resolvePlayer(event);
-      if (player) say(player, "Hi! I'm your Builder Buddy. I'm following you!");
+      if (!player) return;
+      say(player, "Hi! I'm your Builder Buddy. I'm following you!");
+      say(player, "§7I'll gather and craft as we go. Use the §fHouse Builder Remote§7 for a house, or sneak-tap me for the menu.");
     }
   });
 } catch {
@@ -1263,6 +2007,33 @@ try {
   });
 } catch {
   /* itemUseOn is not present on every runtime - itemUse covers the common case */
+}
+
+// Direct interaction fallback. The entity's own interact component already
+// handles emerald/stick/diamond and the sneak menu through queue_command; this
+// covers the case where those queued commands do not fire, so sneak-tapping
+// the buddy always opens the menu.
+function handleInteract(event) {
+  const player = event.player ?? event.source;
+  const target = event.target ?? event.entity;
+  if (!player || !target || target.typeId !== BOT) return;
+  if (!player.isSneaking) return;
+  const now = system.currentTick;
+  if (now - (lastRemoteTick.get(player.id) ?? -99) < 10) return;
+  lastRemoteTick.set(player.id, now);
+  system.run(() => openMenu(player, 0));
+}
+
+for (const source of ["afterEvents", "beforeEvents"]) {
+  try {
+    world[source].playerInteractWithEntity.subscribe((event) => {
+      // Before-events run in a read-only context, so bounce off a tick.
+      system.run(() => handleInteract(event));
+    });
+    break; // one working subscription is enough
+  } catch {
+    /* not present on this runtime */
+  }
 }
 
 // Swing animation whenever the buddy lands a hit.
@@ -1332,6 +2103,7 @@ try {
     system.runTimeout(() => {
       try {
         entity.addTag("bb_follow");
+        entity.addTag("bb_work"); // work is on out of the box
       } catch {
         /* despawned already */
       }

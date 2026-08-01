@@ -486,6 +486,7 @@
         "queue_command": {
           "command": [
             "tag @s add bb_follow",
+            "tag @s add bb_work",
             "scriptevent bb:spawned mode_follow"
           ]
         }
@@ -575,6 +576,34 @@
             "tag @s remove bb_follow",
             "tag @s remove bb_stay",
             "tag @s add bb_build"
+          ]
+        }
+      },
+
+      "bb:work_start_event": {
+        "add": {
+          "component_groups": [
+            "bb:mode_stay"
+          ]
+        },
+        "remove": {
+          "component_groups": [
+            "bb:mode_follow",
+            "bb:mode_build"
+          ]
+        }
+      },
+
+      "bb:work_end_event": {
+        "add": {
+          "component_groups": [
+            "bb:mode_follow"
+          ]
+        },
+        "remove": {
+          "component_groups": [
+            "bb:mode_stay",
+            "bb:mode_build"
           ]
         }
       },

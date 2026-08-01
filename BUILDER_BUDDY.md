@@ -1,10 +1,10 @@
 # Builder Buddy
 
 A friendly human-like companion for **Minecraft Bedrock 1.21.0** on Android.
-He follows you, fights off hostile mobs, and builds you a complete two-storey
-house — stage by stage, while you watch.
+He follows you, gathers and crafts as you travel, fights off hostile mobs, and
+builds you a complete two-storey house — stage by stage, while you watch.
 
-Download: **[`dist/Builder_Buddy.mcaddon`](dist/Builder_Buddy.mcaddon)** (25 KB)
+Download: **[`dist/Builder_Buddy.mcaddon`](dist/Builder_Buddy.mcaddon)** (32 KB)
 
 ---
 
@@ -59,8 +59,37 @@ accident.
 | **Sneak + tap** him | Opens the control menu |
 | **Sneak + use** the House Builder Remote | Opens the control menu |
 
-The menu has **Follow**, **Stay**, **Defend**, **Build House** and
-**Cancel Building**.
+The menu has **Follow**, **Stay**, **Defend**, **Build House**,
+**Cancel Building**, **Start/Stop Working**, **Hand Over Supplies** and
+**Status**.
+
+### He works while he follows you
+
+Work is **on by default**. As you travel, whenever he is idle and not fighting,
+he picks a job from what is around him:
+
+| Job | When |
+|---|---|
+| **Picks up drops** | Raw materials within 6 blocks — logs, planks, sticks, cobble, coal, torches, saplings, seeds, raw iron, apples. Your gear, diamonds and everything else are left alone. |
+| **Chops trees** | A trunk within 6 blocks **with leaves above it**. Takes up to 5 logs and replants a sapling if he has one. |
+| **Mines rock** | Exposed stone or coal/iron ore that is **embedded in more rock** — a cliff face, not a wall. |
+| **Crafts** | Logs into planks, planks into sticks, stick + coal into torches. He announces each batch. |
+| **Puts torches down** | After dark, if the area around him has no light source and he has torches. |
+| **Replants** | Saplings on nearby grass or dirt when he has spares. |
+| **Emergency shelter** | At night, if he has 60+ planks — a 5×5 hut with a door, torch and crafting table. Five-minute cooldown. |
+
+**He will not touch anything you built.** Trees need leaves overhead to count as
+trees, so a log cabin wall is safe; rock needs three solid natural neighbours to
+count as a cliff; and any block that looks man-made — planks, bricks, doors,
+chests, glass, wool, stairs, slabs, fences — is skipped outright. Both rules are
+covered by tests.
+
+Ask for the results with **Hand Over Supplies** in the menu, or
+`/function builder_buddy_supplies`. **Status** (or
+`/function builder_buddy_status`) shows what he is doing, his health, the house
+cooldown and everything in his pack.
+
+To turn it off: **Stop Working** in the menu, or `/function builder_buddy_work`.
 
 ### Animations
 
@@ -84,6 +113,10 @@ switches idle/walk on movement speed, the other picks the action pose.
 Hold the **House Builder Remote** near your buddy and use it. Or run
 `/function builder_buddy_house`. Or pick **Build House** from the menu. Or hand
 him a diamond.
+
+If he has wandered off, the request recalls him rather than failing — and if
+there is no buddy at all, it spawns one. A build request always does something
+and always says what it did.
 
 He finds a safe spot 10–18 blocks away, walks over, and builds in **eight
 visible stages** — never instantly:
@@ -147,6 +180,9 @@ remote itself so a double-tap cannot fire twice. Only one build runs at a time.
 | `/function builder_buddy_stay` | Hold position |
 | `/function builder_buddy_defend` | Guard this spot |
 | `/function builder_buddy_menu` | Open the control menu |
+| `/function builder_buddy_work` | Toggle gathering and crafting |
+| `/function builder_buddy_supplies` | Hand over everything he has gathered |
+| `/function builder_buddy_status` | Mode, health, cooldown and pack contents |
 | `/function builder_buddy_help` | List everything |
 
 ### Crafting
@@ -177,9 +213,11 @@ G D G      G = gold ingot
   vanilla or from anyone else.
 - **Mobile performance.** The build places 30 blocks every 3 ticks and the
   companion loop runs every 10 ticks. Site searching is spread one candidate
-  per tick so it never stalls a frame. Only one build can run at a time.
+  per tick so it never stalls a frame. Only one build can run at a time. The
+  autonomy survey is a single bounded sweep of at most 260 block reads, run
+  only when the buddy is idle and at most once every 3 seconds.
 - **Sounds** use built-in Bedrock sound events played through the script, so
-  the pack ships no audio files and stays at 25 KB.
+  the pack ships no audio files and stays at 32 KB.
 
 ### Version compatibility
 
@@ -203,7 +241,10 @@ python3 tools/build_builder_buddy.py          # validate + package
 scripting API: it builds a real house in a simulated world and then inspects
 it — walls with no gaps, the door and bed present, the farm watered, the buddy
 moved and celebrating — and checks that bad sites (water, caves, existing
-buildings) are refused. 67 assertions.
+buildings) are refused. It also runs the autonomy loop: that the buddy really
+fells a tree, crafts the wood, pockets drops, lights up at night, builds an
+emergency shelter, and leaves a player-built log wall and plank floor
+untouched. 87 assertions.
 
 `build_builder_buddy.py` checks the things that cause import failures:
 

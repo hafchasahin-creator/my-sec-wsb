@@ -153,6 +153,13 @@ export class Dimension {
     return this.getEntities({ ...options, type: "minecraft:player" });
   }
 
+  spawnItem(itemStack, location) {
+    const e = new Entity("minecraft:item", this, location);
+    e.itemComponent = { itemStack };
+    this.entities.push(e);
+    return e;
+  }
+
   spawnEntity(typeId, location) {
     const e = new Entity(typeId, this, location);
     this.entities.push(e);
@@ -166,6 +173,44 @@ function dist(a, b) {
   const dy = a.y - b.y;
   const dz = a.z - b.z;
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+const ITEMS = new Set([
+  "minecraft:oak_log",
+  "minecraft:oak_planks",
+  "minecraft:stick",
+  "minecraft:cobblestone",
+  "minecraft:coal",
+  "minecraft:torch",
+  "minecraft:oak_sapling",
+  "minecraft:wheat_seeds",
+  "minecraft:raw_iron",
+  "minecraft:apple",
+  "minecraft:diamond",
+  "bb:house_builder_remote"
+]);
+
+export class ItemStack {
+  constructor(typeId, amount) {
+    if (!ITEMS.has(typeId)) throw new Error(`unknown item: ${typeId}`);
+    if (amount !== undefined && (amount < 1 || amount > 64)) {
+      throw new Error(`bad stack size: ${amount}`);
+    }
+    this.typeId = typeId;
+    this.amount = amount ?? 1;
+  }
+}
+
+class Container {
+  constructor() {
+    this.items = [];
+    this.full = false;
+  }
+
+  addItem(stack) {
+    if (this.full) throw new Error("container is full");
+    this.items.push(stack);
+  }
 }
 
 let nextId = 1;
@@ -203,7 +248,15 @@ export class Entity {
 
   getComponent(name) {
     if (name === "minecraft:health") return this.health;
+    if (name === "minecraft:inventory") return { container: this.container };
+    if (name === "minecraft:item") return this.itemComponent;
     return undefined;
+  }
+
+  remove() {
+    this.dead = true;
+    const i = this.dimension.entities.indexOf(this);
+    if (i >= 0) this.dimension.entities.splice(i, 1);
   }
 
   teleport(location, options) {
@@ -221,6 +274,7 @@ export class Player extends Entity {
     super("minecraft:player", dimension, location);
     this.name = name ?? "Tester";
     this.families = ["player", "mob"];
+    this.container = new Container();
     this.messages = [];
     this.sounds = [];
     this.isSneaking = false;
@@ -270,6 +324,10 @@ export const world = {
     const d = dimensions[id];
     if (!d) throw new Error(`no dimension ${id}`);
     return d;
+  },
+  timeOfDay: 6000,
+  getTimeOfDay() {
+    return this.timeOfDay;
   },
   getAllPlayers() {
     return Object.values(dimensions).flatMap((d) =>
@@ -341,6 +399,23 @@ export function advance(ticks) {
 export function fireScriptEvent(id, sourceEntity, message) {
   world.afterEvents /* keep shape stable */;
   system.afterEvents.scriptEventReceive.emit({ id, sourceEntity, message: message ?? "" });
+}
+
+/**
+ * Wipe the real overworld and give it fresh terrain.
+ *
+ * Tests that exercise the per-tick companion loop have to use this rather than
+ * `new Dimension(...)`: the loop only ever looks at the three dimensions
+ * world.getDimension() knows about, so a detached one is never ticked and the
+ * test would pass without running a single line of the behaviour under test.
+ */
+export function resetOverworld(terrain) {
+  overworld.blocks.clear();
+  overworld.entities.length = 0;
+  overworld.writes = 0;
+  overworld.reads = 0;
+  if (terrain) overworld.terrain = terrain;
+  return overworld;
 }
 
 export const testWorld = { overworld, nether, theEnd, dimensions, Player };
