@@ -1,0 +1,12 @@
+{
+  "resource_pack_name": "builder_buddy",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "bb_house_builder_remote": {
+      "textures": "textures/items/bb_house_builder_remote"
+    },
+    "bb_builder_buddy_spawn_egg": {
+      "textures": "textures/items/bb_builder_buddy_spawn_egg"
+    }
+  }
+}

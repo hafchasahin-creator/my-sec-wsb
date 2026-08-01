@@ -1,0 +1,84 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.builder_buddy.move": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": [
+            "idle"
+          ],
+          "blend_transition": 0.2,
+          "transitions": [
+            {
+              "walk": "query.modified_move_speed > 0.05"
+            }
+          ]
+        },
+        "walk": {
+          "animations": [
+            "walk"
+          ],
+          "blend_transition": 0.2,
+          "transitions": [
+            {
+              "idle": "query.modified_move_speed <= 0.05"
+            }
+          ]
+        }
+      }
+    },
+
+    "controller.animation.builder_buddy.action": {
+      "initial_state": "none",
+      "states": {
+        "none": {
+          "transitions": [
+            {
+              "attack": "query.variant == 1"
+            },
+            {
+              "build": "query.variant == 2"
+            },
+            {
+              "celebrate": "query.variant == 3"
+            }
+          ]
+        },
+        "attack": {
+          "animations": [
+            "attack"
+          ],
+          "blend_transition": 0.1,
+          "transitions": [
+            {
+              "none": "query.variant != 1"
+            }
+          ]
+        },
+        "build": {
+          "animations": [
+            "build"
+          ],
+          "blend_transition": 0.25,
+          "transitions": [
+            {
+              "none": "query.variant != 2"
+            }
+          ]
+        },
+        "celebrate": {
+          "animations": [
+            "celebrate"
+          ],
+          "blend_transition": 0.25,
+          "transitions": [
+            {
+              "none": "query.variant != 3"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

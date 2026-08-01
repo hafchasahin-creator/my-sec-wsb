@@ -1,0 +1,35 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "bb:house_builder_remote",
+      "menu_category": {
+        "category": "items",
+        "group": "itemGroup.name.miscellaneous"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "bb_house_builder_remote"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "House Builder Remote"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:hand_equipped": true,
+      "minecraft:glint": true,
+      "minecraft:should_despawn": false,
+      "minecraft:cooldown": {
+        "category": "bb_house_remote",
+        "duration": 3.0
+      },
+      "minecraft:tags": {
+        "tags": [
+          "bb:tool"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Builder Buddy RP",
+    "description": "Model, skin, animations and icons for the Builder Buddy companion. Resource Pack.",
+    "uuid": "b53411fe-670f-47dc-a0ad-317fcb4371da",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "5d2b6103-bbf2-48f8-9d04-95f72a3f0536",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Builder Buddy"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

@@ -1,0 +1,15 @@
+## Builder Buddy - English (US)
+
+pack.name=Builder Buddy RP
+pack.description=Model, skin, animations and icons for the Builder Buddy companion.
+
+entity.bb:builder_buddy.name=Builder Buddy
+item.spawn_egg.entity.bb:builder_buddy.name=Builder Buddy Spawn Egg
+
+item.bb:house_builder_remote=House Builder Remote
+item.bb:house_builder_remote.name=House Builder Remote
+
+action.interact.bb_follow=Follow Me
+action.interact.bb_stay=Stay Here
+action.interact.bb_build=Build House
+action.interact.bb_menu=Open Menu

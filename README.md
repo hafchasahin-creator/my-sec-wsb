@@ -1,3 +1,7 @@
+> This repository holds two Bedrock add-ons:
+> **Arcane Arsenal** (below) and **[Builder Buddy](BUILDER_BUDDY.md)** — a companion
+> that follows you, defends you and builds you a house.
+
 # Arcane Arsenal
 
 A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six

@@ -1,0 +1,43 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "bb:builder_buddy",
+      "min_engine_version": "1.21.0",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/builder_buddy"
+      },
+      "geometry": {
+        "default": "geometry.builder_buddy"
+      },
+      "animations": {
+        "look_at_target": "animation.builder_buddy.look_at_target",
+        "idle": "animation.builder_buddy.idle",
+        "walk": "animation.builder_buddy.walk",
+        "attack": "animation.builder_buddy.attack",
+        "build": "animation.builder_buddy.build",
+        "celebrate": "animation.builder_buddy.celebrate",
+        "move_controller": "controller.animation.builder_buddy.move",
+        "action_controller": "controller.animation.builder_buddy.action"
+      },
+      "scripts": {
+        "animate": [
+          "look_at_target",
+          "move_controller",
+          "action_controller"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.builder_buddy"
+      ],
+      "spawn_egg": {
+        "texture": "bb_builder_buddy_spawn_egg",
+        "texture_index": 0
+      },
+      "enable_attachables": true
+    }
+  }
+}

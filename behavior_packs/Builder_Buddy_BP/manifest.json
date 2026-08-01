@@ -1,0 +1,65 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Builder Buddy BP",
+    "description": "A friendly companion that follows you, defends you and builds a two-storey house on command. Behaviour Pack.",
+    "uuid": "6b897438-e834-4892-988a-86931a2242e1",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "82e6edc6-ca1c-40b4-87d3-43367b726fb5",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "d753e2f0-9a7d-4982-a2df-378020df9d4f",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "b53411fe-670f-47dc-a0ad-317fcb4371da",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "1.2.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Builder Buddy"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}
