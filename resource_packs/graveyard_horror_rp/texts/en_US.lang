@@ -1,0 +1,15 @@
+## Graveyard Horror - English (US)
+
+pack.name=Graveyard Horror RP
+pack.description=Tombstones, crypt stone, the wraith, and the fog it brings.
+
+item.grave:gravekeepers_ledger=Gravekeeper's Ledger
+item.grave:gravekeepers_ledger.name=Gravekeeper's Ledger
+
+tile.grave:grave_soil.name=Grave Soil
+tile.grave:crypt_stone.name=Crypt Stone
+tile.grave:grave_lantern.name=Grave Lantern
+tile.grave:tombstone.name=Tombstone
+
+entity.grave:wraith.name=Wraith
+item.spawn_egg.entity.grave:wraith.name=Spawn Wraith

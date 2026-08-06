@@ -1,0 +1,29 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "grave:grave_lantern",
+      "menu_category": {
+        "category": "construction",
+        "group": "itemGroup.name.stone"
+      }
+    },
+    "components": {
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "grave_lantern",
+          "render_method": "opaque"
+        }
+      },
+      "minecraft:geometry": "minecraft:geometry.full_block",
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 0.6
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 2.0
+      },
+      "minecraft:map_color": "#8FD8C0",
+      "minecraft:light_emission": 12
+    }
+  }
+}

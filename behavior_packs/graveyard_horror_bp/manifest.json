@@ -1,0 +1,61 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Graveyard Horror BP",
+    "description": "Haunted graveyards, and something that only moves when you are not looking. Behavior Pack.",
+    "uuid": "e348f139-8034-44c8-b62b-e29e3821500f",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "d241f8bd-ac24-4542-a7cf-b6dcbf5f34f1",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "650f832a-9a02-41ce-acbe-43936f006f4c",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "9507e4b6-3df3-4777-9360-3024f6fa29be",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Graveyard Horror"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

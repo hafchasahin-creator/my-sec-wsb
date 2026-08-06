@@ -1,0 +1,35 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "grave:wraith",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/grave_wraith"
+      },
+      "geometry": {
+        "default": "geometry.grave_wraith"
+      },
+      "render_controllers": [
+        "controller.render.grave_wraith"
+      ],
+      "spawn_egg": {
+        "texture": "grave_wraith_spawn_egg",
+        "texture_index": 0
+      },
+      "animations": {
+        "drift": "animation.grave_wraith.drift",
+        "stare": "animation.grave_wraith.stare",
+        "lunge": "animation.grave_wraith.lunge",
+        "state": "controller.animation.grave_wraith.state"
+      },
+      "scripts": {
+        "animate": [
+          "state"
+        ]
+      }
+    }
+  }
+}

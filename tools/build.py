@@ -43,6 +43,12 @@ ADDONS = {
         "namespace": "saitama",
         "addon": os.path.join(DIST, "SaitamaBot.mcaddon"),
     },
+    "graveyard": {
+        "bp": os.path.join("behavior_packs", "graveyard_horror_bp"),
+        "rp": os.path.join("resource_packs", "graveyard_horror_rp"),
+        "namespace": "grave",
+        "addon": os.path.join(DIST, "GraveyardHorror.mcaddon"),
+    },
     "luxury": {
         "bp": os.path.join("behavior_packs", "luxury_house_bp"),
         "rp": os.path.join("resource_packs", "luxury_house_rp"),
@@ -296,6 +302,24 @@ def validate(spec):
 
     if entity_identifiers:
         validate_client_entities(rp, documents, entity_identifiers, item_atlas_path, item_atlas)
+
+    # Blocks may point at a custom model too, and a bad name there is just as
+    # invisible in the log as it is for an entity.
+    models = collect_ids(documents, os.path.join(rp, "models"), geometry_ids)
+    for path, doc in sorted(documents.items()):
+        if not path.startswith(os.path.join(bp, "blocks")) or doc is None:
+            continue
+        geometry = doc.get("minecraft:block", {}).get("components", {}).get(
+            "minecraft:geometry"
+        )
+        if isinstance(geometry, dict):
+            geometry = geometry.get("identifier")
+        if not isinstance(geometry, str):
+            continue
+        if geometry.startswith("minecraft:geometry."):
+            continue  # a built-in shape such as full_block
+        if geometry not in models:
+            fail(f"{path}: geometry '{geometry}' is not defined in {rp}/models")
 
     known = set(identifiers) | set(block_identifiers) | set(spawn_eggs)
 
