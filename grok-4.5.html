@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grok 4.5 — What it is, how it works, and what it costs</title>
+<meta name="description" content="An animated, plain-English explainer of xAI's Grok 4.5: the architecture, the 500K context window, the benchmarks, the token economics, and the tradeoffs.">
+<style>
+/* ============================================================
+   TOKENS
+   Chart series colors come from a validated categorical palette
+   (adjacent CVD ΔE ≥ 8, normal-vision ΔE ≥ 15, ≥3:1 on surface).
+   UI chrome is deliberately monochrome so it never competes
+   with the data ink.
+   ============================================================ */
+:root {
+  color-scheme: dark;
+  --plane:        #08080a;
+  --surface-1:    #111113;
+  --surface-2:    #17171a;
+  --ink:          #f4f3f0;
+  --ink-2:        #b6b5ae;
+  --ink-3:        #83827c;
+  --hair:         rgba(255,255,255,0.09);
+  --hair-strong:  rgba(255,255,255,0.18);
+  --grid:         #2c2c2a;
+  --baseline:     #383835;
+  --accent:       #ffffff;
+  --glow-a:       rgba(120,140,255,0.20);
+  --glow-b:       rgba(255,120,190,0.13);
+  --series-1:     #3987e5;  /* Grok 4.5      */
+  --series-2:     #d95926;  /* Opus 4.8      */
+  --series-3:     #199e70;  /* Fable 5       */
+  --good:         #0ca30c;
+  --warning:      #fab219;
+  --critical:     #d03b3b;
+  --shadow:       0 1px 2px rgba(0,0,0,.5), 0 18px 40px -24px rgba(0,0,0,.9);
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r: 14px;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --plane:        #f9f9f7;
+  --surface-1:    #fcfcfb;
+  --surface-2:    #f2f1ed;
+  --ink:          #0b0b0b;
+  --ink-2:        #52514e;
+  --ink-3:        #898781;
+  --hair:         rgba(11,11,11,0.11);
+  --hair-strong:  rgba(11,11,11,0.22);
+  --grid:         #e1e0d9;
+  --baseline:     #c3c2b7;
+  --accent:       #0b0b0b;
+  --glow-a:       rgba(90,110,235,0.14);
+  --glow-b:       rgba(235,105,170,0.10);
+  --series-1:     #2a78d6;
+  --series-2:     #eb6834;
+  --series-3:     #1baf7a;
+  --shadow:       0 1px 2px rgba(11,11,11,.06), 0 18px 40px -26px rgba(11,11,11,.35);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--plane);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+h1,h2,h3,h4 { line-height: 1.12; letter-spacing: -0.025em; margin: 0; font-weight: 620; }
+p { margin: 0 0 1em; color: var(--ink-2); }
+a { color: var(--ink); text-decoration-color: var(--hair-strong); text-underline-offset: 3px; }
+a:hover { text-decoration-color: currentColor; }
+strong { color: var(--ink); font-weight: 620; }
+
+.wrap { width: min(1120px, 100% - 2.5rem); margin-inline: auto; }
+.narrow { width: min(760px, 100%); }
+section { padding: clamp(4.5rem, 11vh, 8rem) 0; position: relative; }
+.eyebrow {
+  font: 600 11.5px/1 var(--mono);
+  letter-spacing: .17em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 1.1rem;
+  display: flex; align-items: center; gap: .6rem;
+}
+.eyebrow::before { content:""; width: 22px; height: 1px; background: var(--hair-strong); }
+h2.sec { font-size: clamp(1.9rem, 4.4vw, 2.9rem); margin-bottom: .7rem; }
+.lede { font-size: clamp(1.02rem, 1.6vw, 1.16rem); color: var(--ink-2); max-width: 62ch; }
+
+/* ---------- nav ---------- */
+header.nav {
+  position: sticky; top: 0; z-index: 60;
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  background: color-mix(in srgb, var(--plane) 78%, transparent);
+  border-bottom: 1px solid transparent;
+  transition: border-color .3s, background .3s;
+}
+header.nav.stuck { border-bottom-color: var(--hair); }
+.nav-in { display: flex; align-items: center; gap: 1.4rem; height: 62px; }
+.brand { display: flex; align-items: center; gap: .6rem; font-weight: 640; letter-spacing: -.02em; text-decoration: none; color: var(--ink); }
+.brand svg { display:block; }
+.nav-links { margin-left: auto; display: flex; gap: 1.35rem; align-items: center; }
+.nav-links a { font-size: 14px; color: var(--ink-3); text-decoration: none; transition: color .18s; }
+.nav-links a:hover { color: var(--ink); }
+.icon-btn {
+  width: 34px; height: 34px; display: grid; place-items: center;
+  border-radius: 9px; border: 1px solid var(--hair); background: transparent;
+  color: var(--ink-2); cursor: pointer; transition: .18s;
+}
+.icon-btn:hover { color: var(--ink); border-color: var(--hair-strong); background: var(--surface-2); }
+@media (max-width: 760px) { .nav-links a { display: none; } }
+
+/* ---------- hero ---------- */
+.hero { min-height: min(92svh, 820px); display: grid; align-items: center; overflow: hidden; }
+#mesh { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.hero::after {
+  content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+  background:
+    radial-gradient(58% 44% at 22% 18%, var(--glow-a), transparent 70%),
+    radial-gradient(46% 40% at 84% 74%, var(--glow-b), transparent 72%),
+    linear-gradient(to bottom, transparent 55%, var(--plane) 99%);
+}
+.hero-in { position: relative; z-index: 2; }
+h1.title {
+  font-size: clamp(3.3rem, 12.5vw, 8.6rem);
+  letter-spacing: -0.055em; line-height: .92; margin: 0 0 .1em;
+  font-weight: 660;
+}
+h1.title .pt { display: inline-block; opacity: 0; transform: translateY(0.34em) rotate(1.4deg); filter: blur(9px); }
+.hero-sub { font-size: clamp(1.06rem, 2.2vw, 1.42rem); color: var(--ink-2); max-width: 40ch; margin-bottom: 2rem; }
+.hero-sub b { color: var(--ink); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+.chip {
+  font: 500 12.5px/1 var(--mono); letter-spacing: .02em;
+  padding: .58rem .78rem; border-radius: 999px;
+  border: 1px solid var(--hair); background: color-mix(in srgb, var(--surface-1) 60%, transparent);
+  color: var(--ink-2); display: inline-flex; gap: .5rem; align-items: center;
+}
+.chip b { color: var(--ink); font-weight: 620; }
+.scroll-cue { margin-top: 3rem; display:flex; align-items:center; gap:.6rem; font: 500 11.5px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase; color: var(--ink-3); }
+.scroll-cue span.bar { width: 1px; height: 30px; background: linear-gradient(var(--hair-strong), transparent); position: relative; overflow: hidden; }
+.scroll-cue span.bar::after { content:""; position:absolute; inset:0; background: var(--ink); animation: cue 2.4s ease-in-out infinite; }
+@keyframes cue { 0%{transform:translateY(-100%)} 60%,100%{transform:translateY(100%)} }
+
+/* ---------- reveal ---------- */
+.rv { opacity: 0; transform: translateY(22px); transition: opacity .75s cubic-bezier(.2,.7,.2,1), transform .75s cubic-bezier(.2,.7,.2,1); }
+.rv.in { opacity: 1; transform: none; }
+.rv[data-d="1"]{transition-delay:.09s}.rv[data-d="2"]{transition-delay:.18s}
+.rv[data-d="3"]{transition-delay:.27s}.rv[data-d="4"]{transition-delay:.36s}
+.rv[data-d="5"]{transition-delay:.45s}.rv[data-d="6"]{transition-delay:.54s}
+
+/* ---------- cards ---------- */
+.card {
+  background: var(--surface-1); border: 1px solid var(--hair);
+  border-radius: var(--r); padding: 1.5rem; box-shadow: var(--shadow);
+}
+.grid { display: grid; gap: 1rem; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+@media (max-width: 900px) { .g3, .g4 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 620px) { .g2, .g3, .g4 { grid-template-columns: minmax(0,1fr); } }
+
+.stat .k { font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+.stat .v { font-size: clamp(1.9rem, 4.4vw, 2.6rem); font-weight: 640; letter-spacing: -.035em; margin: .45rem 0 .2rem; }
+.stat .n { font-size: 14px; color: var(--ink-3); line-height: 1.45; }
+
+/* ---------- pipeline ---------- */
+.pipe { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 0; align-items: stretch; }
+.stage { position: relative; padding: 1rem .55rem; text-align: center; cursor: pointer; border-radius: 12px; transition: background .2s; background: transparent; border: 1px solid transparent; }
+.stage:hover, .stage[aria-selected="true"] { background: var(--surface-2); border-color: var(--hair); }
+.stage .num { font: 600 10.5px/1 var(--mono); color: var(--ink-3); letter-spacing: .1em; }
+.stage .ic { width: 42px; height: 42px; margin: .7rem auto .55rem; border-radius: 11px; display: grid; place-items: center; border: 1px solid var(--hair); background: var(--surface-1); color: var(--ink); transition: .25s; }
+.stage[aria-selected="true"] .ic { border-color: var(--hair-strong); transform: translateY(-2px); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 6%, transparent); }
+.stage .nm { font-size: 13px; font-weight: 600; letter-spacing: -.01em; }
+.rail { position: relative; height: 2px; background: var(--hair); margin: .2rem 0 1.1rem; border-radius: 2px; overflow: hidden; }
+.rail .flow { position: absolute; top: 0; height: 100%; width: 26%; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--ink), transparent); opacity: .45;
+  animation: flow 3.4s linear infinite; }
+@keyframes flow { from { left: -30%; } to { left: 104%; } }
+.stage-body { margin-top: 1rem; border-top: 1px solid var(--hair); padding-top: 1.15rem; min-height: 118px; }
+.stage-body h4 { font-size: 1.05rem; margin-bottom: .4rem; }
+.stage-body p { margin: 0; font-size: 15px; }
+@media (max-width: 780px) { .pipe { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+
+/* ---------- MoE ---------- */
+.moe { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.25fr); gap: 1.6rem; align-items: center; }
+.moe > * { min-width: 0; }
+@media (max-width: 860px) { .moe { grid-template-columns: minmax(0,1fr); } }
+.prompt-list { display: flex; flex-direction: column; gap: .5rem; }
+.pbtn {
+  text-align: left; font-family: var(--sans); font-size: 14.5px; color: var(--ink-2);
+  border: 1px solid var(--hair); background: var(--surface-2); border-radius: 11px;
+  padding: .72rem .9rem; cursor: pointer; transition: .18s; display:flex; gap:.6rem; align-items:center;
+}
+.pbtn:hover { color: var(--ink); border-color: var(--hair-strong); }
+.pbtn > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.pbtn[aria-pressed="true"] { color: var(--ink); border-color: var(--hair-strong); background: var(--surface-1); box-shadow: inset 3px 0 0 var(--ink); }
+.pbtn .tag { font: 600 10px/1 var(--mono); letter-spacing:.1em; color: var(--ink-3); text-transform: uppercase; }
+.experts { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: .55rem; }
+.exp {
+  min-height: 76px; border-radius: 11px; border: 1px solid var(--hair);
+  background: var(--surface-2); display: grid; place-items: center; text-align: center;
+  font: 600 11px/1.3 var(--mono); color: var(--ink-3); padding: .4rem;
+  transition: transform .4s cubic-bezier(.2,.8,.2,1), border-color .4s, color .4s, background .4s, box-shadow .4s;
+}
+.exp.on { color: var(--ink); border-color: var(--hair-strong); background: var(--surface-1); transform: translateY(-4px) scale(1.03); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 8%, transparent), var(--shadow); }
+.exp.dim { opacity: .55; }
+.router {
+  border: 1px dashed var(--hair-strong); border-radius: 11px; padding: .7rem;
+  text-align: center; font: 600 11px/1 var(--mono); letter-spacing: .1em;
+  color: var(--ink-2); text-transform: uppercase; margin-bottom: .8rem; position: relative; overflow: hidden;
+}
+.router::after { content:""; position:absolute; inset:0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 9%, transparent), transparent); transform: translateX(-100%); }
+.router.pulse::after { animation: sweep .9s ease; }
+@keyframes sweep { to { transform: translateX(100%); } }
+@media (max-width: 620px) {
+  .experts { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .exp { min-height: 58px; font-size: 11.5px; }
+}
+
+/* ---------- segmented control ---------- */
+.seg { display: inline-flex; padding: 3px; gap: 3px; background: var(--surface-2); border: 1px solid var(--hair); border-radius: 11px; }
+.seg button {
+  font: 600 13px var(--sans); color: var(--ink-3); background: transparent; border: 0;
+  padding: .5rem .95rem; border-radius: 8px; cursor: pointer; transition: .18s;
+}
+.seg button[aria-pressed="true"] { background: var(--surface-1); color: var(--ink); box-shadow: var(--shadow); }
+.seg button:hover { color: var(--ink); }
+
+.trace { font: 13.5px/1.7 var(--mono); color: var(--ink-2); min-height: 168px; }
+.trace .ln { display: flex; gap: .6rem; opacity: 0; transform: translateY(6px); animation: ln .42s cubic-bezier(.2,.8,.2,1) forwards; }
+.trace .ln i { color: var(--ink-3); font-style: normal; }
+@keyframes ln { to { opacity: 1; transform: none; } }
+.meter { margin-top: .9rem; }
+.meter .lbl { display: flex; justify-content: space-between; font: 500 12px var(--mono); color: var(--ink-3); margin-bottom: .35rem; }
+.meter .lbl b { color: var(--ink); font-weight: 600; }
+.track { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; position: relative; }
+.track > i { display: block; height: 100%; border-radius: 999px; background: var(--ink); width: 0; position: relative; z-index: 1; transition: width .8s cubic-bezier(.2,.8,.2,1); }
+.track > u { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink-3); opacity: .7; z-index: 0; }
+.ticks { position: relative; height: 15px; margin-top: 2px; }
+.ticks span { position: absolute; transform: translateX(-50%); font: 500 10px var(--mono); color: var(--ink-3); white-space: nowrap; }
+.ticks span:first-child { transform: none; }
+.ticks span:last-child { transform: translateX(-100%); }
+
+/* ---------- charts ---------- */
+.viz { background: var(--surface-1); border: 1px solid var(--hair); border-radius: var(--r); padding: 1.5rem; box-shadow: var(--shadow); }
+.viz-head { display: flex; flex-wrap: wrap; gap: .8rem 1.2rem; align-items: baseline; margin-bottom: .3rem; }
+.viz-head h3 { font-size: 1.14rem; }
+.viz-head .sub { font-size: 13.5px; color: var(--ink-3); }
+.legend { display: flex; flex-wrap: wrap; gap: .3rem 1.05rem; margin: 1rem 0 1.35rem; }
+.legend span { display: inline-flex; align-items: center; gap: .45rem; font-size: 13px; color: var(--ink-2); }
+.legend i { width: 10px; height: 10px; border-radius: 3px; display: block; }
+/* label gutter on the left, value gutter on the right — the plot lives between
+   them so a 100% bar and its direct label can never overflow the card */
+.chart-body { position: relative; --lab: 76px; --gut: 8px; --val: 54px; }
+.bench-row { margin-bottom: 1.4rem; }
+.bench-row > .name { font-size: 13.5px; font-weight: 600; margin-bottom: .55rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .55rem; }
+.bench-row > .name em { font-style: normal; font: 500 11.5px/1.5 var(--mono); color: var(--ink-3); font-weight: 500; }
+.bars { display: flex; flex-direction: column; gap: 2px; position: relative; }
+.bar-line { display: grid; grid-template-columns: var(--lab) minmax(0,1fr); align-items: center; gap: var(--gut); padding: 1px 0; border-radius: 6px; position: relative; z-index: 1; }
+.bar-line:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.bar-line .who { font: 500 11.5px/1 var(--mono); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { position: relative; height: 20px; display: flex; align-items: center; padding-right: var(--val); }
+.bar-fill { height: 10px; border-radius: 0 4px 4px 0; width: 0; flex: 0 0 auto; transition: width 1.05s cubic-bezier(.22,.85,.25,1); }
+.bar-val { font: 500 12px/1 var(--mono); color: var(--ink-2); margin-left: .5rem; white-space: nowrap; opacity: 0; transition: opacity .5s .45s; }
+.in .bar-val { opacity: 1; }
+.axis { position: relative; height: 20px; border-top: 1px solid var(--grid); margin: .2rem var(--val) 0 calc(var(--lab) + var(--gut)); }
+.axis span { position: absolute; top: 5px; transform: translateX(-50%); font: 500 11px var(--mono); color: var(--ink-3); }
+.gridlines { position: absolute; top: 0; bottom: 0; left: calc(var(--lab) + var(--gut)); right: var(--val); pointer-events: none; z-index: 0; }
+.gridlines i { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--grid); }
+@media (max-width: 560px) {
+  .chart-body { --lab: 58px; --val: 46px; }
+  .bar-line .who { font-size: 10.5px; }
+  .bar-val { font-size: 11px; }
+}
+.tablebtn { font: 500 12px var(--mono); color: var(--ink-3); background: none; border: 0; cursor: pointer; padding: .3rem 0; text-decoration: underline; text-underline-offset: 3px; }
+.tablebtn:hover { color: var(--ink); }
+table.dv { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 1rem; }
+table.dv th, table.dv td { text-align: right; padding: .5rem .6rem; border-bottom: 1px solid var(--hair); font-variant-numeric: tabular-nums; }
+table.dv th:first-child, table.dv td:first-child { text-align: left; font-variant-numeric: normal; }
+table.dv th { color: var(--ink-3); font: 600 11.5px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+table.dv td { color: var(--ink-2); }
+table.dv td b { color: var(--ink); }
+.foot { font-size: 12.5px; color: var(--ink-3); margin-top: 1rem; line-height: 1.55; }
+
+/* tooltip */
+#tip {
+  position: fixed; z-index: 90; pointer-events: none; opacity: 0; transition: opacity .12s;
+  background: var(--surface-1); border: 1px solid var(--hair-strong); border-radius: 9px;
+  padding: .5rem .65rem; box-shadow: var(--shadow); font-size: 13px; color: var(--ink);
+  max-width: 240px;
+}
+#tip .t { font: 600 11px/1 var(--mono); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; margin-bottom: .3rem; }
+#tip .v { font-variant-numeric: tabular-nums; }
+
+/* ---------- context window ---------- */
+.ctx-row { margin-bottom: 1.4rem; }
+.ctx-row .hd { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; margin-bottom: .5rem; }
+.ctx-row .hd b { font-weight: 620; }
+.ctx-row .hd span { font: 500 12px var(--mono); color: var(--ink-3); }
+.ctx-bar { height: 14px; border-radius: 4px; background: var(--surface-2); position: relative; }
+.ctx-bar > i {
+  position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 0 4px 4px 0; min-width: 3px;
+  transition: width 1.2s cubic-bezier(.22,.85,.25,1);
+}
+
+/* ---------- token race ---------- */
+.race { display: grid; gap: 1.1rem; }
+.race-lane .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .45rem; font-size: 14px; }
+.race-lane .top b { font-weight: 620; }
+.race-lane .top .n { font: 600 13px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.lane { height: 16px; border-radius: 4px; background: var(--surface-2); position: relative; }
+.lane > i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 0 4px 4px 0; transition: width 1.6s cubic-bezier(.3,.7,.2,1); }
+
+/* ---------- calculator ---------- */
+.calc { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1.6rem; }
+@media (max-width: 860px) { .calc { grid-template-columns: minmax(0,1fr); } }
+.field { margin-bottom: 1.25rem; }
+.field label { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; margin-bottom: .55rem; color: var(--ink-2); }
+.field label b { color: var(--ink); font: 600 14px var(--mono); font-variant-numeric: tabular-nums; }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; cursor: pointer; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--hair); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); border: 3px solid var(--surface-1); margin-top: -8px; box-shadow: var(--shadow); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--hair); }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--ink); border: 3px solid var(--surface-1); }
+input[type="range"]:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 6px; }
+.bill { display: grid; gap: .55rem; }
+.bill .ln { display: flex; justify-content: space-between; font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.bill .ln.total { border-top: 1px solid var(--hair); padding-top: .75rem; margin-top: .35rem; font-size: 15px; color: var(--ink); font-weight: 620; }
+.bignum { font-size: clamp(2.2rem, 6vw, 3.1rem); font-weight: 650; letter-spacing: -.04em; line-height: 1; }
+
+/* ---------- timeline ---------- */
+.tl { position: relative; padding-left: 2rem; }
+.tl::before { content:""; position: absolute; left: 5px; top: 6px; bottom: 6px; width: 1px; background: var(--hair); }
+.tl-item { position: relative; padding-bottom: 2.2rem; }
+.tl-item::before {
+  content:""; position: absolute; left: -2rem; top: 8px; width: 11px; height: 11px;
+  border-radius: 50%; background: var(--plane); border: 2px solid var(--hair-strong);
+  transition: border-color .5s, transform .5s, background .5s;
+}
+.tl-item.in::before { border-color: var(--ink); transform: scale(1.15); }
+.tl-item .when { font: 600 11.5px/1 var(--mono); letter-spacing: .1em; color: var(--ink-3); text-transform: uppercase; }
+.tl-item h4 { font-size: 1.16rem; margin: .5rem 0 .35rem; }
+.tl-item p { margin: 0; font-size: 15px; }
+
+/* ---------- misc ---------- */
+.note {
+  border-left: 2px solid var(--warning); background: color-mix(in srgb, var(--warning) 7%, transparent);
+  padding: .85rem 1rem; border-radius: 0 10px 10px 0; font-size: 14.5px; color: var(--ink-2);
+}
+.note b { color: var(--ink); }
+.pill { display:inline-flex; align-items:center; gap:.4rem; font: 600 10.5px/1 var(--mono); letter-spacing:.1em; text-transform: uppercase; color: var(--ink-3); border:1px solid var(--hair); border-radius:999px; padding:.35rem .6rem; }
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: .6rem; }
+ul.clean li { position: relative; padding-left: 1.25rem; font-size: 15px; color: var(--ink-2); }
+ul.clean li::before { content:""; position:absolute; left:0; top:.62em; width:6px; height:6px; border-radius:2px; background: var(--hair-strong); }
+footer { border-top: 1px solid var(--hair); padding: 3rem 0 4rem; color: var(--ink-3); font-size: 14px; }
+footer a { color: var(--ink-2); }
+.src { display: grid; gap: .5rem; grid-template-columns: repeat(2, minmax(0,1fr)); margin: 1rem 0 2rem; }
+@media (max-width: 620px) { .src { grid-template-columns: minmax(0,1fr); } }
+.src a { font-size: 13.5px; text-decoration: none; color: var(--ink-2); border: 1px solid var(--hair); border-radius: 10px; padding: .6rem .8rem; display: block; transition: .18s; overflow: hidden; text-overflow: ellipsis; }
+.src a:hover { color: var(--ink); border-color: var(--hair-strong); background: var(--surface-1); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  .rv { opacity: 1; transform: none; }
+  h1.title .pt { opacity: 1; transform: none; filter: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="tip" role="status" aria-live="polite"></div>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M3 21L14.5 3M21 21L15.4 12.2M9.1 11.8L3.5 3" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
+      </svg>
+      Grok&nbsp;4.5
+    </a>
+    <nav class="nav-links">
+      <a href="#what">What</a>
+      <a href="#how">How</a>
+      <a href="#moe">Experts</a>
+      <a href="#bench">Benchmarks</a>
+      <a href="#cost">Cost</a>
+      <a href="#limits">Limits</a>
+    </nav>
+    <button class="icon-btn" id="theme" aria-label="Toggle light and dark theme" title="Toggle theme">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path id="ic-moon" d="M20.5 14.3A8.5 8.5 0 1 1 9.7 3.5a6.8 6.8 0 0 0 10.8 10.8Z"/>
+        <g id="ic-sun" style="display:none"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M19.1 4.9l-1.5 1.5M6.4 17.6l-1.5 1.5"/></g>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <canvas id="mesh" aria-hidden="true"></canvas>
+  <div class="wrap hero-in">
+    <div class="eyebrow">xAI · released 8 July 2026</div>
+    <h1 class="title" id="title" aria-label="Grok 4.5">Grok 4.5</h1>
+    <p class="hero-sub">A frontier reasoning model built for one job above all others: <b>writing code and running long agent loops</b> without burning a fortune in tokens.</p>
+    <div class="chips">
+      <span class="chip">context <b>500K</b></span>
+      <span class="chip">foundation <b>~1.5T params</b></span>
+      <span class="chip">price <b>$2 / $6</b> per MTok</span>
+      <span class="chip">in <b>text + image</b></span>
+      <span class="chip">out <b>text</b></span>
+    </div>
+    <div class="scroll-cue"><span class="bar"></span> scroll to unpack it</div>
+  </div>
+</section>
+
+<!-- ============ WHAT ============ -->
+<section id="what">
+  <div class="wrap">
+    <div class="narrow rv">
+      <div class="eyebrow">The short version</div>
+      <h2 class="sec">What Grok 4.5 actually is</h2>
+      <p class="lede">Grok 4.5 is xAI's flagship large language model, released on 8 July 2026. It reads text and images, writes text, and — unlike a plain chatbot — it is designed to <strong>think before it answers</strong> and to <strong>use tools in a loop</strong> until a task is genuinely finished.</p>
+      <p>Three things separate it from the generation before it. It sits on a much larger foundation model (a reported ~1.5-trillion-parameter base, roughly triple its predecessor's). It was tuned specifically on real software-engineering work rather than general chat. And it is unusually <strong>frugal</strong>: it reaches comparable answers using a fraction of the "thinking" tokens rivals spend, which is what makes long autonomous agent runs affordable.</p>
+      <p>The tradeoff is equally concrete: the context window was <strong>halved</strong> from its predecessor's 1M tokens, native video input was dropped, and the price per token went up.</p>
+    </div>
+
+    <div class="grid g4" style="margin-top:2.6rem">
+      <div class="card stat rv" data-d="1">
+        <div class="k">Context window</div>
+        <div class="v" data-count="500" data-suffix="K">0K</div>
+        <div class="n">tokens in one conversation — roughly 375,000 words, or a 1,500-page book</div>
+      </div>
+      <div class="card stat rv" data-d="2">
+        <div class="k">Foundation scale</div>
+        <div class="v" data-count="1.5" data-suffix="T" data-dec="1">0T</div>
+        <div class="n">parameters in the reported V9 base model, ~3× the previous generation</div>
+      </div>
+      <div class="card stat rv" data-d="3">
+        <div class="k">Output speed</div>
+        <div class="v" data-count="80" data-suffix=" t/s">0</div>
+        <div class="n">tokens per second as launched; independent tests measure closer to 59</div>
+      </div>
+      <div class="card stat rv" data-d="4">
+        <div class="k">Tokens per task</div>
+        <div class="v" data-count="15954">0</div>
+        <div class="n">average output to solve a SWE-Bench Pro task — about 4.2× leaner than Opus 4.8</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW ============ -->
+<section id="how">
+  <div class="wrap">
+    <div class="narrow rv">
+      <div class="eyebrow">The machine</div>
+      <h2 class="sec">What happens when you press enter</h2>
+      <p class="lede">Your prompt doesn't go straight to "the model." It travels through a pipeline, and each stage explains one of Grok 4.5's headline numbers. Tap a stage.</p>
+    </div>
+
+    <div class="viz rv" data-d="1" style="margin-top:2rem">
+      <div class="pipe" id="pipe" role="tablist" aria-label="Inference pipeline stages"></div>
+      <div class="rail"><span class="flow"></span></div>
+      <div class="stage-body" id="stageBody" role="tabpanel"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MoE ============ -->
+<section id="moe">
+  <div class="wrap">
+    <div class="narrow rv">
+      <div class="eyebrow">Mixture of experts</div>
+      <h2 class="sec">1.5 trillion parameters, but not all at once</h2>
+      <p class="lede">Grok 4.5 is described as a mixture-of-experts model. The network is split into many specialist sub-networks; a small <strong>router</strong> reads each token and wakes only a couple of them. That's how a model this large can answer this fast — you pay compute for the experts you actually use, not for the whole brain.</p>
+    </div>
+
+    <div class="viz rv" data-d="1" style="margin-top:2rem">
+      <div class="moe">
+        <div>
+          <div class="eyebrow" style="margin-bottom:.8rem">Send it a token</div>
+          <div class="prompt-list" id="promptList"></div>
+        </div>
+        <div>
+          <div class="router" id="router">router · top-k selection</div>
+          <div class="experts" id="experts"></div>
+          <p style="margin:1.1rem 0 0; font-size:14px" id="moeCaption">Pick a prompt on the left to watch the router choose.</p>
+        </div>
+      </div>
+      <p class="foot"><b>Conceptual illustration.</b> xAI has not published Grok 4.5's expert count, routing width, or active-parameter figure — the eight labelled experts here stand in for the idea, not the real topology.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REASONING ============ -->
+<section id="reasoning">
+  <div class="wrap">
+    <div class="narrow rv">
+      <div class="eyebrow">Reasoning effort</div>
+      <h2 class="sec">A dial between "fast" and "careful"</h2>
+      <p class="lede">Before answering, Grok 4.5 writes a private chain of thought. You can set how much of it to write — low, medium, or high. More thinking buys accuracy on hard problems and wastes money on easy ones. Reports at launch say the model runs at <strong>high effort by default</strong>, which is great for a refactor and overkill for "rename this variable."</p>
+    </div>
+
+    <div class="viz rv" data-d="1" style="margin-top:2rem">
+      <div class="viz-head" style="justify-content:space-between;width:100%">
+        <div>
+          <h3>Same question, three budgets</h3>
+          <div class="sub">“Why does this test flake only in CI?”</div>
+        </div>
+        <div class="seg" id="effort" role="group" aria-label="Reasoning effort">
+          <button data-e="low" aria-pressed="false">Low</button>
+          <button data-e="medium" aria-pressed="false">Medium</button>
+          <button data-e="high" aria-pressed="true">High</button>
+        </div>
+      </div>
+      <div class="grid g2" style="margin-top:1.4rem; align-items:start">
+        <div class="trace" id="trace" aria-live="polite"></div>
+        <div>
+          <div class="meter"><div class="lbl"><span>Thinking tokens</span><b id="mTok">—</b></div><div class="track" id="tTok"><i id="bTok"></i></div><div class="ticks" id="kTok"></div></div>
+          <div class="meter"><div class="lbl"><span>Time to answer</span><b id="mLat">—</b></div><div class="track" id="tLat"><i id="bLat"></i></div><div class="ticks" id="kLat"></div></div>
+          <div class="meter"><div class="lbl"><span>Cost of the turn</span><b id="mCost">—</b></div><div class="track" id="tCost"><i id="bCost"></i></div><div class="ticks" id="kCost"></div></div>
+          <p class="foot" style="margin-top:1.2rem">Ticks mark where the other two settings land, so the tradeoff stays visible whichever one is selected. Magnitudes are illustrative, not measured; cost uses the real $6 / MTok output rate.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONTEXT ============ -->
+<section id="context">
+  <div class="wrap">
+    <div class="narrow rv">
+      <div class="eyebrow">Context window</div>
+      <h2 class="sec">The one number that went backwards</h2>
+      <p class="lede">Context is the model's working memory: everything it can see at once — your files, the conversation, tool output. Grok 4.5 holds <strong>500,000 tokens</strong>. That is enormous in absolute terms and a <strong>50% cut</strong> from Grok 4.3's million.</p>
+    </div>
+
+    <div class="viz rv" data-d="1" style="margin-top:2rem" id="ctxViz">
+      <div class="viz-head"><h3>Working memory, compared</h3><span class="sub">tokens held in one request</span></div>
+      <div style="margin-top:1.2rem" id="ctxRows"></div>
+      <p class="foot">1 token ≈ ¾ of an English word. Grok 4.5 adds <b>context compaction</b> — it summarises older turns on the fly — which softens the cut for long agent sessions but does not undo it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BENCH ============ -->
+<section id="bench">
+  <div class="wrap">
+    <div class="narrow rv">
+      <div class="eyebrow">Benchmarks</div>
+      <h2 class="sec">Fast, cheap, and not always first</h2>
+      <p class="lede">Grok 4.5 is a genuine frontier model, but it does not sweep the board. It leads on terminal-style agent work and trails on the hardest patch-writing suites. The honest summary: <strong>results depend heavily on which test you pick.</strong></p>
+    </div>
+
+    <div class="viz rv" data-d="1" style="margin-top:2rem">
+      <div class="viz-head" style="justify-content:space-between; width:100%">
+        <div>
+          <h3>Coding &amp; agent benchmarks</h3>
+          <div class="sub">higher is better · % of tasks resolved</div>
+        </div>
+        <button class="tablebtn" id="tblToggle" aria-expanded="false">Show data table</button>
+      </div>
+      <div class="legend" id="benchLegend"></div>
+      <div class="chart-body" id="benchChart"></div>
+      <div id="benchTable" hidden></div>
+      <p class="foot"><b>Read this with care.</b> These figures are vendor-reported at launch and had not been independently reproduced; other outlets publish materially different numbers for Terminal-Bench, so treat the ordering as indicative rather than settled.</p>
+    </div>
+
+    <div class="grid g3 rv" data-d="2" style="margin-top:1rem">
+      <div class="card stat">
+        <div class="k">Intelligence index</div>
+        <div class="v" data-count="54">0</div>
+        <div class="n">Artificial Analysis composite — a 16-point generational jump from Grok 4.3's 38, landing just behind Opus 4.8 (~56) and Fable 5 (~60)</div>
+      </div>
+      <div class="card stat">
+        <div class="k">WebDev Arena</div>
+        <div class="v" data-count="1566">0</div>
+        <div class="n">Elo from head-to-head human preference votes on front-end builds</div>
+      </div>
+      <div class="card stat">
+        <div class="k">Hallucination rate</div>
+        <div class="v" style="color:var(--warning)" data-count="54" data-suffix="%">0%</div>
+        <div class="n">reported alongside a 52% accuracy score — it is more accurate <em>and</em> more confidently wrong than its predecessor</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EFFICIENCY ============ -->
+<section id="efficiency">
+  <div class="wrap">
+    <div class="narrow rv">
+      <div class="eyebrow">Token economics</div>
+      <h2 class="sec">The real headline: it thinks less</h2>
+      <p class="lede">Benchmarks measure whether a model can solve a task. This measures what the attempt <em>costs</em>. Solving the same average SWE-Bench Pro task, Grok 4.5 emits about <strong>15,954 output tokens</strong>; Opus 4.8 at maximum effort emits about <strong>67,020</strong>. Same destination, a quarter of the talking.</p>
+    </div>
+
+    <div class="viz rv" data-d="1" style="margin-top:2rem" id="raceViz">
+      <div class="viz-head"><h3>Output tokens to resolve one task</h3><span class="sub">SWE-Bench Pro average · lower is better</span></div>
+      <div class="race" style="margin-top:1.3rem">
+        <div class="race-lane">
+          <div class="top"><b>Grok 4.5</b><span class="n" data-race="15954">0 tokens</span></div>
+          <div class="lane"><i style="background:var(--series-1)" data-w="23.8"></i></div>
+        </div>
+        <div class="race-lane">
+          <div class="top"><b>Opus 4.8 (max effort)</b><span class="n" data-race="67020">0 tokens</span></div>
+          <div class="lane"><i style="background:var(--series-2)" data-w="100"></i></div>
+        </div>
+      </div>
+      <div class="grid g3" style="margin-top:1.6rem">
+        <div><div class="bignum">4.2×</div><p class="foot" style="margin-top:.4rem">fewer output tokens per solved task</p></div>
+        <div><div class="bignum">~½</div><p class="foot" style="margin-top:.4rem">the per-task coding cost of GPT-5.5</p></div>
+        <div><div class="bignum">85%</div><p class="foot" style="margin-top:.4rem">discount on cached input tokens — $2.00 drops to $0.30 per MTok</p></div>
+      </div>
+      <p class="foot">Why it matters: an agent that runs for hours pays for every thinking token it emits, and every one of them also lands back in the context window on the next turn. Frugality compounds.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COST ============ -->
+<section id="cost">
+  <div class="wrap">
+    <div class="narrow rv">
+      <div class="eyebrow">Pricing</div>
+      <h2 class="sec">What it costs you</h2>
+      <p class="lede">$2.00 per million input tokens, $6.00 per million output. Cache hits drop input to $0.30. Drag the sliders for your own workload — the comparison is against Grok 4.3, which is cheaper per token but markedly less capable.</p>
+    </div>
+
+    <div class="viz rv" data-d="1" style="margin-top:2rem">
+      <div class="calc">
+        <div>
+          <div class="field">
+            <label for="sIn">Input tokens per month <b id="vIn">50M</b></label>
+            <input type="range" id="sIn" min="1" max="500" value="50" step="1" aria-describedby="vIn">
+          </div>
+          <div class="field">
+            <label for="sOut">Output tokens per month <b id="vOut">10M</b></label>
+            <input type="range" id="sOut" min="1" max="200" value="10" step="1" aria-describedby="vOut">
+          </div>
+          <div class="field">
+            <label for="sCache">Share of input served from cache <b id="vCache">40%</b></label>
+            <input type="range" id="sCache" min="0" max="95" value="40" step="5" aria-describedby="vCache">
+          </div>
+          <p class="foot">A cache hit is repeated prefix — a system prompt, a codebase you keep re-sending. Agent loops cache extremely well, which is where the 85% discount earns its keep.</p>
+        </div>
+        <div>
+          <div class="card" style="background:var(--surface-2)">
+            <div class="eyebrow" style="margin-bottom:.9rem">Grok 4.5 · estimated monthly</div>
+            <div class="bignum" id="total">$0</div>
+            <div class="bill" style="margin-top:1.4rem">
+              <div class="ln"><span>Fresh input <em id="dFresh" style="color:var(--ink-3);font-style:normal"></em></span><span id="cFresh">$0</span></div>
+              <div class="ln"><span>Cached input <em id="dCache" style="color:var(--ink-3);font-style:normal"></em></span><span id="cCache">$0</span></div>
+              <div class="ln"><span>Output <em id="dOut" style="color:var(--ink-3);font-style:normal"></em></span><span id="cOut">$0</span></div>
+              <div class="ln total"><span>Total</span><span id="cTotal">$0</span></div>
+            </div>
+            <div class="ln" style="display:flex;justify-content:space-between;font-size:13.5px;color:var(--ink-3);margin-top:1.1rem;padding-top:.9rem;border-top:1px solid var(--hair)">
+              <span>Same workload on Grok 4.3 ($1.25 / $2.50)</span><span id="cOld">$0</span>
+            </div>
+            <p class="foot" id="verdict" style="margin-top:.7rem"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TIMELINE ============ -->
+<section id="timeline">
+  <div class="wrap">
+    <div class="narrow rv">
+      <div class="eyebrow">Lineage</div>
+      <h2 class="sec">How it got here</h2>
+    </div>
+    <div class="grid g2" style="margin-top:2rem; align-items:start">
+      <div class="tl" id="tl"></div>
+      <div class="card rv" data-d="2">
+        <div class="eyebrow">Where you can run it</div>
+        <ul class="clean">
+          <li>The xAI API, as <code style="font-family:var(--mono);font-size:13.5px">grok-4.5</code> — Chat Completions and Responses formats</li>
+          <li>Grok Build, where it is the default model</li>
+          <li>Cursor, which co-trained on it and ran a launch promotion</li>
+          <li>Gateways and clouds: OpenRouter, Vercel, Cloudflare, Snowflake, Databricks</li>
+          <li>Office add-ins for document work</li>
+        </ul>
+        <p class="foot" style="margin-top:1.2rem">EU availability lagged the launch by roughly a week pending compliance work. Zero Data Retention is an enterprise option; the default is 30-day retention.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LIMITS ============ -->
+<section id="limits">
+  <div class="wrap">
+    <div class="narrow rv">
+      <div class="eyebrow">The fine print</div>
+      <h2 class="sec">What it gives up</h2>
+      <p class="lede">Every model release is a set of trades. These are Grok 4.5's, stated plainly.</p>
+    </div>
+    <div class="grid g3" style="margin-top:2rem">
+      <div class="card rv" data-d="1"><span class="pill">Memory</span><h4 style="margin:.9rem 0 .4rem">Half the context</h4><p style="margin:0;font-size:15px">500K tokens, down from Grok 4.3's 1M. Compaction helps; it isn't the same thing as having the window.</p></div>
+      <div class="card rv" data-d="2"><span class="pill">Modality</span><h4 style="margin:.9rem 0 .4rem">Video input dropped</h4><p style="margin:0;font-size:15px">Text and images in, text out. The native video understanding the previous generation shipped with is gone, and it cannot generate images.</p></div>
+      <div class="card rv" data-d="3"><span class="pill">Price</span><h4 style="margin:.9rem 0 .4rem">Costlier per token</h4><p style="margin:0;font-size:15px">$2/$6 against $1.25/$2.50, and the 20% batch discount went away. Token frugality has to earn that back — on agent work it usually does.</p></div>
+      <div class="card rv" data-d="4"><span class="pill">Reliability</span><h4 style="margin:.9rem 0 .4rem">More confident, still wrong</h4><p style="margin:0;font-size:15px">A 54% hallucination rate alongside 52% accuracy. Verify anything factual; the fluency is not evidence.</p></div>
+      <div class="card rv" data-d="5"><span class="pill">Latency</span><h4 style="margin:.9rem 0 .4rem">Slow first token</h4><p style="margin:0;font-size:15px">High-effort reasoning by default means ~12 seconds before the first token appears. Poor fit for interactive autocomplete.</p></div>
+      <div class="card rv" data-d="6"><span class="pill">Openness</span><h4 style="margin:.9rem 0 .4rem">Closed and unverified</h4><p style="margin:0;font-size:15px">Proprietary, no local deployment, undisclosed parameter count, and launch benchmarks published by the vendor.</p></div>
+    </div>
+    <div class="note rv" data-d="1" style="margin-top:1.6rem"><b>Pick it when</b> the job is repository-scale code, a long tool-using agent run, or high-volume knowledge work where per-task cost matters. <b>Look elsewhere when</b> you need million-token prompts, video, image generation, sub-second responses, or on-premise weights.</div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="eyebrow">Sources</div>
+    <div class="src">
+      <a href="https://benchlm.ai/models/grok-4-5" target="_blank" rel="noopener">BenchLM — Grok 4.5 benchmarks, pricing &amp; speed</a>
+      <a href="https://theairankings.com/xai/grok-4-5/" target="_blank" rel="noopener">The AI Rankings — Grok 4.5 benchmarks &amp; review</a>
+      <a href="https://www.datacamp.com/blog/grok-4-5" target="_blank" rel="noopener">DataCamp — Grok 4.5 features, benchmarks &amp; tests</a>
+      <a href="https://felloai.com/grok-4-5/" target="_blank" rel="noopener">Fello AI — Grok 4.5 specs, benchmarks, pricing explained</a>
+      <a href="https://datanorth.ai/news/xai-releases-grok-4-5-coding-focused-model" target="_blank" rel="noopener">DataNorth — xAI releases Grok 4.5</a>
+      <a href="https://aireleasetracker.com/model/xai/grok-4.5" target="_blank" rel="noopener">AI Release Tracker — Grok 4.5 specs &amp; release date</a>
+    </div>
+    <p style="font-size:13.5px;max-width:70ch">Figures compiled from public reporting in August 2026; sources disagree on several values (throughput, cached-input price, Terminal-Bench) and launch benchmarks were vendor-published. Where a number is illustrative rather than measured, the page says so on the panel. This page is an independent explainer and is not affiliated with xAI.</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+"use strict";
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+
+/* ---------------- theme ---------------- */
+const root = document.documentElement;
+const saved = localStorage.getItem("grok45-theme");
+if (saved) root.dataset.theme = saved;
+else if (matchMedia("(prefers-color-scheme: light)").matches) root.dataset.theme = "light";
+const syncIcon = () => {
+  const light = root.dataset.theme === "light";
+  $("#ic-moon").style.display = light ? "none" : "";
+  $("#ic-sun").style.display  = light ? "" : "none";
+};
+syncIcon();
+$("#theme").addEventListener("click", () => {
+  root.dataset.theme = root.dataset.theme === "light" ? "dark" : "light";
+  localStorage.setItem("grok45-theme", root.dataset.theme);
+  syncIcon();
+});
+
+/* ---------------- nav shadow ---------------- */
+const nav = $("#nav");
+addEventListener("scroll", () => nav.classList.toggle("stuck", scrollY > 12), { passive: true });
+
+/* ---------------- hero title ---------------- */
+(() => {
+  const el = $("#title"), txt = el.textContent.trim();
+  el.textContent = "";
+  [...txt].forEach((ch, i) => {
+    const s = document.createElement("span");
+    s.className = "pt"; s.textContent = ch === " " ? " " : ch;
+    s.style.animation = RM ? "" : `pop .95s cubic-bezier(.2,.8,.2,1) ${0.06 * i + 0.15}s forwards`;
+    if (RM) s.style.opacity = 1;
+    el.appendChild(s);
+  });
+  const st = document.createElement("style");
+  st.textContent = "@keyframes pop{to{opacity:1;transform:none;filter:blur(0)}}";
+  document.head.appendChild(st);
+})();
+
+/* ---------------- hero mesh ---------------- */
+(() => {
+  const cv = $("#mesh"), ctx = cv.getContext("2d");
+  let w = 0, h = 0, nodes = [], pulses = [], raf = 0, vis = true;
+  const ink = () => getComputedStyle(root).getPropertyValue("--ink").trim();
+
+  function size() {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const r = cv.getBoundingClientRect();
+    w = r.width; h = r.height;
+    cv.width = w * dpr; cv.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = Math.round(Math.min(74, Math.max(26, (w * h) / 17000)));
+    nodes = Array.from({ length: n }, () => ({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: (Math.random() - .5) * .22, vy: (Math.random() - .5) * .22,
+      r: Math.random() * 1.5 + .8
+    }));
+    pulses = [];
+  }
+
+  function step() {
+    ctx.clearRect(0, 0, w, h);
+    const c = ink(), LINK = 148;
+    for (const p of nodes) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < -20) p.x = w + 20; if (p.x > w + 20) p.x = -20;
+      if (p.y < -20) p.y = h + 20; if (p.y > h + 20) p.y = -20;
+    }
+    const edges = [];
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        const dx = a.x - b.x, dy = a.y - b.y, d = Math.hypot(dx, dy);
+        if (d < LINK) {
+          const o = (1 - d / LINK) * 0.17;
+          ctx.strokeStyle = c; ctx.globalAlpha = o; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+          if (o > .09) edges.push([a, b]);
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+    for (const p of nodes) {
+      ctx.fillStyle = c; ctx.globalAlpha = .34;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.284); ctx.fill();
+    }
+    if (edges.length && pulses.length < 16 && Math.random() < .09)
+      pulses.push({ e: edges[(Math.random() * edges.length) | 0], t: 0 });
+    for (let i = pulses.length - 1; i >= 0; i--) {
+      const pu = pulses[i]; pu.t += .012;
+      if (pu.t >= 1) { pulses.splice(i, 1); continue; }
+      const [a, b] = pu.e;
+      const x = a.x + (b.x - a.x) * pu.t, y = a.y + (b.y - a.y) * pu.t;
+      const fade = Math.sin(pu.t * Math.PI);
+      ctx.globalAlpha = .85 * fade; ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(x, y, 1.9, 0, 6.284); ctx.fill();
+      ctx.globalAlpha = .16 * fade;
+      ctx.beginPath(); ctx.arc(x, y, 6, 0, 6.284); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    raf = requestAnimationFrame(step);
+  }
+
+  size();
+  addEventListener("resize", () => { cancelAnimationFrame(raf); size(); if (!RM && vis) step(); });
+  new IntersectionObserver(es => {
+    vis = es[0].isIntersecting;
+    cancelAnimationFrame(raf);
+    if (vis && !RM) step();
+  }, { threshold: 0 }).observe(cv);
+  if (RM) { step(); cancelAnimationFrame(raf); }
+})();
+
+/* ---------------- reveal + counters ---------------- */
+const fmt = n => n.toLocaleString("en-US");
+const revealIO = new IntersectionObserver((es, o) => {
+  for (const e of es) if (e.isIntersecting) { e.target.classList.add("in"); o.unobserve(e.target); }
+}, { threshold: .16, rootMargin: "0px 0px -8% 0px" });
+const observeAll = () => $$(".rv:not(.in), .tl-item:not(.in)").forEach(el => revealIO.observe(el));
+
+const countIO = new IntersectionObserver((es, o) => {
+  for (const e of es) {
+    if (!e.isIntersecting) continue;
+    o.unobserve(e.target);
+    const el = e.target, to = parseFloat(el.dataset.count), dec = +(el.dataset.dec || 0), sfx = el.dataset.suffix || "";
+    if (RM) { el.textContent = (dec ? to.toFixed(dec) : fmt(to)) + sfx; continue; }
+    const t0 = performance.now(), D = 1250;
+    const tick = t => {
+      const k = Math.min(1, (t - t0) / D), e2 = 1 - Math.pow(1 - k, 3), v = to * e2;
+      el.textContent = (dec ? v.toFixed(dec) : fmt(Math.round(v))) + sfx;
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+}, { threshold: .5 });
+
+/* ---------------- tooltip ---------------- */
+const tip = $("#tip");
+function showTip(html, x, y) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.max(8, Math.min(innerWidth - r.width - 8, x - r.width / 2)) + "px";
+  tip.style.top = Math.max(8, y - r.height - 12) + "px";
+}
+const hideTip = () => tip.style.opacity = 0;
+addEventListener("scroll", hideTip, { passive: true });
+
+/* ---------------- pipeline ---------------- */
+const STAGES = [
+  { n: "Prompt", icon: "M4 6h16M4 12h11M4 18h7",
+    h: "Your request, plus everything around it",
+    p: "Files, prior turns, tool results and system instructions all arrive together. This whole bundle has to fit inside the 500,000-token context window — the single hardest constraint on any long session." },
+  { n: "Tokenize", icon: "M6 4v16M12 4v16M18 4v16",
+    h: "Text becomes numbers",
+    p: "The prompt is chopped into tokens — roughly ¾ of a word each — and every one is priced. This is the unit the $2-per-million input rate is charged in, and images are converted into tokens here too." },
+  { n: "Route", icon: "M5 12h4l3-7 4 14 2-7h1",
+    h: "The router picks specialists",
+    p: "In a mixture-of-experts model, a small gating network reads each token and activates only a couple of expert sub-networks. The full ~1.5-trillion-parameter foundation exists; only a slice of it runs per token." },
+  { n: "Reason", icon: "M12 3a6 6 0 0 1 3 11v3H9v-3a6 6 0 0 1 3-11ZM9 21h6",
+    h: "It thinks before it speaks",
+    p: "A private chain of thought is generated first, at low, medium or high effort. Grok 4.5's distinguishing trait is brevity here: ~15,954 output tokens on an average SWE-Bench Pro task against Opus 4.8's ~67,020." },
+  { n: "Act", icon: "M14.7 6.3a4 4 0 0 1-5 5L5 16v3h3l4.7-4.7a4 4 0 0 1 5-5l-2.5-2.5Z",
+    h: "Tools, in a loop",
+    p: "Function calls, code execution, web and X search, document collections. The model reads each result and decides what to do next — this loop is what makes it an agent rather than a chatbot." },
+  { n: "Answer", icon: "M20 6 9 17l-5-5",
+    h: "Streamed back out",
+    p: "Text streams at roughly 80 tokens/second as launched, with independent tests nearer 59, and about 12 seconds before the first token because high-effort reasoning runs first. Output bills at $6 per million tokens." }
+];
+(() => {
+  const pipe = $("#pipe"), body = $("#stageBody");
+  STAGES.forEach((s, i) => {
+    const b = document.createElement("button");
+    b.className = "stage"; b.type = "button"; b.role = "tab";
+    b.setAttribute("aria-selected", i === 0);
+    b.innerHTML = `<div class="num">0${i + 1}</div>
+      <div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="${s.icon}"/></svg></div>
+      <div class="nm">${s.n}</div>`;
+    b.addEventListener("click", () => select(i));
+    pipe.appendChild(b);
+  });
+  function select(i) {
+    $$(".stage", pipe).forEach((b, k) => b.setAttribute("aria-selected", k === i));
+    const s = STAGES[i];
+    body.style.opacity = 0;
+    body.innerHTML = `<h4>${s.h}</h4><p>${s.p}</p>`;
+    requestAnimationFrame(() => { body.style.transition = "opacity .35s"; body.style.opacity = 1; });
+  }
+  select(0);
+  // gentle auto-advance until the user takes over
+  let idx = 0, auto = true;
+  pipe.addEventListener("click", () => auto = false);
+  if (!RM) {
+    const timer = setInterval(() => {
+      if (!auto) return clearInterval(timer);
+      if (!pipe.getBoundingClientRect().top || pipe.getBoundingClientRect().top > innerHeight || pipe.getBoundingClientRect().bottom < 0) return;
+      idx = (idx + 1) % STAGES.length; select(idx);
+    }, 4200);
+  }
+})();
+
+/* ---------------- MoE ---------------- */
+const EXPERTS = ["syntax &\ncontrol flow", "algorithms", "APIs &\nlibraries", "math &\nproof", "prose &\nstyle", "finance &\nlaw", "shell &\ndevops", "long-context\nrecall"];
+const PROMPTS = [
+  { tag: "code", t: "“Fix this failing pytest fixture”", pick: [0, 6], note: "Syntax and shell experts light up. The router never consults the finance weights — you don't pay to run them." },
+  { tag: "math", t: "“Prove this loop terminates”", pick: [3, 1], note: "Formal reasoning plus algorithms. Same model, an entirely different slice of it doing the work." },
+  { tag: "finance", t: "“Reconcile these two ledgers”", pick: [5, 3], note: "Domain plus arithmetic — the mix that puts Grok 4.5 at the top of the tau3-Banking benchmark." },
+  { tag: "agent", t: "“Ship this branch to staging”", pick: [6, 2], note: "DevOps plus API knowledge, then a tool call. Repeat for hours: that's an agent loop." }
+];
+(() => {
+  const grid = $("#experts"), list = $("#promptList"), router = $("#router"), cap = $("#moeCaption");
+  EXPERTS.forEach((e, i) => {
+    const d = document.createElement("div");
+    d.className = "exp"; d.textContent = e.replace("\n", " ");
+    d.style.transitionDelay = (i % 4) * 40 + "ms";
+    grid.appendChild(d);
+  });
+  PROMPTS.forEach((p, i) => {
+    const b = document.createElement("button");
+    b.className = "pbtn"; b.type = "button"; b.setAttribute("aria-pressed", "false");
+    b.innerHTML = `<span class="tag">${p.tag}</span><span>${p.t}</span>`;
+    b.addEventListener("click", () => fire(i));
+    list.appendChild(b);
+  });
+  function fire(i) {
+    const p = PROMPTS[i];
+    $$(".pbtn", list).forEach((b, k) => b.setAttribute("aria-pressed", k === i));
+    router.classList.remove("pulse"); void router.offsetWidth; router.classList.add("pulse");
+    $$(".exp", grid).forEach((e, k) => {
+      e.classList.toggle("on", p.pick.includes(k));
+      e.classList.toggle("dim", !p.pick.includes(k));
+    });
+    cap.innerHTML = `<strong>2 of 8 experts active.</strong> ${p.note}`;
+  }
+  new IntersectionObserver((es, o) => {
+    if (es[0].isIntersecting) { o.disconnect(); setTimeout(() => fire(0), RM ? 0 : 450); }
+  }, { threshold: .35 }).observe(grid);
+})();
+
+/* ---------------- reasoning effort ---------------- */
+const EFFORT = {
+  low:    { tok: 420,   lat: "~3 s",  steps: ["read the stack trace", "answer"], acc: "Fine for a rename. Guesses on anything subtle." },
+  medium: { tok: 3800,  lat: "~9 s",  steps: ["read the stack trace", "check what differs in CI", "suspect the shared temp dir", "propose a fix"], acc: "The everyday setting — enough thought to check itself once." },
+  high:   { tok: 15954, lat: "~28 s", steps: ["read the stack trace", "diff local vs CI environment", "note parallel workers share /tmp", "trace fixture teardown order", "reproduce with -p xdist -n 4", "confirm race on the temp path", "write the fix and a regression test"], acc: "The default. Worth it on real bugs; wasteful on trivia." }
+};
+(() => {
+  const seg = $("#effort"), trace = $("#trace");
+  const MAXT = 15954, MAXL = 28;
+  const LEVELS = ["low", "medium", "high"];
+  const pctOf = (k, metric) => metric === "lat"
+    ? parseFloat(EFFORT[k].lat.replace("~", "")) / MAXL * 100
+    : EFFORT[k].tok / MAXT * 100;
+  // reference ticks: every setting's position on every track
+  [["tTok", "kTok", "tok"], ["tLat", "kLat", "lat"], ["tCost", "kCost", "tok"]].forEach(([tid, kid, metric]) => {
+    const track = $("#" + tid), ticks = $("#" + kid);
+    LEVELS.forEach(l => {
+      const p = pctOf(l, metric);
+      const u = document.createElement("u"); u.style.left = p + "%"; track.appendChild(u);
+      const s = document.createElement("span"); s.style.left = p + "%"; s.textContent = l; ticks.appendChild(s);
+    });
+  });
+  function set(k) {
+    $$("button", seg).forEach(b => b.setAttribute("aria-pressed", b.dataset.e === k));
+    const e = EFFORT[k];
+    trace.innerHTML = "";
+    e.steps.forEach((s, i) => {
+      const d = document.createElement("div");
+      d.className = "ln"; d.style.animationDelay = (RM ? 0 : i * 0.14) + "s";
+      d.innerHTML = `<i>${String(i + 1).padStart(2, "0")}</i><span>${s}</span>`;
+      trace.appendChild(d);
+    });
+    const done = document.createElement("div");
+    done.className = "ln"; done.style.animationDelay = (RM ? 0 : e.steps.length * 0.14) + "s";
+    done.innerHTML = `<i>→</i><span style="color:var(--ink)">${e.acc}</span>`;
+    trace.appendChild(done);
+
+    $("#mTok").textContent = fmt(e.tok) + " tok";
+    $("#mLat").textContent = e.lat;
+    $("#mCost").textContent = "$" + (e.tok / 1e6 * 6).toFixed(3);
+    $("#bTok").style.width  = (e.tok / MAXT * 100) + "%";
+    $("#bLat").style.width  = (parseFloat(e.lat.replace("~", "")) / MAXL * 100) + "%";
+    $("#bCost").style.width = (e.tok / MAXT * 100) + "%";
+  }
+  seg.addEventListener("click", ev => { const b = ev.target.closest("button"); if (b) set(b.dataset.e); });
+  new IntersectionObserver((es, o) => {
+    if (es[0].isIntersecting) { o.disconnect(); set("high"); }
+  }, { threshold: .35 }).observe(seg);
+})();
+
+/* ---------------- context window ---------------- */
+const CTX = [
+  { n: "Grok 4.5", v: 500000, c: "var(--series-1)", note: "≈ 375,000 words" },
+  { n: "Grok 4.3 (previous)", v: 1000000, c: "var(--series-2)", note: "≈ 750,000 words" },
+  { n: "A typical 8K-era chat model", v: 8000, c: "var(--series-3)", note: "≈ 6,000 words" }
+];
+(() => {
+  const host = $("#ctxRows"), max = 1000000;
+  CTX.forEach(r => {
+    const d = document.createElement("div");
+    d.className = "ctx-row";
+    const pct = Math.max(0.35, r.v / max * 100);
+    d.innerHTML = `<div class="hd"><b>${r.n}</b><span>${fmt(r.v)} tokens · ${r.note}</span></div>
+      <div class="ctx-bar"><i style="background-color:${r.c}" data-w="${pct}"></i></div>`;
+    host.appendChild(d);
+  });
+  new IntersectionObserver((es, o) => {
+    if (!es[0].isIntersecting) return;
+    o.disconnect();
+    $$("#ctxRows .ctx-bar > i").forEach((b, i) => setTimeout(() => b.style.width = b.dataset.w + "%", RM ? 0 : i * 160));
+  }, { threshold: .3 }).observe(host);
+})();
+
+/* ---------------- benchmarks ---------------- */
+const MODELS = [
+  { k: "grok",  n: "Grok 4.5", c: "var(--series-1)" },
+  { k: "opus",  n: "Opus 4.8", c: "var(--series-2)" },
+  { k: "fable", n: "Fable 5",  c: "var(--series-3)" }
+];
+const BENCH = [
+  { n: "Terminal-Bench 2.1", d: "long shell-and-tools agent tasks", grok: 83.3, opus: 78.9, fable: 84.3 },
+  { n: "SWE-Bench Pro",      d: "hard real-world repository patches", grok: 64.7, opus: 69.2, fable: 80.4 },
+  { n: "DeepSWE 1.0",        d: "software-engineering agent suite", grok: 62.0, opus: 55.8, fable: 66.1 },
+  { n: "DeepSWE 1.1",        d: "the harder revision of the same suite", grok: 53.0, opus: 59.0, fable: 70.0 }
+];
+(() => {
+  const chart = $("#benchChart"), legend = $("#benchLegend");
+  MODELS.forEach(m => {
+    const s = document.createElement("span");
+    s.innerHTML = `<i style="background:${m.c}"></i>${m.n}`;
+    legend.appendChild(s);
+  });
+  const MAX = 100;
+  BENCH.forEach(b => {
+    const row = document.createElement("div");
+    row.className = "bench-row";
+    row.innerHTML = `<div class="name"><span>${b.n}</span><em>${b.d}</em></div>`;
+    const bars = document.createElement("div");
+    bars.className = "bars";
+    const rowGrid = document.createElement("div");
+    rowGrid.className = "gridlines";
+    [25, 50, 75, 100].forEach(p => { const i = document.createElement("i"); i.style.left = p + "%"; rowGrid.appendChild(i); });
+    bars.appendChild(rowGrid);
+    MODELS.forEach(m => {
+      const line = document.createElement("div");
+      line.className = "bar-line";
+      line.innerHTML = `<div class="who">${m.n}</div>
+        <div class="bar-track"><span class="bar-fill" style="background:${m.c}" data-w="${b[m.k] / MAX * 100}"></span><span class="bar-val">${b[m.k].toFixed(1)}%</span></div>`;
+      line.addEventListener("pointerenter", ev => {
+        const r = line.getBoundingClientRect();
+        showTip(`<div class="t">${b.n}</div><div class="v"><b>${m.n}</b> — ${b[m.k].toFixed(1)}% of tasks resolved</div>`, ev.clientX, r.top + 4);
+      });
+      line.addEventListener("pointerleave", hideTip);
+      bars.appendChild(line);
+    });
+    row.appendChild(bars);
+    chart.appendChild(row);
+  });
+  const ax = document.createElement("div");
+  ax.className = "axis";
+  [0, 25, 50, 75, 100].forEach(p => { const s = document.createElement("span"); s.style.left = p + "%"; s.textContent = p + "%"; ax.appendChild(s); });
+  chart.appendChild(ax);
+
+  // table view twin
+  const tw = $("#benchTable");
+  let html = `<table class="dv"><thead><tr><th>Benchmark</th>${MODELS.map(m => `<th>${m.n}</th>`).join("")}</tr></thead><tbody>`;
+  BENCH.forEach(b => {
+    const best = Math.max(...MODELS.map(m => b[m.k]));
+    html += `<tr><td>${b.n}</td>${MODELS.map(m => `<td>${b[m.k] === best ? `<b>${b[m.k].toFixed(1)}%</b>` : b[m.k].toFixed(1) + "%"}</td>`).join("")}</tr>`;
+  });
+  html += `</tbody></table><p class="foot">Bold marks the leader in each row. GPT-5.5 is reported at 64.3% on DeepSWE 1.0; comparable figures for the other three suites were not published together, so it is left out of the chart rather than shown with gaps.</p>`;
+  tw.innerHTML = html;
+  $("#tblToggle").addEventListener("click", e => {
+    const open = tw.hidden;
+    tw.hidden = !open;
+    e.target.setAttribute("aria-expanded", open);
+    e.target.textContent = open ? "Hide data table" : "Show data table";
+  });
+
+  new IntersectionObserver((es, o) => {
+    if (!es[0].isIntersecting) return;
+    o.disconnect();
+    chart.classList.add("in");
+    $$(".bar-fill", chart).forEach((f, i) => setTimeout(() => f.style.width = f.dataset.w + "%", RM ? 0 : 90 + i * 70));
+  }, { threshold: .22 }).observe(chart);
+})();
+
+/* ---------------- token race ---------------- */
+(() => {
+  const host = $("#raceViz");
+  new IntersectionObserver((es, o) => {
+    if (!es[0].isIntersecting) return;
+    o.disconnect();
+    $$(".lane > i", host).forEach((l, i) => setTimeout(() => l.style.width = l.dataset.w + "%", RM ? 0 : 180 + i * 220));
+    $$("[data-race]", host).forEach((el, i) => {
+      const to = +el.dataset.race;
+      if (RM) { el.textContent = fmt(to) + " tokens"; return; }
+      const t0 = performance.now() + 180 + i * 220, D = 1600;
+      const tick = t => {
+        const k = Math.max(0, Math.min(1, (t - t0) / D)), e2 = 1 - Math.pow(1 - k, 3);
+        el.textContent = fmt(Math.round(to * e2)) + " tokens";
+        if (k < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  }, { threshold: .3 }).observe(host);
+})();
+
+/* ---------------- pricing calculator ---------------- */
+(() => {
+  const sIn = $("#sIn"), sOut = $("#sOut"), sCache = $("#sCache");
+  const money = n => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function calc() {
+    const inM = +sIn.value, outM = +sOut.value, ch = +sCache.value / 100;
+    $("#vIn").textContent = inM + "M"; $("#vOut").textContent = outM + "M"; $("#vCache").textContent = (ch * 100) + "%";
+    const cachedM = inM * ch, freshM = inM - cachedM;
+    const cFresh = freshM * 2, cCache = cachedM * 0.30, cOut = outM * 6;
+    const total = cFresh + cCache + cOut;
+    const old = inM * 1.25 + outM * 2.50;
+    $("#dFresh").textContent = `${freshM.toFixed(1)}M @ $2.00`;
+    $("#dCache").textContent = `${cachedM.toFixed(1)}M @ $0.30`;
+    $("#dOut").textContent = `${outM.toFixed(0)}M @ $6.00`;
+    $("#cFresh").textContent = money(cFresh);
+    $("#cCache").textContent = money(cCache);
+    $("#cOut").textContent = money(cOut);
+    $("#cTotal").textContent = money(total);
+    $("#total").textContent = money(total);
+    $("#cOld").textContent = money(old);
+    const diff = total - old, pct = old ? Math.abs(diff / old * 100) : 0;
+    $("#verdict").innerHTML = diff > 0
+      ? `Grok 4.5 costs <b>${pct.toFixed(0)}% more</b> per token here. It has to make that back by finishing the job in ~4× fewer output tokens — which is exactly what it is built to do.`
+      : `Grok 4.5 comes out <b>${pct.toFixed(0)}% cheaper</b> at this cache rate, before counting its token frugality.`;
+  }
+  [sIn, sOut, sCache].forEach(s => s.addEventListener("input", calc));
+  calc();
+})();
+
+/* ---------------- timeline ---------------- */
+const TL = [
+  { w: "April 2026", h: "Grok 4.3", p: "A 1M-token context window, native video input, $1.25 / $2.50 pricing and a 20% batch discount. Scores 38 on the Artificial Analysis index. Still the budget choice for very long prompts." },
+  { w: "Spring 2026", h: "The Cursor deal", p: "SpaceX's reported $60B acquisition of Cursor hands xAI something rare: millions of hours of real developer sessions. Grok 4.5 is trained jointly with Cursor on repository-scale engineering." },
+  { w: "8 July 2026", h: "Grok 4.5 ships", p: "The V9 foundation, ~3× the scale. Intelligence index jumps 38 → 54. Context halves to 500K, video is dropped, price rises — and token consumption per task falls by roughly 4×." },
+  { w: "Mid-July 2026", h: "EU, then everywhere", p: "European availability lands after compliance work; the model spreads to OpenRouter, Vercel, Cloudflare, Snowflake and Databricks. Reasoning stays pinned at high effort by default." },
+  { w: "What's next", h: "A faster stack", p: "xAI has signalled that a custom C/C++ inference stack could double throughput from the launch figure. Speed, not intelligence, is the stated next frontier for this generation." }
+];
+(() => {
+  const host = $("#tl");
+  TL.forEach((t, i) => {
+    const d = document.createElement("div");
+    d.className = "tl-item rv"; d.dataset.d = Math.min(i + 1, 6);
+    d.innerHTML = `<div class="when">${t.w}</div><h4>${t.h}</h4><p>${t.p}</p>`;
+    host.appendChild(d);
+  });
+})();
+
+/* ---------------- wire observers ---------------- */
+observeAll();
+$$("[data-count]").forEach(el => countIO.observe(el));
+})();
+</script>
+</body>
+</html>
