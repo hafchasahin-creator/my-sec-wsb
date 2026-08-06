@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Grandfather Paradox — an animated explanation</title>
+<meta name="description" content="An interactive, animated explanation of the grandfather paradox: what it is, why it is a genuine logical contradiction, and the three main ways physicists and philosophers try to escape it.">
+<style>
+  :root{
+    --bg:#060915;
+    --bg-2:#0b1226;
+    --panel:rgba(255,255,255,.045);
+    --panel-line:rgba(255,255,255,.10);
+    --ink:#e8ecf8;
+    --ink-dim:#a3adc9;
+    --ink-faint:#6f7a99;
+    --cyan:#4dd8ff;
+    --amber:#ffb454;
+    --rose:#ff5f8f;
+    --green:#5ef2a6;
+    --violet:#a98bff;
+    --maxw:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 700px at 15% -10%, #172a54 0%, transparent 60%),
+      radial-gradient(900px 600px at 90% 5%, #3a1240 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font:400 16px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  h1,h2,h3{line-height:1.15;letter-spacing:-.02em;margin:0}
+  a{color:var(--cyan)}
+
+  /* ---------- hero ---------- */
+  header.hero{position:relative;padding:96px 0 54px;overflow:hidden}
+  #stars-bg{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:0;opacity:.9}
+  .hero .wrap{position:relative;z-index:1}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:9px;
+    font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--cyan);
+    border:1px solid rgba(77,216,255,.3);background:rgba(77,216,255,.07);
+    padding:7px 14px;border-radius:999px;margin-bottom:22px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:blip 2.4s ease-in-out infinite}
+  @keyframes blip{0%,100%{opacity:1}50%{opacity:.25}}
+  h1{font-size:clamp(38px,7.2vw,74px);font-weight:700}
+  h1 .grad{
+    background:linear-gradient(100deg,var(--cyan),var(--violet) 45%,var(--rose));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .lede{margin-top:20px;max-width:64ch;font-size:clamp(17px,2.1vw,20px);color:var(--ink-dim)}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+  .btn{
+    appearance:none;border:1px solid var(--panel-line);background:var(--panel);color:var(--ink);
+    padding:11px 18px;border-radius:11px;font-size:14px;font-weight:600;cursor:pointer;
+    text-decoration:none;display:inline-block;transition:.18s ease;
+  }
+  .btn:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);transform:translateY(-1px)}
+  .btn.primary{background:linear-gradient(100deg,rgba(77,216,255,.9),rgba(169,139,255,.9));color:#06101c;border-color:transparent}
+  .btn.primary:hover{filter:brightness(1.08)}
+
+  /* ---------- generic section ---------- */
+  section{padding:66px 0;position:relative}
+  .kicker{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:12px}
+  h2{font-size:clamp(26px,4vw,40px);font-weight:650}
+  .sub{margin-top:14px;color:var(--ink-dim);max-width:70ch}
+  .rule{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);border:0;margin:0}
+
+  /* ---------- statement card ---------- */
+  .statement{
+    margin-top:30px;border:1px solid var(--panel-line);border-radius:18px;
+    background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+    padding:26px 28px;position:relative;overflow:hidden;
+  }
+  .statement::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--cyan),var(--rose))}
+  .statement p{margin:0;font-size:clamp(18px,2.4vw,22px);line-height:1.5}
+  .statement .who{margin-top:14px;color:var(--ink-faint);font-size:14px}
+
+  /* ---------- stage ---------- */
+  .stage{
+    margin-top:28px;border:1px solid var(--panel-line);border-radius:20px;
+    background:linear-gradient(180deg,rgba(10,16,34,.85),rgba(6,9,21,.9));
+    overflow:hidden;box-shadow:0 30px 80px -40px rgba(0,0,0,.9);
+  }
+  .stage-head{
+    display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;
+    padding:14px 16px;border-bottom:1px solid var(--panel-line);background:rgba(255,255,255,.02);
+  }
+  .modes{display:flex;gap:8px;flex-wrap:wrap}
+  .mode{
+    border:1px solid var(--panel-line);background:transparent;color:var(--ink-dim);
+    padding:9px 14px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:.16s ease;
+    display:inline-flex;align-items:center;gap:8px;
+  }
+  .mode .swatch{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.8}
+  .mode:hover{color:var(--ink);border-color:rgba(255,255,255,.24)}
+  .mode[aria-pressed="true"]{color:#06101c;background:var(--c,#4dd8ff);border-color:transparent}
+  .mode[data-mode="paradox"]{--c:#ff5f8f}
+  .mode[data-mode="novikov"]{--c:#5ef2a6}
+  .mode[data-mode="branch"]{--c:#a98bff}
+  .transport{display:flex;gap:8px;align-items:center}
+  .icon-btn{
+    width:38px;height:38px;display:grid;place-items:center;border-radius:10px;
+    border:1px solid var(--panel-line);background:var(--panel);color:var(--ink);cursor:pointer;transition:.16s ease;
+  }
+  .icon-btn:hover{background:rgba(255,255,255,.11)}
+  .icon-btn svg{width:15px;height:15px;fill:currentColor}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-faint)}
+  .speed input{width:92px;accent-color:var(--cyan)}
+
+  .canvas-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+  .canvas-scroll canvas{display:block;min-width:680px;width:100%}
+
+  .narration{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:0;border-top:1px solid var(--panel-line);
+  }
+  .narr-main{padding:20px 22px 22px}
+  .narr-title{font-size:15px;font-weight:700;color:var(--accent,#4dd8ff);letter-spacing:.01em}
+  .narr-text{margin-top:9px;color:var(--ink-dim);font-size:15px;min-height:76px}
+  .steps{border-left:1px solid var(--panel-line);padding:16px 18px;background:rgba(255,255,255,.015)}
+  .step{
+    display:flex;gap:11px;align-items:flex-start;padding:7px 8px;border-radius:9px;
+    font-size:13px;color:var(--ink-faint);transition:.2s ease;cursor:pointer;
+  }
+  .step:hover{background:rgba(255,255,255,.05);color:var(--ink-dim)}
+  .step .num{
+    flex:0 0 20px;height:20px;border-radius:50%;border:1px solid rgba(255,255,255,.18);
+    display:grid;place-items:center;font-size:11px;font-weight:700;margin-top:1px;
+  }
+  .step.active{color:var(--ink);background:rgba(255,255,255,.06)}
+  .step.active .num{background:var(--accent,#4dd8ff);border-color:transparent;color:#06101c}
+  .step.done .num{border-color:var(--accent,#4dd8ff);color:var(--accent,#4dd8ff)}
+  .bar{height:3px;background:rgba(255,255,255,.09);border-radius:2px;overflow:hidden;margin-top:14px}
+  .bar i{display:block;height:100%;width:0;background:var(--accent,#4dd8ff);border-radius:2px}
+  @media (max-width:860px){.narration{grid-template-columns:1fr}.steps{border-left:0;border-top:1px solid var(--panel-line)}}
+
+  /* ---------- logic loop ---------- */
+  .logic{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:center;margin-top:34px}
+  @media (max-width:860px){.logic{grid-template-columns:1fr}}
+  .loop-svg{width:100%;max-width:420px;margin:0 auto;display:block;overflow:visible}
+  .loop-svg .ring{fill:none;stroke:rgba(255,255,255,.13);stroke-width:1.5}
+  .loop-svg .flow{fill:none;stroke:var(--rose);stroke-width:2;stroke-dasharray:7 11;stroke-linecap:round;animation:dash 2.6s linear infinite}
+  @keyframes dash{to{stroke-dashoffset:-36}}
+  .loop-svg text{fill:var(--ink-dim);font:600 11.5px ui-sans-serif,system-ui,sans-serif}
+  .loop-svg .node{fill:rgba(255,95,143,.12);stroke:rgba(255,95,143,.5);stroke-width:1.2}
+  .prop{
+    border:1px solid var(--panel-line);border-radius:14px;padding:16px 18px;background:var(--panel);
+    margin-bottom:12px;display:flex;gap:14px;align-items:flex-start;
+  }
+  .prop .tag{
+    flex:0 0 auto;font-size:11px;font-weight:800;letter-spacing:.08em;padding:4px 8px;border-radius:6px;
+    background:rgba(255,95,143,.16);color:var(--rose);margin-top:2px;
+  }
+  .prop p{margin:0;font-size:14.5px;color:var(--ink-dim)}
+  .prop b{color:var(--ink)}
+  .clash{
+    margin-top:8px;text-align:center;font-weight:700;color:var(--rose);
+    border:1px dashed rgba(255,95,143,.45);border-radius:12px;padding:12px;background:rgba(255,95,143,.06);
+  }
+
+  /* ---------- cards ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:16px;margin-top:30px}
+  .card{
+    border:1px solid var(--panel-line);border-radius:16px;padding:22px;background:var(--panel);
+    transition:.2s ease;position:relative;overflow:hidden;
+  }
+  .card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.07)}
+  .card::after{content:"";position:absolute;inset:auto 0 0 0;height:2px;background:var(--c,#4dd8ff);opacity:.75}
+  .card h3{font-size:17px;margin-bottom:6px}
+  .card .meta{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--c,#4dd8ff);margin-bottom:10px;font-weight:700}
+  .card p{margin:0;font-size:14.5px;color:var(--ink-dim)}
+  .card .cost{margin-top:12px;font-size:13px;color:var(--ink-faint);border-top:1px solid var(--panel-line);padding-top:10px}
+  .card .cost b{color:var(--ink-dim)}
+
+  /* ---------- faq / list ---------- */
+  .qa{border-top:1px solid var(--panel-line);padding:18px 0}
+  .qa h3{font-size:17px;margin-bottom:8px}
+  .qa p{margin:0;color:var(--ink-dim);font-size:15px}
+
+  footer{padding:52px 0 70px;color:var(--ink-faint);font-size:13.5px;border-top:1px solid var(--panel-line);margin-top:40px}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center}
+
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){
+    .reveal{opacity:1;transform:none;transition:none}
+    .loop-svg .flow{animation:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <canvas id="stars-bg" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>Time travel · logic · physics</span>
+    <h1>The <span class="grad">Grandfather Paradox</span></h1>
+    <p class="lede">
+      Travel back in time and kill your own grandfather before he meets your grandmother.
+      Then you were never born — so you never travelled back — so he lives. The story
+      cannot be finished. This page animates exactly where it breaks, and what has to give.
+    </p>
+    <div class="hero-cta">
+      <a class="btn primary" href="#stage">Watch the animation</a>
+      <a class="btn" href="#resolutions">Skip to the resolutions</a>
+    </div>
+  </div>
+</header>
+
+<hr class="rule">
+
+<section id="what">
+  <div class="wrap reveal">
+    <div class="kicker">The setup</div>
+    <h2>A story that eats itself</h2>
+    <div class="statement">
+      <p>
+        You build a time machine, travel to 1940, and shoot your grandfather while he is
+        still a teenager — years before he meets your grandmother.
+      </p>
+      <div class="who">Stated in this form by the French journalist René Barjavel in <em>Le Voyageur Imprudent</em> (1943), though the shape of the puzzle is older.</div>
+    </div>
+    <p class="sub">
+      The paradox is not that this would be sad, or difficult, or that the timeline would
+      "feel weird". It is that the story asserts a plain logical contradiction: a single
+      event both happens and does not happen. Any theory of time travel has to say something
+      about it — and every answer costs something.
+    </p>
+  </div>
+</section>
+
+<section id="stage" style="padding-top:16px">
+  <div class="wrap reveal">
+    <div class="kicker">Interactive</div>
+    <h2>Watch the timeline break — three ways</h2>
+    <p class="sub">
+      Pick a rule for how time works. The same journey plays out under each one:
+      the contradiction itself, and the two standard escapes from it.
+    </p>
+
+    <div class="stage" id="stageBox">
+      <div class="stage-head">
+        <div class="modes" role="group" aria-label="Choose how time works">
+          <button class="mode" data-mode="paradox" aria-pressed="true"><span class="swatch"></span>The paradox</button>
+          <button class="mode" data-mode="novikov" aria-pressed="false"><span class="swatch"></span>Self-consistency</button>
+          <button class="mode" data-mode="branch" aria-pressed="false"><span class="swatch"></span>Many worlds</button>
+        </div>
+        <div class="transport">
+          <div class="speed"><label for="speed">Speed</label><input id="speed" type="range" min="0.5" max="2" step="0.1" value="1"></div>
+          <button class="icon-btn" id="playBtn" title="Play / pause (space)" aria-label="Play or pause">
+            <svg viewBox="0 0 16 16" id="playIcon"><path d="M3 2h3.2v12H3zM9.8 2H13v12H9.8z"/></svg>
+          </button>
+          <button class="icon-btn" id="restartBtn" title="Restart" aria-label="Restart">
+            <svg viewBox="0 0 16 16"><path d="M8 2.5A5.5 5.5 0 1 0 13.5 8h-1.7A3.8 3.8 0 1 1 8 4.2V6.6L11.6 3.6 8 .6z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="canvas-scroll">
+        <canvas id="scene" role="img" aria-label="Animated timeline showing a time traveller returning to 1940 and the consequences under three different rules of time."></canvas>
+      </div>
+
+      <div class="narration">
+        <div class="narr-main">
+          <div class="narr-title" id="narrTitle">A causal chain</div>
+          <div class="narr-text" id="narrText">Loading…</div>
+          <div class="bar"><i id="progBar"></i></div>
+        </div>
+        <div class="steps" id="stepList"></div>
+      </div>
+    </div>
+    <p class="sub" style="font-size:14px;color:var(--ink-faint);margin-top:14px">
+      Tip: click any step in the list to jump to it. Press <kbd>space</kbd> to pause.
+    </p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section id="why">
+  <div class="wrap reveal">
+    <div class="kicker">The logic</div>
+    <h2>Why it is a real contradiction, not just a weird feeling</h2>
+    <p class="sub">
+      Strip the story of guns and grandfathers and you are left with four claims. Each one
+      looks innocent. Together they are inconsistent — so at least one has to be false.
+    </p>
+
+    <div class="logic">
+      <div>
+        <div class="prop"><span class="tag">P1</span><p><b>You exist</b> in 2025 and step into the machine. Something has to do the travelling.</p></div>
+        <div class="prop"><span class="tag">P2</span><p><b>You exist only because</b> your grandfather survived to have children. That is the causal chain that produced you.</p></div>
+        <div class="prop"><span class="tag">P3</span><p><b>The past is a place you can act in.</b> Arriving in 1940 with a loaded gun, you have the same freedom you have anywhere else.</p></div>
+        <div class="prop"><span class="tag">P4</span><p><b>An event either happened or it didn't.</b> "Grandfather dies in 1940" cannot be both true and false of the same 1940.</p></div>
+        <div class="clash">P1 + P2 + P3 + P4 cannot all be true. The paradox is the bill for keeping all four.</div>
+      </div>
+
+      <div>
+        <svg class="loop-svg" viewBox="0 0 340 300" aria-label="A circular chain of four statements, each causing the next, ending where it began in contradiction.">
+          <circle class="ring" cx="170" cy="150" r="112"/>
+          <circle class="flow" cx="170" cy="150" r="112"/>
+          <g>
+            <rect class="node" x="92" y="6" width="156" height="34" rx="9"/>
+            <text x="170" y="27" text-anchor="middle">You are born, and travel back</text>
+
+            <rect class="node" x="228" y="126" width="112" height="34" rx="9"/>
+            <text x="284" y="147" text-anchor="middle">Grandfather dies</text>
+
+            <rect class="node" x="92" y="260" width="156" height="34" rx="9"/>
+            <text x="170" y="281" text-anchor="middle">You are never born</text>
+
+            <rect class="node" x="0" y="126" width="112" height="34" rx="9"/>
+            <text x="56" y="147" text-anchor="middle">Nobody shoots him</text>
+          </g>
+          <text x="170" y="146" text-anchor="middle" style="fill:#ff5f8f;font-size:13px;font-weight:800">NO STABLE</text>
+          <text x="170" y="164" text-anchor="middle" style="fill:#ff5f8f;font-size:13px;font-weight:800">STATE</text>
+        </svg>
+        <p class="sub" style="text-align:center;font-size:13.5px;margin-top:10px">
+          Follow the ring: every state implies the next, and four steps later you are back at
+          the state you just denied. The loop never settles — that is the paradox in one picture.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section id="resolutions">
+  <div class="wrap reveal">
+    <div class="kicker">The escapes</div>
+    <h2>Four ways out — and what each one costs</h2>
+    <p class="sub">
+      Each resolution rejects exactly one of the four claims above. Nobody gets to keep all of them.
+    </p>
+
+    <div class="cards">
+      <div class="card" style="--c:#5ef2a6">
+        <div class="meta">Rejects P3 · Novikov</div>
+        <h3>Self-consistency</h3>
+        <p>
+          Time travel is allowed, but only histories that are already consistent can occur.
+          You <em>can</em> go to 1940 and you <em>can</em> aim — you just always miss. The gun
+          jams, your hand shakes, you shoot the wrong man. Not because a force stops you, but
+          because the inconsistent versions of the story were never among the possible histories
+          in the first place. Whatever you do in 1940, you already did.
+        </p>
+        <div class="cost"><b>Cost:</b> your freedom in the past becomes strangely constrained — an unbroken run of coincidences with no local explanation.</div>
+      </div>
+
+      <div class="card" style="--c:#a98bff">
+        <div class="meta">Rejects P4 · Branching</div>
+        <h3>Many worlds / branching time</h3>
+        <p>
+          Arriving in 1940 splits history. You kill the grandfather of <em>that</em> branch, and
+          on that branch you are indeed never born — but you still exist, as an immigrant from
+          a timeline that continues untouched. Nothing is contradicted, because "1940" now names
+          two different events on two different branches. The Deutsch model of quantum time
+          travel makes a version of this precise.
+        </p>
+        <div class="cost"><b>Cost:</b> you never really changed <em>your</em> past. You can't go home, and the grandfather you cared about is still alive somewhere.</div>
+      </div>
+
+      <div class="card" style="--c:#4dd8ff">
+        <div class="meta">Rejects the machine</div>
+        <h3>Chronology protection</h3>
+        <p>
+          General relativity does permit closed timelike curves — Gödel's rotating universe,
+          the interior of a spinning black hole, traversable wormholes. Hawking's chronology
+          protection conjecture says quantum effects always intervene first: vacuum fluctuations
+          pile up without bound at the moment a time machine would switch on and destroy it.
+          The universe is "safe for historians."
+        </p>
+        <div class="cost"><b>Cost:</b> still a conjecture. It needs a theory of quantum gravity to be settled either way.</div>
+      </div>
+
+      <div class="card" style="--c:#ffb454">
+        <div class="meta">Rejects P1 · Metaphysics</div>
+        <h3>There is nothing to change</h3>
+        <p>
+          On a block-universe view, the whole of spacetime simply <em>is</em>. "Changing the past"
+          asks for a second version of 1940 to replace the first — but there is no extra time
+          dimension for that replacement to happen in. A time traveller is part of history, not
+          an editor of it. The paradox dissolves because its central verb was never coherent.
+        </p>
+        <div class="cost"><b>Cost:</b> it makes the puzzle go away by denying the intuition that motivated it — that the past could have gone otherwise.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section id="cousins">
+  <div class="wrap reveal">
+    <div class="kicker">Nearby puzzles</div>
+    <h2>Its relatives</h2>
+    <div class="qa">
+      <h3>The bootstrap paradox</h3>
+      <p>You travel back and hand Shakespeare the complete text of <em>Hamlet</em>, which he publishes, and which you later read and carry back. The loop is perfectly consistent — no contradiction anywhere. But <em>who wrote it?</em> The information has no origin. Self-consistency saves the story from contradiction; it does not explain where the play came from.</p>
+    </div>
+    <div class="qa">
+      <h3>The predestination paradox</h3>
+      <p>You rush back to prevent the fire — and it is your lantern, knocked over in the struggle, that starts it. Your attempt to change the past turns out to have caused it. This is what Novikov consistency looks like from the inside, and it is not a contradiction, only an unsettling one.</p>
+    </div>
+    <div class="qa">
+      <h3>The "autoinfanticide" sharpening</h3>
+      <p>Philosophers usually replace the grandfather with <em>yourself as a baby</em>, closing the loophole that you might have been adopted, or descended from someone else. Same logic, no escape hatch: it forces the question of whether "can" means "is physically able to" or "is consistent with everything else that is true".</p>
+    </div>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section id="verdict">
+  <div class="wrap reveal">
+    <div class="kicker">Where this leaves us</div>
+    <h2>The paradox is an argument, not a story</h2>
+    <p class="sub">
+      Its real force is as a piece of reasoning about what is possible. If backwards time travel
+      allowed you to bring about a contradiction, then backwards time travel is impossible —
+      so anyone who wants to keep it has to explain why the contradiction can never actually be
+      built. Every serious answer does that in one of two ways: it restricts what you are able
+      to do once you arrive, or it denies that you arrived in <em>your own</em> past at all.
+      Nothing in known physics forbids closed timelike curves outright. What forbids the
+      paradox is not physics but logic — and logic doesn't negotiate.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>An animated explainer · built as a single self-contained HTML file.</span>
+    <span>Barjavel 1943 · Gödel 1949 · Novikov 1975 · Deutsch 1991 · Hawking 1992</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   0. helpers
+   ============================================================ */
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const easeOut=t=>1-Math.pow(1-t,3);
+const seg=(t,a,b)=>clamp((t-a)/(b-a),0,1);      // sub-progress inside [a,b]
+const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ============================================================
+   1. hero starfield
+   ============================================================ */
+(function starfield(){
+  const c=document.getElementById('stars-bg');
+  if(!c) return;
+  const ctx=c.getContext('2d');
+  let stars=[],W=0,H=0,dpr=1;
+  function resize(){
+    dpr=Math.min(window.devicePixelRatio||1,2);
+    W=c.clientWidth; H=c.clientHeight;
+    c.width=W*dpr; c.height=H*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const n=Math.round(W*H/9000);
+    stars=Array.from({length:Math.min(n,220)},()=>({
+      x:Math.random()*W, y:Math.random()*H,
+      r:Math.random()*1.3+.25, p:Math.random()*Math.PI*2,
+      s:Math.random()*.8+.2
+    }));
+  }
+  function draw(t){
+    ctx.clearRect(0,0,W,H);
+    for(const st of stars){
+      const tw=REDUCED?.8:(Math.sin(t/900*st.s+st.p)*.4+.6);
+      ctx.globalAlpha=tw*.85;
+      ctx.fillStyle= st.r>1.05 ? '#9fd6ff' : '#ffffff';
+      ctx.beginPath(); ctx.arc(st.x,st.y,st.r,0,6.283); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    requestAnimationFrame(draw);
+  }
+  const ro=new ResizeObserver(resize); ro.observe(c);
+  resize(); requestAnimationFrame(draw);
+})();
+
+/* ============================================================
+   2. reveal on scroll
+   ============================================================ */
+(function reveals(){
+  const els=document.querySelectorAll('.reveal');
+  if(!('IntersectionObserver' in window)){els.forEach(e=>e.classList.add('in'));return;}
+  const io=new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+  },{threshold:.12});
+  els.forEach(e=>io.observe(e));
+})();
+
+/* ============================================================
+   3. the main scene
+   ============================================================ */
+const cv=document.getElementById('scene');
+const ctx=cv.getContext('2d');
+
+/* --- logical drawing space: everything is authored at 1000 x 540 --- */
+const VW=1000, VH=540;
+const YEAR_MIN=1915, YEAR_MAX=2040, PAD_L=72, PAD_R=62;
+const X=y=>PAD_L+(y-YEAR_MIN)/(YEAR_MAX-YEAR_MIN)*(VW-PAD_L-PAD_R);
+const Y_MAIN=382, Y_BRANCH=176;
+
+const NODES=[
+  {k:'gf',      year:1925, label:'Grandfather born',   up:true },
+  {k:'meet',    year:1950, label:'He meets grandmother',up:false},
+  {k:'parent',  year:1960, label:'Your parent born',   up:true },
+  {k:'you',     year:1992, label:'You are born',       up:false},
+  {k:'machine', year:2025, label:'Time machine built', up:true }
+];
+const IDX={}; NODES.forEach((n,i)=>IDX[n.k]=i);
+const TARGET=1940;
+
+const COL={
+  main:'#4dd8ff', rose:'#ff5f8f', green:'#5ef2a6', violet:'#a98bff',
+  amber:'#ffb454', ink:'#e8ecf8', dim:'#a3adc9', faint:'#67718f'
+};
+const ACCENT={paradox:COL.rose, novikov:COL.green, branch:COL.violet};
+
+/* --- arc the traveller flies along (machine -> 1940) --- */
+const ARC={x0:X(2025),y0:Y_MAIN, cx:(X(2025)+X(TARGET))/2, cy:44, x1:X(TARGET), y1:Y_MAIN};
+/* --- the branch timeline (many-worlds), as a cubic --- */
+const BR={sx:X(TARGET),sy:Y_MAIN,c1x:X(TARGET)+120,c1y:Y_MAIN,c2x:X(TARGET)+60,c2y:Y_BRANCH,ex:X(YEAR_MAX)-8,ey:Y_BRANCH};
+function brPt(u){
+  const v=1-u;
+  return {
+    x:v*v*v*BR.sx+3*v*v*u*BR.c1x+3*v*u*u*BR.c2x+u*u*u*BR.ex,
+    y:v*v*v*BR.sy+3*v*v*u*BR.c1y+3*v*u*u*BR.c2y+u*u*u*BR.ey
+  };
+}
+function arcPt(t){
+  const u=1-t;
+  return {
+    x:u*u*ARC.x0+2*u*t*ARC.cx+t*t*ARC.x1,
+    y:u*u*ARC.y0+2*u*t*ARC.cy+t*t*ARC.y1
+  };
+}
+
+/* ============================================================
+   4. script: steps per mode
+   ============================================================ */
+const SCRIPT={
+  paradox:[
+    {id:'chain',  dur:5600, title:'1 · An ordinary causal chain',
+     short:'The chain that makes you',
+     text:'Nothing strange yet. Your grandfather is born, meets your grandmother, they have your parent, your parent has you, and in 2025 you finish the machine. Every link depends on the one before it.'},
+    {id:'depart', dur:3400, title:'2 · You travel back to 1940',
+     short:'You jump back to 1940',
+     text:'You step in and arrive in 1940 — before your grandparents ever met. Your grandfather is fifteen years old and has no children yet. From his point of view, you are simply a stranger who appeared.'},
+    {id:'act',    dur:2800, title:'3 · You kill him',
+     short:'You kill your grandfather',
+     text:'You take the shot, and it lands. The 1925 birth still happened, but the man does not survive 1940 — and everything downstream of him depended on his survival.'},
+    {id:'unravel',dur:3400, title:'4 · The chain unravels',
+     short:'The chain downstream dies',
+     text:'He never meets your grandmother. Your parent is never born. You are never born. The machine is never built. Cause by cause, the line that produced you is deleted.'},
+    {id:'undo',   dur:3600, title:'5 · …so the killer never existed',
+     short:'So the killer never existed',
+     text:'But the person who fired that shot in 1940 was you — and you have just been erased from history. There is now nobody in 1940 with a gun. The shot has no shooter.'},
+    {id:'loop',   dur:4000, title:'6 · Which brings him back',
+     short:'…which brings him back',
+     text:'With no traveller, your grandfather lives. He meets your grandmother. Your parent is born. You are born. You build the machine — and go back to kill him. The story has no ending that is consistent with itself.'}
+  ],
+  novikov:[
+    {id:'chain',  dur:5200, title:'1 · The same causal chain',
+     short:'The chain that makes you',
+     text:'Same beginning: birth, marriage, parent, you, machine. Under self-consistency this history is fixed — it is one of the histories the universe actually permits, all the way through.'},
+    {id:'depart', dur:3200, title:'2 · You travel back to 1940',
+     short:'You jump back to 1940',
+     text:'You arrive in 1940 fully intending to end the line. Nothing prevents the trip: closed timelike curves are not what self-consistency forbids.'},
+    {id:'attempt',dur:3400, title:'3 · You aim — and you miss',
+     short:'You aim, and you miss',
+     text:'The round jams. Or your arm is jostled. Or the man in the doorway turns out to be his brother. Every attempt fails, and it fails by perfectly ordinary means — no force field, no push-back, just an unbroken run of luck running the only direction it can.'},
+    {id:'woven',  dur:3400, title:'4 · You were always there',
+     short:'You were always in 1940',
+     text:'And here is the twist: your visit was never an intrusion. The stranger who fired a wild shot in 1940 is in the history books — the story your grandfather told for decades. You did not change the past. You were part of it before you left.'},
+    {id:'stable', dur:3600, title:'5 · The loop closes cleanly',
+     short:'The loop closes cleanly',
+     text:'The chain is intact, the trip happened, and no statement contradicts another. The price is your freedom: in 1940 you could try anything, but only the consistent outcome was ever going to occur.'}
+  ],
+  branch:[
+    {id:'chain',  dur:5200, title:'1 · The same causal chain',
+     short:'The chain that makes you',
+     text:'Once more from the beginning — grandfather, marriage, parent, you, machine. Call this timeline A. It is the history that produced you, and under branching time nothing can ever unmake it.'},
+    {id:'depart', dur:3200, title:'2 · You travel back to 1940',
+     short:'You jump back to 1940',
+     text:'You aim for 1940. But under branching time, arriving in the past is not re-entering your own history — it is entering a copy that diverges the instant you show up.'},
+    {id:'split',  dur:3200, title:'3 · History splits',
+     short:'History splits in two',
+     text:'The moment you arrive, the timeline forks. Timeline A carries on exactly as it always did. You are now standing in timeline B — brand new, and identical to A only up to this instant.'},
+    {id:'kill',   dur:3400, title:'4 · You kill B’s grandfather',
+     short:'You kill B’s grandfather',
+     text:'On branch B the shot lands and the line ends there: no marriage, no parent, no you. But this costs you nothing, because you were never produced by branch B. You are an immigrant from A.'},
+    {id:'stable', dur:3800, title:'5 · No contradiction — and no change',
+     short:'No contradiction, no change',
+     text:'Both timelines are fully consistent. Nothing is both true and false, because "1940" now names two different events. The catch: you did not change your past at all. In timeline A your grandfather is alive, your family is intact, and you are simply missing.'}
+  ]
+};
+
+/* ============================================================
+   5. state derived purely from (mode, step, t)  — no drift
+   ============================================================ */
+function blank(){
+  const n={}; NODES.forEach(x=>n[x.k]={a:0,shake:0,dead:0,glow:0});
+  return {
+    n, arrows:[0,0,0,0],
+    trav:{a:0,x:ARC.x0,y:ARC.y0,tremor:0,onBranch:0},
+    arc:0, shot:0, ripple:0, flash:0, banner:null, bannerA:0,
+    branch:0, bnodes:{gf:0,x:0}, stranger:0, ghost:0, seal:0
+  };
+}
+
+function build(mode,step,t){
+  const S=blank();
+  const id=SCRIPT[mode][step].id;
+  const all=v=>NODES.forEach(x=>S.n[x.k].a=v);
+  const arrowsAll=v=>S.arrows=[v,v,v,v];
+
+  /* --- shared opening --- */
+  if(id==='chain'){
+    NODES.forEach((x,i)=>{
+      const s=i*0.155;
+      S.n[x.k].a=easeOut(seg(t,s,s+0.16));
+      S.n[x.k].glow=Math.max(0,1-seg(t,s+0.05,s+0.5))*S.n[x.k].a;
+    });
+    for(let i=0;i<4;i++) S.arrows[i]=easeOut(seg(t,i*0.155+0.10,i*0.155+0.24));
+    return S;
+  }
+
+  all(1); arrowsAll(1);
+
+  if(id==='depart'){
+    const p=easeOut(seg(t,0.08,1));
+    const pt=arcPt(p);
+    S.trav={a:easeOut(seg(t,0,0.12)),x:pt.x,y:pt.y,tremor:0,onBranch:0};
+    S.arc=easeOut(seg(t,0.02,0.5));
+    S.n.machine.glow=1-seg(t,0,0.3);
+    return S;
+  }
+
+  /* keep the traveller parked at the arrival point for later steps */
+  const at=arcPt(1);
+  S.trav={a:1,x:at.x,y:at.y,tremor:0,onBranch:0};
+  S.arc=1;
+
+  /* ---------------- paradox ---------------- */
+  if(mode==='paradox'){
+    if(id==='act'){
+      S.shot=seg(t,0.25,0.45);
+      const k=seg(t,0.42,1);
+      S.n.gf.shake=Math.max(0,1-k)*seg(t,0.42,0.55);
+      S.n.gf.a=1-easeOut(k); S.n.gf.dead=easeOut(k);
+      S.arrows[0]=1-easeOut(seg(t,0.55,1));
+      S.flash=Math.max(0,1-seg(t,0.42,0.62))*seg(t,0.40,0.44);
+      return S;
+    }
+    S.n.gf.a=0; S.n.gf.dead=1; S.arrows[0]=0;
+
+    if(id==='unravel'){
+      const keys=['meet','parent','you','machine'];
+      keys.forEach((k,i)=>{
+        const s=0.05+i*0.19;
+        S.n[k].a=1-easeOut(seg(t,s,s+0.22));
+        S.n[k].shake=Math.max(0,1-seg(t,s,s+0.10));
+      });
+      for(let i=1;i<4;i++) S.arrows[i]=1-easeOut(seg(t,0.05+(i-1)*0.19,0.27+(i-1)*0.19));
+      S.arc=1-easeOut(seg(t,0.62,1));
+      return S;
+    }
+    ['meet','parent','you','machine'].forEach(k=>S.n[k].a=0);
+    arrowsAll(0); S.arc=0;
+
+    if(id==='undo'){
+      S.trav.a=1-easeOut(seg(t,0.34,0.85));
+      S.trav.tremor=seg(t,0.10,0.34)*(1-seg(t,0.7,1));
+      S.ghost=seg(t,0.34,0.85);
+      S.banner='no shooter'; S.bannerA=seg(t,0.5,0.75);
+      return S;
+    }
+    S.trav.a=0;
+
+    if(id==='loop'){
+      NODES.forEach((x,i)=>{
+        const s=i*0.10;
+        S.n[x.k].a=easeOut(seg(t,s,s+0.14));
+        S.n[x.k].glow=Math.max(0,1-seg(t,s,s+0.4))*S.n[x.k].a;
+      });
+      for(let i=0;i<4;i++) S.arrows[i]=easeOut(seg(t,i*0.10+0.06,i*0.10+0.18));
+      S.n.gf.dead=0;
+      S.arc=easeOut(seg(t,0.55,0.8))*(1-seg(t,0.92,1));
+      S.trav.a=easeOut(seg(t,0.60,0.75))*(1-seg(t,0.92,1));
+      const pt=arcPt(easeOut(seg(t,0.62,0.92))); S.trav.x=pt.x; S.trav.y=pt.y;
+      S.flash=seg(t,0.5,0.62)*(1-seg(t,0.9,1))*(0.5+0.5*Math.sin(t*46));
+      S.banner='paradox'; S.bannerA=seg(t,0.45,0.6);
+      return S;
+    }
+  }
+
+  /* ---------------- novikov ---------------- */
+  if(mode==='novikov'){
+    if(id==='attempt'){
+      S.shot=seg(t,0.18,0.34);
+      S.ripple=seg(t,0.28,1);
+      S.n.gf.glow=Math.max(0,1-seg(t,0.30,0.75));
+      S.trav.tremor=seg(t,0.30,0.5)*(1-seg(t,0.6,0.9));
+      S.banner='missed'; S.bannerA=seg(t,0.5,0.7)*(1-seg(t,0.94,1));
+      return S;
+    }
+    if(id==='woven'){
+      S.stranger=easeOut(seg(t,0.10,0.45));
+      S.seal=easeOut(seg(t,0.45,0.9));
+      return S;
+    }
+    if(id==='stable'){
+      S.stranger=1; S.seal=1;
+      S.arc=1;
+      const pulse=0.5+0.5*Math.sin(t*Math.PI*4);
+      NODES.forEach(x=>S.n[x.k].glow=0.35*pulse);
+      S.banner='consistent'; S.bannerA=seg(t,0.15,0.35);
+      return S;
+    }
+  }
+
+  /* ---------------- branching ---------------- */
+  if(mode==='branch'){
+    if(id==='split'){
+      S.branch=easeOut(seg(t,0.06,0.75));
+      S.trav.onBranch=easeOut(seg(t,0.35,0.9));
+      S.arc=1-easeOut(seg(t,0.5,0.95));
+      S.banner='split'; S.bannerA=seg(t,0.5,0.7);
+      return S;
+    }
+    S.branch=1; S.trav.onBranch=1; S.arc=0;
+
+    if(id==='kill'){
+      S.shot=seg(t,0.18,0.34);
+      S.bnodes.gf=1-easeOut(seg(t,0.30,0.62));
+      S.bnodes.x=easeOut(seg(t,0.34,0.7));
+      S.banner='branchB'; S.bannerA=seg(t,0.62,0.8);
+      return S;
+    }
+    S.bnodes.gf=0; S.bnodes.x=1;
+
+    if(id==='stable'){
+      const pulse=0.5+0.5*Math.sin(t*Math.PI*4);
+      NODES.forEach(x=>S.n[x.k].glow=0.3*pulse);
+      S.banner='coexist'; S.bannerA=seg(t,0.12,0.3);
+      return S;
+    }
+  }
+  return S;
+}
+
+/* ============================================================
+   6. drawing
+   ============================================================ */
+let sceneStars=null;
+function makeSceneStars(){
+  sceneStars=Array.from({length:70},()=>({
+    x:Math.random()*VW,y:Math.random()*VH,r:Math.random()*1.2+.2,p:Math.random()*6.28
+  }));
+}
+makeSceneStars();
+
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function glowDot(x,y,r,color,strength){
+  if(strength>0.01){
+    const g=ctx.createRadialGradient(x,y,0,x,y,r*7);
+    g.addColorStop(0,color); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.globalAlpha=0.36*strength; ctx.fillStyle=g;
+    ctx.beginPath(); ctx.arc(x,y,r*7,0,6.283); ctx.fill(); ctx.globalAlpha=1;
+  }
+  ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y,r,0,6.283); ctx.fill();
+}
+function label(text,x,y,color,alpha,size,weight,align){
+  ctx.globalAlpha=alpha;
+  ctx.fillStyle=color;
+  ctx.font=(weight||600)+' '+(size||13)+'px ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+  ctx.textAlign=align||'center'; ctx.textBaseline='alphabetic';
+  ctx.fillText(text,x,y);
+  ctx.globalAlpha=1;
+}
+function axis(time){
+  /* rail */
+  const g=ctx.createLinearGradient(X(YEAR_MIN),0,X(YEAR_MAX),0);
+  g.addColorStop(0,'rgba(255,255,255,.04)');
+  g.addColorStop(.5,'rgba(255,255,255,.22)');
+  g.addColorStop(1,'rgba(255,255,255,.04)');
+  ctx.strokeStyle=g; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(X(YEAR_MIN),Y_MAIN); ctx.lineTo(X(YEAR_MAX),Y_MAIN); ctx.stroke();
+
+  for(let y=1920;y<=2020;y+=20){
+    const x=X(y);
+    ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x,Y_MAIN+8); ctx.lineTo(x,Y_MAIN+15); ctx.stroke();
+    label(String(y),x,Y_MAIN+32,'rgba(255,255,255,.30)',1,11,600);
+  }
+  label('time  →',X(YEAR_MAX)-6,Y_MAIN+32,'rgba(255,255,255,.30)',1,11,700,'right');
+}
+function arrowsBetween(S){
+  for(let i=0;i<NODES.length-1;i++){
+    const p=S.arrows[i]; if(p<=0.01) continue;
+    const a=X(NODES[i].year)+13, b=X(NODES[i+1].year)-13;
+    const to=lerp(a,b,p);
+    ctx.strokeStyle='rgba(77,216,255,'+(0.30+0.25*p)+')';
+    ctx.lineWidth=2; ctx.setLineDash([5,6]); ctx.lineDashOffset=-(performance.now()/70)%11;
+    ctx.beginPath(); ctx.moveTo(a,Y_MAIN); ctx.lineTo(to,Y_MAIN); ctx.stroke();
+    ctx.setLineDash([]);
+    if(p>0.85){
+      ctx.fillStyle='rgba(77,216,255,.75)';
+      ctx.beginPath(); ctx.moveTo(b,Y_MAIN); ctx.lineTo(b-7,Y_MAIN-4.5); ctx.lineTo(b-7,Y_MAIN+4.5); ctx.closePath(); ctx.fill();
+    }
+  }
+}
+function drawNodes(S,time){
+  NODES.forEach(nd=>{
+    const st=S.n[nd.k];
+    const jitter=st.shake?(Math.random()-0.5)*7*st.shake:0;
+    const x=X(nd.year)+jitter, y=Y_MAIN;
+
+    if(st.dead>0.02){
+      ctx.globalAlpha=st.dead*0.9;
+      ctx.strokeStyle=COL.rose; ctx.lineWidth=2.4;
+      ctx.beginPath();
+      ctx.moveTo(x-8,y-8); ctx.lineTo(x+8,y+8);
+      ctx.moveTo(x+8,y-8); ctx.lineTo(x-8,y+8);
+      ctx.stroke(); ctx.globalAlpha=1;
+      label(nd.label,X(nd.year),nd.up?y-32:y+44,'rgba(255,95,143,.5)',st.dead,13,600);
+      label('erased',X(nd.year),nd.up?y-49:y+61,'rgba(255,95,143,.42)',st.dead,11,800);
+    }
+    if(st.a<0.02) return;
+
+    ctx.globalAlpha=st.a;
+    /* connector tick */
+    ctx.strokeStyle='rgba(255,255,255,.20)'; ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(x,y+(nd.up?-11:11)); ctx.lineTo(x,y+(nd.up?-24:24)); ctx.stroke();
+
+    glowDot(x,y,7.5,'#dff3ff',st.glow);
+    ctx.strokeStyle='rgba(77,216,255,.9)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(x,y,10.5,0,6.283); ctx.stroke();
+
+    label(nd.label,x,nd.up?y-32:y+44,COL.ink,st.a,13,650);
+    label(String(nd.year),x,nd.up?y-49:y+61,'rgba(163,173,201,.75)',st.a,11.5,700);
+    ctx.globalAlpha=1;
+  });
+}
+function drawArc(S){
+  if(S.arc<=0.01) return;
+  ctx.save();
+  ctx.strokeStyle='rgba(169,139,255,'+(0.55*S.arc)+')';
+  ctx.lineWidth=2; ctx.setLineDash([9,8]);
+  ctx.lineDashOffset=(performance.now()/50)%17;
+  ctx.beginPath();
+  ctx.moveTo(ARC.x0,ARC.y0);
+  /* partial quadratic via sampling — grows from the machine backwards */
+  const steps=64, upto=Math.max(2,Math.round(steps*S.arc));
+  for(let i=1;i<=upto;i++){ const p=arcPt(i/steps); ctx.lineTo(p.x,p.y); }
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.restore();
+  if(S.arc>0.4){
+    const mid=arcPt(0.5);
+    label('backwards through time',mid.x,mid.y-14,'rgba(169,139,255,.8)',clamp((S.arc-0.4)/0.3,0,1),12,700);
+  }
+}
+function drawTarget(S){
+  const x=X(TARGET);
+  ctx.strokeStyle='rgba(255,180,84,.32)'; ctx.lineWidth=1; ctx.setLineDash([3,5]);
+  ctx.beginPath(); ctx.moveTo(x,Y_MAIN-6); ctx.lineTo(x,Y_MAIN-96); ctx.stroke(); ctx.setLineDash([]);
+  label('arrival · 1940',x,Y_MAIN-104,'rgba(255,180,84,.85)',1,12,700);
+}
+function drawTraveller(S,time){
+  if(S.trav.a<=0.02) return;
+  const tr=S.trav.tremor||0;
+  const dest=brPt(0.30), k=easeOut(S.trav.onBranch||0);
+  const bx=(k>0?lerp(S.trav.x,dest.x,k):S.trav.x)+(tr?(Math.random()-0.5)*8*tr:0);
+  const by=(k>0?lerp(S.trav.y,dest.y,k):S.trav.y)+(tr?(Math.random()-0.5)*8*tr:0);
+  ctx.globalAlpha=S.trav.a;
+  const g=ctx.createRadialGradient(bx,by,0,bx,by,26);
+  g.addColorStop(0,'rgba(255,180,84,.75)'); g.addColorStop(1,'rgba(255,180,84,0)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(bx,by,26,0,6.283); ctx.fill();
+  ctx.fillStyle='#ffd79a'; ctx.beginPath(); ctx.arc(bx,by,6,0,6.283); ctx.fill();
+  ctx.strokeStyle='rgba(255,215,154,.7)'; ctx.lineWidth=1.4;
+  const rr=11+Math.sin(time/220)*2.2;
+  ctx.beginPath(); ctx.arc(bx,by,rr,0,6.283); ctx.stroke();
+  label('you',bx,by-24,'rgba(255,215,154,.95)',S.trav.a,11.5,800);
+  ctx.globalAlpha=1;
+}
+function drawShot(S){
+  if(S.shot<=0.01||S.shot>=1) return;
+  const from=arcPt(1), to={x:X(1925),y:Y_MAIN};
+  const p=easeOut(S.shot);
+  const x=lerp(from.x,to.x,p), y=lerp(from.y-6,to.y,p);
+  ctx.strokeStyle='rgba(255,255,255,'+(0.9*(1-S.shot))+')';
+  ctx.lineWidth=2; ctx.beginPath();
+  ctx.moveTo(lerp(from.x,to.x,Math.max(0,p-0.16)),lerp(from.y-6,to.y,Math.max(0,p-0.16)));
+  ctx.lineTo(x,y); ctx.stroke();
+}
+function drawRipple(S){
+  if(S.ripple<=0.01) return;
+  const x=X(1925),y=Y_MAIN;
+  for(let i=0;i<3;i++){
+    const p=clamp(S.ripple*1.5-i*0.22,0,1);
+    if(p<=0) continue;
+    ctx.globalAlpha=(1-p)*0.7;
+    ctx.strokeStyle=COL.green; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(x,y,14+p*72,0,6.283); ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  label('consistency holds',x,Y_MAIN-104,'rgba(94,242,166,.9)',clamp(S.ripple*2,0,1),12.5,800);
+}
+function drawStranger(S){
+  if(S.stranger<=0.02) return;
+  const x=X(TARGET), y=Y_MAIN;
+  ctx.globalAlpha=S.stranger;
+  ctx.strokeStyle='rgba(94,242,166,.9)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(x,y,9,0,6.283); ctx.stroke();
+  glowDot(x,y,5,'#c8ffe6',0.8);
+  ctx.strokeStyle='rgba(94,242,166,.35)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(x,y+11); ctx.lineTo(x,y+68); ctx.stroke();
+  label('“the stranger who missed”',x,y+84,'rgba(94,242,166,.95)',S.stranger,12.5,700);
+  label('1940 · already in the history books',x,y+100,'rgba(163,173,201,.7)',S.stranger,11,600);
+  ctx.globalAlpha=1;
+
+  if(S.seal>0.02){
+    ctx.globalAlpha=S.seal*0.85;
+    ctx.strokeStyle='rgba(94,242,166,.55)'; ctx.lineWidth=2; ctx.setLineDash([6,7]);
+    ctx.beginPath();
+    const steps=64, upto=Math.max(2,Math.round(steps*S.seal));
+    ctx.moveTo(ARC.x0,ARC.y0);
+    for(let i=1;i<=upto;i++){ const p=arcPt(i/steps); ctx.lineTo(p.x,p.y); }
+    ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1;
+  }
+}
+function drawBranch(S,time){
+  if(S.branch<=0.01) return;
+  const p=easeOut(S.branch);
+  ctx.globalAlpha=clamp(p*1.4,0,1);
+
+  /* the fork itself, grown from the arrival point */
+  ctx.strokeStyle='rgba(169,139,255,.85)'; ctx.lineWidth=2.2;
+  ctx.beginPath();
+  ctx.moveTo(BR.sx,BR.sy);
+  const N=70, upto=Math.max(2,Math.round(N*p));
+  for(let i=1;i<=upto;i++){ const q=brPt(i/N); ctx.lineTo(q.x,q.y); }
+  ctx.stroke();
+
+  label('timeline B — new, diverges here',brPt(0.78).x,Y_BRANCH-24,'rgba(169,139,255,.9)',clamp(p*1.4,0,1),12.5,700);
+  label('timeline A — untouched',X(1998),Y_MAIN-96,'rgba(77,216,255,.7)',clamp(p*1.4,0,1),12,700);
+
+  /* B's grandfather, sitting on the branch */
+  if(p>0.55){
+    const gpt=brPt(0.46), gx=gpt.x, gy=gpt.y;
+    const a=clamp((p-0.55)/0.3,0,1);
+    if(S.bnodes.gf>0.02){
+      ctx.globalAlpha=a*S.bnodes.gf;
+      ctx.strokeStyle='rgba(169,139,255,.9)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(gx,gy,9,0,6.283); ctx.stroke(); ctx.globalAlpha=1;
+      label('grandfather (B)',gx,gy+30,'rgba(169,139,255,.9)',a*S.bnodes.gf,12,650);
+    }
+    if(S.bnodes.x>0.02){
+      ctx.globalAlpha=S.bnodes.x; ctx.strokeStyle=COL.rose; ctx.lineWidth=2.4;
+      ctx.beginPath();
+      ctx.moveTo(gx-7,gy-7); ctx.lineTo(gx+7,gy+7);
+      ctx.moveTo(gx+7,gy-7); ctx.lineTo(gx-7,gy+7); ctx.stroke(); ctx.globalAlpha=1;
+      label('line ends here — no parent, no you',gx+34,gy-22,'rgba(255,95,143,.8)',S.bnodes.x,12,650);
+    }
+  }
+  ctx.globalAlpha=1;
+}
+const BANNERS={
+  'no shooter':{t:'NO SHOOTER IN 1940',s:'the traveller has been erased',c:COL.rose},
+  'paradox'   :{t:'PARADOX',s:'the loop has no consistent state',c:COL.rose},
+  'missed'    :{t:'THE SHOT MISSES',s:'every time, by ordinary means',c:COL.green},
+  'consistent':{t:'SELF-CONSISTENT',s:'you were always part of 1940',c:COL.green},
+  'split'     :{t:'HISTORY FORKS',s:'you are no longer in your own past',c:COL.violet},
+  'branchB'   :{t:'BRANCH B ENDS',s:'…but you are from branch A',c:COL.violet},
+  'coexist'   :{t:'BOTH TIMELINES STAND',s:'nothing contradicts — and nothing changed',c:COL.violet}
+};
+function drawBanner(S){
+  if(!S.banner||S.bannerA<=0.02) return;
+  const b=BANNERS[S.banner]; if(!b) return;
+  const a=clamp(S.bannerA,0,1);
+  ctx.save(); ctx.globalAlpha=a;
+  ctx.font='800 26px ui-sans-serif,system-ui,sans-serif';
+  const w=Math.max(ctx.measureText(b.t).width+56,300);
+  const x=VW/2-w/2, y=54;
+  ctx.fillStyle='rgba(6,9,21,.82)'; roundRect(x,y,w,74,14); ctx.fill();
+  ctx.strokeStyle=b.c; ctx.lineWidth=1.5; roundRect(x,y,w,74,14); ctx.stroke();
+  label(b.t,VW/2,y+34,b.c,a,26,800);
+  label(b.s,VW/2,y+56,'rgba(163,173,201,.9)',a,12.5,600);
+  ctx.restore();
+}
+function drawFlash(S){
+  if(S.flash<=0.01) return;
+  ctx.fillStyle='rgba(255,95,143,'+(0.16*S.flash)+')';
+  ctx.fillRect(0,0,VW,VH);
+}
+
+function render(mode,step,t,time){
+  ctx.clearRect(0,0,VW,VH);
+
+  /* backdrop */
+  const bg=ctx.createLinearGradient(0,0,0,VH);
+  bg.addColorStop(0,'#080d1f'); bg.addColorStop(1,'#050813');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,VW,VH);
+  for(const s of sceneStars){
+    ctx.globalAlpha=(REDUCED?.5:(Math.sin(time/1100+s.p)*.35+.55))*.6;
+    ctx.fillStyle='#cfe4ff';
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,6.283); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  const S=build(mode,step,t);
+
+  drawTarget(S);
+  drawBranch(S,time);
+  axis(time);
+  arrowsBetween(S);
+  drawArc(S);
+  drawRipple(S);
+  drawNodes(S,time);
+  drawStranger(S);
+  drawShot(S);
+  drawTraveller(S,time);
+  drawFlash(S);
+  drawBanner(S);
+
+  /* mode chip */
+  const names={paradox:'RULE: you can change the past',novikov:'RULE: only consistent histories exist',branch:'RULE: arriving in the past creates a branch'};
+  ctx.globalAlpha=.85;
+  label(names[mode],22,VH-20,'rgba(163,173,201,.65)',1,11.5,700,'left');
+  ctx.globalAlpha=1;
+}
+
+/* ============================================================
+   7. player
+   ============================================================ */
+let mode='paradox', step=0, elapsed=0, playing=!REDUCED, speed=1, last=performance.now();
+const narrTitle=document.getElementById('narrTitle');
+const narrText=document.getElementById('narrText');
+const progBar=document.getElementById('progBar');
+const stepList=document.getElementById('stepList');
+const stageBox=document.getElementById('stageBox');
+const playBtn=document.getElementById('playBtn');
+const playIcon=document.getElementById('playIcon');
+const PLAY='M4 2.5l9 5.5-9 5.5z', PAUSE='M3 2h3.2v12H3zM9.8 2H13v12H9.8z';
+
+function loopStart(m){ return m==='paradox'?2:0; }  /* paradox re-loops from the killing */
+
+function buildStepList(){
+  stepList.innerHTML='';
+  SCRIPT[mode].forEach((s,i)=>{
+    const el=document.createElement('div');
+    el.className='step'; el.dataset.i=i;
+    el.innerHTML='<span class="num">'+(i+1)+'</span><span>'+s.short+'</span>';
+    el.addEventListener('click',()=>{ step=i; elapsed=0; syncText(); });
+    stepList.appendChild(el);
+  });
+}
+function syncText(){
+  const s=SCRIPT[mode][step];
+  narrTitle.textContent=s.title;
+  narrText.textContent=s.text;
+  [...stepList.children].forEach((el,i)=>{
+    el.classList.toggle('active',i===step);
+    el.classList.toggle('done',i<step);
+  });
+}
+function setMode(m){
+  mode=m; step=0; elapsed=0;
+  const acc=ACCENT[m];
+  stageBox.style.setProperty('--accent',acc);
+  document.querySelectorAll('.mode').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===m)));
+  buildStepList(); syncText();
+}
+function setPlaying(p){
+  playing=p;
+  playIcon.innerHTML='<path d="'+(p?PAUSE:PLAY)+'"/>';
+}
+
+document.querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{ setMode(b.dataset.mode); setPlaying(true); }));
+playBtn.addEventListener('click',()=>setPlaying(!playing));
+document.getElementById('restartBtn').addEventListener('click',()=>{ step=0; elapsed=0; syncText(); setPlaying(true); });
+document.getElementById('speed').addEventListener('input',e=>{ speed=parseFloat(e.target.value); });
+window.addEventListener('keydown',e=>{
+  if(e.code==='Space' && !/input|textarea|select/i.test(e.target.tagName)){ e.preventDefault(); setPlaying(!playing); }
+});
+
+/* canvas sizing: author-space 1000x540 scaled to the element */
+function resizeCanvas(){
+  const cssW=cv.clientWidth||680;
+  const cssH=cssW*VH/VW;
+  cv.style.height=cssH+'px';
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=Math.round(cssW*dpr); cv.height=Math.round(cssH*dpr);
+  const k=cssW/VW*dpr;
+  ctx.setTransform(k,0,0,k,0,0);
+}
+new ResizeObserver(resizeCanvas).observe(cv);
+resizeCanvas();
+
+function frame(now){
+  const dt=Math.min(now-last,60); last=now;
+  const cur=SCRIPT[mode][step];
+  if(playing){
+    elapsed+=dt*speed;
+    if(elapsed>=cur.dur){
+      elapsed=0;
+      step++;
+      if(step>=SCRIPT[mode].length) step=loopStart(mode);
+      syncText();
+    }
+  }
+  const t=clamp(elapsed/cur.dur,0,1);
+  progBar.style.width=(t*100)+'%';
+  render(mode,step,t,now);
+  requestAnimationFrame(frame);
+}
+
+setMode('paradox');
+setPlaying(!REDUCED);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
