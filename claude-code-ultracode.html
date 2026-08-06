@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ultracode — Claude Code's effort levels, explained</title>
+<meta name="description" content="An animated explainer of Claude Code's effort ladder — low, medium, high, xhigh, max — and ultracode, the session setting that pairs xhigh reasoning with automatic dynamic-workflow orchestration.">
+<style>
+/* ==========================================================================
+   TOKENS
+   UI chrome is warm neutral on purpose. Colour carries exactly two meanings
+   on this page and nothing else:
+     · the blue ORDINAL ramp = position on the effort ladder (ordered)
+     · orange                = ultracode (deliberately off-ladder)
+   Both ramps validated: ordinal monotone L with >=0.06 gaps and a light end
+   clearing the surface; blue vs orange at CVD dE 24.7 light / 26.8 dark.
+   ========================================================================== */
+:root {
+  color-scheme: dark;
+  --plane:      #0f0e0d;
+  --surface-1:  #191817;
+  --surface-2:  #211f1e;
+  --surface-3:  #2a2826;
+  --ink:        #f7f4ef;
+  --ink-2:      #b8b3aa;
+  --ink-3:      #837d74;
+  --hair:       rgba(255,255,255,0.10);
+  --hair-2:     rgba(255,255,255,0.20);
+  --grid:       #2e2b28;
+  /* Effort ladder — ordinal ramp, stepped for THIS surface rather than
+     flipped from the light one: on a dark plane "more effort" has to read
+     as brighter, so low takes the deepest step and max the lightest. */
+  --e1: #184f95; --e2: #256abf; --e3: #3987e5; --e4: #6da7ec; --e5: #9ec5f4;
+  /* semantic blues — legibility on this surface, NOT ladder position */
+  --blue: #6da7ec; --blue-run: #6da7ec; --blue-done: #256abf;
+  --ultra:      #d95926;
+  --ultra-soft: rgba(217,89,38,0.14);
+  --good:       #0ca30c;
+  --warn:       #fab219;
+  --shadow: 0 1px 2px rgba(0,0,0,.55), 0 20px 44px -26px rgba(0,0,0,.95);
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --plane:      #f6f4f0;
+  --surface-1:  #fdfcfa;
+  --surface-2:  #f1eee8;
+  --surface-3:  #e7e3db;
+  --ink:        #17150f;
+  --ink-2:      #55514a;
+  --ink-3:      #8b857c;
+  --hair:       rgba(23,21,15,0.12);
+  --hair-2:     rgba(23,21,15,0.24);
+  --grid:       #e3dfd6;
+  --e1: #86b6ef; --e2: #5598e7; --e3: #2a78d6; --e4: #1c5cab; --e5: #104281;
+  --blue: #1c5cab; --blue-run: #5598e7; --blue-done: #1c5cab;
+  --ultra:      #eb6834;
+  --ultra-soft: rgba(235,104,52,0.13);
+  --shadow: 0 1px 2px rgba(23,21,15,.06), 0 20px 44px -28px rgba(23,21,15,.38);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--plane); color: var(--ink);
+  font-family: var(--sans); font-size: 17px; line-height: 1.62;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+h1,h2,h3,h4 { margin: 0; line-height: 1.14; letter-spacing: -0.022em; font-weight: 620; }
+p { margin: 0 0 1em; color: var(--ink-2); }
+a { color: inherit; text-underline-offset: 3px; text-decoration-color: var(--hair-2); }
+a:hover { text-decoration-color: currentColor; }
+strong { color: var(--ink); font-weight: 620; }
+code { font-family: var(--mono); font-size: .88em; background: var(--surface-2); border: 1px solid var(--hair); border-radius: 5px; padding: .1em .38em; }
+::selection { background: var(--ultra); color: #fff; }
+
+/* ---------- shell: sticky rail + content ---------- */
+.shell { max-width: 1280px; margin-inline: auto; padding-inline: clamp(1.1rem, 3vw, 2.2rem); }
+.layout { display: grid; grid-template-columns: 186px minmax(0,1fr); gap: clamp(1.5rem, 4vw, 4rem); align-items: start; }
+@media (max-width: 940px) { .layout { grid-template-columns: minmax(0,1fr); } .rail { display: none; } }
+.rail { position: sticky; top: 74px; padding: 1rem 0 4rem; }
+.rail ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.rail a {
+  display: grid; grid-template-columns: 24px 1fr; gap: .5rem; align-items: baseline;
+  text-decoration: none; padding: .38rem .5rem .38rem 0; border-radius: 7px;
+  font-size: 13px; color: var(--ink-3); transition: color .18s;
+  border-left: 2px solid transparent; padding-left: .7rem;
+}
+.rail a em { font-style: normal; font: 600 10.5px/1 var(--mono); color: var(--ink-3); opacity: .65; }
+.rail a:hover { color: var(--ink); }
+.rail a[aria-current="true"] { color: var(--ink); border-left-color: var(--ultra); font-weight: 600; }
+.rail .rail-hd { font: 600 10.5px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); padding-left: .7rem; margin-bottom: .9rem; }
+
+/* ---------- nav ---------- */
+header.nav {
+  position: sticky; top: 0; z-index: 70;
+  background: color-mix(in srgb, var(--plane) 80%, transparent);
+  backdrop-filter: blur(16px) saturate(170%); -webkit-backdrop-filter: blur(16px) saturate(170%);
+  border-bottom: 1px solid transparent; transition: border-color .25s;
+}
+header.nav.stuck { border-bottom-color: var(--hair); }
+.nav-in { display: flex; align-items: center; gap: 1rem; height: 60px; }
+.brand { display: flex; align-items: center; gap: .55rem; font-weight: 640; letter-spacing: -.02em; text-decoration: none; font-size: 15.5px; }
+.brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ultra); box-shadow: 0 0 0 4px var(--ultra-soft); flex: none; }
+.brand .muted { color: var(--ink-3); font-weight: 500; }
+.nav-sp { margin-left: auto; }
+.icon-btn { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; border: 1px solid var(--hair); background: transparent; color: var(--ink-2); cursor: pointer; transition: .18s; }
+.icon-btn:hover { color: var(--ink); border-color: var(--hair-2); background: var(--surface-2); }
+.progress { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--ultra); width: 0; transform-origin: 0 50%; }
+
+/* ---------- hero ---------- */
+.hero { position: relative; padding: clamp(3rem,7vh,5rem) 0 clamp(3.5rem,8vh,6rem); overflow: hidden; }
+#swarm { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; opacity: .9; }
+.hero::after { content:""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(70% 55% at 78% 32%, var(--ultra-soft), transparent 68%),
+              linear-gradient(to bottom, transparent 60%, var(--plane) 98%); }
+.hero-in { position: relative; z-index: 2; }
+.kicker { display: inline-flex; align-items: center; gap: .55rem; font: 600 11px/1 var(--mono); letter-spacing: .15em; text-transform: uppercase; color: var(--ink-3); border: 1px solid var(--hair); border-radius: 999px; padding: .45rem .8rem; background: color-mix(in srgb, var(--surface-1) 55%, transparent); }
+h1.title { font-size: clamp(2.9rem, 9.5vw, 6.4rem); letter-spacing: -.05em; line-height: .95; margin: 1.4rem 0 0; font-weight: 660; }
+h1.title .w { display: inline-block; opacity: 0; transform: translateY(.3em); filter: blur(8px); }
+h1.title .u { color: var(--ultra); }
+.hero-sub { font-size: clamp(1.05rem, 2.1vw, 1.34rem); color: var(--ink-2); max-width: 46ch; margin: 1.3rem 0 0; }
+.hero-sub b { color: var(--ink); font-weight: 600; }
+.eqn { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; margin-top: 2rem; }
+.eqn .term { font: 600 13px/1 var(--mono); padding: .68rem .85rem; border-radius: 9px; border: 1px solid var(--hair); background: color-mix(in srgb, var(--surface-1) 70%, transparent); }
+.eqn .term.a { border-color: color-mix(in srgb, var(--blue) 55%, transparent); color: var(--blue); }
+.eqn .term.b { border-color: color-mix(in srgb, var(--ultra) 55%, transparent); color: var(--ultra); }
+.eqn .op { font: 500 15px/1 var(--mono); color: var(--ink-3); }
+.eqn .term.r { background: var(--ultra); border-color: var(--ultra); color: #fff; }
+
+/* ---------- sections ---------- */
+section { padding: clamp(3.4rem, 8vh, 6rem) 0; scroll-margin-top: 72px; }
+.eyebrow { display: flex; align-items: center; gap: .6rem; font: 600 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 1rem; }
+.eyebrow b { color: var(--ultra); font-weight: 600; }
+h2.sec { font-size: clamp(1.75rem, 3.9vw, 2.55rem); margin-bottom: .65rem; }
+.lede { font-size: clamp(1rem, 1.5vw, 1.12rem); color: var(--ink-2); max-width: 66ch; }
+.measure { max-width: 68ch; }
+
+.rv { opacity: 0; transform: translateY(18px); transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); }
+.rv.in { opacity: 1; transform: none; }
+.rv[data-d="1"]{transition-delay:.07s}.rv[data-d="2"]{transition-delay:.14s}.rv[data-d="3"]{transition-delay:.21s}
+.rv[data-d="4"]{transition-delay:.28s}.rv[data-d="5"]{transition-delay:.35s}.rv[data-d="6"]{transition-delay:.42s}
+
+.panel { background: var(--surface-1); border: 1px solid var(--hair); border-radius: 15px; padding: clamp(1.1rem, 2.6vw, 1.7rem); box-shadow: var(--shadow); }
+.panel-hd { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: baseline; justify-content: space-between; margin-bottom: 1.1rem; }
+.panel-hd h3 { font-size: 1.1rem; }
+.panel-hd .sub { font-size: 13px; color: var(--ink-3); }
+.grid { display: grid; gap: 1rem; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+@media (max-width: 860px) { .g2, .g3 { grid-template-columns: minmax(0,1fr); } }
+.foot { font-size: 12.5px; line-height: 1.55; color: var(--ink-3); margin: 1rem 0 0; }
+.foot b { color: var(--ink-2); }
+
+/* ---------- the myth panel ---------- */
+.myth { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 1.2rem; align-items: stretch; }
+@media (max-width: 800px) { .myth { grid-template-columns: minmax(0,1fr); } .myth .vs { justify-self: start; } }
+.myth .col { border: 1px solid var(--hair); border-radius: 13px; padding: 1.1rem; background: var(--surface-2); position: relative; }
+.myth .col.wrong { opacity: .95; }
+.myth .col .tag { font: 600 10.5px/1 var(--mono); letter-spacing: .13em; text-transform: uppercase; display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .9rem; }
+.myth .col.wrong .tag { color: var(--ink-3); }
+.myth .col.right { border-color: color-mix(in srgb, var(--ultra) 45%, transparent); background: var(--surface-1); }
+.myth .col.right .tag { color: var(--ultra); }
+.vs { align-self: center; font: 600 11px/1 var(--mono); color: var(--ink-3); letter-spacing: .12em; }
+.stackview { display: grid; gap: 4px; margin-top: .3rem; }
+.sv { display: flex; align-items: center; gap: .6rem; font: 500 12px/1 var(--mono); padding: .42rem .6rem; border-radius: 7px; background: var(--surface-1); border: 1px solid var(--hair); color: var(--ink-2); }
+.myth .col.right .sv { background: var(--surface-2); }
+.sv i { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.sv.ghost { opacity: .4; text-decoration: line-through; text-decoration-color: var(--ink-3); }
+.sv.orange { border-color: color-mix(in srgb, var(--ultra) 45%, transparent); color: var(--ultra); }
+.sidecar { display: grid; grid-template-columns: 1fr auto; gap: .5rem; align-items: center; margin-top: 6px; }
+.brace { font: 400 11px/1 var(--mono); color: var(--ink-3); }
+
+/* ---------- effort ladder ---------- */
+.ladder { display: grid; grid-template-columns: minmax(0,220px) minmax(0,1fr); gap: 1.4rem; }
+@media (max-width: 780px) { .ladder { grid-template-columns: minmax(0,1fr); } }
+.rungs { display: grid; gap: 5px; align-content: start; }
+.rung {
+  display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: .6rem;
+  font: 600 13px var(--mono); text-align: left; cursor: pointer;
+  padding: .62rem .7rem; border-radius: 9px; border: 1px solid var(--hair);
+  background: var(--surface-2); color: var(--ink-2); transition: .2s;
+}
+.rung:hover { color: var(--ink); border-color: var(--hair-2); }
+.rung i { width: 10px; height: 10px; border-radius: 3px; }
+.rung .pers { font: 500 9.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.rung[aria-pressed="true"] { color: var(--ink); border-color: var(--hair-2); background: var(--surface-1); box-shadow: var(--shadow); transform: translateX(3px); }
+.rung.ultra { margin-top: .55rem; border-style: dashed; border-color: color-mix(in srgb, var(--ultra) 50%, transparent); }
+.rung.ultra i { background: var(--ultra); }
+.rung.ultra[aria-pressed="true"] { border-style: solid; background: var(--ultra-soft); }
+.detail { border-left: 2px solid var(--hair); padding-left: 1.2rem; min-height: 260px; }
+.detail h4 { font-size: 1.22rem; display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.detail h4 code { font-size: .78em; }
+.detail .role { font: 600 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: .7rem; }
+.detail p { font-size: 15px; }
+.kv { display: grid; grid-template-columns: 116px minmax(0,1fr); gap: .35rem .8rem; font-size: 13.5px; margin-top: 1rem; }
+.kv dt { color: var(--ink-3); font: 500 11.5px/1.5 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+.kv dd { margin: 0; color: var(--ink-2); }
+.spend { display: flex; align-items: center; gap: 3px; margin-top: 1rem; }
+.spend b { font: 500 11px var(--mono); color: var(--ink-3); margin-right: .5rem; letter-spacing: .06em; text-transform: uppercase; }
+.spend span { width: 26px; height: 7px; border-radius: 2px; background: var(--surface-3); transition: background .45s; }
+
+/* ---------- matrix ---------- */
+table.dv { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.dv th, table.dv td { padding: .58rem .6rem; border-bottom: 1px solid var(--hair); text-align: center; }
+table.dv th:first-child, table.dv td:first-child { text-align: left; }
+table.dv thead th { font: 600 10.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+table.dv tbody td:first-child { color: var(--ink); font-weight: 600; }
+table.dv td { color: var(--ink-2); }
+.yes { color: var(--good); font-weight: 700; }
+.no  { color: var(--ink-3); }
+.scroll-x { overflow-x: auto; }
+
+/* ---------- terminal ---------- */
+.term {
+  background: var(--surface-2); border: 1px solid var(--hair); border-radius: 11px;
+  font: 13.5px/1.75 var(--mono); overflow: hidden;
+}
+.term .bar { display: flex; align-items: center; gap: .45rem; padding: .5rem .75rem; border-bottom: 1px solid var(--hair); background: var(--surface-3); }
+.term .bar u { width: 9px; height: 9px; border-radius: 50%; background: var(--hair-2); display: block; }
+.term .bar span { margin-left: auto; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.term .body { padding: .8rem .95rem; overflow-x: auto; }
+.term .ln { display: flex; gap: .6rem; white-space: pre; }
+.term .p { color: var(--ultra); user-select: none; }
+.term .c { color: var(--ink); }
+.term .o { color: var(--ink-3); }
+.term .k { color: var(--blue); }
+.copy { background: none; border: 0; color: var(--ink-3); cursor: pointer; font: 500 10.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; padding: .2rem .3rem; border-radius: 5px; }
+.copy:hover { color: var(--ink); background: var(--hair); }
+
+/* ---------- workflow simulator ---------- */
+.sim-ctl { display: flex; flex-wrap: wrap; gap: .55rem; align-items: center; margin-bottom: 1.2rem; }
+.btn {
+  font: 600 12.5px var(--sans); border-radius: 9px; cursor: pointer; padding: .55rem .9rem;
+  border: 1px solid var(--hair); background: var(--surface-2); color: var(--ink-2); transition: .18s;
+}
+.btn:hover { color: var(--ink); border-color: var(--hair-2); }
+.btn.primary { background: var(--ultra); border-color: var(--ultra); color: #fff; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; }
+.phases { display: grid; gap: .7rem; }
+.phase { border: 1px solid var(--hair); border-radius: 11px; padding: .8rem .9rem; background: var(--surface-2); transition: border-color .4s, background .4s; }
+.phase.active { border-color: color-mix(in srgb, var(--ultra) 50%, transparent); background: var(--surface-1); }
+.phase.done { opacity: .72; }
+.phase .ph-hd { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; margin-bottom: .6rem; }
+.phase .ph-hd b { font-size: 13.5px; font-weight: 620; }
+.phase .ph-hd .n { font: 500 11px var(--mono); color: var(--ink-3); margin-left: auto; font-variant-numeric: tabular-nums; }
+.phase .ph-hd .call { font: 500 11.5px var(--mono); color: var(--blue); }
+.agents { display: flex; flex-wrap: wrap; gap: 3px; }
+.ag { width: 13px; height: 13px; border-radius: 3px; background: var(--surface-3); transition: background .3s, transform .3s; }
+.ag.run { background: var(--blue-run); animation: pulse 1s ease-in-out infinite; }
+.ag.ok { background: var(--blue-done); }
+@keyframes pulse { 50% { opacity: .45; } }
+.meters { display: grid; gap: .9rem; margin-top: 1.2rem; }
+.mt .lbl { display: flex; justify-content: space-between; align-items: baseline; font: 500 11.5px var(--mono); color: var(--ink-3); margin-bottom: .35rem; }
+.mt .lbl b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.mt .trk { height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.mt .trk > i { display: block; height: 100%; width: 0; border-radius: 999px; transition: width .5s linear; }
+.legend { display: flex; flex-wrap: wrap; gap: .3rem 1rem; margin-bottom: 1rem; }
+.legend span { display: inline-flex; align-items: center; gap: .45rem; font-size: 12.5px; color: var(--ink-2); }
+.legend i { width: 10px; height: 10px; border-radius: 3px; }
+
+/* ---------- resume replay ---------- */
+.replay { display: grid; gap: .5rem; }
+.rw { display: grid; grid-template-columns: 30px minmax(0,1fr) 96px; gap: .7rem; align-items: center; }
+.rw .id { font: 700 13px var(--mono); color: var(--ink); }
+.rw .bar { height: 22px; border-radius: 5px; background: var(--surface-3); position: relative; overflow: hidden; }
+.rw .bar > i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--blue); transition: width .6s linear; }
+.rw .bar.stopped > i { background: var(--ink-3); }
+.rw .verdict { font: 600 10.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; text-align: right; }
+.verdict.cache { color: var(--good); }
+.verdict.rerun { color: var(--ultra); }
+.verdict.idle { color: var(--ink-3); }
+
+/* ---------- size guideline ---------- */
+.seg { display: inline-flex; padding: 3px; gap: 3px; background: var(--surface-2); border: 1px solid var(--hair); border-radius: 10px; flex-wrap: wrap; }
+.seg button { font: 600 12.5px var(--sans); color: var(--ink-3); background: none; border: 0; padding: .45rem .8rem; border-radius: 7px; cursor: pointer; transition: .18s; }
+.seg button[aria-pressed="true"] { background: var(--surface-1); color: var(--ink); box-shadow: var(--shadow); }
+.seg button:hover { color: var(--ink); }
+.dotfield { display: grid; grid-template-columns: repeat(auto-fill, 12px); gap: 4px; margin-top: 1rem; }
+.dotfield i { width: 12px; height: 12px; border-radius: 3px; background: var(--surface-3); transition: background .3s; }
+.dotfield i.on { background: var(--blue); }
+.dotfield i.over { background: var(--warn); }
+
+/* ---------- cards / notes ---------- */
+.card { border: 1px solid var(--hair); border-radius: 13px; padding: 1.1rem 1.2rem; background: var(--surface-1); }
+.card h4 { font-size: 1.02rem; margin-bottom: .4rem; }
+.card p { margin: 0; font-size: 14.5px; }
+.pill { display: inline-flex; align-items: center; gap: .35rem; font: 600 10px/1 var(--mono); letter-spacing: .11em; text-transform: uppercase; color: var(--ink-3); border: 1px solid var(--hair); border-radius: 999px; padding: .32rem .55rem; margin-bottom: .75rem; }
+.note { border-left: 2px solid var(--ultra); background: var(--ultra-soft); padding: .9rem 1.1rem; border-radius: 0 11px 11px 0; font-size: 14.5px; color: var(--ink-2); }
+.note b { color: var(--ink); }
+ul.clean { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+ul.clean li { position: relative; padding-left: 1.2rem; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li::before { content:""; position: absolute; left: 0; top: .6em; width: 6px; height: 6px; border-radius: 2px; background: var(--hair-2); }
+ul.clean li.no::before { background: var(--ink-3); opacity: .5; }
+.ver { font: 500 10.5px/1 var(--mono); color: var(--ink-3); border: 1px solid var(--hair); border-radius: 5px; padding: .2em .4em; white-space: nowrap; }
+
+footer { border-top: 1px solid var(--hair); margin-top: 2rem; padding: 2.6rem 0 4rem; font-size: 14px; color: var(--ink-3); }
+.src { display: grid; gap: .5rem; grid-template-columns: repeat(2, minmax(0,1fr)); margin: 1rem 0 1.8rem; }
+@media (max-width: 620px) { .src { grid-template-columns: minmax(0,1fr); } }
+.src a { display: block; font-size: 13.5px; text-decoration: none; color: var(--ink-2); border: 1px solid var(--hair); border-radius: 10px; padding: .6rem .8rem; transition: .18s; overflow: hidden; text-overflow: ellipsis; }
+.src a:hover { color: var(--ink); border-color: var(--hair-2); background: var(--surface-1); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  .rv { opacity: 1; transform: none; }
+  h1.title .w { opacity: 1; transform: none; filter: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="shell nav-in">
+    <a class="brand" href="#top"><span class="dot"></span>ultracode <span class="muted">· claude code</span></a>
+    <span class="nav-sp"></span>
+    <button class="icon-btn" id="theme" aria-label="Toggle light and dark theme" title="Toggle theme">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path id="ic-moon" d="M20.5 14.3A8.5 8.5 0 1 1 9.7 3.5a6.8 6.8 0 0 0 10.8 10.8Z"/>
+        <g id="ic-sun" style="display:none"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M19.1 4.9l-1.5 1.5M6.4 17.6l-1.5 1.5"/></g>
+      </svg>
+    </button>
+  </div>
+  <div class="progress" id="prog"></div>
+</header>
+
+<!-- ======================= HERO ======================= -->
+<div class="hero" id="top">
+  <canvas id="swarm" aria-hidden="true"></canvas>
+  <div class="shell hero-in">
+    <span class="kicker">Claude Code · session setting</span>
+    <h1 class="title" id="title" aria-label="ultracode"><span class="u">ultra</span>code</h1>
+    <p class="hero-sub">Not a sixth effort level. It is <b>xhigh reasoning</b> plus <b>automatic workflow orchestration</b> — Claude writing a script that runs a swarm of subagents for you.</p>
+    <div class="eqn" role="img" aria-label="ultracode equals xhigh effort plus dynamic workflow orchestration">
+      <span class="term a">xhigh effort</span>
+      <span class="op">+</span>
+      <span class="term b">dynamic workflows</span>
+      <span class="op">=</span>
+      <span class="term r">ultracode</span>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+<div class="layout">
+
+  <!-- ---------------- rail ---------------- -->
+  <nav class="rail" aria-label="Sections">
+    <div class="rail-hd">Contents</div>
+    <ol id="railList"></ol>
+  </nav>
+
+  <main>
+
+    <!-- ======================= 01 WHAT ======================= -->
+    <section id="what">
+      <div class="eyebrow"><b>01</b> The correction</div>
+      <h2 class="sec">It doesn't sit on top of the ladder</h2>
+      <p class="lede">Almost every summary of ultracode calls it "the highest effort level." It isn't one. Claude Code's effort scale has exactly five rungs — <code>low</code>, <code>medium</code>, <code>high</code>, <code>xhigh</code>, <code>max</code> — and ultracode is not a sixth. It's a session setting that pins effort to <code>xhigh</code> and switches on something the ladder has nothing to do with: letting Claude plan and run <strong>dynamic workflows</strong> on its own.</p>
+
+      <div class="panel rv" style="margin-top:1.8rem">
+        <div class="myth">
+          <div class="col wrong">
+            <span class="tag">✕ The common mental model</span>
+            <div class="stackview" id="wrongStack"></div>
+            <p class="foot">Implies ultracode &gt; max, and that picking it is only a matter of spending more tokens on reasoning.</p>
+          </div>
+          <div class="vs">vs</div>
+          <div class="col right">
+            <span class="tag">✓ What the docs say</span>
+            <div class="stackview" id="rightStack"></div>
+            <p class="foot"><b>Two separate axes.</b> Ultracode reaches over to the ladder, holds it at <code>xhigh</code> — not <code>max</code> — and adds orchestration beside it.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid g3 rv" data-d="1" style="margin-top:1rem">
+        <div class="card"><span class="pill">Reasoning</span><h4>xhigh, every message</h4><p>Not <code>max</code>. Ultracode sends <code>xhigh</code> to models that support it; where a model doesn't, the <code>/effort</code> menu doesn't offer ultracode at all.</p></div>
+        <div class="card"><span class="pill">Orchestration</span><h4>Claude decides to fan out</h4><p>Instead of waiting to be asked, Claude plans a workflow for every substantive task — sometimes several in a row for one request.</p></div>
+        <div class="card"><span class="pill">Lifetime</span><h4>This session only</h4><p>It resets when you start a new session, and it can't be written into a settings file or the effort env var.</p></div>
+      </div>
+    </section>
+
+    <!-- ======================= 02 LADDER ======================= -->
+    <section id="ladder">
+      <div class="eyebrow"><b>02</b> The effort ladder</div>
+      <h2 class="sec">All five rungs, and what each is for</h2>
+      <p class="lede">Effort controls how many tokens Claude spends on the whole response — thinking, prose, and tool calls alike. It is a behavioural signal, not a token budget: at low effort Claude still thinks on genuinely hard problems, just less than it would higher up.</p>
+
+      <div class="panel rv" style="margin-top:1.8rem">
+        <div class="ladder">
+          <div class="rungs" id="rungs" role="group" aria-label="Effort levels"></div>
+          <div class="detail" id="detail" aria-live="polite"></div>
+        </div>
+        <p class="foot"><b>The bars are ordinal, not measured.</b> They show where a level sits on the scale, nothing more — Anthropic publishes no token multiplier per level, and the scale is calibrated per model, so the same name means different things on different models.</p>
+      </div>
+
+      <div class="panel rv" data-d="1" style="margin-top:1rem">
+        <div class="panel-hd"><h3>Which models go how high</h3><span class="sub">unsupported levels fall back to the highest supported level at or below</span></div>
+        <div class="scroll-x">
+          <table class="dv" id="matrix"></table>
+        </div>
+        <p class="foot">So <code>xhigh</code> requested on Opus 4.6 simply runs as <code>high</code>. Haiku models don't take an effort parameter at all. Because ultracode requires <code>xhigh</code>, it only appears in the <code>/effort</code> menu on the models in the first group.</p>
+      </div>
+    </section>
+
+    <!-- ======================= 03 THREE THINGS ======================= -->
+    <section id="confusion">
+      <div class="eyebrow"><b>03</b> Three things that sound alike</div>
+      <h2 class="sec">max, ultrathink, ultracode</h2>
+      <p class="lede">These get used interchangeably and shouldn't be. One is an effort level, one is a prompt keyword that never touches the API, and one is a session mode.</p>
+
+      <div class="grid g3 rv" style="margin-top:1.8rem">
+        <div class="card">
+          <span class="pill" style="color:var(--blue);border-color:color-mix(in srgb,var(--blue) 45%,transparent)">Effort level</span>
+          <h4><code>max</code></h4>
+          <p>The top rung. Deepest reasoning, no ceiling on token spend — and prone to overthinking, with diminishing returns on ordinary work. Session-only unless set through <code>CLAUDE_CODE_EFFORT_LEVEL</code>.</p>
+          <dl class="kv" style="margin-top:.9rem"><dt>Changes API</dt><dd>Yes — sends <code>max</code></dd><dt>Scope</dt><dd>Whole session</dd></dl>
+        </div>
+        <div class="card">
+          <span class="pill">Prompt keyword</span>
+          <h4><code>ultrathink</code></h4>
+          <p>Type it anywhere in a prompt for deeper reasoning on <em>that turn only</em>. Claude Code adds an in-context instruction — the effort value sent to the API is unchanged. "Think hard" and friends are just ordinary words; only this keyword is recognised.</p>
+          <dl class="kv" style="margin-top:.9rem"><dt>Changes API</dt><dd>No</dd><dt>Scope</dt><dd>One turn</dd></dl>
+        </div>
+        <div class="card" style="border-color:color-mix(in srgb, var(--ultra) 42%, transparent)">
+          <span class="pill" style="color:var(--ultra);border-color:color-mix(in srgb,var(--ultra) 45%,transparent)">Session setting</span>
+          <h4><code>ultracode</code></h4>
+          <p>Pins the session to <code>xhigh</code> <em>and</em> lets Claude spin up dynamic workflows unprompted. As a keyword in a single prompt it does something narrower: one workflow for that task, session effort untouched.</p>
+          <dl class="kv" style="margin-top:.9rem"><dt>Changes API</dt><dd>Yes — sends <code>xhigh</code></dd><dt>Scope</dt><dd>Session, or one task</dd></dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 04 WORKFLOW ======================= -->
+    <section id="workflow">
+      <div class="eyebrow"><b>04</b> The other half</div>
+      <h2 class="sec">What a dynamic workflow actually is</h2>
+      <p class="lede">A dynamic workflow is a <strong>JavaScript script that Claude writes</strong> to orchestrate subagents at scale. A runtime executes it in the background while your session stays responsive. The script holds the loop, the branching and the intermediate results — so your context window receives only the final answer.</p>
+
+      <div class="panel rv" style="margin-top:1.8rem">
+        <div class="panel-hd"><h3>The shape of a generated script</h3><span class="sub">plain JavaScript, top-level await</span></div>
+        <div class="term">
+          <div class="bar"><u></u><u></u><u></u><span>.claude/workflows/audit-routes.js</span></div>
+          <div class="body"><div class="ln"><span class="o">export const</span><span class="c">meta = { name: 'audit-routes' }</span></div>
+<div class="ln"><span class="o"> </span></div>
+<div class="ln"><span class="c">const found = <span class="k">await agent</span>('List every .ts file under src/routes/.')</span></div>
+<div class="ln"><span class="o"> </span></div>
+<div class="ln"><span class="c">const audits = <span class="k">await pipeline</span>(found.files, file =&gt;</span></div>
+<div class="ln"><span class="c">  <span class="k">agent</span>(`Audit ${file} for missing auth checks.`, { label: file }))</span></div>
+<div class="ln"><span class="o"> </span></div>
+<div class="ln"><span class="c">return audits.filter(Boolean)</span></div></div>
+        </div>
+        <p class="foot"><code>agent()</code> spawns one subagent; <code>pipeline()</code> runs one per item in a list. An <code>agent()</code> call resolves to <code>null</code> if you stop it or it hits an unrecoverable API error — which is why the last line filters. Every run's script is written to a file under <code>~/.claude/projects/</code>, so you can read it, diff it, or edit it and relaunch.</p>
+      </div>
+
+      <div class="panel rv" data-d="1" style="margin-top:1rem">
+        <div class="panel-hd">
+          <div><h3>Watch one run</h3><div class="sub">auditing 40 route files · the runtime caps concurrency at 16</div></div>
+        </div>
+        <div class="sim-ctl">
+          <button class="btn primary" id="simRun">Run the workflow</button>
+          <button class="btn" id="simConv">Compare: same task in conversation</button>
+          <button class="btn" id="simReset" disabled>Reset</button>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--surface-3)"></i>queued</span>
+          <span><i style="background:var(--blue-run)"></i>running</span>
+          <span><i style="background:var(--blue-done)"></i>done</span>
+        </div>
+        <div class="phases" id="phases"></div>
+        <div class="meters">
+          <div class="mt"><div class="lbl"><span>Agents finished</span><b id="mAg">0 / 42</b></div><div class="trk"><i id="bAg" style="background:var(--blue)"></i></div></div>
+          <div class="mt"><div class="lbl"><span>Your context window</span><b id="mCtx">holds the final report only</b></div><div class="trk"><i id="bCtx" style="background:var(--ultra)"></i></div></div>
+        </div>
+        <p class="foot" id="simNote"><b>The point of the second meter.</b> In conversation, every one of those 40 file reviews lands in Claude's context and stays there. In a workflow the results live in script variables, so the context holds one report at the end. That is what lets a run scale past what a single conversation can coordinate.</p>
+      </div>
+
+      <div class="panel rv" data-d="2" style="margin-top:1rem">
+        <div class="panel-hd"><h3>Who holds the plan</h3><span class="sub">the real difference between the four ways to run a multi-step task</span></div>
+        <div class="scroll-x"><table class="dv" id="whoTable"></table></div>
+      </div>
+    </section>
+
+    <!-- ======================= 05 TURN ON ======================= -->
+    <section id="turnon">
+      <div class="eyebrow"><b>05</b> Switching it on</div>
+      <h2 class="sec">Four routes in, and two that don't work</h2>
+
+      <div class="grid g2 rv" style="margin-top:1.8rem">
+        <div>
+          <div class="term" style="margin-bottom:.8rem">
+            <div class="bar"><u></u><u></u><u></u><span>in a session <button class="copy" data-copy="/effort ultracode">copy</button></span></div>
+            <div class="body"><div class="ln"><span class="p">&gt;</span><span class="c">/effort ultracode</span></div><div class="ln"><span class="p"> </span><span class="o">xhigh effort · workflows on · this session only</span></div></div>
+          </div>
+          <div class="term" style="margin-bottom:.8rem">
+            <div class="bar"><u></u><u></u><u></u><span>at launch <span class="ver">v2.1.203+</span> <button class="copy" data-copy="claude --effort ultracode">copy</button></span></div>
+            <div class="body"><div class="ln"><span class="p">$</span><span class="c">claude --effort ultracode</span></div></div>
+          </div>
+          <div class="term">
+            <div class="bar"><u></u><u></u><u></u><span>settings flag / agent sdk</span></div>
+            <div class="body"><div class="ln"><span class="p">$</span><span class="c">claude --settings '{"ultracode": true}'</span></div><div class="ln"><span class="p"> </span><span class="o">SDK: applyFlagSettings({ effortLevel: 'ultracode' })</span></div></div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="height:100%">
+            <span class="pill">Won't take it</span>
+            <h4>The two places ultracode is rejected</h4>
+            <ul class="clean" style="margin-top:.9rem">
+              <li class="no">The persisted <code>effortLevel</code> setting in a settings file. Only <code>low</code>, <code>medium</code>, <code>high</code> and <code>xhigh</code> are accepted there — <code>max</code> and <code>ultracode</code> are session-only by design.</li>
+              <li class="no">The <code>CLAUDE_CODE_EFFORT_LEVEL</code> environment variable. Worse, if it's set to anything other than <code>xhigh</code>, that wins: requests run at the env var's level and ultracode's orchestration stays inactive. Selecting it then just warns you.</li>
+            </ul>
+            <p class="foot">And when workflows are switched off entirely, <code>--effort ultracode</code> quietly degrades to plain <code>xhigh</code> — you get the reasoning, not the orchestration.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel rv" data-d="1" style="margin-top:1rem">
+        <div class="panel-hd"><h3>The keyword, which is a different thing</h3><span class="sub">one workflow for one task, session effort untouched</span></div>
+        <div class="term">
+          <div class="bar"><u></u><u></u><u></u><span>a prompt you type</span></div>
+          <div class="body"><div class="ln"><span class="p">&gt;</span><span class="c"><span style="color:var(--ultra);font-weight:700">ultracode</span>: audit every API endpoint under src/routes/ for missing auth checks</span></div></div>
+        </div>
+        <p class="foot" style="margin-bottom:1rem">Asking in plain words — "use a workflow", "run a workflow" — is treated as the same opt-in. <code>Option/Alt + W</code> dismisses the highlight if you didn't mean it.</p>
+        <div class="grid g2">
+          <div><div class="pill">Triggers</div><ul class="clean">
+            <li>the interactive prompt</li>
+            <li>an IDE extension panel</li>
+            <li>a Remote Control client</li>
+            <li>an Agent SDK app that stamps your keystrokes as human input</li>
+          </ul></div>
+          <div><div class="pill">Does not trigger</div><ul class="clean">
+            <li class="no">a prompt passed with <code>-p</code></li>
+            <li class="no">an SDK prompt not marked as human</li>
+            <li class="no">a scheduled task prompt</li>
+            <li class="no">a webhook payload or PR comment relayed into the session</li>
+          </ul></div>
+        </div>
+        <p class="foot">That last list is a safety boundary, and a recent one: <span class="ver">before v2.1.210</span> the keyword fired from all of those routes too — including text someone else wrote in a pull request comment.</p>
+      </div>
+    </section>
+
+    <!-- ======================= 06 COST ======================= -->
+    <section id="cost">
+      <div class="eyebrow"><b>06</b> What it costs, and the rails</div>
+      <h2 class="sec">Many agents, real money</h2>
+      <p class="lede">A workflow spawns a lot of agents, so one run can use meaningfully more tokens than doing the same task in conversation — and it counts against your plan's usage and rate limits like anything else. The runtime has hard caps; the size guideline is advice.</p>
+
+      <div class="grid g3 rv" style="margin-top:1.8rem">
+        <div class="card"><span class="pill">Hard cap</span><h4>16 concurrent agents</h4><p>Fewer on machines with limited CPU cores. Bounds local resource use.</p></div>
+        <div class="card"><span class="pill">Hard cap</span><h4>1,000 agents per run</h4><p>The backstop against a runaway loop, and the thing that bounds the cost of a script gone wrong.</p></div>
+        <div class="card"><span class="pill">Advisory</span><h4>Large-workflow warning</h4><p>Over 25 agents scheduled, or a projected 1.5M tokens, and the task panel flags it. <b>Not shown when ultracode is on</b> — turning it on already opts you into large runs.</p></div>
+      </div>
+
+      <div class="panel rv" data-d="1" style="margin-top:1rem">
+        <div class="panel-hd">
+          <div><h3>The size guideline</h3><div class="sub">how many agents Claude aims for · advice to the model, not a cap</div></div>
+          <div class="seg" id="sizeSeg" role="group" aria-label="Workflow size guideline"></div>
+        </div>
+        <div class="dotfield" id="dotfield" aria-hidden="true"></div>
+        <p class="foot" id="sizeNote"></p>
+        <div class="term" style="margin-top:1rem">
+          <div class="bar"><u></u><u></u><u></u><span>set it <span class="ver">v2.1.202+</span> <button class="copy" data-copy="/config workflowSizeGuideline=small">copy</button></span></div>
+          <div class="body"><div class="ln"><span class="p">&gt;</span><span class="c">/config workflowSizeGuideline=small</span></div></div>
+        </div>
+      </div>
+
+      <div class="panel rv" data-d="2" style="margin-top:1rem">
+        <div class="panel-hd">
+          <div><h3>The resume rule almost everyone gets wrong</h3><div class="sub">stop a run mid-fan-out, then resume — which agents replay?</div></div>
+        </div>
+        <p style="font-size:15px;margin-bottom:1.1rem">Four agents start in order. You stop the run while <b>B</b> is still going. On resume, cached results stop at the first agent that didn't finish — and <em>everything that started after it re-runs, even if it had already completed</em>.</p>
+        <div class="replay" id="replay"></div>
+        <div class="sim-ctl" style="margin-top:1.1rem">
+          <button class="btn primary" id="rpRun">Stop the run during B, then resume</button>
+          <button class="btn" id="rpReset" disabled>Reset</button>
+        </div>
+        <p class="foot" id="rpNote">Press the button to play it through.</p>
+      </div>
+    </section>
+
+    <!-- ======================= 07 WHEN ======================= -->
+    <section id="when">
+      <div class="eyebrow"><b>07</b> Judgement</div>
+      <h2 class="sec">When to turn it on — and when not to</h2>
+
+      <div class="grid g2 rv" style="margin-top:1.8rem">
+        <div class="card">
+          <span class="pill" style="color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,transparent)">Reach for it</span>
+          <h4>Work that's bigger than one conversation</h4>
+          <ul class="clean" style="margin-top:.9rem">
+            <li>A codebase-wide sweep — every route handler audited for the same class of bug</li>
+            <li>A 500-file migration where each file can be transformed in isolation</li>
+            <li>A research question worth cross-checking from several independent angles</li>
+            <li>A hard plan worth drafting three ways and weighing before you commit</li>
+            <li>Anything where you want independent agents adversarially reviewing each other's findings before they reach you</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="pill">Leave it off</span>
+          <h4>Everything routine</h4>
+          <ul class="clean" style="margin-top:.9rem">
+            <li class="no">Ordinary implementation and review — <code>/effort high</code> is the balanced default for a reason</li>
+            <li class="no">Anything latency-sensitive: every request in an ultracode session costs more and takes longer</li>
+            <li class="no">Tasks needing your sign-off between stages — a run takes no mid-flight input except permission prompts</li>
+            <li class="no">A first pass at an unfamiliar repo. Gauge the spend on one directory before pointing it at everything</li>
+          </ul>
+          <p class="foot">Drop back with <code>/effort high</code> when you return to routine work. It's one command, and an ultracode session won't remind you.</p>
+        </div>
+      </div>
+
+      <div class="note rv" data-d="1" style="margin-top:1.2rem">
+        <b>The rule that generalises:</b> start at the cheapest level that can reliably finish the work, and raise effort when the cost of a wrong judgement exceeds the cost of more reasoning. Ultracode is the far end of that trade — worth it exactly when a task is large enough that orchestration, not thinking, is the bottleneck.
+      </div>
+    </section>
+
+    <!-- ======================= 08 OFF ======================= -->
+    <section id="off">
+      <div class="eyebrow"><b>08</b> The off switch</div>
+      <h2 class="sec">Turning workflows off</h2>
+      <p class="lede">Ultracode's orchestration half rides on dynamic workflows, so disabling workflows disables it. When they're off, the bundled workflow commands disappear, the <code>ultracode</code> keyword stops triggering runs, and ultracode is removed from the <code>/effort</code> menu.</p>
+
+      <div class="grid g2 rv" style="margin-top:1.8rem">
+        <div>
+          <div class="pill">For yourself</div>
+          <div class="term" style="margin-top:.6rem">
+            <div class="bar"><u></u><u></u><u></u><span>any one of these</span></div>
+            <div class="body"><div class="ln"><span class="p">&gt;</span><span class="c">/config</span><span class="o">→ toggle Dynamic workflows off</span></div>
+<div class="ln"><span class="p"> </span><span class="o">~/.claude/settings.json → "disableWorkflows": true</span></div>
+<div class="ln"><span class="p">$</span><span class="c">CLAUDE_CODE_DISABLE_WORKFLOWS=1</span></div></div>
+          </div>
+        </div>
+        <div>
+          <div class="pill">For an organisation</div>
+          <div class="card" style="margin-top:.6rem">
+            <p>Set <code>"disableWorkflows": true</code> in managed settings, or use the toggle on the Claude Code admin settings page. The same disable settings apply on every surface — CLI, Desktop, IDE extensions, <code>claude -p</code>, and the Agent SDK.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+</div>
+
+<footer>
+  <div class="shell">
+    <div class="eyebrow" style="margin-bottom:.9rem"><b>—</b> Sources</div>
+    <div class="src">
+      <a href="https://code.claude.com/docs/en/workflows" target="_blank" rel="noopener">Claude Code Docs — Orchestrate subagents at scale with dynamic workflows</a>
+      <a href="https://code.claude.com/docs/en/model-config" target="_blank" rel="noopener">Claude Code Docs — Model configuration · Adjust effort level</a>
+      <a href="https://platform.claude.com/docs/en/build-with-claude/effort" target="_blank" rel="noopener">Claude Platform Docs — Effort</a>
+      <a href="https://code.claude.com/docs/en/sub-agents" target="_blank" rel="noopener">Claude Code Docs — Create custom subagents</a>
+      <a href="https://code.claude.com/docs/en/costs" target="_blank" rel="noopener">Claude Code Docs — Manage costs</a>
+      <a href="https://support.claude.com/en/articles/14554000-claude-code-power-user-tips" target="_blank" rel="noopener">Claude Help Center — Claude Code power user tips</a>
+    </div>
+    <p style="max-width:74ch;font-size:13.5px">Every figure, version number and limit on this page comes from Anthropic's own documentation, checked in August 2026. Features and thresholds here move fast — several are tagged with the Claude Code version that introduced them, and the docs are the live source of truth. The effort bars in section 02 are ordinal position markers, not measured token counts; Anthropic publishes no per-level multiplier, and the scale is calibrated separately for each model.</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+"use strict";
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const sleep = ms => new Promise(r => setTimeout(r, RM ? 0 : ms));
+
+/* ---------------- theme ---------------- */
+const root = document.documentElement;
+const saved = localStorage.getItem("ultracode-theme");
+if (saved) root.dataset.theme = saved;
+else if (matchMedia("(prefers-color-scheme: light)").matches) root.dataset.theme = "light";
+const syncIcon = () => {
+  const light = root.dataset.theme === "light";
+  $("#ic-moon").style.display = light ? "none" : "";
+  $("#ic-sun").style.display  = light ? "" : "none";
+};
+syncIcon();
+$("#theme").addEventListener("click", () => {
+  root.dataset.theme = root.dataset.theme === "light" ? "dark" : "light";
+  localStorage.setItem("ultracode-theme", root.dataset.theme);
+  syncIcon();
+});
+
+/* ---------------- nav + read progress ---------------- */
+const nav = $("#nav"), prog = $("#prog");
+addEventListener("scroll", () => {
+  nav.classList.toggle("stuck", scrollY > 10);
+  const h = document.documentElement.scrollHeight - innerHeight;
+  prog.style.width = (h > 0 ? Math.min(100, scrollY / h * 100) : 0) + "%";
+}, { passive: true });
+
+/* ---------------- hero title ---------------- */
+(() => {
+  const el = $("#title");
+  const parts = [["ultra", true], ["code", false]];
+  el.innerHTML = "";
+  let i = 0;
+  for (const [txt, isU] of parts) for (const ch of txt) {
+    const s = document.createElement("span");
+    s.className = "w" + (isU ? " u" : "");
+    s.textContent = ch;
+    if (RM) s.style.opacity = 1;
+    else s.style.animation = `rise .85s cubic-bezier(.2,.8,.2,1) ${0.05 * i + 0.12}s forwards`;
+    el.appendChild(s); i++;
+  }
+  const st = document.createElement("style");
+  st.textContent = "@keyframes rise{to{opacity:1;transform:none;filter:blur(0)}}";
+  document.head.appendChild(st);
+})();
+
+/* ---------------- hero: orchestration swarm ----------------
+   A root node fans out to a ring of agents, which light up in waves and
+   report back. It is the page's subject drawn as its background.        */
+(() => {
+  const cv = $("#swarm"), ctx = cv.getContext("2d");
+  let w = 0, h = 0, cx = 0, cy = 0, agents = [], raf = 0, t = 0, vis = true;
+  const ink = () => getComputedStyle(root).getPropertyValue("--ink").trim();
+  const ultra = () => getComputedStyle(root).getPropertyValue("--ultra").trim();
+
+  function size() {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const r = cv.getBoundingClientRect();
+    w = r.width; h = r.height;
+    cv.width = w * dpr; cv.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cx = w * (w > 860 ? 0.78 : 0.5);
+    cy = h * (w > 860 ? 0.46 : 0.72);
+    const n = w > 860 ? 26 : 16;
+    const R = Math.min(w, h) * (w > 860 ? 0.36 : 0.42);
+    agents = Array.from({ length: n }, (_, i) => {
+      const a = (i / n) * Math.PI * 2 + 0.3;
+      const rr = R * (0.62 + ((i * 37) % 100) / 100 * 0.45);
+      return { x: cx + Math.cos(a) * rr, y: cy + Math.sin(a) * rr * 0.78, ph: (i * 137) % 360, r: 2 + (i % 3) * 0.7 };
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    t += 0.006;
+    const c = ink(), u = ultra();
+    // spokes
+    for (const a of agents) {
+      const wave = (Math.sin(t * 2 + a.ph * 0.017) + 1) / 2;    // 0..1 activity
+      ctx.strokeStyle = c; ctx.globalAlpha = 0.05 + wave * 0.09; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(a.x, a.y); ctx.stroke();
+      // packet travelling out then back
+      const p = ((t * 0.55 + a.ph * 0.0028) % 1);
+      const k = p < 0.5 ? p * 2 : (1 - p) * 2;                   // out and back
+      const px = cx + (a.x - cx) * k, py = cy + (a.y - cy) * k;
+      ctx.globalAlpha = 0.5 * Math.sin(k * Math.PI);
+      ctx.fillStyle = p < 0.5 ? c : u;
+      ctx.beginPath(); ctx.arc(px, py, 1.7, 0, 6.283); ctx.fill();
+      // agent node
+      ctx.globalAlpha = 0.22 + wave * 0.5;
+      ctx.fillStyle = wave > 0.82 ? u : c;
+      ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, 6.283); ctx.fill();
+    }
+    // root
+    ctx.globalAlpha = 0.9; ctx.fillStyle = u;
+    ctx.beginPath(); ctx.arc(cx, cy, 4.2, 0, 6.283); ctx.fill();
+    ctx.globalAlpha = 0.13;
+    ctx.beginPath(); ctx.arc(cx, cy, 10 + Math.sin(t * 3) * 3, 0, 6.283); ctx.fill();
+    ctx.globalAlpha = 1;
+    raf = requestAnimationFrame(draw);
+  }
+
+  size();
+  addEventListener("resize", () => { cancelAnimationFrame(raf); size(); if (!RM && vis) draw(); });
+  new IntersectionObserver(es => {
+    vis = es[0].isIntersecting; cancelAnimationFrame(raf);
+    if (vis && !RM) draw();
+  }, { threshold: 0 }).observe(cv);
+  if (RM) { draw(); cancelAnimationFrame(raf); }
+})();
+
+/* ---------------- rail scrollspy ---------------- */
+const SECTIONS = [
+  ["what", "Not a sixth level"], ["ladder", "The effort ladder"], ["confusion", "max / ultrathink / ultracode"],
+  ["workflow", "Dynamic workflows"], ["turnon", "Switching it on"], ["cost", "Cost and rails"],
+  ["when", "When to use it"], ["off", "The off switch"]
+];
+(() => {
+  const ol = $("#railList");
+  SECTIONS.forEach(([id, label], i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<a href="#${id}"><em>0${i + 1}</em><span>${label}</span></a>`;
+    ol.appendChild(li);
+  });
+  const links = $$("#railList a");
+  const els = SECTIONS.map(([id]) => document.getElementById(id)).filter(Boolean);
+  // Deterministic: the last section whose top has crossed the reference line.
+  // An IntersectionObserver band double-fires where two sections overlap it.
+  let raf = 0;
+  const sync = () => {
+    raf = 0;
+    const line = scrollY + innerHeight * 0.3;
+    let idx = 0;
+    els.forEach((el, i) => { if (el.offsetTop <= line) idx = i; });
+    links.forEach((a, i) => a.setAttribute("aria-current", i === idx));
+  };
+  addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(sync); }, { passive: true });
+  addEventListener("resize", sync);
+  sync();
+})();
+
+/* ---------------- reveal ---------------- */
+const revealIO = new IntersectionObserver((es, o) => {
+  for (const e of es) if (e.isIntersecting) { e.target.classList.add("in"); o.unobserve(e.target); }
+}, { threshold: .12, rootMargin: "0px 0px -6% 0px" });
+$$(".rv").forEach(el => revealIO.observe(el));
+
+/* ---------------- copy buttons ---------------- */
+$$(".copy").forEach(b => b.addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(b.dataset.copy); const o = b.textContent; b.textContent = "copied"; setTimeout(() => b.textContent = o, 1400); }
+  catch { b.textContent = "copy failed"; setTimeout(() => b.textContent = "copy", 1400); }
+}));
+
+/* ---------------- 01 · the two stacks ---------------- */
+const LEVELS = ["low", "medium", "high", "xhigh", "max"];
+(() => {
+  const wrong = $("#wrongStack"), right = $("#rightStack");
+  // wrong: six rungs, ultracode on top
+  [...LEVELS, "ultracode"].reverse().forEach(l => {
+    const d = document.createElement("div");
+    d.className = "sv" + (l === "ultracode" ? " ghost" : "");
+    const idx = LEVELS.indexOf(l);
+    d.innerHTML = `<i style="background:${idx < 0 ? "var(--ink-3)" : `var(--e${idx + 1})`}"></i>${l}`;
+    wrong.appendChild(d);
+  });
+  // right: five rungs + an off-ladder lane wired to xhigh
+  [...LEVELS].reverse().forEach(l => {
+    const idx = LEVELS.indexOf(l);
+    const row = document.createElement("div");
+    row.className = "sidecar";
+    const sv = document.createElement("div");
+    sv.className = "sv";
+    sv.innerHTML = `<i style="background:var(--e${idx + 1})"></i>${l}`;
+    row.appendChild(sv);
+    const side = document.createElement("span");
+    side.className = "brace";
+    side.textContent = l === "xhigh" ? "◀── ultracode pins here" : "";
+    row.appendChild(side);
+    right.appendChild(row);
+  });
+  const sep = document.createElement("div");
+  sep.className = "brace";
+  sep.style.cssText = "margin:.7rem 0 .2rem;display:flex;align-items:center;gap:.5rem;letter-spacing:.1em;text-transform:uppercase";
+  sep.innerHTML = `<span style="flex:1;height:1px;background:var(--hair)"></span>off the ladder<span style="flex:1;height:1px;background:var(--hair)"></span>`;
+  right.appendChild(sep);
+  const u = document.createElement("div");
+  u.className = "sv orange";
+  u.innerHTML = `<i style="background:var(--ultra)"></i>ultracode &nbsp;<span style="color:var(--ink-3);font-weight:400">= xhigh + workflow orchestration</span>`;
+  right.appendChild(u);
+})();
+
+/* ---------------- 02 · effort ladder ---------------- */
+const EFFORT = {
+  low:    { n: 1, role: "Cheapest, shallowest", persist: "persists",
+            d: "Fewest tokens across the whole response — fewer tool calls, less preamble, terse confirmations. Claude scopes work to exactly what was asked rather than doing more.",
+            use: "Short, scoped, latency-sensitive tasks that aren't intelligence-sensitive. Also a sensible level for subagents doing rote work.",
+            watch: "Pair it with an explicit checklist if the task has several sections, or it will under-cover them." },
+  medium: { n: 2, role: "The cost-saving step down", persist: "persists",
+            d: "A balanced trade: solid performance without the full token spend of the default. Roughly where the previous model generation sat at its own high setting.",
+            use: "Cost-sensitive work that can give up some intelligence — tool-heavy loops, routine code generation, high-volume jobs.",
+            watch: "Verify on your own evals before adopting it broadly; the drop is real but task-dependent." },
+  high:   { n: 3, role: "The default", persist: "persists · default",
+            d: "The level you get if you set nothing at all. Balances token usage against intelligence, and on the API it is exactly equivalent to omitting the parameter.",
+            use: "Complex reasoning, difficult coding problems, ordinary agentic work. The right home base for most sessions.",
+            watch: "Default on every model that supports effort — except Opus 4.7, which defaults to xhigh." },
+  xhigh:  { n: 4, role: "Long-horizon work", persist: "persists",
+            d: "Extended capability for work measured in tens of minutes and millions of tokens. Expect meaningfully higher token usage than high, and more tool calls with a plan stated before acting.",
+            use: "Difficult debugging, high-stakes verification, exploratory work with repeated tool calls and deep search. The recommended starting point for coding on Opus 4.7 and 4.8.",
+            watch: "Set a large max_tokens — 64k is a reasonable starting point — so the model has room to think and act across subagents." },
+  max:    { n: 5, role: "No ceiling", persist: "session only *",
+            d: "Absolute maximum capability with no constraint on token spending. The deepest reasoning available, and the most expensive.",
+            use: "Genuinely frontier problems where a wrong answer is costly and you have evals showing headroom above xhigh.",
+            watch: "Prone to overthinking, with diminishing returns on ordinary work and on structured-output tasks. Session-only, unless set via CLAUDE_CODE_EFFORT_LEVEL." },
+  ultracode: { n: 4, role: "Not a level — a session setting", persist: "session only", ultra: true,
+            d: "Sends xhigh to the model on every message and additionally lets Claude plan a dynamic workflow for each substantive task. One request can become several workflows in a row: one to understand the code, one to change it, one to verify.",
+            use: "Tasks too large for one conversation to coordinate — codebase-wide audits, large migrations, cross-checked research.",
+            watch: "Every request costs more and takes longer. Only offered on models that support xhigh, and only while workflows are enabled." }
+};
+(() => {
+  const host = $("#rungs"), detail = $("#detail");
+  const keys = [...LEVELS, "ultracode"];
+  keys.forEach(k => {
+    const e = EFFORT[k];
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "rung" + (e.ultra ? " ultra" : "");
+    b.dataset.k = k; b.setAttribute("aria-pressed", "false");
+    b.innerHTML = `<i style="background:${e.ultra ? "var(--ultra)" : `var(--e${e.n})`}"></i><span>${k}</span><span class="pers">${e.ultra ? "session" : e.persist.split(" ")[0]}</span>`;
+    b.addEventListener("click", () => select(k));
+    host.appendChild(b);
+  });
+  function select(k) {
+    const e = EFFORT[k];
+    $$(".rung", host).forEach(b => b.setAttribute("aria-pressed", b.dataset.k === k));
+    detail.style.borderLeftColor = e.ultra ? "var(--ultra)" : `var(--e${e.n})`;
+    detail.innerHTML = `
+      <div class="role">${e.role}</div>
+      <h4><code>${k}</code></h4>
+      <p style="margin-top:.7rem">${e.d}</p>
+      <dl class="kv">
+        <dt>Use it for</dt><dd>${e.use}</dd>
+        <dt>Watch out</dt><dd>${e.watch}</dd>
+        <dt>Persistence</dt><dd>${e.persist.replace("*", "<span style='color:var(--ink-3)'>— unless set via the env var</span>")}</dd>
+      </dl>
+      <div class="spend"><b>${e.ultra ? "Pins the ladder at" : "Position on the scale"}</b>${
+        [1,2,3,4,5].map(i => `<span data-i="${i}"></span>`).join("")
+      }${e.ultra ? '<span style="width:auto;background:none;font:600 11px var(--mono);color:var(--blue);margin-left:.6rem">xhigh</span>' : ""}</div>
+      ${e.ultra ? '<p class="foot" style="margin-top:.5rem">Ultracode has no rung of its own — the bar shows where it holds the ladder, not a sixth position above it.</p>' : ""}`;
+    // fill the ordinal indicator (ultracode borrows xhigh's position, in ladder blue)
+    const cells = $$(".spend span[data-i]", detail);
+    cells.forEach((c, i) => {
+      const on = i < e.n;
+      setTimeout(() => {
+        c.style.background = on ? `var(--e${i + 1})` : "var(--surface-3)";
+      }, RM ? 0 : 60 * i);
+    });
+  }
+  select("high");
+})();
+
+/* ---------------- 02b · model matrix ---------------- */
+(() => {
+  const rows = [
+    ["Fable 5 · Opus 5 · Sonnet 5 · Opus 4.8 · Opus 4.7", [1,1,1,1,1], "yes"],
+    ["Opus 4.6 · Sonnet 4.6", [1,1,1,0,1], "no"],
+    ["Haiku 4.5", [0,0,0,0,0], "no"]
+  ];
+  let html = `<thead><tr><th>Model</th>${LEVELS.map(l => `<th>${l}</th>`).join("")}<th>ultracode</th></tr></thead><tbody>`;
+  rows.forEach(([name, cells, uc]) => {
+    html += `<tr><td>${name}</td>${cells.map(c => c ? '<td class="yes">✓</td>' : '<td class="no">–</td>').join("")}` +
+            `<td>${uc === "yes" ? '<span class="yes">✓</span>' : '<span class="no">–</span>'}</td></tr>`;
+  });
+  html += `</tbody>`;
+  $("#matrix").innerHTML = html;
+})();
+
+/* ---------------- 04 · who holds the plan ---------------- */
+(() => {
+  const cols = ["Subagents", "Skills", "Agent teams", "Workflows"];
+  const rows = [
+    ["What it is", ["A worker Claude spawns", "Instructions Claude follows", "A lead supervising peers", "A script the runtime executes"]],
+    ["Who decides next", ["Claude, turn by turn", "Claude, following the prompt", "The lead agent, turn by turn", "The script"]],
+    ["Intermediate results live in", ["Claude's context", "Claude's context", "A shared task list", "Script variables"]],
+    ["What's repeatable", ["The worker definition", "The instructions", "The team definition", "The orchestration itself"]],
+    ["Scale", ["A few per turn", "Same as subagents", "A handful of peers", "Dozens to hundreds per run"]],
+    ["If interrupted", ["Restarts the turn", "Restarts the turn", "Teammates keep running", "Resumable in the session"]]
+  ];
+  let html = `<thead><tr><th></th>${cols.map((c, i) => `<th style="text-align:left${i === 3 ? ";color:var(--ultra)" : ""}">${c}</th>`).join("")}</tr></thead><tbody>`;
+  rows.forEach(([label, vals]) => {
+    html += `<tr><td style="color:var(--ink-3);font-weight:500">${label}</td>` +
+      vals.map((v, i) => `<td style="text-align:left${i === 3 ? ";color:var(--ink);font-weight:600" : ""}">${v}</td>`).join("") + `</tr>`;
+  });
+  $("#whoTable").innerHTML = html + `</tbody>`;
+})();
+
+/* ---------------- 04b · workflow run simulator ---------------- */
+const PHASES = [
+  { name: "Discover", call: "agent()", n: 1,  note: "one agent lists the files" },
+  { name: "Audit",    call: "pipeline()", n: 40, note: "one agent per file · 16 at a time" },
+  { name: "Verify",   call: "pipeline()", n: 1,  note: "one agent ranks and dedupes the findings" }
+];
+(() => {
+  const host = $("#phases"), runBtn = $("#simRun"), convBtn = $("#simConv"), resetBtn = $("#simReset");
+  const mAg = $("#mAg"), bAg = $("#bAg"), mCtx = $("#mCtx"), bCtx = $("#bCtx"), note = $("#simNote");
+  const TOTAL = PHASES.reduce((a, p) => a + p.n, 0);
+  let running = false, token = 0;
+
+  function build() {
+    host.innerHTML = "";
+    PHASES.forEach((p, pi) => {
+      const d = document.createElement("div");
+      d.className = "phase"; d.dataset.p = pi;
+      d.innerHTML = `<div class="ph-hd"><b>Phase ${pi + 1} · ${p.name}</b><span class="call">${p.call}</span><span class="n">0 / ${p.n}</span></div>
+        <div class="agents">${'<span class="ag"></span>'.repeat(p.n)}</div>
+        <div class="foot" style="margin:.5rem 0 0">${p.note}</div>`;
+      host.appendChild(d);
+    });
+    mAg.textContent = `0 / ${TOTAL}`; bAg.style.width = "0%";
+    bCtx.style.width = "0%"; mCtx.textContent = "holds the final report only";
+  }
+
+  async function run(mode) {
+    if (running) return;
+    running = true; token++;
+    const my = token;
+    runBtn.disabled = convBtn.disabled = true; resetBtn.disabled = false;
+    build();
+    let done = 0;
+    const conv = mode === "conv";
+    note.innerHTML = conv
+      ? `<b>Same 40 reviews, in conversation.</b> Claude spawns them turn by turn and every result lands in its context window — which fills as the task runs, leaving less room for the code itself.`
+      : `<b>The point of the second meter.</b> In conversation, every one of those 40 file reviews lands in Claude's context and stays there. In a workflow the results live in script variables, so the context holds one report at the end. That is what lets a run scale past what a single conversation can coordinate.`;
+
+    for (let pi = 0; pi < PHASES.length; pi++) {
+      if (my !== token) return;
+      const p = PHASES[pi];
+      const el = host.querySelector(`.phase[data-p="${pi}"]`);
+      el.classList.add("active");
+      const cells = $$(".ag", el), counter = $(".n", el);
+      const CONC = conv ? 2 : 16;             // conversation is effectively serial-ish
+      let idx = 0, finished = 0;
+      await new Promise(res => {
+        const tick = async () => {
+          const batch = Math.min(CONC, p.n - idx);
+          const wave = [];
+          for (let b = 0; b < batch; b++) {
+            const c = cells[idx++];
+            c.classList.add("run");
+            wave.push(sleep(conv ? 520 : 380 + Math.random() * 260).then(() => {
+              if (my !== token) return;
+              c.classList.remove("run"); c.classList.add("ok");
+              finished++; done++;
+              counter.textContent = `${finished} / ${p.n}`;
+              mAg.textContent = `${done} / ${TOTAL}`;
+              bAg.style.width = (done / TOTAL * 100) + "%";
+              if (conv) {
+                const fill = Math.min(100, done / TOTAL * 96);
+                bCtx.style.width = fill + "%";
+                mCtx.textContent = `${Math.round(fill)}% full — every result stays`;
+              }
+            }));
+          }
+          await Promise.all(wave);
+          if (my !== token) return res();
+          if (idx < p.n) tick(); else res();
+        };
+        tick();
+      });
+      if (my !== token) return;
+      el.classList.remove("active"); el.classList.add("done");
+    }
+    if (my !== token) return;
+    if (!conv) { bCtx.style.width = "9%"; mCtx.textContent = "one report — 9% of the window"; }
+    running = false; runBtn.disabled = convBtn.disabled = false;
+  }
+
+  runBtn.addEventListener("click", () => run("wf"));
+  convBtn.addEventListener("click", () => run("conv"));
+  resetBtn.addEventListener("click", () => { token++; running = false; build(); runBtn.disabled = convBtn.disabled = false; resetBtn.disabled = true; });
+  build();
+})();
+
+/* ---------------- 06 · size guideline ---------------- */
+const SIZES = [
+  { k: "small", n: 5,  t: "Fewer than 5 agents", note: "Keeps a run cheap and quick. Also lowers the threshold for the large-workflow warning to this count." },
+  { k: "medium", n: 15, t: "Fewer than 15 agents", note: "The default since v2.1.219. Until you pick a value, /config shows <code>medium (default)</code>.", def: true },
+  { k: "large", n: 50, t: "Fewer than 50 agents", note: "For sweeps across a big repo. The runtime's 16-concurrent and 1,000-total caps still apply on top." },
+  { k: "unrestricted", n: 70, t: "No guideline", note: "Claude sizes the workflow to the task. The 25-agent warning threshold stays in force." }
+];
+(() => {
+  const seg = $("#sizeSeg"), field = $("#dotfield"), note = $("#sizeNote");
+  SIZES.forEach(s => {
+    const b = document.createElement("button");
+    b.type = "button"; b.dataset.k = s.k; b.textContent = s.k;
+    b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", () => pick(s.k));
+    seg.appendChild(b);
+  });
+  for (let i = 0; i < 70; i++) field.appendChild(document.createElement("i"));
+  const dots = $$("i", field);
+  function pick(k) {
+    const s = SIZES.find(x => x.k === k);
+    $$("button", seg).forEach(b => b.setAttribute("aria-pressed", b.dataset.k === k));
+    dots.forEach((d, i) => setTimeout(() => {
+      d.className = i < s.n ? (i >= 25 ? "on over" : "on") : "";
+    }, RM ? 0 : Math.min(i, 40) * 9));
+    note.innerHTML = `<b>${s.t}.</b> ${s.note} ${s.n > 25 ? '<span style="color:var(--warn)">Amber dots are past the 25-agent mark, where Claude Code flags a <em>Large workflow</em> — unless ultracode is on, which suppresses the warning.</span>' : ""} The guideline is sent to Claude as advice, so a prompt calling for a different scale still overrides it.`;
+  }
+  pick("medium");
+})();
+
+/* ---------------- 06b · resume replay ---------------- */
+(() => {
+  const host = $("#replay"), runBtn = $("#rpRun"), resetBtn = $("#rpReset"), note = $("#rpNote");
+  const AG = [
+    { id: "A", dur: 900,  finished: true,  verdict: "cache", say: "finished before the stop → returns from cache" },
+    { id: "B", dur: 2600, finished: false, verdict: "rerun", say: "still running when you stopped → never saved, runs again" },
+    { id: "C", dur: 1100, finished: true,  verdict: "rerun", say: "completed — but started after B, so it runs again anyway" },
+    { id: "D", dur: 1000, finished: true,  verdict: "rerun", say: "same: completed, started after B, runs again" }
+  ];
+  let token = 0;
+  function build() {
+    host.innerHTML = "";
+    AG.forEach(a => {
+      const d = document.createElement("div");
+      d.className = "rw"; d.dataset.id = a.id;
+      d.innerHTML = `<span class="id">${a.id}</span><div class="bar"><i></i></div><span class="verdict idle">queued</span>`;
+      host.appendChild(d);
+    });
+  }
+  async function play() {
+    token++; const my = token;
+    runBtn.disabled = true; resetBtn.disabled = false;
+    build();
+    note.textContent = "Run 1 — four agents start in order…";
+    // first run, stopped during B
+    for (const a of AG) {
+      if (my !== token) return;
+      const row = host.querySelector(`.rw[data-id="${a.id}"]`);
+      const bar = $(".bar", row), fill = $("i", bar), v = $(".verdict", row);
+      v.className = "verdict idle"; v.textContent = "running";
+      fill.style.transitionDuration = (a.finished ? a.dur : a.dur * 0.45) + "ms";
+      requestAnimationFrame(() => fill.style.width = a.finished ? "100%" : "45%");
+      await sleep(a.finished ? a.dur * 0.55 : 260);
+      if (!a.finished) {
+        await sleep(700);
+        if (my !== token) return;
+        bar.classList.add("stopped");
+        v.textContent = "stopped"; v.className = "verdict idle";
+        note.innerHTML = "<b>You stop the run while B is still going.</b> A, C and D had already completed.";
+        break;
+      }
+      v.textContent = "done"; v.className = "verdict cache";
+    }
+    await sleep(1100);
+    if (my !== token) return;
+    // mark C and D as having completed in run 1
+    ["C", "D"].forEach(id => {
+      const row = host.querySelector(`.rw[data-id="${id}"]`);
+      $("i", row).style.transitionDuration = "1ms";
+      $("i", row).style.width = "100%";
+      $(".verdict", row).textContent = "done"; $(".verdict", row).className = "verdict cache";
+    });
+    await sleep(900);
+    if (my !== token) return;
+    note.innerHTML = "<b>Resume.</b> Replay follows the order agents started…";
+    await sleep(700);
+    for (const a of AG) {
+      if (my !== token) return;
+      const row = host.querySelector(`.rw[data-id="${a.id}"]`);
+      const bar = $(".bar", row), fill = $("i", bar), v = $(".verdict", row);
+      bar.classList.remove("stopped");
+      if (a.verdict === "rerun") { fill.style.transitionDuration = "1ms"; fill.style.width = "0%"; }
+      await sleep(420);
+      if (my !== token) return;
+      v.className = "verdict " + a.verdict;
+      v.textContent = a.verdict === "cache" ? "cached" : "re-runs";
+      if (a.verdict === "cache") { fill.style.background = "var(--good)"; }
+      if (a.verdict === "rerun") { fill.style.background = "var(--blue)"; fill.style.transitionDuration = "700ms"; requestAnimationFrame(() => fill.style.width = "100%"); }
+      note.innerHTML = `<b>${a.id}</b> — ${a.say}`;
+      await sleep(1000);
+    }
+    if (my !== token) return;
+    note.innerHTML = "<b>Three of the four run again</b> — two of them redundantly. This is why a workflow that fans work out across many small agents preserves far more progress on a stop than one that leans on a few long ones. Resume also only works inside the same Claude Code session: exit while a run is going and the next session starts it fresh.";
+    runBtn.disabled = false;
+  }
+  runBtn.addEventListener("click", play);
+  resetBtn.addEventListener("click", () => { token++; build(); runBtn.disabled = false; resetBtn.disabled = true; note.textContent = "Press the button to play it through."; });
+  build();
+})();
+})();
+</script>
+</body>
+</html>
