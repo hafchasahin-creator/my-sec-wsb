@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nova Harbor — City Timeline 2005–2025</title>
+<style>
+/* ------------------------------------------------------------------ tokens */
+:root {
+  color-scheme: light;
+  --surface-0:      #f4f3f0;
+  --surface-1:      #fcfcfb;
+  --surface-2:      #eeedea;
+  --border:         #dcdbd6;
+  --border-strong:  #c3c2bb;
+  --text-primary:   #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted:     #77756e;
+
+  /* categorical slots — validated light set */
+  --cat-transit:  #2a78d6;
+  --cat-build:    #eb6834;
+  --cat-green:    #1baf7a;
+  --cat-civic:    #eda100;
+  --cat-culture:  #e87ba4;
+
+  --seq-line:     #2a78d6;
+  --grid:         #e4e3df;
+
+  --sky-top:      #cfe0f2;
+  --sky-bot:      #f3e7dc;
+  --water:        #b9cddf;
+  --bldg-1:       #7f8894;
+  --bldg-2:       #949cA6;
+  --bldg-3:       #6a7480;
+  --window:       #f6d98a;
+  --window-off:   #5c6672;
+
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(11,11,11,.06), 0 8px 24px rgba(11,11,11,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface-0:      #121211;
+    --surface-1:      #1a1a19;
+    --surface-2:      #232322;
+    --border:         #333331;
+    --border-strong:  #4a4a47;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #97968c;
+
+    --cat-transit:  #3987e5;
+    --cat-build:    #d95926;
+    --cat-green:    #199e70;
+    --cat-civic:    #c98500;
+    --cat-culture:  #d55181;
+
+    --seq-line:     #3987e5;
+    --grid:         #2d2d2b;
+
+    --sky-top:      #101a2b;
+    --sky-bot:      #2a2337;
+    --water:        #0e1622;
+    --bldg-1:       #2b3340;
+    --bldg-2:       #343d4b;
+    --bldg-3:       #222a35;
+    --window:       #ffd782;
+    --window-off:   #1b222c;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0:      #121211;
+  --surface-1:      #1a1a19;
+  --surface-2:      #232322;
+  --border:         #333331;
+  --border-strong:  #4a4a47;
+  --text-primary:   #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted:     #97968c;
+
+  --cat-transit:  #3987e5;
+  --cat-build:    #d95926;
+  --cat-green:    #199e70;
+  --cat-civic:    #c98500;
+  --cat-culture:  #d55181;
+
+  --seq-line:     #3987e5;
+  --grid:         #2d2d2b;
+
+  --sky-top:      #101a2b;
+  --sky-bot:      #2a2337;
+  --water:        #0e1622;
+  --bldg-1:       #2b3340;
+  --bldg-2:       #343d4b;
+  --bldg-3:       #222a35;
+  --window:       #ffd782;
+  --window-off:   #1b222c;
+
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+}
+
+/* ------------------------------------------------------------------- base */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--surface-0);
+  color: var(--text-primary);
+  font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 64px; }
+
+h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.015em; }
+h1 { font-size: clamp(26px, 4vw, 40px); }
+h2 { font-size: 17px; }
+p  { margin: 0; }
+.muted { color: var(--text-muted); }
+.sec   { color: var(--text-secondary); }
+.num   { font-variant-numeric: tabular-nums; }
+
+/* ----------------------------------------------------------------- header */
+header.top {
+  display: flex; flex-wrap: wrap; gap: 16px;
+  align-items: flex-end; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.eyebrow {
+  font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 6px;
+}
+.sub { color: var(--text-secondary); margin-top: 6px; max-width: 62ch; }
+
+button {
+  font: inherit; color: var(--text-primary); cursor: pointer;
+  background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 8px; padding: 7px 12px;
+}
+button:hover { border-color: var(--border-strong); }
+button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--seq-line); outline-offset: 2px;
+}
+.btn-row { display: flex; gap: 8px; }
+
+/* ------------------------------------------------------------------ panel */
+.panel {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* --------------------------------------------------------------- skyline */
+.stage { position: relative; overflow: hidden; border-radius: var(--radius); }
+.stage svg { display: block; width: 100%; height: auto; }
+.badge {
+  position: absolute; left: 18px; top: 16px;
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 8px 14px; border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-1) 78%, transparent);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(6px);
+}
+.badge .yr { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+.badge .lbl { font-size: 12px; color: var(--text-secondary); }
+
+.bldg { transform-box: fill-box; transform-origin: bottom center;
+        transform: scaleY(0); opacity: 0;
+        transition: transform .55s cubic-bezier(.22,1,.36,1), opacity .35s ease; }
+.bldg.up { transform: scaleY(1); opacity: 1; }
+.bldg.new .halo { opacity: 1; }
+.halo { opacity: 0; transition: opacity .5s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .bldg { transition: none; }
+}
+
+/* -------------------------------------------------------------- controls */
+.controls {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; margin-top: 14px;
+}
+.play {
+  width: 40px; height: 40px; flex: none; border-radius: 999px;
+  display: grid; place-items: center; padding: 0;
+}
+.play svg { width: 15px; height: 15px; fill: currentColor; }
+.scrub { flex: 1; min-width: 180px; }
+input[type=range] {
+  width: 100%; margin: 0; accent-color: var(--seq-line); height: 24px;
+}
+.ticks {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--text-muted); margin-top: 2px;
+}
+
+/* ------------------------------------------------------------ stat tiles */
+.tiles {
+  display: grid; gap: 12px; margin-top: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+.tile { padding: 14px 16px 10px; }
+.tile .cap { font-size: 12px; color: var(--text-secondary); }
+.tile .val { font-size: 30px; font-weight: 680; letter-spacing: -.02em; line-height: 1.15; margin-top: 2px; }
+.tile .val small { font-size: 14px; font-weight: 550; color: var(--text-secondary); margin-left: 3px; }
+.tile .delta { font-size: 12px; color: var(--text-muted); }
+.spark { display: block; width: 100%; height: 38px; margin-top: 6px; overflow: visible; }
+
+/* ---------------------------------------------------------------- legend */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin: 26px 0 12px;
+}
+.chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 11px; border-radius: 999px; font-size: 13px;
+  background: var(--surface-1); border: 1px solid var(--border);
+  color: var(--text-secondary); cursor: pointer; user-select: none;
+}
+.chip .dot { width: 9px; height: 9px; border-radius: 3px; flex: none; background: var(--c); }
+.chip[aria-pressed="true"] { color: var(--text-primary); border-color: var(--border-strong); background: var(--surface-2); }
+.chip[aria-pressed="false"] { opacity: .5; }
+
+/* ------------------------------------------------------------- year card */
+.grid2 { display: grid; gap: 16px; grid-template-columns: minmax(0,1fr) minmax(0,1.05fr); }
+@media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+
+.yearcard { padding: 18px 18px 20px; }
+.yearcard h2 { display: flex; align-items: baseline; gap: 10px; }
+.yearcard h2 .big { font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+.events { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
+.events li {
+  display: grid; grid-template-columns: 4px 1fr; gap: 12px;
+  padding: 10px 12px; border-radius: 10px;
+  background: var(--surface-2);
+  animation: rise .32s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { .events li { animation: none; } }
+.events .bar { border-radius: 4px; background: var(--c); }
+.events .t { font-weight: 600; }
+.events .d { color: var(--text-secondary); font-size: 13.5px; margin-top: 2px; }
+.events .k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--c-ink); font-weight: 650; }
+.empty { color: var(--text-muted); padding: 10px 2px; }
+
+/* -------------------------------------------------------------- timeline */
+.rail { padding: 8px 6px 8px 0; max-height: 560px; overflow-y: auto; }
+.rail ol { list-style: none; margin: 0; padding: 0 0 0 8px; }
+.rail li { position: relative; padding: 0 12px 0 26px; }
+.rail li::before {
+  content: ""; position: absolute; left: 7px; top: 0; bottom: 0;
+  width: 2px; background: var(--border);
+}
+.rail li:first-child::before { top: 14px; }
+.rail li:last-child::before  { bottom: calc(100% - 14px); }
+.yrow {
+  width: 100%; text-align: left; background: none; border: 0; border-radius: 10px;
+  padding: 8px 10px; margin: 2px 0; display: flex; align-items: center; gap: 10px;
+}
+.yrow:hover { background: var(--surface-2); border-color: transparent; }
+.yrow .y { font-weight: 650; font-variant-numeric: tabular-nums; width: 46px; flex: none; }
+.yrow .s { color: var(--text-secondary); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.yrow .pips { margin-left: auto; display: flex; gap: 3px; flex: none; }
+.yrow .pips i { width: 7px; height: 7px; border-radius: 2px; background: var(--c); display: block; }
+.rail li .node {
+  position: absolute; left: 3px; top: 17px; width: 10px; height: 10px;
+  border-radius: 999px; background: var(--surface-1);
+  border: 2px solid var(--border-strong);
+}
+.rail li[data-sel="1"] .node { background: var(--seq-line); border-color: var(--seq-line); }
+.rail li[data-sel="1"] .yrow { background: var(--surface-2); }
+.rail li[data-sel="1"] .y { color: var(--text-primary); }
+
+/* ----------------------------------------------------------------- table */
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14px; }
+caption { text-align: left; color: var(--text-secondary); padding: 0 0 10px; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+td.y { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tablewrap { padding: 16px; margin-top: 16px; overflow-x: auto; }
+[hidden] { display: none !important; }
+
+footer.foot { margin-top: 34px; color: var(--text-muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <div class="eyebrow">Two decades of change</div>
+      <h1>Nova Harbor · 2005 — 2025</h1>
+      <p class="sub">A scrubbable record of how one coastal city grew: what got built, what opened,
+        and how the skyline, transit network and grid changed year by year.</p>
+    </div>
+    <div class="btn-row">
+      <button id="tableBtn" aria-expanded="false">Table view</button>
+      <button id="themeBtn" aria-label="Toggle color theme">Theme</button>
+    </div>
+  </header>
+
+  <!-- ------------------------------------------------------------ skyline -->
+  <section class="panel stage" aria-label="City skyline, buildings appear in the year they were completed">
+    <div class="badge">
+      <span class="yr num" id="badgeYear">2005</span>
+      <span class="lbl" id="badgeNote">21 structures standing</span>
+    </div>
+    <svg id="sky" viewBox="0 0 1200 520" role="img" aria-labelledby="skyTitle">
+      <title id="skyTitle">Skyline of Nova Harbor for the selected year</title>
+      <defs>
+        <linearGradient id="gSky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="var(--sky-top)"/>
+          <stop offset="100%" stop-color="var(--sky-bot)"/>
+        </linearGradient>
+        <linearGradient id="gWater" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="var(--water)" stop-opacity="1"/>
+          <stop offset="100%" stop-color="var(--water)" stop-opacity=".55"/>
+        </linearGradient>
+        <linearGradient id="gFade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#fff" stop-opacity=".62"/>
+          <stop offset="75%"  stop-color="#fff" stop-opacity="0"/>
+        </linearGradient>
+        <mask id="mFade"><rect x="0" y="380" width="1200" height="140" fill="url(#gFade)"/></mask>
+      </defs>
+
+      <rect x="0" y="0" width="1200" height="380" fill="url(#gSky)"/>
+      <circle id="sun" cx="1010" cy="120" r="34" fill="var(--window)" opacity=".55"/>
+      <rect x="0" y="380" width="1200" height="140" fill="url(#gWater)"/>
+
+      <!-- the mask must sit on an untransformed wrapper: mask content resolves in
+           the referencing element's user space, which the flip below would invert -->
+      <g mask="url(#mFade)" opacity=".55">
+        <g id="reflection" transform="translate(0,760) scale(1,-1)"></g>
+      </g>
+      <g id="city"></g>
+      <line x1="0" y1="380" x2="1200" y2="380" stroke="var(--border-strong)" stroke-width="1" opacity=".5"/>
+      <g id="ripples" opacity=".35"></g>
+    </svg>
+  </section>
+
+  <!-- ----------------------------------------------------------- controls -->
+  <div class="panel controls">
+    <button class="play" id="play" aria-label="Play timeline">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path id="playIcon" d="M3 1.5 14 8 3 14.5z"/></svg>
+    </button>
+    <div class="scrub">
+      <input id="year" type="range" min="2005" max="2025" step="1" value="2005"
+             aria-label="Year" aria-valuetext="2005">
+      <div class="ticks" aria-hidden="true">
+        <span>2005</span><span>2010</span><span>2015</span><span>2020</span><span>2025</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- -------------------------------------------------------- stat tiles -->
+  <div class="tiles" id="tiles"></div>
+
+  <!-- ------------------------------------------------------------ legend -->
+  <div class="legend" id="legend" role="group" aria-label="Filter milestones by category"></div>
+
+  <!-- ------------------------------------------------------- year + rail -->
+  <div class="grid2">
+    <section class="panel yearcard" aria-live="polite">
+      <h2><span class="big num" id="cardYear">2005</span> <span class="sec" id="cardCount"></span></h2>
+      <ul class="events" id="events"></ul>
+    </section>
+
+    <section class="panel rail" aria-label="All years">
+      <ol id="rail"></ol>
+    </section>
+  </div>
+
+  <!-- ------------------------------------------------------------- table -->
+  <section class="panel tablewrap" id="tableView" hidden>
+    <table>
+      <caption>All 2005–2025 milestones — the same data as the timeline above, in full.</caption>
+      <thead><tr><th scope="col">Year</th><th scope="col">Category</th><th scope="col">Milestone</th><th scope="col">Detail</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </section>
+
+  <footer class="foot">
+    Nova Harbor is an illustrative city — the milestones, population and grid figures are
+    sample data held in the <code>YEARS</code> and <code>BUILDINGS</code> arrays near the top
+    of this file's script. Swap them for a real city's record and everything else redraws itself.
+  </footer>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ==================================================================== data */
+
+const CATS = {
+  transit: { label: "Transit",      c: "var(--cat-transit)" },
+  build:   { label: "Development",  c: "var(--cat-build)"   },
+  green:   { label: "Environment",  c: "var(--cat-green)"   },
+  civic:   { label: "Civic",        c: "var(--cat-civic)"   },
+  culture: { label: "Culture",      c: "var(--cat-culture)" }
+};
+
+// population in thousands · transit route-km · parkland hectares · renewable share %
+const YEARS = [
+  { y:2005, pop:412, rail:18,  park:240, ren:4,  ev:[
+    { k:"civic",   t:"City charter renewed",            d:"Districts redrawn from nine wards to twelve; the harbor is made a single planning unit." },
+    { k:"green",   t:"Riverside Park, phase one",       d:"First 14 ha of the old rail yards reopen as public riverfront." }]},
+  { y:2006, pop:419, rail:18,  park:246, ren:5,  ev:[
+    { k:"transit", t:"First protected bike lanes",      d:"6 km along Canal Street — the pilot that the 2013 network grew out of." },
+    { k:"build",   t:"Central Station restoration begins", d:"A four-year rebuild of the 1911 hall and its train shed." }]},
+  { y:2007, pop:428, rail:18,  park:246, ren:6,  ev:[
+    { k:"build",   t:"Harbor Bridge opens",            d:"Cuts the north-shore crossing from 25 minutes to 6." },
+    { k:"civic",   t:"Nova Works incubator founded",    d:"Municipal seed fund for firms staying inside the city limits." }]},
+  { y:2008, pop:436, rail:18,  park:258, ren:8,  ev:[
+    { k:"build",   t:"Construction pause",              d:"The financial crisis halts eleven permitted towers; four never restart." },
+    { k:"green",   t:"Green roof ordinance",            d:"Vegetated or reflective roofs required on new builds over 1,000 m²." }]},
+  { y:2009, pop:441, rail:34,  park:258, ren:9,  ev:[
+    { k:"transit", t:"Metro Line 1 opens",              d:"16 km, 14 stations, harbor to the western hills." }]},
+  { y:2010, pop:452, rail:34,  park:271, ren:11, ev:[
+    { k:"build",   t:"Waterfront redevelopment starts", d:"120 ha of disused docks rezoned for mixed use." },
+    { k:"green",   t:"Tidal marsh restoration",         d:"13 ha of salt marsh rebuilt as the first storm buffer." }]},
+  { y:2011, pop:468, rail:38,  park:271, ren:13, ev:[
+    { k:"culture", t:"Civic Library opens",             d:"Replaces the 1952 building; open seven days from year one." },
+    { k:"civic",   t:"Downtown public wi-fi",           d:"Free coverage across the core and all metro platforms." }]},
+  { y:2012, pop:487, rail:38,  park:290, ren:15, ev:[
+    { k:"build",   t:"Meridian Tower completed",        d:"At 232 m the tallest building in the city for the next twelve years." },
+    { k:"green",   t:"Harbor water quality target met",d:"Swimmable readings at three beaches for the first time since 1968." }]},
+  { y:2013, pop:505, rail:49,  park:290, ren:18, ev:[
+    { k:"transit", t:"Light rail reaches the east bank",d:"11 km extension; the bike network passes 100 km." },
+    { k:"civic",   t:"Flood barrier, phase one",        d:"Movable gates at the river mouth commissioned." }]},
+  { y:2014, pop:522, rail:49,  park:318, ren:21, ev:[
+    { k:"culture", t:"Arts District designated",        d:"Rent stabilization for 200 studios in the old warehouse blocks." },
+    { k:"build",   t:"Old Mill conversion",             d:"A 1904 grain mill becomes 340 flats, a third of them below market." }]},
+  { y:2015, pop:541, rail:63,  park:318, ren:25, ev:[
+    { k:"transit", t:"Metro Line 2 opens",              d:"14 km orbital route linking the university to the port." },
+    { k:"green",   t:"Municipal solar program",       d:"Arrays on 90 public roofs; schools first." }]},
+  { y:2016, pop:563, rail:63,  park:352, ren:29, ev:[
+    { k:"green",   t:"Skypark greenway opens",          d:"3.4 km of elevated freight viaduct turned linear park." },
+    { k:"build",   t:"Innovation Quarter groundbreaks", d:"Nine blocks of lab and workshop space beside the port." }]},
+  { y:2017, pop:588, rail:68,  park:352, ren:33, ev:[
+    { k:"culture", t:"Harbor Stadium opens",           d:"38,000 seats, reached by metro rather than car park." },
+    { k:"transit", t:"Ferry network doubled",           d:"Six new landings; first two electric vessels in service." }]},
+  { y:2018, pop:611, rail:68,  park:368, ren:38, ev:[
+    { k:"green",   t:"Climate action plan adopted",     d:"Binding target: a carbon-neutral municipal grid by 2024." },
+    { k:"civic",   t:"Single-use plastics banned",      d:"Phased over 18 months, retail first." }]},
+  { y:2019, pop:634, rail:74,  park:381, ren:42, ev:[
+    { k:"culture", t:"Grand Central Market reopens",    d:"140 stalls under the restored 1911 train shed." },
+    { k:"transit", t:"Metro runs 24 hours at weekends", d:"Night service on Lines 1 and 2." }]},
+  { y:2020, pop:641, rail:74,  park:404, ren:47, ev:[
+    { k:"civic",   t:"Open Streets program",          d:"48 km of roadway handed to pedestrians and terraces during the pandemic." },
+    { k:"civic",   t:"East Hospital wing",              d:"180 beds delivered in eleven weeks; kept as permanent capacity." }]},
+  { y:2021, pop:652, rail:74,  park:404, ren:53, ev:[
+    { k:"civic",   t:"Recovery bond issued",            d:"$1.2 bn toward housing, schools and the port electrification." },
+    { k:"build",   t:"Citywide fiber completed",        d:"Gigabit service available at every residential address." }]},
+  { y:2022, pop:674, rail:79,  park:421, ren:59, ev:[
+    { k:"green",   t:"Green Terminal switches on",      d:"Shore power ends fuel burning by berthed ships." },
+    { k:"transit", t:"Bus fleet fully electric",        d:"Last diesel bus retired eight months ahead of schedule." }]},
+  { y:2023, pop:698, rail:92,  park:436, ren:66, ev:[
+    { k:"transit", t:"Metro Line 3 opens",              d:"13 km north–south spine; 71% of residents now within 600 m of rail." },
+    { k:"green",   t:"District heating goes live",      d:"Waste heat from the data quarter warms 12,000 homes." }]},
+  { y:2024, pop:721, rail:96,  park:448, ren:73, ev:[
+    { k:"build",   t:"Aurora Tower completed",          d:"258 m, and the first tower in the city built to net-zero operation." },
+    { k:"green",   t:"Municipal grid hits neutrality",  d:"The 2018 target met, in the year it was set for." }]},
+  { y:2025, pop:742, rail:101, park:477, ren:81, ev:[
+    { k:"green",   t:"Coastal Resilience Park opens",   d:"29 ha of engineered dune and marsh; the seawall's replacement." },
+    { k:"culture", t:"Twentieth-anniversary archive",   d:"Two decades of plans, photographs and votes published as open data." }]}
+];
+
+// x/w/h in the 1200×520 viewBox; baseline y = 380
+const BUILDINGS = [
+  // low-rise stock of 2005, listed first so later towers rise in front of it
+  { n:"Fish Market",       y:2005, x:556,  w:70, h:48,  t:3 },
+  { n:"Ferry Shed",        y:2005, x:700,  w:88, h:44,  t:2 },
+  { n:"Warehouse Row",     y:2005, x:880,  w:96, h:52,  t:3 },
+  { n:"Coal Yard",         y:2005, x:1036, w:70, h:40,  t:2 },
+  { n:"Dock Sheds",        y:2005, x:26,   w:74, h:58,  t:1 },
+  { n:"Old Custom House",  y:2005, x:112,  w:58, h:96,  t:3, spire:1 },
+  { n:"Canal Row",         y:2005, x:182,  w:46, h:74,  t:2 },
+  { n:"Exchange Block",    y:2005, x:240,  w:64, h:128, t:1 },
+  { n:"Merchant Court",    y:2005, x:316,  w:40, h:92,  t:2 },
+  { n:"Gasworks Stack",    y:2005, x:1132, w:22, h:150, t:3 },
+  { n:"Harbor Bridge Pylon", y:2007, x:368, w:34, h:172, t:3, spire:1 },
+  { n:"North Quay Flats",  y:2007, x:414,  w:56, h:112, t:2 },
+  { n:"Nova Works",        y:2008, x:482,  w:48, h:138, t:1 },
+  { n:"Line 1 Terminus",   y:2009, x:96,   w:42, h:70,  t:2 },
+  { n:"Waterfront One",    y:2010, x:544,  w:60, h:186, t:2 },
+  { n:"Civic Library",     y:2011, x:618,  w:78, h:104, t:3 },
+  { n:"Meridian Tower",    y:2012, x:712,  w:64, h:296, t:1, spire:1 },
+  { n:"East Bank Depot",   y:2013, x:964,  w:66, h:88,  t:3 },
+  { n:"Old Mill Lofts",    y:2014, x:790,  w:52, h:148, t:2 },
+  { n:"University Spur",   y:2015, x:1044, w:44, h:126, t:1 },
+  { n:"Skypark Anchor",    y:2016, x:856,  w:38, h:118, t:3 },
+  { n:"Innovation Quarter",y:2016, x:900,  w:54, h:160, t:2 },
+  { n:"Harbor Stadium",   y:2017, x:-6,   w:40, h:88,  t:2 },
+  { n:"Market Hall",       y:2019, x:676,  w:30, h:82,  t:2 },
+  { n:"Green Terminal",    y:2022, x:1094, w:32, h:104, t:1 },
+  { n:"Aurora Tower",      y:2024, x:1000, w:38, h:330, t:2, spire:1 }
+];
+
+/* ============================================================== utilities */
+
+const $  = (s, r = document) => r.querySelector(s);
+const el = (tag, attrs = {}) => {
+  const n = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  return n;
+};
+const rng = (seed) => () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+const Y0 = 2005, Y1 = 2025, BASE = 380;
+const byYear = Object.fromEntries(YEARS.map(r => [r.y, r]));
+
+/* ============================================================ build skyline */
+
+const cityG = $("#city"), reflG = $("#reflection"), ripG = $("#ripples");
+
+function drawBuilding(b, i) {
+  const g   = el("g", { class: "bldg", "data-year": b.y });
+  const top = BASE - b.h;
+  const fill = `var(--bldg-${b.t})`;
+
+  g.appendChild(el("rect", {
+    class: "halo", x: b.x - 5, y: top - 5, width: b.w + 10, height: b.h + 5,
+    rx: 6, fill: "none", stroke: "var(--cat-build)", "stroke-width": 2
+  }));
+  g.appendChild(el("rect", { x: b.x, y: top, width: b.w, height: b.h, rx: 2, fill }));
+
+  if (b.spire) {
+    g.appendChild(el("rect", { x: b.x + b.w / 2 - 2, y: top - 34, width: 4, height: 34, fill }));
+    g.appendChild(el("circle", { cx: b.x + b.w / 2, cy: top - 38, r: 3, fill: "var(--window)" }));
+  }
+
+  // windows
+  const r = rng(i * 7919 + b.y);
+  const cols = Math.max(1, Math.floor((b.w - 10) / 12));
+  const rows = Math.max(1, Math.floor((b.h - 14) / 14));
+  const padX = (b.w - cols * 12 + 4) / 2;
+  for (let c = 0; c < cols; c++) {
+    for (let w = 0; w < rows; w++) {
+      const lit = r() > 0.42;
+      const rect = el("rect", {
+        x: (b.x + padX + c * 12).toFixed(1), y: (top + 9 + w * 14).toFixed(1),
+        width: 6, height: 8, rx: 1,
+        fill: lit ? "var(--window)" : "var(--window-off)",
+        opacity: lit ? (0.55 + r() * 0.45).toFixed(2) : 0.5
+      });
+      g.appendChild(rect);
+    }
+  }
+  return g;
+}
+
+BUILDINGS.forEach((b, i) => {
+  cityG.appendChild(drawBuilding(b, i));
+  const ref = drawBuilding(b, i);
+  ref.classList.add("refl");
+  reflG.appendChild(ref);
+});
+
+for (let i = 0; i < 22; i++) {
+  const w = 30 + (i * 37) % 90;
+  ripG.appendChild(el("line", {
+    x1: (i * 61) % 1180, y1: 396 + (i * 13) % 112,
+    x2: ((i * 61) % 1180) + w, y2: 396 + (i * 13) % 112,
+    stroke: "var(--surface-1)", "stroke-width": 1.5, "stroke-linecap": "round", opacity: .6
+  }));
+}
+
+/* ================================================================== tiles */
+
+const SERIES = [
+  { id:"pop",  cap:"Population",        get:r => r.pop,  fmt:v => (v * 1000).toLocaleString("en-US"), unit:"" },
+  { id:"rail", cap:"Rail & metro",      get:r => r.rail, fmt:v => v, unit:"km" },
+  { id:"park", cap:"Public parkland",   get:r => r.park, fmt:v => v, unit:"ha" },
+  { id:"ren",  cap:"Renewable in grid", get:r => r.ren,  fmt:v => v, unit:"%"  }
+];
+
+const tilesEl = $("#tiles");
+SERIES.forEach(s => {
+  const d = document.createElement("div");
+  d.className = "panel tile";
+  d.innerHTML =
+    `<div class="cap">${s.cap}</div>
+     <div class="val num"><span id="v-${s.id}">–</span><small>${s.unit}</small></div>
+     <div class="delta num" id="d-${s.id}"></div>
+     <svg class="spark" id="s-${s.id}" viewBox="0 0 240 38" preserveAspectRatio="none" aria-hidden="true"></svg>`;
+  tilesEl.appendChild(d);
+});
+
+function sparkPath(s, upto) {
+  const vals = YEARS.map(s.get);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const X = i => 6 + (i / (YEARS.length - 1)) * 228;
+  const Y = v => 32 - ((v - min) / (max - min || 1)) * 26;
+  const pts = vals.map((v, i) => [X(i), Y(v)]);
+  const idx = upto - Y0;
+  const d = a => a.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  return { full: d(pts), lead: d(pts.slice(0, idx + 1)), head: pts[idx] };
+}
+
+function paintTiles(year) {
+  const row = byYear[year], first = YEARS[0];
+  SERIES.forEach(s => {
+    const v = s.get(row);
+    $("#v-" + s.id).textContent = s.fmt(v);
+    const chg = v - s.get(first);
+    $("#d-" + s.id).textContent = year === Y0
+      ? "baseline, 2005"
+      : `${chg >= 0 ? "+" : "−"}${s.fmt(Math.abs(chg))}${s.unit} since 2005`;
+
+    const p = sparkPath(s, year), svg = $("#s-" + s.id);
+    svg.replaceChildren(
+      el("path", { d: p.full, fill: "none", stroke: "var(--grid)", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke" }),
+      el("path", { d: p.lead, fill: "none", stroke: "var(--seq-line)", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke" }),
+      el("circle", { cx: p.head[0], cy: p.head[1], r: 4, fill: "var(--seq-line)", stroke: "var(--surface-1)", "stroke-width": 2 })
+    );
+  });
+}
+
+/* ================================================================= legend */
+
+const active = new Set(Object.keys(CATS));
+const legendEl = $("#legend");
+Object.entries(CATS).forEach(([k, c]) => {
+  const b = document.createElement("button");
+  b.className = "chip"; b.type = "button"; b.setAttribute("aria-pressed", "true");
+  b.style.setProperty("--c", c.c);
+  b.innerHTML = `<span class="dot"></span>${c.label}`;
+  b.addEventListener("click", () => {
+    active.has(k) ? active.delete(k) : active.add(k);
+    if (!active.size) Object.keys(CATS).forEach(x => active.add(x));   // never empty
+    legendEl.querySelectorAll(".chip").forEach(ch =>
+      ch.setAttribute("aria-pressed", String(active.has(ch.dataset.k))));
+    render(current);
+  });
+  b.dataset.k = k;
+  legendEl.appendChild(b);
+});
+
+/* =============================================================== timeline */
+
+const railEl = $("#rail");
+YEARS.forEach(row => {
+  const li = document.createElement("li");
+  li.dataset.year = row.y;
+  li.innerHTML =
+    `<span class="node"></span>
+     <button class="yrow" type="button">
+       <span class="y">${row.y}</span>
+       <span class="s"></span>
+       <span class="pips"></span>
+     </button>`;
+  li.querySelector(".yrow").addEventListener("click", () => setYear(row.y, true));
+  railEl.appendChild(li);
+});
+
+function paintRail(year) {
+  railEl.querySelectorAll("li").forEach(li => {
+    const row = byYear[+li.dataset.year];
+    const evs = row.ev.filter(e => active.has(e.k));
+    li.dataset.sel = +li.dataset.year === year ? "1" : "0";
+    li.querySelector(".s").textContent = evs.length ? evs.map(e => e.t).join(" · ") : "—";
+    li.querySelector(".yrow").style.opacity = evs.length ? 1 : .45;
+    const pips = li.querySelector(".pips");
+    pips.replaceChildren(...evs.map(e => {
+      const i = document.createElement("i");
+      i.style.setProperty("--c", CATS[e.k].c);
+      return i;
+    }));
+  });
+}
+
+/* ============================================================== year card */
+
+function paintCard(year) {
+  const row = byYear[year];
+  const evs = row.ev.filter(e => active.has(e.k));
+  $("#cardYear").textContent = year;
+  $("#cardCount").textContent =
+    evs.length ? `${evs.length} milestone${evs.length > 1 ? "s" : ""}` : "";
+  const ul = $("#events");
+  ul.replaceChildren();
+  if (!evs.length) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.textContent = "No milestones in this year for the selected categories.";
+    li.style.background = "transparent";
+    ul.appendChild(li);
+    return;
+  }
+  evs.forEach(e => {
+    const li = document.createElement("li");
+    li.style.setProperty("--c", CATS[e.k].c);
+    li.innerHTML =
+      `<span class="bar"></span>
+       <span>
+         <span class="k" style="--c-ink:${CATS[e.k].c}">${CATS[e.k].label}</span>
+         <div class="t">${e.t}</div>
+         <div class="d">${e.d}</div>
+       </span>`;
+    ul.appendChild(li);
+  });
+}
+
+/* ================================================================ skyline */
+
+function paintSky(year) {
+  let standing = 0, opened = [];
+  [cityG, reflG].forEach(group => {
+    group.querySelectorAll(".bldg").forEach(g => {
+      const by = +g.dataset.year;
+      g.classList.toggle("up", by <= year);
+      g.classList.toggle("new", by === year && year > Y0);   // Y0 is the city as inherited
+    });
+  });
+  BUILDINGS.forEach(b => { if (b.y <= year) standing++; if (b.y === year) opened.push(b.n); });
+
+  $("#badgeYear").textContent = year;
+  $("#badgeNote").textContent = (year > Y0 && opened.length)
+    ? `${opened.join(" · ")} completed`
+    : `${standing} structures standing`;
+
+  // sky mood: the sun tracks across the two decades
+  const t = (year - Y0) / (Y1 - Y0);
+  $("#sun").setAttribute("cx", (250 + t * 760).toFixed(0));
+  $("#sun").setAttribute("cy", (150 - Math.sin(t * Math.PI) * 70).toFixed(0));
+}
+
+/* ================================================================== table */
+
+const tbody = $("#tbody");
+YEARS.forEach(row => row.ev.forEach(e => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td class="y">${row.y}</td><td>${CATS[e.k].label}</td><td>${e.t}</td><td class="sec">${e.d}</td>`;
+  tbody.appendChild(tr);
+}));
+
+$("#tableBtn").addEventListener("click", e => {
+  const open = $("#tableView").hasAttribute("hidden");
+  $("#tableView").toggleAttribute("hidden", !open);
+  e.currentTarget.setAttribute("aria-expanded", String(open));
+  e.currentTarget.textContent = open ? "Hide table" : "Table view";
+});
+
+/* ============================================================ theme toggle */
+
+$("#themeBtn").addEventListener("click", () => {
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const cur  = document.documentElement.dataset.theme || (dark ? "dark" : "light");
+  document.documentElement.dataset.theme = cur === "dark" ? "light" : "dark";
+});
+
+/* =============================================================== playback */
+
+const slider = $("#year");
+let current = Y0, timer = null;
+
+function render(year) {
+  paintSky(year); paintTiles(year); paintCard(year); paintRail(year);
+}
+
+function setYear(y, scroll) {
+  current = Math.min(Y1, Math.max(Y0, y));
+  slider.value = current;
+  slider.setAttribute("aria-valuetext", String(current));
+  render(current);
+  if (scroll) {
+    const li = railEl.querySelector(`li[data-year="${current}"]`);
+    li && li.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+}
+
+slider.addEventListener("input", () => { stop(); setYear(+slider.value, true); });
+
+function stop() {
+  if (!timer) return;
+  clearInterval(timer); timer = null;
+  $("#playIcon").setAttribute("d", "M3 1.5 14 8 3 14.5z");
+  $("#play").setAttribute("aria-label", "Play timeline");
+}
+function start() {
+  if (current >= Y1) setYear(Y0, true);
+  timer = setInterval(() => {
+    if (current >= Y1) { stop(); return; }
+    setYear(current + 1, true);
+  }, 1100);
+  $("#playIcon").setAttribute("d", "M3 2h3.5v12H3zM9.5 2H13v12H9.5z");
+  $("#play").setAttribute("aria-label", "Pause timeline");
+}
+$("#play").addEventListener("click", () => timer ? stop() : start());
+
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === " ")      { e.preventDefault(); timer ? stop() : start(); }
+  if (e.key === "ArrowRight") setYear(current + 1, true);
+  if (e.key === "ArrowLeft")  setYear(current - 1, true);
+});
+
+setYear(Y0, false);
+})();
+</script>
+</body>
+</html>
