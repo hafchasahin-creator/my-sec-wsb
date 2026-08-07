@@ -1,0 +1,48 @@
+{
+  "resource_pack_name": "goku_abilities",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "ki_blast": {
+      "textures": "textures/items/ki_blast"
+    },
+    "kamehameha": {
+      "textures": "textures/items/kamehameha"
+    },
+    "spirit_bomb": {
+      "textures": "textures/items/spirit_bomb"
+    },
+    "destructo_disk": {
+      "textures": "textures/items/destructo_disk"
+    },
+    "dragon_fist": {
+      "textures": "textures/items/dragon_fist"
+    },
+    "solar_flare": {
+      "textures": "textures/items/solar_flare"
+    },
+    "instant_transmission": {
+      "textures": "textures/items/instant_transmission"
+    },
+    "flying_nimbus": {
+      "textures": "textures/items/flying_nimbus"
+    },
+    "kaioken": {
+      "textures": "textures/items/kaioken"
+    },
+    "super_saiyan": {
+      "textures": "textures/items/super_saiyan"
+    },
+    "super_saiyan_blue": {
+      "textures": "textures/items/super_saiyan_blue"
+    },
+    "ultra_instinct": {
+      "textures": "textures/items/ultra_instinct"
+    },
+    "senzu_bean": {
+      "textures": "textures/items/senzu_bean"
+    },
+    "power_pole": {
+      "textures": "textures/items/power_pole"
+    }
+  }
+}

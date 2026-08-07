@@ -1,0 +1,38 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "goku:destructo_disk",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "destructo_disk"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Destructo Disk"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:hand_equipped": false,
+      "minecraft:glint": true,
+      "minecraft:use_modifiers": {
+        "use_duration": 0.4,
+        "movement_modifier": 0.9
+      },
+      "minecraft:tags": {
+        "tags": [
+          "goku:ability",
+          "goku:destructo_disk"
+        ]
+      },
+      "minecraft:cooldown": {
+        "category": "goku_destructo_disk",
+        "duration": 6.0
+      }
+    }
+  }
+}

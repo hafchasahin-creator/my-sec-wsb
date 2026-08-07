@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "goku:senzu_bean"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " B ",
+      "BCB",
+      " B "
+    ],
+    "key": {
+      "B": {
+        "item": "minecraft:bone_meal"
+      },
+      "C": {
+        "item": "minecraft:golden_carrot"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "goku:senzu_bean",
+      "count": 3
+    }
+  }
+}

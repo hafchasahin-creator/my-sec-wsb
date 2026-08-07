@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "goku:spirit_bomb"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "GEG",
+      "EKE",
+      "GEG"
+    ],
+    "key": {
+      "G": {
+        "item": "minecraft:glowstone"
+      },
+      "E": {
+        "item": "minecraft:ender_eye"
+      },
+      "K": {
+        "item": "goku:kamehameha"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "goku:spirit_bomb",
+      "count": 1
+    }
+  }
+}

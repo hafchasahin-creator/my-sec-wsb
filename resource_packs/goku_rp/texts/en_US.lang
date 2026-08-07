@@ -1,0 +1,33 @@
+## Goku Abilities - English (US)
+
+pack.name=Goku Abilities RP
+pack.description=Icons and names for the Goku ability items.
+
+item.goku:ki_blast=Ki Blast
+item.goku:ki_blast.name=Ki Blast
+item.goku:kamehameha=Kamehameha
+item.goku:kamehameha.name=Kamehameha
+item.goku:spirit_bomb=Spirit Bomb
+item.goku:spirit_bomb.name=Spirit Bomb
+item.goku:destructo_disk=Destructo Disk
+item.goku:destructo_disk.name=Destructo Disk
+item.goku:dragon_fist=Dragon Fist
+item.goku:dragon_fist.name=Dragon Fist
+item.goku:solar_flare=Solar Flare
+item.goku:solar_flare.name=Solar Flare
+item.goku:instant_transmission=Instant Transmission
+item.goku:instant_transmission.name=Instant Transmission
+item.goku:flying_nimbus=Flying Nimbus
+item.goku:flying_nimbus.name=Flying Nimbus
+item.goku:kaioken=Kaio-ken
+item.goku:kaioken.name=Kaio-ken
+item.goku:super_saiyan=Super Saiyan
+item.goku:super_saiyan.name=Super Saiyan
+item.goku:super_saiyan_blue=Super Saiyan Blue
+item.goku:super_saiyan_blue.name=Super Saiyan Blue
+item.goku:ultra_instinct=Ultra Instinct
+item.goku:ultra_instinct.name=Ultra Instinct
+item.goku:senzu_bean=Senzu Bean
+item.goku:senzu_bean.name=Senzu Bean
+item.goku:power_pole=Power Pole
+item.goku:power_pole.name=Power Pole

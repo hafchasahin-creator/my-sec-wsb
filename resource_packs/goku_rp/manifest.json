@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Goku Abilities RP",
+    "description": "Icons and names for the Goku ability items. Resource Pack.",
+    "uuid": "55dc1634-53c0-4ec6-93a3-ee08b300df9e",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "3cb9e935-b419-41c7-a538-65aedd3d04c5",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Goku Abilities"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

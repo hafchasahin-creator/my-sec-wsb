@@ -1,3 +1,7 @@
+> This repository holds two independent Bedrock add-ons. The other one is
+> **[Goku Abilities](GOKU_ABILITIES.md)** — 14 Goku techniques as inventory items
+> (`dist/GokuAbilities.mcaddon`). Both can be active on the same world.
+
 # Arcane Arsenal
 
 A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six

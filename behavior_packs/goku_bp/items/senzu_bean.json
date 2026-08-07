@@ -1,0 +1,34 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "goku:senzu_bean",
+      "menu_category": {
+        "category": "items",
+        "group": "itemGroup.name.miscFood"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "senzu_bean"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Senzu Bean"
+      },
+      "minecraft:max_stack_size": 16,
+      "minecraft:hand_equipped": false,
+      "minecraft:use_modifiers": {
+        "use_duration": 0.8,
+        "movement_modifier": 0.6
+      },
+      "minecraft:tags": {
+        "tags": [
+          "goku:ability",
+          "goku:senzu_bean"
+        ]
+      }
+    }
+  }
+}

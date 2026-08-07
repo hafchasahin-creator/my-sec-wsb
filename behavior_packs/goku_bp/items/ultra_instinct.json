@@ -1,0 +1,38 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "goku:ultra_instinct",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "ultra_instinct"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Ultra Instinct"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:hand_equipped": false,
+      "minecraft:glint": true,
+      "minecraft:use_modifiers": {
+        "use_duration": 0.4,
+        "movement_modifier": 0.9
+      },
+      "minecraft:tags": {
+        "tags": [
+          "goku:ability",
+          "goku:ultra_instinct"
+        ]
+      },
+      "minecraft:cooldown": {
+        "category": "goku_ultra_instinct",
+        "duration": 120.0
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "goku:kamehameha"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " B ",
+      "BKB",
+      " B "
+    ],
+    "key": {
+      "B": {
+        "item": "minecraft:blaze_powder"
+      },
+      "K": {
+        "item": "goku:ki_blast"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "goku:kamehameha",
+      "count": 1
+    }
+  }
+}

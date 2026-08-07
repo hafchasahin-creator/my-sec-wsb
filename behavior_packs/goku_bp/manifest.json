@@ -1,0 +1,61 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Goku Abilities BP",
+    "description": "Every Goku ability as an inventory item. Behavior Pack.",
+    "uuid": "34f456a1-3ff0-46e5-8dd5-dea5d8e8bc36",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "c7a745f2-5610-4925-b731-7d3feed37aa6",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "70c85b89-5fd4-40b1-a6b7-6ea025445f9b",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "55dc1634-53c0-4ec6-93a3-ee08b300df9e",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Goku Abilities"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}
