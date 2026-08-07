@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ecosystem — A Field Guide to Living Systems</title>
+<meta name="description" content="An illustrated, animated field guide to how ecosystems work: biotic and abiotic components, energy flow, food webs, nutrient cycles, and the world's major biomes." />
+<style>
+
+/* ============================= TOKENS ============================= */
+:root{
+  --bg-sky: #eef1e4;
+  --bg-canopy: #e7ecda;
+  --bg-understory: #dfe6cd;
+  --bg-floor: #d7dfc0;
+  --bg-soil: #cdbf98;
+  --bg-roots: #3a2e1c;
+
+  --surface: #f9f8ef;
+  --surface-line: rgba(30,42,28,0.14);
+
+  --ink: #1c2a18;
+  --ink-soft: #4c5a44;
+  --ink-faint: #7a8570;
+
+  --accent-sun: #c8791f;
+  --accent-clay: #a34a26;
+  --accent-water: #2c6a86;
+  --accent-leaf: #3f6b34;
+
+  --on-roots: #e9e3cf;
+  --on-roots-soft: #b7ae93;
+
+  --font-display: Iowan Old Style, Palatino Linotype, Palatino, Georgia, "Noto Serif", serif;
+  --font-body: "Avenir Next", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-label: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg-sky: #101a13;
+    --bg-canopy: #14201a;
+    --bg-understory: #182620;
+    --bg-floor: #1a2c1f;
+    --bg-soil: #241c11;
+    --bg-roots: #0c0906;
+
+    --surface: #1c2a20;
+    --surface-line: rgba(233,227,207,0.14);
+
+    --ink: #eef1e4;
+    --ink-soft: #b7c2ab;
+    --ink-faint: #8b9682;
+
+    --accent-sun: #e0a23f;
+    --accent-clay: #d97a4d;
+    --accent-water: #6bb2cf;
+    --accent-leaf: #7fb168;
+
+    --on-roots: #eef1e4;
+    --on-roots-soft: #93998a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg-sky: #101a13;
+  --bg-canopy: #14201a;
+  --bg-understory: #182620;
+  --bg-floor: #1a2c1f;
+  --bg-soil: #241c11;
+  --bg-roots: #0c0906;
+
+  --surface: #1c2a20;
+  --surface-line: rgba(233,227,207,0.14);
+
+  --ink: #eef1e4;
+  --ink-soft: #b7c2ab;
+  --ink-faint: #8b9682;
+
+  --accent-sun: #e0a23f;
+  --accent-clay: #d97a4d;
+  --accent-water: #6bb2cf;
+  --accent-leaf: #7fb168;
+
+  --on-roots: #eef1e4;
+  --on-roots-soft: #93998a;
+  color-scheme: dark;
+}
+
+/* ============================= RESET ============================= */
+*,*::before,*::after{ box-sizing: border-box; }
+html{ scroll-behavior: smooth; }
+body{
+  margin:0;
+  background: var(--bg-sky);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+img,svg{ display:block; max-width:100%; }
+h1,h2,h3,p,figure{ margin:0; }
+a{ color: inherit; }
+button{ font: inherit; }
+
+.container{
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+.eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:.6em;
+  font-family: var(--font-label);
+  font-size: 12.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.eyebrow::before{
+  content:"";
+  width: 22px; height: 1px;
+  background: currentColor;
+  display:inline-block;
+}
+
+h2.title{
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.9rem, 4vw, 2.7rem);
+  line-height: 1.15;
+  margin-top: .5rem;
+  text-wrap: balance;
+}
+
+.lede{
+  font-size: 1.05rem;
+  color: var(--ink-soft);
+  max-width: 62ch;
+  margin-top: 1rem;
+}
+
+section{ position:relative; overflow:hidden; }
+.band{
+  padding: 92px 0;
+  border-bottom: 1px solid var(--surface-line);
+}
+
+/* ============================= SKIP LINK / FOCUS ============================= */
+a.skip-link{
+  position:absolute; left:-999px; top:auto;
+  background: var(--surface); color: var(--ink);
+  padding: 10px 16px; border-radius: 6px;
+  z-index: 999;
+}
+a.skip-link:focus{ left: 16px; top: 16px; }
+:focus-visible{ outline: 2px solid var(--accent-water); outline-offset: 3px; }
+
+/* ============================= THEME TOGGLE ============================= */
+.theme-toggle{
+  position: fixed;
+  top: 18px; right: 18px;
+  z-index: 60;
+  display:flex; align-items:center; gap:8px;
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  color: var(--ink-soft);
+  padding: 8px 14px 8px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-label);
+  font-size: 11.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+}
+.theme-toggle svg{ width:15px; height:15px; }
+.theme-toggle:hover{ color: var(--ink); }
+
+/* ============================= REVEAL ON SCROLL ============================= */
+.reveal{
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity .7s ease, transform .7s ease;
+}
+.reveal.is-visible{ opacity: 1; transform: translateY(0); }
+
+/* ============================= HERO ============================= */
+.hero{
+  min-height: 92vh;
+  display:flex;
+  align-items:center;
+  background:
+    radial-gradient(60% 50% at 78% 8%, color-mix(in srgb, var(--accent-sun) 30%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--bg-sky), var(--bg-canopy));
+  padding-top: 60px;
+}
+.hero-inner{ position:relative; z-index:3; }
+
+.sun{
+  position:absolute;
+  top: 8%; right: 10%;
+  width: 130px; height:130px;
+  border-radius:50%;
+  background: radial-gradient(circle at 40% 35%, var(--accent-sun), color-mix(in srgb, var(--accent-sun) 55%, transparent) 70%, transparent 75%);
+  filter: blur(.3px);
+  z-index:1;
+}
+@media (prefers-reduced-motion: no-preference){
+  .sun{ animation: sun-pulse 6s ease-in-out infinite; }
+}
+@keyframes sun-pulse{
+  0%,100%{ transform: scale(1); opacity:.95; }
+  50%{ transform: scale(1.08); opacity:1; }
+}
+
+.cloud{
+  position:absolute;
+  z-index:2;
+  opacity:.55;
+}
+.cloud svg{ width:100%; height:100%; }
+.cloud.c1{ top:16%; left:-10%; width:180px; }
+.cloud.c2{ top:28%; left:60%; width:130px; opacity:.4; }
+.cloud.c3{ top:10%; left:30%; width:100px; opacity:.3; }
+@media (prefers-reduced-motion: no-preference){
+  .cloud.c1{ animation: drift 60s linear infinite; }
+  .cloud.c2{ animation: drift 90s linear infinite reverse; }
+  .cloud.c3{ animation: drift 75s linear infinite; }
+}
+@keyframes drift{
+  from{ transform: translateX(0); }
+  to{ transform: translateX(120vw); }
+}
+
+.leaf-field{ position:absolute; inset:0; z-index:2; pointer-events:none; }
+.leaf{
+  position:absolute; top:-5%;
+  width: 12px; height: 12px;
+  background: var(--accent-leaf);
+  border-radius: 0 60% 0 60%;
+  opacity:.7;
+}
+@media (prefers-reduced-motion: no-preference){
+  .leaf{ animation: fall linear infinite; }
+}
+@keyframes fall{
+  0%{ transform: translateY(0) rotate(0deg); }
+  100%{ transform: translateY(110vh) rotate(340deg); }
+}
+
+.hero h1{
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(2.6rem, 7vw, 5rem);
+  line-height: 1.04;
+  letter-spacing: -.01em;
+  text-wrap: balance;
+  max-width: 14ch;
+}
+.hero h1 em{ font-style: italic; color: var(--accent-leaf); }
+
+.hero .lede{ margin-top: 1.4rem; font-size: 1.15rem; }
+
+.scroll-cue{
+  margin-top: 3.2rem;
+  display:inline-flex; align-items:center; gap:.7em;
+  font-family: var(--font-label);
+  font-size: 12px; letter-spacing:.14em; text-transform:uppercase;
+  color: var(--ink-faint);
+}
+.scroll-cue svg{ width:13px; height:13px; }
+@media (prefers-reduced-motion: no-preference){
+  .scroll-cue svg{ animation: nudge 1.6s ease-in-out infinite; }
+}
+@keyframes nudge{
+  0%,100%{ transform: translateY(0); }
+  50%{ transform: translateY(5px); }
+}
+
+/* ============================= VENN DIAGRAM ============================= */
+.venn{
+  position:relative;
+  width: 100%; max-width: 380px;
+  aspect-ratio: 16/10;
+  margin: 2.6rem auto 0;
+}
+.venn-circle{
+  position:absolute; top:50%;
+  width: 62%; aspect-ratio:1;
+  border-radius:50%;
+  transform: translateY(-50%);
+  mix-blend-mode: multiply;
+  display:flex; align-items:center; justify-content:center;
+  font-family: var(--font-label);
+  font-size: 11px; letter-spacing:.1em; text-transform:uppercase;
+}
+:root[data-theme="dark"] .venn-circle,
+@media (prefers-color-scheme: dark){ }
+.venn-circle.biotic{
+  left: 6%;
+  background: color-mix(in srgb, var(--accent-leaf) 35%, transparent);
+  color: var(--ink);
+  justify-content: flex-start; padding-left: 12%;
+}
+.venn-circle.abiotic{
+  right: 6%;
+  background: color-mix(in srgb, var(--accent-water) 35%, transparent);
+  color: var(--ink);
+  justify-content:flex-end; padding-right: 12%;
+}
+.venn-label{
+  position:absolute; left:50%; top:50%;
+  transform: translate(-50%,-50%);
+  font-family: var(--font-display); font-style: italic;
+  font-size: 1rem;
+  text-align:center;
+  color: var(--ink);
+}
+
+/* ============================= ABIOTIC GRID ============================= */
+.abiotic-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
+  gap: 1px;
+  margin-top: 2.6rem;
+  background: var(--surface-line);
+  border: 1px solid var(--surface-line);
+}
+.abiotic-card{
+  background: var(--surface);
+  padding: 26px 20px;
+}
+.abiotic-card .icon{ width:34px; height:34px; color: var(--accent-water); margin-bottom: 14px; }
+.abiotic-card h3{
+  font-family: var(--font-display); font-size: 1.05rem; font-weight:500;
+}
+.abiotic-card p{ margin-top:.5rem; font-size: .9rem; color: var(--ink-soft); }
+
+.icon-sun-rays{ animation: none; }
+@media (prefers-reduced-motion: no-preference){
+  .abiotic-card:nth-child(1) .icon circle{ animation: sun-pulse 4s ease-in-out infinite; transform-origin:center; }
+  .abiotic-card:nth-child(2) .icon .ripple{ animation: ripple 3s ease-out infinite; }
+  .abiotic-card:nth-child(3) .icon .wind-line{ animation: wind 2.4s ease-in-out infinite; }
+  .abiotic-card:nth-child(3) .icon .wind-line:nth-child(2){ animation-delay:.2s; }
+  .abiotic-card:nth-child(3) .icon .wind-line:nth-child(3){ animation-delay:.4s; }
+  .abiotic-card:nth-child(5) .icon .merc{ animation: thermo 4s ease-in-out infinite; transform-origin: bottom center; }
+}
+@keyframes ripple{
+  0%{ r:2; opacity:1; }
+  100%{ r:11; opacity:0; }
+}
+@keyframes wind{
+  0%,100%{ transform: translateX(0); opacity:.5; }
+  50%{ transform: translateX(4px); opacity:1; }
+}
+@keyframes thermo{
+  0%,100%{ transform: scaleY(1); }
+  50%{ transform: scaleY(1.25); }
+}
+
+/* ============================= FOOD CHAIN STAGE ============================= */
+.chain-stage{
+  position:relative;
+  width:100%;
+  max-width: 720px;
+  height: 210px;
+  margin: 3rem auto 1.5rem;
+}
+.chain-stage svg.guide{ position:absolute; inset:0; width:100%; height:100%; }
+.chain-guide-path{
+  fill:none;
+  stroke: var(--surface-line);
+  stroke-width: 2;
+  stroke-dasharray: 3 8;
+  stroke-linecap: round;
+}
+@media (prefers-reduced-motion: no-preference){
+  .chain-guide-path{ animation: dash-flow 3s linear infinite; }
+}
+@keyframes dash-flow{ to{ stroke-dashoffset: -110; } }
+
+.chain-node{
+  position:absolute;
+  transform: translate(-50%,-50%);
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  width: 92px; text-align:center;
+}
+.chain-node .dot{
+  width: 46px; height:46px; border-radius:50%;
+  background: var(--surface); border:1px solid var(--surface-line);
+  display:flex; align-items:center; justify-content:center;
+}
+.chain-node .dot svg{ width:24px; height:24px; }
+.chain-node span{ font-family: var(--font-label); font-size: 10.5px; letter-spacing:.06em; text-transform:uppercase; color: var(--ink-faint); }
+.chain-node small{ display:block; font-family:var(--font-label); font-size:9px; color: var(--ink-faint); opacity:.75; }
+
+.n1{ left: 6%;  top: 22%; }
+.n2{ left: 30%; top: 78%; }
+.n3{ left: 54%; top: 18%; }
+.n4{ left: 78%; top: 78%; }
+.n5{ left: 96%; top: 22%; }
+
+.energy-dot{
+  position:absolute; top:0; left:0;
+  width:14px; height:14px; border-radius:50%;
+  background: var(--accent-sun);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-sun) 25%, transparent);
+  offset-path: path("M 30,46 C 130,46 130,164 220,164 C 320,164 320,38 420,38 C 520,38 520,164 620,164 C 660,164 680,155 690,146");
+  offset-rotate: 0deg;
+}
+@media (prefers-reduced-motion: no-preference){
+  .energy-dot{ animation: travel-energy 6s ease-in-out infinite; }
+}
+@keyframes travel-energy{
+  0%{ offset-distance:0%; opacity:1; transform:scale(1); }
+  85%{ opacity:1; }
+  100%{ offset-distance:100%; opacity:0; transform:scale(.3); }
+}
+
+.chain-caption{
+  text-align:center; font-size:.85rem; color: var(--ink-faint);
+  font-family: var(--font-label); letter-spacing:.04em;
+  margin-top: -.5rem;
+}
+
+.trophic-note{
+  margin-top: 2.4rem;
+  display:grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr));
+  gap: 14px;
+}
+.trophic-note .stat{
+  border-left: 2px solid var(--accent-clay);
+  padding-left: 14px;
+}
+.trophic-note .stat b{ display:block; font-family: var(--font-display); font-size:1.6rem; color: var(--accent-clay); }
+.trophic-note .stat span{ font-size:.85rem; color: var(--ink-soft); }
+
+/* ============================= FOOD WEB ============================= */
+.web-wrap{
+  margin-top: 2.6rem;
+  border: 1px solid var(--surface-line);
+  background: var(--surface);
+  padding: 12px;
+}
+.web-wrap svg{ width:100%; height:auto; touch-action: manipulation; }
+.web-edge{
+  stroke: var(--surface-line);
+  stroke-width: 1.4;
+  fill:none;
+  transition: stroke .35s ease, opacity .35s ease, stroke-width .35s ease;
+}
+.web-edge.dashed{ stroke-dasharray: 4 5; }
+.web-node circle{
+  fill: var(--surface);
+  stroke: var(--ink-faint);
+  stroke-width: 1.3;
+  transition: stroke .35s ease, fill .35s ease, r .35s ease;
+  cursor: pointer;
+}
+.web-node text{
+  font-family: var(--font-label);
+  font-size: 9.5px;
+  fill: var(--ink-soft);
+  text-anchor: middle;
+  pointer-events:none;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  transition: fill .35s ease, opacity .35s ease;
+}
+.web-node.sun circle{ fill: color-mix(in srgb, var(--accent-sun) 40%, var(--surface)); }
+.web-node.decomposer circle{ fill: color-mix(in srgb, var(--accent-clay) 25%, var(--surface)); }
+
+.web-wrap.active .web-edge{ opacity:.18; }
+.web-wrap.active .web-node circle{ opacity:.3; }
+.web-wrap.active .web-node text{ opacity:.35; }
+.web-edge.on{ stroke: var(--accent-leaf); stroke-width: 2.2; opacity:1 !important; }
+.web-node.on circle{ opacity:1 !important; stroke: var(--accent-leaf); stroke-width:2; }
+.web-node.on text{ opacity:1 !important; fill: var(--ink); font-weight:600; }
+
+.web-hint{
+  margin-top: .9rem;
+  font-size:.82rem; color: var(--ink-faint);
+  font-family: var(--font-label);
+}
+
+/* ============================= WATER CYCLE ============================= */
+.cycle-stage{
+  position:relative; width:100%; max-width:600px; height:300px; margin: 2.6rem auto 0;
+}
+.cycle-stage svg.guide{ position:absolute; inset:0; width:100%; height:100%; }
+.cycle-guide-path{ fill:none; stroke: color-mix(in srgb, var(--accent-water) 35%, transparent); stroke-width:2; stroke-dasharray:2 7; stroke-linecap:round; }
+@media (prefers-reduced-motion: no-preference){
+  .cycle-guide-path{ animation: dash-flow 4s linear infinite; }
+}
+.cycle-label{
+  position:absolute; transform:translate(-50%,-50%);
+  font-family: var(--font-label); font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  color: var(--accent-water); text-align:center;
+}
+.cycle-label.l1{ left:20%; top:56%; }
+.cycle-label.l2{ left:50%; top:14%; }
+.cycle-label.l3{ left:80%; top:56%; }
+.cycle-label.l4{ left:50%; top:92%; }
+
+.water-drop{
+  position:absolute; top:0; left:0;
+  width:12px; height:12px; border-radius:50% 50% 50% 0;
+  background: var(--accent-water);
+  offset-path: path("M120,250 C150,150 220,90 300,70 C380,90 450,150 480,250 C400,270 200,270 120,250 Z");
+}
+@media (prefers-reduced-motion: no-preference){
+  .water-drop{ animation: travel-water 8s linear infinite; }
+}
+@keyframes travel-water{
+  0%{ offset-distance:0%; offset-rotate: 0deg;}
+  100%{ offset-distance:100%; offset-rotate: 0deg;}
+}
+
+.cycle-also{
+  margin-top: 2.6rem;
+  display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+  gap: 20px;
+}
+.cycle-also .card{ border-top: 2px solid var(--accent-water); padding-top: 12px; }
+.cycle-also h4{ font-family: var(--font-display); font-size:1.05rem; font-weight:500; }
+.cycle-also p{ font-size:.88rem; color: var(--ink-soft); margin-top:.4rem; }
+
+/* ============================= BIOME CARDS ============================= */
+.biome-grid{
+  margin-top: 2.6rem;
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px,1fr));
+  gap: 16px;
+}
+.biome-card{
+  position:relative;
+  border-radius: 4px;
+  padding: 22px 20px 20px;
+  min-height: 168px;
+  overflow:hidden;
+  border: 1px solid var(--surface-line);
+  color: #fff;
+  isolation: isolate;
+}
+.biome-card::before{
+  content:""; position:absolute; inset:0; z-index:-2;
+}
+.biome-card::after{
+  content:""; position:absolute; inset:0; z-index:-1;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.45) 100%);
+}
+.biome-card h4{ font-family: var(--font-display); font-weight:500; font-size:1.2rem; }
+.biome-card p{ font-size:.85rem; margin-top:.5rem; opacity:.92; max-width:32ch; }
+.biome-card .tag{
+  font-family: var(--font-label); font-size:10px; letter-spacing:.1em; text-transform:uppercase; opacity:.85;
+  margin-bottom: 6px; display:block;
+}
+
+.biome-forest::before{ background: linear-gradient(160deg,#1f3d1f,#3f6b34 60%,#5c8a3f); }
+.biome-grassland::before{ background: linear-gradient(160deg,#8a7a2c,#c8a83f 60%,#e3cf7a); }
+.biome-desert::before{ background: linear-gradient(160deg,#c8791f,#e0a23f 60%,#f2c877); }
+.biome-freshwater::before{ background: linear-gradient(160deg,#1c4f5e,#2c6a86 60%,#4a92ac); }
+.biome-marine::before{ background: linear-gradient(160deg,#0d3346,#1c5c78 60%,#2f89ab); }
+.biome-tundra::before{ background: linear-gradient(160deg,#4a5560,#7c8a94 60%,#b6c2c9); }
+
+@media (prefers-reduced-motion: no-preference){
+  .biome-desert::before{ background-size: 200% 200%; animation: shimmer 6s ease-in-out infinite; }
+  .biome-marine::before{ background-size: 200% 200%; animation: shimmer 8s ease-in-out infinite; }
+  .biome-forest::before{ background-size: 200% 200%; animation: shimmer 10s ease-in-out infinite; }
+}
+@keyframes shimmer{
+  0%,100%{ background-position: 0% 0%; }
+  50%{ background-position: 100% 100%; }
+}
+
+/* ============================= BALANCE / ROOTS ============================= */
+.roots-band{
+  background: var(--bg-roots);
+  color: var(--on-roots);
+}
+.roots-band .eyebrow{ color: var(--on-roots-soft); }
+.roots-band .lede{ color: var(--on-roots-soft); }
+.roots-band h2.title{ color: var(--on-roots); }
+
+.roots-svg{ position:absolute; inset:0; z-index:0; opacity:.5; }
+.roots-band .container{ position:relative; z-index:1; }
+
+.keystone{
+  margin-top: 2.2rem;
+  border: 1px solid rgba(233,227,207,0.16);
+  padding: 22px 24px;
+  background: rgba(233,227,207,0.04);
+}
+.keystone .eyebrow{ color: var(--accent-sun); }
+.keystone .eyebrow::before{ background: var(--accent-sun); }
+.keystone p{ margin-top:.7rem; font-size:.95rem; color: var(--on-roots-soft); }
+
+/* ============================= FOOTER ============================= */
+footer{
+  background: var(--bg-roots);
+  color: var(--on-roots-soft);
+  padding: 34px 0 44px;
+  font-family: var(--font-label);
+  font-size: 11.5px;
+  letter-spacing: .04em;
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap: 10px;
+}
+
+/* ============================= RESPONSIVE ============================= */
+@media (max-width: 640px){
+  .band{ padding: 64px 0; }
+  .hero{ min-height: 82vh; }
+  .chain-stage{ height: 260px; }
+  .n1{ top:14%; } .n3{ top:14%; } .n5{ top:14%; }
+  .n2{ top:86%; } .n4{ top:86%; }
+}
+
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle color theme">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" id="themeIcon">
+    <circle cx="12" cy="12" r="4.5"></circle>
+    <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path>
+  </svg>
+  <span id="themeLabel">Light</span>
+</button>
+
+<main id="main">
+
+<!-- ============================= HERO / SKY ============================= -->
+<section class="hero">
+  <div class="sun" aria-hidden="true"></div>
+  <div class="cloud c1" aria-hidden="true"><svg viewBox="0 0 200 90"><ellipse cx="60" cy="55" rx="55" ry="30" fill="currentColor"/><ellipse cx="120" cy="45" rx="45" ry="35" fill="currentColor"/><ellipse cx="150" cy="60" rx="40" ry="24" fill="currentColor"/></svg></div>
+  <div class="cloud c2" aria-hidden="true"><svg viewBox="0 0 200 90"><ellipse cx="60" cy="55" rx="55" ry="30" fill="currentColor"/><ellipse cx="120" cy="45" rx="45" ry="35" fill="currentColor"/></svg></div>
+  <div class="cloud c3" aria-hidden="true"><svg viewBox="0 0 200 90"><ellipse cx="80" cy="50" rx="60" ry="32" fill="currentColor"/></svg></div>
+  <div class="leaf-field" id="leafField" aria-hidden="true"></div>
+
+  <div class="container hero-inner">
+    <p class="eyebrow">Sky — field guide, no. 01</p>
+    <h1>Everything<br>is <em>connected.</em></h1>
+    <p class="lede">A short, illustrated descent through how ecosystems actually work — from sunlight and soil to food webs, nutrient cycles, and the fragile balance holding it all together. Scroll down to travel from canopy to root.</p>
+    <div class="scroll-cue">
+      Begin the descent
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M6 14l6 6 6-6"/></svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= CANOPY: WHAT IS AN ECOSYSTEM ============================= -->
+<section class="band" style="background:var(--bg-canopy);">
+  <div class="container reveal">
+    <p class="eyebrow">Canopy</p>
+    <h2 class="title">What is an ecosystem?</h2>
+    <p class="lede">An ecosystem is every living thing in a place — plants, animals, fungi, microbes — together with the non‑living conditions they depend on: sunlight, water, air, soil, and temperature. Neither half works alone. Remove the organisms and the physical setting is just geology; remove the physical setting and there's nothing left for organisms to live in. An ecosystem is the interaction itself.</p>
+    <p class="lede">Scale doesn't define it. A puddle, a fallen log, a coral reef, and the entire biosphere are all ecosystems — what matters is that energy and matter are actively cycling through a web of relationships.</p>
+
+    <div class="venn" role="img" aria-label="Diagram: biotic and abiotic factors overlap to form an ecosystem">
+      <div class="venn-circle biotic">biotic</div>
+      <div class="venn-circle abiotic">abiotic</div>
+      <div class="venn-label">Ecosystem</div>
+    </div>
+  </div>
+
+  <div class="container reveal" style="margin-top:5rem;">
+    <p class="eyebrow">The non‑living half</p>
+    <h2 class="title" style="font-size:clamp(1.5rem,3vw,1.9rem);">Abiotic components</h2>
+    <p class="lede">The physical and chemical conditions every organism must work with, adapt to, or die trying to escape.</p>
+
+    <div class="abiotic-grid">
+      <div class="abiotic-card">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.2 4.2l2 2M17.8 17.8l2 2M1 12h3M20 12h3M4.2 19.8l2-2M17.8 6.2l2-2"/></svg>
+        <h3>Sunlight</h3>
+        <p>The primary energy source for nearly all life, captured by plants and algae through photosynthesis.</p>
+      </div>
+      <div class="abiotic-card">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z"/><circle class="ripple" cx="12" cy="20" r="2" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+        <h3>Water</h3>
+        <p>Drives every biochemical process in a cell and determines where and how densely life can settle.</p>
+      </div>
+      <div class="abiotic-card">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path class="wind-line" d="M2 8h13a3 3 0 1 0-2.5-4.7"/><path class="wind-line" d="M2 13h17a3 3 0 1 1-2.5 4.7"/><path class="wind-line" d="M2 18h10"/></svg>
+        <h3>Air &amp; climate</h3>
+        <p>Supplies oxygen and carbon dioxide and redistributes heat and moisture across the planet.</p>
+      </div>
+      <div class="abiotic-card">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="4"/><rect x="3" y="10" width="18" height="4"/><rect x="3" y="16" width="18" height="4"/></svg>
+        <h3>Soil &amp; minerals</h3>
+        <p>Anchors plant roots and stores the nutrients that decomposers return to the system.</p>
+      </div>
+      <div class="abiotic-card">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="10" y="3" width="4" height="12" rx="2"/><circle cx="12" cy="18" r="3"/><path class="merc" d="M12 8v9" stroke-width="3" stroke-linecap="round"/></svg>
+        <h3>Temperature</h3>
+        <p>Sets the pace of growth, reproduction, and migration for every species in the system.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= UNDERSTORY: BIOTIC + ENERGY FLOW ============================= -->
+<section class="band" style="background:var(--bg-understory);">
+  <div class="container reveal">
+    <p class="eyebrow">Understory</p>
+    <h2 class="title">Biotic components &amp; the one‑way flow of energy</h2>
+    <p class="lede"><strong>Producers</strong> (plants, algae, some bacteria) convert sunlight into chemical energy. <strong>Consumers</strong> eat that energy onward — herbivores eat producers, carnivores eat other consumers, omnivores do both. <strong>Decomposers</strong> — fungi and bacteria — break down the dead and the discarded, releasing nutrients back into the soil.</p>
+    <p class="lede">Energy only moves one direction, and it leaks at every step: roughly 90% of the energy an organism consumes is spent on staying alive and is lost as heat, not passed on. Only about 10% is available to whatever eats it next — which is why food chains rarely run past four or five links, and why there are always far more plants than lions.</p>
+
+    <div class="chain-stage" role="img" aria-label="Diagram: energy flows and shrinks from sun to grass to rabbit to fox to fungi">
+      <svg class="guide" viewBox="0 0 700 210" preserveAspectRatio="none">
+        <path class="chain-guide-path" d="M 30,46 C 130,46 130,164 220,164 C 320,164 320,38 420,38 C 520,38 520,164 620,164 C 660,164 680,155 690,146"/>
+      </svg>
+      <div class="energy-dot" aria-hidden="true"></div>
+
+      <div class="chain-node n1"><div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.2 4.2l2 2M17.8 17.8l2 2M1 12h3M20 12h3"/></svg></div><span>Sun</span><small>Energy source</small></div>
+      <div class="chain-node n2"><div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21V9M12 9C9 9 7 6 7 3c3 0 6 2 5 6M12 9c3 0 5-3 5-6-3 0-6 2-5 6"/></svg></div><span>Grass</span><small>Producer</small></div>
+      <div class="chain-node n3"><div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="12" cy="14" rx="6" ry="5"/><path d="M8 10 6 4M16 10l2-6"/><circle cx="10" cy="13" r=".6" fill="currentColor"/></svg></div><span>Rabbit</span><small>Primary consumer</small></div>
+      <div class="chain-node n4"><div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 15c0-5 3-9 8-9s8 4 8 9c-2 1-4-1-4-1s-1 2-4 2-4-2-4-2-2 2-4 1z"/><circle cx="9" cy="11" r=".6" fill="currentColor"/></svg></div><span>Fox</span><small>Secondary consumer</small></div>
+      <div class="chain-node n5"><div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21c0-6 2-9 2-12a2 2 0 0 0-4 0c0 3 2 6 2 12z"/><circle cx="12" cy="7" r="2.4"/></svg></div><span>Fungi</span><small>Decomposer</small></div>
+    </div>
+    <p class="chain-caption">the glowing point loses size as it travels — a visual of energy dissipating as heat at each transfer</p>
+
+    <div class="trophic-note">
+      <div class="stat"><b>~10%</b><span>of energy passes to the next trophic level; the rest is lost as metabolic heat</span></div>
+      <div class="stat"><b>4–5</b><span>links is about the practical limit for a food chain before there's too little energy left</span></div>
+      <div class="stat"><b>1</b><span>direction energy travels — unlike matter, it never cycles back through the system</span></div>
+    </div>
+  </div>
+
+  <div class="container reveal" style="margin-top:5rem;">
+    <p class="eyebrow">Beyond a single chain</p>
+    <h2 class="title" style="font-size:clamp(1.5rem,3vw,1.9rem);">Real ecosystems are webs, not chains</h2>
+    <p class="lede">Almost nothing eats only one thing. A fox eats rabbits, mice, and berries; a hawk eats mice, snakes, and grasshoppers. Overlap these chains and you get a food web — which is why losing a single species rarely stays isolated. Tap a node below to trace what depends on it, directly and in turn.</p>
+
+    <div class="web-wrap" id="webWrap">
+      <svg viewBox="0 0 700 485" id="webSvg" aria-label="Interactive food web diagram">
+        <g id="edgeLayer"></g>
+        <g id="nodeLayer"></g>
+      </svg>
+    </div>
+    <p class="web-hint">Tap or click any organism to trace its direct energy connections. Tap it again to clear.</p>
+  </div>
+</section>
+
+<!-- ============================= FOREST FLOOR: NUTRIENT CYCLES ============================= -->
+<section class="band" style="background:var(--bg-floor);">
+  <div class="container reveal">
+    <p class="eyebrow">Forest floor</p>
+    <h2 class="title">Matter doesn't disappear — it cycles</h2>
+    <p class="lede">Energy flows through an ecosystem once and is gone. Matter is different: the same water, carbon, and nitrogen atoms move through living things and back into the environment endlessly. The clearest example is the water cycle.</p>
+
+    <div class="cycle-stage" role="img" aria-label="Diagram: water evaporates, condenses into cloud, falls as rain, and collects back into the lake">
+      <svg class="guide" viewBox="0 0 600 300" preserveAspectRatio="none">
+        <path class="cycle-guide-path" d="M120,250 C150,150 220,90 300,70 C380,90 450,150 480,250 C400,270 200,270 120,250 Z"/>
+      </svg>
+      <div class="water-drop" aria-hidden="true"></div>
+      <div class="cycle-label l1">Evaporation</div>
+      <div class="cycle-label l2">Condensation</div>
+      <div class="cycle-label l3">Precipitation</div>
+      <div class="cycle-label l4">Collection</div>
+    </div>
+
+    <div class="cycle-also">
+      <div class="card">
+        <h4>Carbon cycle</h4>
+        <p>Plants pull CO₂ from the air to build tissue; animals release it back by breathing; decomposers and fires release what's left in dead matter.</p>
+      </div>
+      <div class="card">
+        <h4>Nitrogen cycle</h4>
+        <p>Soil bacteria "fix" nitrogen from the air into a form plants can use; decomposers return it to the soil when organisms die.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= SOIL: BIOMES ============================= -->
+<section class="band" style="background:var(--bg-soil);">
+  <div class="container reveal">
+    <p class="eyebrow">Soil</p>
+    <h2 class="title">Ecosystems of the world</h2>
+    <p class="lede">The same rules — energy flowing, matter cycling, biotic meeting abiotic — play out differently depending on climate, water, and geography. A handful of major biomes cover almost the entire planet.</p>
+
+    <div class="biome-grid">
+      <div class="biome-card biome-forest"><span class="tag">Terrestrial</span><h4>Forest</h4><p>Layered canopy, understory, and floor pack more species into a hectare than almost any other biome.</p></div>
+      <div class="biome-card biome-grassland"><span class="tag">Terrestrial</span><h4>Grassland</h4><p>Open plains shaped by grazing herds and periodic fire; grasses regrow from the root, not the tip.</p></div>
+      <div class="biome-card biome-desert"><span class="tag">Terrestrial</span><h4>Desert</h4><p>Extreme swings between scorching days and cold nights favor water‑hoarding, mostly nocturnal life.</p></div>
+      <div class="biome-card biome-freshwater"><span class="tag">Aquatic</span><h4>Freshwater</h4><p>Rivers, lakes, and wetlands hold under 3% of Earth's water but a wildly disproportionate share of its species.</p></div>
+      <div class="biome-card biome-marine"><span class="tag">Aquatic</span><h4>Marine</h4><p>Covering 70% of the planet, oceans run from sunlit reefs to a lightless deep most of Earth's life calls home.</p></div>
+      <div class="biome-card biome-tundra"><span class="tag">Terrestrial</span><h4>Tundra</h4><p>A short growing season and permafrost limit diversity, but the frozen ground locks away enormous stores of carbon.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= ROOTS: BALANCE ============================= -->
+<section class="band roots-band" style="border-bottom:none;">
+  <svg class="roots-svg" viewBox="0 0 900 400" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M450,0 L450,90 C450,140 380,150 340,190 C300,230 300,280 250,330" stroke="rgba(233,227,207,0.5)" stroke-width="1.4" fill="none"/>
+    <path d="M450,90 C450,150 520,160 560,200 C600,240 600,290 650,340" stroke="rgba(233,227,207,0.5)" stroke-width="1.4" fill="none"/>
+    <path d="M450,120 C420,170 400,190 360,240 C330,280 320,320 280,380" stroke="rgba(233,227,207,0.35)" stroke-width="1" fill="none"/>
+    <path d="M450,120 C480,170 500,190 540,240 C570,280 580,320 620,380" stroke="rgba(233,227,207,0.35)" stroke-width="1" fill="none"/>
+    <path d="M340,190 C300,210 260,215 210,250" stroke="rgba(233,227,207,0.25)" stroke-width="1" fill="none"/>
+    <path d="M560,200 C600,220 640,225 690,260" stroke="rgba(233,227,207,0.25)" stroke-width="1" fill="none"/>
+  </svg>
+
+  <div class="container reveal">
+    <p class="eyebrow">Soil &amp; roots</p>
+    <h2 class="title">Balance is interdependence, not stillness</h2>
+    <p class="lede">A healthy ecosystem isn't unchanging — it's resilient, able to absorb disturbance and settle back into rhythm. That resilience comes entirely from how densely everything depends on everything else. Pull one thread and the whole web feels it.</p>
+
+    <div class="keystone">
+      <p class="eyebrow">Case in point</p>
+      <p><strong>Wolves in Yellowstone.</strong> When wolves were removed in the 1920s, elk herds grew unchecked and overgrazed young willow and aspen along the rivers. Riverbanks eroded, beavers lost the wood they needed for dams, and the wetlands beavers create for fish, birds, and amphibians shrank with them. Reintroducing wolves in 1995 didn't just reduce elk numbers — it changed elk <em>behavior</em>, moving them out of vulnerable valleys, letting vegetation and riverbanks recover, and beavers return. One predator, restored, reshaped rivers.</p>
+    </div>
+
+    <p class="lede" style="margin-top:2rem;">Human activity now moves faster than most ecosystems can absorb: habitat converted to farmland or cities, waterways altered, and a climate warming faster than many species can migrate or adapt to. None of this ends life on Earth — ecosystems are old hands at recovering from disruption. But the specific, richly connected systems we depend on today are not guaranteed to be the ones we get back.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="container" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; width:100%;">
+    <span>Ecosystem — a field guide</span>
+    <span>Single self‑contained HTML file · no external requests, no tracking</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Theme toggle ---------- */
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  var label = document.getElementById('themeLabel');
+  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+  function currentEffective(){
+    var explicit = root.getAttribute('data-theme');
+    if(explicit) return explicit;
+    return prefersDark.matches ? 'dark' : 'light';
+  }
+  function paint(){
+    label.textContent = currentEffective() === 'dark' ? 'Dark' : 'Light';
+  }
+  btn.addEventListener('click', function(){
+    var next = currentEffective() === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    paint();
+  });
+  paint();
+
+  /* ---------- Falling leaves ---------- */
+  var field = document.getElementById('leafField');
+  var LEAF_COUNT = 14;
+  for(var i=0;i<LEAF_COUNT;i++){
+    var leaf = document.createElement('div');
+    leaf.className = 'leaf';
+    var left = Math.random()*100;
+    var duration = 9 + Math.random()*10;
+    var delay = Math.random()*12;
+    var size = 8 + Math.random()*8;
+    var hue = Math.random() > .5 ? 'var(--accent-leaf)' : 'var(--accent-sun)';
+    leaf.style.left = left + '%';
+    leaf.style.width = size + 'px';
+    leaf.style.height = size + 'px';
+    leaf.style.background = hue;
+    leaf.style.animationDuration = duration + 's';
+    leaf.style.animationDelay = '-' + delay + 's';
+    field.appendChild(leaf);
+  }
+
+  /* ---------- Scroll reveal ---------- */
+  var revealEls = document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          entry.target.classList.add('is-visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+    revealEls.forEach(function(el){ io.observe(el); });
+  } else {
+    revealEls.forEach(function(el){ el.classList.add('is-visible'); });
+  }
+
+  /* ---------- Food web ---------- */
+  var nodes = [
+    { id:'sun',    label:'Sun',        x:350, y:30,  cls:'sun' },
+    { id:'grass',  label:'Grass',      x:170, y:120 },
+    { id:'berries',label:'Berries',    x:540, y:120 },
+    { id:'hopper', label:'Grasshopper',x:80,  y:220 },
+    { id:'rabbit', label:'Rabbit',     x:270, y:220 },
+    { id:'mouse',  label:'Mouse',      x:440, y:220 },
+    { id:'snake',  label:'Snake',      x:140, y:330 },
+    { id:'hawk',   label:'Hawk',       x:350, y:370 },
+    { id:'fox',    label:'Fox',        x:570, y:330 },
+    { id:'fungi',  label:'Fungi',      x:350, y:440, cls:'decomposer' }
+  ];
+  var edges = [
+    ['sun','grass'], ['sun','berries'],
+    ['grass','hopper'], ['grass','rabbit'], ['grass','mouse'],
+    ['berries','mouse'], ['berries','fox'],
+    ['hopper','snake'], ['hopper','hawk'],
+    ['mouse','snake'], ['mouse','hawk'], ['mouse','fox'],
+    ['rabbit','fox'], ['rabbit','hawk'],
+    ['snake','hawk'],
+    ['fox','fungi'], ['hawk','fungi'], ['snake','fungi'],
+    ['fungi','grass']
+  ];
+
+  var svgNS = 'http://www.w3.org/2000/svg';
+  var edgeLayer = document.getElementById('edgeLayer');
+  var nodeLayer = document.getElementById('nodeLayer');
+  var byId = {};
+  nodes.forEach(function(n){ byId[n.id] = n; });
+
+  var edgeEls = edges.map(function(pair){
+    var a = byId[pair[0]], b = byId[pair[1]];
+    var line = document.createElementNS(svgNS,'line');
+    line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
+    line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+    line.setAttribute('class', 'web-edge' + (pair[0]==='fungi' ? ' dashed' : ''));
+    line.dataset.a = pair[0]; line.dataset.b = pair[1];
+    edgeLayer.appendChild(line);
+    return line;
+  });
+
+  var wrap = document.getElementById('webWrap');
+  var activeId = null;
+
+  nodes.forEach(function(n){
+    var g = document.createElementNS(svgNS,'g');
+    g.setAttribute('class', 'web-node' + (n.cls ? ' '+n.cls : ''));
+    g.setAttribute('tabindex','0');
+    g.setAttribute('role','button');
+    g.setAttribute('aria-label', n.label);
+    var c = document.createElementNS(svgNS,'circle');
+    c.setAttribute('cx', n.x); c.setAttribute('cy', n.y); c.setAttribute('r', 16);
+    var t = document.createElementNS(svgNS,'text');
+    t.setAttribute('x', n.x); t.setAttribute('y', n.y + 30);
+    t.textContent = n.label;
+    g.appendChild(c); g.appendChild(t);
+    g.dataset.id = n.id;
+    g.addEventListener('click', function(){ selectNode(n.id); });
+    g.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); selectNode(n.id); }
+    });
+    nodeLayer.appendChild(g);
+  });
+
+  function clearSelection(){
+    activeId = null;
+    wrap.classList.remove('active');
+    edgeEls.forEach(function(el){ el.classList.remove('on'); });
+    nodeLayer.querySelectorAll('.web-node').forEach(function(el){ el.classList.remove('on'); });
+  }
+
+  function selectNode(id){
+    if(activeId === id){ clearSelection(); return; }
+    activeId = id;
+    wrap.classList.add('active');
+    var connected = { };
+    connected[id] = true;
+    edgeEls.forEach(function(el){
+      var a = el.dataset.a, b = el.dataset.b;
+      if(a === id || b === id){
+        el.classList.add('on');
+        connected[a] = true; connected[b] = true;
+      } else {
+        el.classList.remove('on');
+      }
+    });
+    nodeLayer.querySelectorAll('.web-node').forEach(function(el){
+      if(connected[el.dataset.id]) el.classList.add('on');
+      else el.classList.remove('on');
+    });
+  }
+
+})();
+</script>
+</body>
+</html>
