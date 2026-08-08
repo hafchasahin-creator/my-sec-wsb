@@ -1,0 +1,61 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Anaconda BP",
+    "description": "A giant anaconda that hunts, constricts and swallows almost anything. Behavior Pack.",
+    "uuid": "9268e1fc-0e31-4fec-86fd-1eaa757a9bc2",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "33c59ecc-ddfe-4ba8-896f-ff974bb1872a",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "51ff2a4e-0256-4bb4-9383-975621609295",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "18e68f5b-ad3a-4e5e-a0af-6a587287e514",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Anaconda"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

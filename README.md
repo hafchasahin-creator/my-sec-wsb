@@ -1,3 +1,197 @@
+# Minecraft Bedrock add-ons
+
+Two self-contained add-ons, each a behaviour pack + resource pack pair, built and tested
+against the format versions available in **Bedrock 1.21.0** (Android / Pocket Edition).
+Neither one needs an experimental toggle.
+
+| Add-on | What it adds | Download |
+| --- | --- | --- |
+| **[Anaconda](#anaconda)** | A giant snake that constricts, swallows creatures whole and grows | `dist/Anaconda.mcaddon` |
+| **[Arcane Arsenal](#arcane-arsenal)** | Six legendary weapons with scripted magic effects | `dist/ArcaneArsenal.mcaddon` |
+
+---
+
+# Anaconda
+
+A huge custom mob: a jungle anaconda that hunts anything that moves, drags it in, and
+swallows it whole. Every meal heals it, and enough meals make it grow — a juvenile that
+survives long enough becomes a titan roughly two and a half times its original size.
+
+## The snake
+
+| | Juvenile | Adult | Titan |
+| --- | --- | --- | --- |
+| Health | 60 | 120 | 220 |
+| Bite damage | 7 | 11 | 16 |
+| Model scale | 1.0 | 1.6 | 2.4 |
+| Constricts within | 6.5 blocks | 9 blocks | 12 blocks |
+| Swallows within | 2.6 blocks | 3.4 blocks | 4.4 blocks |
+| Swallows anything at or below | 14 HP | 24 HP | 40 HP |
+| Meals to grow | 8 | 16 | — |
+
+A natural spawn rolls its size at random (55% juvenile, 35% adult, 10% titan). The model
+is a fourteen-bone chain about seven blocks long that slithers in a travelling sine wave,
+faster the faster it moves, with a separate vertical undulation while swimming.
+
+## How eating works
+
+Every quarter second each snake looks around itself:
+
+- **Anything inside the constriction radius** is dragged towards the snake twice a second
+  and held under Slowness II.
+- **Anything inside the swallow radius** is eaten. If its health is at or below the
+  stage's threshold it goes down **whole** — the entity is removed outright, so it drops
+  nothing. Anything tougher gets **crushed** for the stage's squeeze damage once a second
+  until it is weak enough to swallow.
+- **Things with no health bar** — dropped items, boats, minecarts, armour stands — are
+  simply swallowed, and count as a third of a meal.
+- A swallowed meal sends a **visible bulge travelling down the body**, one segment at a
+  time, and heals the snake.
+
+Players are eaten by the same rules, except that a player cannot be removed from the world,
+so a player who is weak enough is finished off with damage instead and dies normally, with
+the usual death message and drops.
+
+**Never eaten:** other anacondas, XP orbs, arrows and other projectiles, TNT, falling
+blocks, lightning, area effect clouds, fishing hooks, and anything at all carrying the
+`anaconda_safe` tag:
+
+```
+/tag @e[type=minecraft:horse] add anaconda_safe
+```
+
+Players in **creative or spectator mode are ignored entirely** — not pulled, not bitten.
+
+## Where it spawns
+
+Naturally on the surface of **jungle** and **swamp** biomes at any light level, on Easy
+difficulty and above, one per group, at most two per surface chunk area. Naturally spawned
+snakes despawn at distance like any other monster — until one grows, at which point it
+becomes permanent.
+
+## Installing on mobile (Android / Pocket Edition)
+
+1. Download **`dist/Anaconda.mcaddon`** onto the device.
+2. Tap the file. Minecraft opens and imports both packs automatically.
+3. Create or edit a world → **Behavior Packs** → activate **Anaconda BP**. The resource
+   pack comes along as a dependency; if it does not, activate **Anaconda RP** under
+   **Resource Packs** too.
+4. Leave every experimental toggle **off** — none are needed.
+
+If tapping the file does not open Minecraft, rename it to `Anaconda.zip` and copy the two
+inner folders into:
+
+```
+Android/data/com.mojang.minecraftpe/files/games/com.mojang/behavior_packs/anaconda_bp
+Android/data/com.mojang.minecraftpe/files/games/com.mojang/resource_packs/anaconda_rp
+```
+
+## Getting one right now
+
+```
+/summon anaconda:anaconda
+/give @s anaconda:anaconda_spawn_egg
+```
+
+The spawn egg is also in the creative inventory under **Items → Spawn Eggs**. To force a
+size on a snake you have already spawned:
+
+```
+/event entity @e[type=anaconda:anaconda,c=1] anaconda:grow_titan
+```
+
+### Checking it is actually working
+
+When you spawn into a world with the behaviour pack active, chat shows:
+
+```
+[Anaconda] v1.0.0 loaded - something is hungry in the jungle.
+```
+
+If that line does **not** appear, the behaviour pack's scripts are not running: the snake
+will still spawn, slither and bite with its vanilla AI, but it will not constrict, swallow
+or grow. Turn on **Settings → Creator → Content Log GUI** to see what the game objected to.
+
+## Repository layout
+
+```
+behavior_packs/anaconda_bp/
+  manifest.json                 BP manifest, min_engine_version 1.21.0
+  entities/anaconda.json        stats, vanilla AI, size stages, events
+  spawn_rules/anaconda.json     jungle + swamp surface spawning
+  loot_tables/entities/         leather, string, bone and the odd swallowed treasure
+  scripts/main.js               constriction, swallowing and growth
+resource_packs/anaconda_rp/
+  manifest.json                 RP manifest
+  entity/anaconda.entity.json   model, texture, animation and spawn-egg bindings
+  models/entity/anaconda.geo.json       14-bone chained body
+  animations/anaconda.animation.json    slither, swim, look, swallow
+  render_controllers/
+  textures/entity/anaconda.png  128x128 skin
+  textures/items/               spawn egg icon
+  texts/en_US.lang              mob and spawn egg names
+tools/
+  gen_anaconda_textures.py      regenerates every PNG (stdlib only)
+  build_anaconda.py             validates the packs and writes the .mcaddon
+  tests/test_anaconda.mjs       behaviour tests for scripts/main.js
+dist/Anaconda.mcaddon
+```
+
+## Rebuilding
+
+```bash
+python3 tools/gen_anaconda_textures.py   # redraw the skin, spawn egg and pack icons
+node tools/tests/test_anaconda.mjs       # 20 behaviour checks against a mocked API
+python3 tools/build_anaconda.py          # validate + repackage dist/Anaconda.mcaddon
+```
+
+`build_anaconda.py` fails loudly on the mistakes Bedrock reports as silence: a component
+group no event ever adds, an event fired from a timer or from `main.js` that the entity
+never defines, a spawn rule pointing at an event that does not exist, a client entity whose
+geometry / texture / render controller / animation does not resolve, an **animation that
+targets a bone the model does not have**, a spawn egg with no icon, a missing display name,
+or UUIDs that collide with the other add-on in this repository.
+
+`tools/tests/test_anaconda.mjs` rewrites the script's `@minecraft/server` import to point at
+a mock and steps the hunting loop by hand, so the eat / crush / pull / grow rules are
+checked without launching the game.
+
+## Tuning
+
+Every number lives in the `STAGES` table at the top of
+`behavior_packs/anaconda_bp/scripts/main.js` — radii, squeeze damage, drag strength, the
+health at which something can be swallowed whole, healing, and meals per growth. Health,
+bite damage, model scale and collision box per stage live in the matching
+`anaconda:size_*` component groups in `behavior_packs/anaconda_bp/entities/anaconda.json`.
+Keep the two in sync: the script infers a snake's stage from its max health the first time
+it sees it.
+
+To make the snake far less dangerous, raise `swallowHealth` down to `0` (nothing is ever
+swallowed whole, only crushed) or shrink `lure` to the same value as `gulp` (no dragging).
+To stop it spawning naturally, delete `behavior_packs/anaconda_bp/spawn_rules/anaconda.json`
+and use the spawn egg instead.
+
+## Compatibility notes
+
+- **Version floor:** `min_engine_version` is `1.21.0`. The entity format is `1.16.0`, the
+  client entity `1.10.0`, the geometry `1.12.0` and the animations `1.8.0` — all long-term
+  stable formats, none of them experimental.
+- **No custom sounds:** the snake borrows vanilla sound events (`random.fizz` for its hiss,
+  `mob.ravager.bite` and `random.eat` when it swallows, `mob.ravager.roar` when it grows)
+  rather than shipping a `sounds.json`, which would override the vanilla one wholesale.
+- **Animation state without experiments:** the swallow bulge is driven by
+  `minecraft:mark_variant`, flipped by a behaviour event and reset by a component timer, so
+  no entity properties or experimental toggles are involved.
+- **Bone scale compensation:** bones inherit their parent's scale, so each segment's bulge
+  keyframes are paired with an inverse keyframe on the following segment. Without that, one
+  segment swelling would inflate the entire rest of the snake.
+- **Defensive scripting:** every sound, particle and effect call is individually wrapped,
+  the knockback call falls back to the newer vector signature if the four-argument one is
+  gone, and every entity lookup is guarded — an entity that unloads mid-pass is skipped, not
+  a crash.
+
+---
+
 # Arcane Arsenal
 
 A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six

@@ -1,0 +1,9 @@
+{
+  "resource_pack_name": "anaconda_rp",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "anaconda_spawn_egg": {
+      "textures": "textures/items/anaconda_spawn_egg"
+    }
+  }
+}

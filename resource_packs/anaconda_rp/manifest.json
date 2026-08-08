@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Anaconda RP",
+    "description": "Model, texture and animations for the giant anaconda. Resource Pack.",
+    "uuid": "18e68f5b-ad3a-4e5e-a0af-6a587287e514",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "24ff5eac-f033-4990-9ab8-91559a721911",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Anaconda"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

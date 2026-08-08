@@ -1,0 +1,46 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "anaconda:anaconda",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/anaconda"
+      },
+      "geometry": {
+        "default": "geometry.anaconda"
+      },
+      "spawn_egg": {
+        "texture": "anaconda_spawn_egg",
+        "texture_index": 0
+      },
+      "render_controllers": [
+        "controller.render.anaconda"
+      ],
+      "animations": {
+        "slither": "animation.anaconda.slither",
+        "swim": "animation.anaconda.swim",
+        "look_at_target": "animation.anaconda.look_at_target",
+        "swallow": "animation.anaconda.swallow"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.wave = query.life_time * 220.0;",
+          "variable.slither = math.clamp(query.modified_move_speed * 4.0, 0.35, 1.5);"
+        ],
+        "animate": [
+          "slither",
+          "look_at_target",
+          {
+            "swim": "query.is_in_water"
+          },
+          {
+            "swallow": "query.mark_variant == 1"
+          }
+        ]
+      }
+    }
+  }
+}

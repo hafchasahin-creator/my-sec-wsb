@@ -1,0 +1,4 @@
+pack.name=Anaconda RP
+pack.description=Model, texture and animations for the giant anaconda.
+entity.anaconda:anaconda.name=Anaconda
+item.spawn_egg.entity.anaconda:anaconda.name=Spawn Anaconda
