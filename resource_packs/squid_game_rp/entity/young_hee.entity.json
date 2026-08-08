@@ -1,0 +1,24 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "squidgame:young_hee",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/young_hee"
+      },
+      "geometry": {
+        "default": "geometry.young_hee"
+      },
+      "render_controllers": [
+        "controller.render.young_hee"
+      ],
+      "spawn_egg": {
+        "base_color": "#e0663c",
+        "overlay_color": "#f0c419"
+      }
+    }
+  }
+}

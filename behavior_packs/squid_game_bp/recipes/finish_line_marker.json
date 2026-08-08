@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "squidgame:finish_line_marker"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " T ",
+      " I ",
+      " S "
+    ],
+    "key": {
+      "T": {
+        "item": "minecraft:redstone_torch"
+      },
+      "I": {
+        "item": "minecraft:iron_ingot"
+      },
+      "S": {
+        "item": "minecraft:stick"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "squidgame:finish_line_marker",
+      "count": 1
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Squid Game BP",
+    "description": "Red Light, Green Light. Young-hee is watching. Behavior Pack.",
+    "uuid": "8cc116dd-dbe3-4564-b84c-bc9657c66953",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "853cb592-17d7-4e38-a79e-e1a4c92a3c5e",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "33fad2fa-e6d0-49a9-84d5-aa97c5068fb0",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "4b99e1a7-4145-4566-b297-a1556630484e",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Squid Game Add-on"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

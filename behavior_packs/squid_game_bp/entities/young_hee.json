@@ -1,0 +1,70 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "squidgame:young_hee",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "is_experimental": false
+    },
+    "component_groups": {
+      "squidgame:despawn": {
+        "minecraft:instant_despawn": {}
+      }
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "young_hee",
+          "squidgame",
+          "inanimate"
+        ]
+      },
+      "minecraft:collision_box": {
+        "width": 1.0,
+        "height": 2.6
+      },
+      "minecraft:scale": {
+        "value": 1.35
+      },
+      "minecraft:health": {
+        "value": 500,
+        "max": 500
+      },
+      "minecraft:damage_sensor": {
+        "triggers": [
+          {
+            "cause": "all",
+            "deals_damage": false
+          }
+        ]
+      },
+      "minecraft:fire_immune": true,
+      "minecraft:physics": {
+        "has_gravity": true,
+        "has_collision": true
+      },
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": false
+      },
+      "minecraft:knockback_resistance": {
+        "value": 1.0
+      },
+      "minecraft:movement": {
+        "value": 0.0
+      },
+      "minecraft:nameable": {},
+      "minecraft:persistent": {}
+    },
+    "events": {
+      "squidgame:remove": {
+        "add": {
+          "component_groups": [
+            "squidgame:despawn"
+          ]
+        }
+      }
+    }
+  }
+}

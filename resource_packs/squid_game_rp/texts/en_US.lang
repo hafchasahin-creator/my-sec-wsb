@@ -1,0 +1,17 @@
+## Squid Game - English (US)
+
+pack.name=Squid Game RP
+pack.description=Young-hee, the referee kit and the arena props.
+
+item.squidgame:referee_whistle=Referee's Whistle
+item.squidgame:referee_whistle.name=Referee's Whistle
+item.squidgame:doll_summoner=Young-hee Doll
+item.squidgame:doll_summoner.name=Young-hee Doll
+item.squidgame:finish_line_marker=Finish Line Marker
+item.squidgame:finish_line_marker.name=Finish Line Marker
+item.squidgame:player_card=Player Card 456
+item.squidgame:player_card.name=Player Card 456
+
+entity.squidgame:young_hee.name=Young-hee
+item.spawn_egg.entity.squidgame:young_hee=Spawn Young-hee
+item.spawn_egg.entity.squidgame:young_hee.name=Spawn Young-hee

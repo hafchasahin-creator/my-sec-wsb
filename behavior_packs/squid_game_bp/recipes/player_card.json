@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "squidgame:player_card"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "PPP",
+      "PDP",
+      "PPP"
+    ],
+    "key": {
+      "P": {
+        "item": "minecraft:paper"
+      },
+      "D": {
+        "item": "minecraft:green_dye"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "squidgame:player_card",
+      "count": 1
+    }
+  }
+}

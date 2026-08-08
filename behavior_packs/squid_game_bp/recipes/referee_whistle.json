@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "squidgame:referee_whistle"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " G ",
+      "GRG",
+      " G "
+    ],
+    "key": {
+      "G": {
+        "item": "minecraft:gold_ingot"
+      },
+      "R": {
+        "item": "minecraft:redstone"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "squidgame:referee_whistle",
+      "count": 1
+    }
+  }
+}

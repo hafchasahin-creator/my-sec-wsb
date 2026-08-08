@@ -1,0 +1,18 @@
+{
+  "resource_pack_name": "squid_game",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "sg_referee_whistle": {
+      "textures": "textures/items/referee_whistle"
+    },
+    "sg_doll_summoner": {
+      "textures": "textures/items/doll_summoner"
+    },
+    "sg_finish_line_marker": {
+      "textures": "textures/items/finish_line_marker"
+    },
+    "sg_player_card": {
+      "textures": "textures/items/player_card"
+    }
+  }
+}

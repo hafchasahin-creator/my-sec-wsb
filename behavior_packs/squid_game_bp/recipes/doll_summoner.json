@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "squidgame:doll_summoner"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " W ",
+      "WEW",
+      " S "
+    ],
+    "key": {
+      "W": {
+        "item": "minecraft:white_wool"
+      },
+      "E": {
+        "item": "minecraft:ender_eye"
+      },
+      "S": {
+        "item": "minecraft:stick"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "squidgame:doll_summoner",
+      "count": 1
+    }
+  }
+}

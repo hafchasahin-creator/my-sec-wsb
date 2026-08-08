@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Squid Game RP",
+    "description": "Young-hee, the referee kit and the arena props. Resource Pack.",
+    "uuid": "4b99e1a7-4145-4566-b297-a1556630484e",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "f041cbad-c7d0-4443-8a6b-d4eb54fbf929",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Squid Game Add-on"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

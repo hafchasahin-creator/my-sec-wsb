@@ -1,16 +1,125 @@
-# Arcane Arsenal
+# Minecraft Bedrock add-ons
 
-A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six
-legendary weapons with scripted magic effects.
+Two **Bedrock Edition** add-ons (behaviour pack + resource pack each), built and
+tested against the format versions available in **Bedrock 1.21.0** — the build in
+the attached screenshot (`1.21.0.26`, Android / Pocket Edition). Both use only
+**stable** components and the **stable** `@minecraft/server 1.11.0` scripting
+module, so **no experimental toggles are required** and they work on phones and
+tablets.
 
-Built and tested against the format versions available in **Bedrock 1.21.0** — the build
-running in the attached screenshot (`1.21.0.26`, Android / Pocket Edition). It uses only
-**stable** item components and the **stable** `@minecraft/server 1.11.0` scripting module,
-so **no experimental toggles are required** and it works on phones and tablets.
+| Add-on | What it is | Download |
+| --- | --- | --- |
+| [**Squid Game**](#squid-game) | Red Light, Green Light minigame with Young-hee | `dist/SquidGame.mcaddon` |
+| [**Arcane Arsenal**](#arcane-arsenal) | Six legendary weapons with scripted magic | `dist/ArcaneArsenal.mcaddon` |
+
+They are independent — install either one, or both.
 
 ---
 
-## The weapons
+# Squid Game
+
+**Red Light, Green Light.** Young-hee stands at the finish line. On a green light
+she faces away and sings; on a red light she spins round, and anyone who has
+drifted from the spot they were standing on is eliminated. Reach her to survive.
+
+## How a round works
+
+1. **Green light** — Young-hee turns her back and sings
+   *Mugunghwa kkoci pieotseumnida* on note blocks. Run.
+2. **Red light** — she swivels to face the field. Everyone freezes. Any movement
+   beyond a small tolerance and you are out, with a firework crack and an
+   `ELIMINATED` title.
+3. Phase lengths are **rolled randomly every round** and the green light gets
+   **shorter each round**, so the rhythm can never be memorised.
+4. Cross the line (within 3 blocks of the marker) and you are **SAFE** for the
+   rest of the round; your finishing place is announced in chat.
+5. The round ends when the field is empty, or when the **5-minute clock** runs
+   out — anyone still running when the buzzer goes is eliminated.
+
+An action bar tracks the light, how many are alive, how many are safe, and the
+clock.
+
+## The referee kit
+
+Four items, all craftable, all in the creative **Items** tab. Every one has a
+second function on **sneak + use** (crouch, then tap the Use button).
+
+| Item | Use | Sneak + use |
+| --- | --- | --- |
+| **Young-hee Doll** | Places Young-hee where you are aiming, and sets the finish line there | Removes her |
+| **Finish Line Marker** | Sets the finish line at the block you tapped | — |
+| **Referee's Whistle** | Starts the round (5-second countdown, then the first green light) | Calls the round off |
+| **Player Card 456** | Toggles whether you are in the next round | Prints the current setup and score |
+
+Everyone in the world is enrolled when the whistle blows, minus anyone who
+opted out with a Player Card and anyone the game can see is in creative or
+spectator. So the usual flow is: the referee opts themselves out with the card,
+then blows the whistle.
+
+### Crafting
+
+| Item | Recipe (top → bottom) |
+| --- | --- |
+| Referee's Whistle | Gold Ingot / Gold + Redstone + Gold / Gold Ingot |
+| Young-hee Doll | White Wool / Wool + Eye of Ender + Wool / Stick |
+| Finish Line Marker | Redstone Torch / Iron Ingot / Stick |
+| Player Card 456 | Paper ring around a Green Dye |
+
+Or in creative:
+
+```
+/give @s squidgame:referee_whistle
+/give @s squidgame:doll_summoner
+/give @s squidgame:finish_line_marker
+/give @s squidgame:player_card
+/summon squidgame:young_hee
+```
+
+## Quick start
+
+1. Build a straight run of ground, 40–80 blocks long.
+2. Stand at the far end, aim at the ground and use the **Young-hee Doll**. She
+   appears and the finish line is set at her feet.
+3. Walk to the start line with everybody else.
+4. Sneak + use the **Player Card** if you want to referee rather than play.
+5. Use the **Referee's Whistle**. Countdown, then run.
+
+## Tuning
+
+Every number sits in the `CONFIG` object at the top of
+`behavior_packs/squid_game_bp/scripts/main.js`:
+
+| Setting | Default | Notes |
+| --- | --- | --- |
+| `greenTicks` / `redTicks` | 60–160 / 50–110 | Range each phase is rolled from, in ticks (20 = 1s) |
+| `speedUpPerRound` | 6 | Ticks trimmed off the green light each round |
+| `graceTicks` | 6 | Ticks after red before movement counts — **raise this if players die while already standing still on a laggy connection** |
+| `moveThreshold` | 0.25 | Blocks of horizontal drift allowed |
+| `verticalThreshold` | 0.4 | Blocks of vertical drift allowed (jumping, falling) |
+| `finishRadius` | 3.0 | How close to the marker counts as crossing |
+| `timeLimitSeconds` | 300 | `0` disables the clock |
+| `eliminationMode` | `"kill"` | `"teleport"` sends players back to the start line instead of killing them |
+| `skipCreative` | `true` | Leave creative/spectator players off the roster |
+
+Set `eliminationMode: "teleport"` for a no-death party game.
+
+## Checking it is working
+
+Joining a world with the pack active puts this in chat:
+
+```
+[Squid Game] v1.0.0 loaded - Red Light, Green Light is ready.
+```
+
+If that line does **not** appear, the behaviour pack's scripts are not running
+and nothing else will work either. Turn on **Settings → Creator → Content Log
+GUI** to see exactly what the game is complaining about.
+
+---
+
+# Arcane Arsenal
+
+Six legendary weapons with custom magic effects.
 
 | Weapon | Type | Effect on use |
 | --- | --- | --- |
@@ -40,57 +149,6 @@ Every weapon is also repairable (Frostbite: diamond, Emberfang/Meteor Staff: bla
 Stormcaller: prismarine shard, Voidreaper/Cataclysm: netherite ingot) and enchantable.
 They all appear in the creative **Equipment** tab next to the swords.
 
----
-
-## Installing on mobile (Android / Pocket Edition)
-
-1. Download **`dist/ArcaneArsenal.mcaddon`** onto the device.
-2. Tap the file. Minecraft opens and imports both packs automatically.
-3. Create or edit a world → **Behavior Packs** → activate **Arcane Arsenal BP**.
-   The resource pack is pulled in automatically as a dependency; if it is not, activate
-   **Arcane Arsenal RP** under **Resource Packs** too.
-4. Leave every experimental toggle **off** — none are needed.
-
-If tapping the file does not open Minecraft, rename it to `ArcaneArsenal.zip`, then use a
-file manager to copy the two inner folders into:
-
-```
-Android/data/com.mojang.minecraftpe/files/games/com.mojang/behavior_packs/arcane_arsenal_bp
-Android/data/com.mojang.minecraftpe/files/games/com.mojang/resource_packs/arcane_arsenal_rp
-```
-
-On Windows the same folders live under
-`%localappdata%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang\`.
-
-### Updating from v1.0.0
-
-v1.0.0 shipped with invisible item icons. If you already installed it:
-
-1. In Minecraft go to **Settings → Storage → Resource Packs / Behavior Packs** (or the
-   global **Profile → Packs** screen), find the two Arcane Arsenal packs and **delete**
-   both. This matters — the old copy is cached, and importing over it can keep the broken
-   textures.
-2. Import the new `ArcaneArsenal.mcaddon` (now version 1.0.1).
-3. Re-activate both packs on your world.
-
-### Checking it is actually working
-
-When you spawn into a world with the behaviour pack active, chat shows:
-
-```
-[Arcane Arsenal] v1.0.1 loaded - 6 weapons armed.
-```
-
-If that line does **not** appear, the behaviour pack's scripts are not running, and no
-weapon effect will fire. If it does appear but a weapon looks wrong, the problem is on the
-resource-pack side instead.
-
-To see exactly what the game thinks is wrong, turn on
-**Settings → Creator → Content Log GUI** (and "Content Log File"). It names the pack and
-file for any load error.
-
-### Getting the weapons quickly
-
 ```
 /give @s arcane:frostbite_blade
 /give @s arcane:emberfang
@@ -102,69 +160,117 @@ file for any load error.
 
 ### Using the two ranged abilities on touch controls
 
-Both the Stormcaller and the Meteor Staff carry a use duration, so holding one makes the
-**use button** appear on the right of the HUD. Aim at a block or mob and tap it. If nothing
-is in range the spell lands where your view meets the ground, up to 40–48 blocks out.
+Both the Stormcaller and the Meteor Staff carry a use duration, so holding one
+makes the **use button** appear on the right of the HUD. Aim at a block or mob
+and tap it. If nothing is in range the spell lands where your view meets the
+ground, up to 40–48 blocks out.
+
+### Checking it is working
+
+```
+[Arcane Arsenal] v1.0.1 loaded - 6 weapons armed.
+```
+
+### Updating from v1.0.0
+
+v1.0.0 shipped with invisible item icons. If you already installed it, **delete**
+both old packs under **Settings → Storage → Resource Packs / Behavior Packs**
+first — the old copy is cached, and importing over it can keep the broken
+textures. Then import the new `ArcaneArsenal.mcaddon` and re-activate.
+
+### Tuning
+
+Every number — effect durations, amplifiers, lifesteal ratio, explosion radii,
+cast ranges, cooldowns — sits in the `CONFIG` object at the top of
+`behavior_packs/arcane_arsenal_bp/scripts/main.js`. To stop the Cataclysm Hammer
+and Meteor Staff from destroying terrain, set `hammer.breaksBlocks` and
+`staff.breaksBlocks` to `false`.
 
 ---
 
-## Repository layout
+# Installing on mobile (Android / Pocket Edition)
+
+1. Download the `.mcaddon` from `dist/` onto the device.
+2. Tap the file. Minecraft opens and imports both packs automatically.
+3. Create or edit a world → **Behavior Packs** → activate the BP. The matching
+   resource pack is pulled in as a dependency; if it is not, activate the RP
+   under **Resource Packs** too.
+4. Leave every experimental toggle **off** — none are needed.
+
+If tapping the file does not open Minecraft, rename it to `.zip`, then use a
+file manager to copy the two inner folders into:
 
 ```
-behavior_packs/arcane_arsenal_bp/
+Android/data/com.mojang.minecraftpe/files/games/com.mojang/behavior_packs/
+Android/data/com.mojang.minecraftpe/files/games/com.mojang/resource_packs/
+```
+
+On Windows the same folders live under
+`%localappdata%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang\`.
+
+---
+
+# Repository layout
+
+```
+behavior_packs/squid_game_bp/
   manifest.json          BP manifest, min_engine_version 1.21.0
-  items/*.json           6 item definitions, format_version 1.21.0
+  items/*.json           4 referee-kit items, format_version 1.21.0
+  recipes/*.json         4 shaped recipes
+  entities/young_hee.json  the doll, format_version 1.21.0
+  scripts/main.js        the whole minigame (@minecraft/server 1.11.0)
+resource_packs/squid_game_rp/
+  entity/young_hee.entity.json
+  models/entity/young_hee.geo.json    hand-built 64x64-mapped model
+  render_controllers/
+  textures/entity/young_hee.png       generated skin
+  textures/items/*.png                4 generated 16x16 icons
+
+behavior_packs/arcane_arsenal_bp/
+  items/*.json           6 item definitions
   recipes/*.json         6 shaped recipes
-  scripts/main.js        all weapon logic (@minecraft/server 1.11.0)
-  texts/                 pack name strings
+  scripts/main.js        all weapon logic
 resource_packs/arcane_arsenal_rp/
-  manifest.json          RP manifest
-  textures/item_texture.json
   textures/items/*.png   6 hand-made 16x16 icons
-  texts/en_US.lang       item display names
+
 tools/
-  gen_textures.py        regenerates every icon (stdlib only)
-  build.py               validates the packs and writes the .mcaddon
-dist/ArcaneArsenal.mcaddon
+  gen_textures.py        regenerates the Arcane Arsenal icons (stdlib only)
+  gen_squid_textures.py  regenerates the Squid Game icons, skin and pack icons
+  build.py               validates every pack and writes the .mcaddon files
+dist/
+  SquidGame.mcaddon
+  ArcaneArsenal.mcaddon
 ```
 
 ## Rebuilding
 
 ```bash
-python3 tools/gen_textures.py      # redraw the icons (add --preview for ASCII art)
-python3 tools/build.py             # validate + repackage dist/ArcaneArsenal.mcaddon
+python3 tools/gen_textures.py        # redraw Arcane icons (--preview for ASCII art)
+python3 tools/gen_squid_textures.py  # redraw Squid Game art
+python3 tools/build.py               # validate + repackage everything
+python3 tools/build.py squid_game    # or just one add-on
 ```
 
-`build.py` fails loudly if any JSON is malformed, if manifest UUIDs collide, if the
-behaviour pack loses its resource-pack dependency, if an item icon does not resolve to a
-real PNG, if a recipe produces an item that does not exist, or if an item has no name in
-`en_US.lang`.
-
-## Tuning
-
-Every number — effect durations, amplifiers, lifesteal ratio, explosion radii, cast
-ranges, cooldowns — sits in the `CONFIG` object at the top of
-`behavior_packs/arcane_arsenal_bp/scripts/main.js`. Edit it and re-run `tools/build.py`.
-
-To stop the Cataclysm Hammer and Meteor Staff from destroying terrain, set
-`hammer.breaksBlocks` and `staff.breaksBlocks` to `false`.
+`build.py` fails loudly if any JSON is malformed, if manifest UUIDs collide
+**across add-ons**, if a behaviour pack loses its resource-pack dependency, if an
+item icon does not resolve to a real texture, if a recipe produces an item that
+does not exist, if an item or entity has no name in `en_US.lang`, or if a custom
+entity's client definition, geometry, texture or render controller is missing.
 
 ## Compatibility notes
 
-- **Version floor:** `min_engine_version` is `1.21.0`. Item components, recipe format and
-  script APIs were all chosen to exist in that release, so nothing here depends on a later
-  update.
-- **No experiments:** every item component used (`icon`, `display_name`, `damage`,
-  `durability`, `enchantable`, `repairable`, `hand_equipped`, `glint`, `cooldown`,
-  `use_modifiers`, `tags`, `max_stack_size`) is stable in 1.21.0, as is
+- **Version floor:** `min_engine_version` is `1.21.0` for every pack. Components,
+  recipe format and script APIs were all chosen to exist in that release, so
+  nothing depends on a later update.
+- **No experiments:** every item component used is stable in 1.21.0, as is
   `@minecraft/server 1.11.0`.
-- **Icon syntax:** `minecraft:icon` must use `{"textures": {"default": "<key>"}}` at
-  `format_version` 1.20.60 and above. The older flat `{"texture": "<key>"}` field is
-  deprecated, and the game ignores it silently — the item still loads and still shows its
-  name, but the icon renders as nothing at all. `tools/build.py` now fails the build if
-  that form reappears.
-- **Defensive scripting:** particle and sound calls are individually wrapped, and each
-  effect handler is guarded, so a device or build that lacks one cosmetic id degrades that
-  single effect instead of breaking the add-on.
-- Mobs that pick up these weapons get the effects too — the script reads the attacker's
-  main hand rather than assuming a player.
+- **Icon syntax:** `minecraft:icon` must use `{"textures": {"default": "<key>"}}`
+  at `format_version` 1.20.60 and above. The older flat `{"texture": "<key>"}`
+  field is deprecated, and the game ignores it silently — the item still loads
+  and still shows its name, but the icon renders as nothing at all.
+  `tools/build.py` fails the build if that form reappears.
+- **Defensive scripting:** particle, sound and title calls are individually
+  wrapped, and each handler is guarded, so a device or build that lacks one
+  cosmetic id degrades that single effect instead of breaking the add-on. The
+  Squid Game script also carries an in-memory fallback for dynamic properties,
+  and tolerates `isValid` being a method or a property.
