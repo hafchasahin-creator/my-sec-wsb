@@ -1,0 +1,745 @@
+<title>AI News in Simple English — Astra, OpenAI and Claude</title>
+<style>
+  /* ---- tokens: light is the base, both dark states redefine only tokens ---- */
+  :root {
+    --ground:      #F3F5F3;
+    --surface:     #FFFFFF;
+    --surface-2:   #E8EDEA;
+    --ink:         #16211C;
+    --ink-soft:    #4C5C55;
+    --ink-faint:   #75847D;
+    --line:        #D2DBD6;
+    --accent:      #0F6E5C;
+    --accent-ink:  #0B5749;
+    --accent-soft: #DCEBE5;
+    --alert:       #A83228;
+    --alert-soft:  #F7E4E1;
+    --shadow:      0 1px 2px rgba(22, 33, 28, .06), 0 8px 24px rgba(22, 33, 28, .05);
+
+    --display: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    --body: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+    --measure: 64ch;
+    --page: 62rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0D1512;
+      --surface:     #141E1A;
+      --surface-2:   #1C2723;
+      --ink:         #E4EBE7;
+      --ink-soft:    #A2B1AA;
+      --ink-faint:   #7E8D87;
+      --line:        #2B3833;
+      --accent:      #5CC5A8;
+      --accent-ink:  #7FD6BD;
+      --accent-soft: #17302A;
+      --alert:       #EB9184;
+      --alert-soft:  #34211E;
+      --shadow:      0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0D1512;
+    --surface:     #141E1A;
+    --surface-2:   #1C2723;
+    --ink:         #E4EBE7;
+    --ink-soft:    #A2B1AA;
+    --ink-faint:   #7E8D87;
+    --line:        #2B3833;
+    --accent:      #5CC5A8;
+    --accent-ink:  #7FD6BD;
+    --accent-soft: #17302A;
+    --alert:       #EB9184;
+    --alert-soft:  #34211E;
+    --shadow:      0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
+  }
+
+  /* ---- base ---- */
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: var(--page);
+    margin: 0 auto;
+    padding: 0 1.5rem 5rem;
+  }
+
+  a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:hover { color: var(--ink); }
+  a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  h1, h2, h3 { font-family: var(--display); font-weight: 600; text-wrap: balance; line-height: 1.2; margin: 0; }
+
+  p { margin: 0; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  /* ---- masthead ---- */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 3rem 0 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .masthead h1 {
+    font-size: clamp(2.1rem, 6vw, 3.4rem);
+    letter-spacing: -.015em;
+  }
+
+  .masthead .standfirst {
+    max-width: var(--measure);
+    font-size: 1.1rem;
+    color: var(--ink-soft);
+  }
+
+  .dateline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1.25rem;
+    align-items: baseline;
+  }
+
+  .dateline .dot { color: var(--accent); }
+
+  /* ---- section rhythm ---- */
+  section { padding-top: 3.25rem; }
+
+  .section-head {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-head h2 { font-size: clamp(1.4rem, 3.5vw, 1.9rem); }
+
+  .section-head p {
+    max-width: var(--measure);
+    color: var(--ink-soft);
+  }
+
+  /* ---- the short version ---- */
+  .summary {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 3px;
+    padding: 1.5rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow: var(--shadow);
+    margin-top: 2.5rem;
+  }
+
+  .summary ol {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    max-width: var(--measure);
+  }
+
+  .summary li::marker { color: var(--accent); font-family: var(--mono); font-size: .85em; }
+
+  /* ---- story cards ---- */
+  .stories {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .story {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 1.6rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: .85rem;
+    box-shadow: var(--shadow);
+  }
+
+  .story-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem .9rem;
+    align-items: center;
+  }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: .2rem .5rem;
+    border-radius: 2px;
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    white-space: nowrap;
+  }
+
+  .tag.warn { background: var(--alert-soft); color: var(--alert); }
+
+  .story h3 { font-size: 1.3rem; }
+
+  .story p { max-width: var(--measure); }
+
+  .story .body { color: var(--ink); }
+
+  .matters {
+    border-top: 1px solid var(--line);
+    padding-top: .85rem;
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+  }
+
+  .matters p {
+    color: var(--ink-soft);
+    font-size: .96rem;
+  }
+
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .fact {
+    background: var(--surface-2);
+    padding: .8rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+  }
+
+  .fact .num {
+    font-family: var(--display);
+    font-size: 1.5rem;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fact .label {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .sourceline {
+    font-family: var(--mono);
+    font-size: .74rem;
+    color: var(--ink-faint);
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem .8rem;
+  }
+
+  /* ---- unconfirmed note ---- */
+  .caution {
+    background: var(--alert-soft);
+    border: 1px solid var(--alert);
+    border-radius: 3px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    max-width: var(--measure);
+  }
+
+  .caution strong { color: var(--alert); }
+
+  /* ---- timeline ---- */
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--line);
+  }
+
+  .event {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr;
+    gap: 0 1.5rem;
+    padding: .95rem 0;
+    border-bottom: 1px solid var(--line);
+    align-items: baseline;
+  }
+
+  .event .when {
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--accent-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .event .what { max-width: var(--measure); }
+
+  @media (max-width: 34rem) {
+    .event { grid-template-columns: 1fr; gap: .2rem; }
+  }
+
+  /* ---- glossary ---- */
+  .glossary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: 1.1rem;
+  }
+
+  .term {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    padding-left: .9rem;
+    border-left: 2px solid var(--accent);
+  }
+
+  .term dt { font-weight: 650; }
+
+  .term dd { margin: 0; color: var(--ink-soft); font-size: .96rem; }
+
+  /* ---- sources ---- */
+  .sources {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: .6rem 2rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .sources li {
+    font-size: .92rem;
+    padding: .35rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sources .pub {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: block;
+  }
+
+  footer {
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--ink);
+    color: var(--ink-soft);
+    font-size: .92rem;
+    max-width: var(--measure);
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+  }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <div class="dateline eyebrow">
+      <span>AI News, Explained Simply</span>
+      <span class="dot">&bull;</span>
+      <span>Updated 9 August 2026</span>
+    </div>
+    <h1>A big new OpenAI model, and a safety pause</h1>
+    <p class="standfirst">
+      This page explains the newest AI news in short, plain sentences. It covers OpenAI&rsquo;s new
+      model <strong>Astra</strong>, other OpenAI updates, and what Anthropic is doing with
+      <strong>Claude</strong>. Every claim links to the news story it came from.
+    </p>
+  </header>
+
+  <div class="summary">
+    <p class="eyebrow">The short version</p>
+    <ol>
+      <li>
+        OpenAI has a new model called <strong>Astra</strong>. It solved 10 maths problems that
+        nobody had solved for more than ten years.
+      </li>
+      <li>
+        A few days later, OpenAI <strong>slowed down</strong> its own work on Astra. Tests showed the
+        model may be good enough at hacking to be dangerous. This has never happened before.
+      </li>
+      <li>
+        Anthropic released <strong>Claude Opus 5</strong> and is now pushing hard into work tools,
+        enterprise controls, and government customers.
+      </li>
+    </ol>
+  </div>
+
+  <section>
+    <div class="section-head">
+      <h2>OpenAI&rsquo;s new model: Astra</h2>
+      <p>Astra is not public yet. We only know about it from OpenAI&rsquo;s own posts and from news reports.</p>
+    </div>
+
+    <div class="stories">
+
+      <article class="story">
+        <div class="story-meta">
+          <span class="tag">OpenAI</span>
+          <span class="eyebrow">1&ndash;2 August 2026</span>
+        </div>
+        <h3>Astra solved 10 old maths problems</h3>
+        <p class="body">
+          OpenAI wrote a blog post about maths. Inside that post, it named its next big model for
+          the first time: Astra. An internal version of Astra found answers to 10 problems in maths
+          and computer science. People had been stuck on each of them for at least ten years, and on
+          most of them for much longer.
+        </p>
+        <p class="body">
+          OpenAI published a 249-page paper and put machine-checkable proofs on GitHub, written in a
+          proof language called Lean 4. A computer can check every step, and no step is left open.
+          Three of the problems came from the famous list of the mathematician Paul Erd&#337;s.
+        </p>
+        <div class="facts">
+          <div class="fact"><span class="num">10</span><span class="label">Problems solved</span></div>
+          <div class="fact"><span class="num">249</span><span class="label">Pages of proof</span></div>
+          <div class="fact"><span class="num">$2,000</span><span class="label">Compute cost, all 10</span></div>
+          <div class="fact"><span class="num">0</span><span class="label">Peer reviews so far</span></div>
+        </div>
+        <div class="matters">
+          <p class="eyebrow">Why this matters</p>
+          <p>
+            The answers are checked by software, so they are hard to fake. But no human expert has
+            reviewed them yet in a journal, and $2,000 of computer time is very cheap for work of
+            this kind. If it holds up, AI just became a real research tool for maths.
+          </p>
+        </div>
+        <p class="sourceline">
+          <a href="https://the-decoder.com/openai-announces-its-next-major-model-astra-by-dropping-ten-previously-unsolved-math-solutions/">The Decoder</a>
+          <a href="https://www.techtimes.com/articles/322710/20260802/openais-astra-solves-ten-decade-old-math-problems-machine-checkable-lean-proofs.htm">Tech Times</a>
+          <a href="https://gizmodo.com/openai-smuggled-the-announcement-of-astra-its-next-ai-model-into-a-blog-post-about-math-2000793689">Gizmodo</a>
+        </p>
+      </article>
+
+      <article class="story">
+        <div class="story-meta">
+          <span class="tag warn">Safety</span>
+          <span class="eyebrow">7 August 2026</span>
+        </div>
+        <h3>OpenAI slowed its own work on Astra</h3>
+        <p class="body">
+          OpenAI tested Astra and could not rule out that it had reached the &ldquo;Critical&rdquo; level for
+          cyber skills. That is the top risk level in OpenAI&rsquo;s own safety rulebook, the Preparedness
+          Framework. In the roughly three years the framework has existed, no model had ever reached
+          this point.
+        </p>
+        <p class="body">
+          &ldquo;Critical&rdquo; means the model could find and build working attacks against strong,
+          well-defended real systems on its own &mdash; or plan and run a whole cyberattack when it is
+          only told the goal. So OpenAI stopped the parts of its Astra work that did not meet its
+          stricter new security rules. It also turned on monitoring for risky behaviour everywhere
+          the model acts on its own, including during training and testing.
+        </p>
+        <div class="matters">
+          <p class="eyebrow">Why this matters</p>
+          <p>
+            This is the first time a lab has said in public that its own model may be too capable at
+            hacking to keep working on normally. OpenAI said it shared the result because the public
+            and security teams should know.
+          </p>
+        </div>
+        <p class="sourceline">
+          <a href="https://techcrunch.com/2026/08/07/openai-says-it-slowed-astra-model-development-over-security-concerns/">TechCrunch</a>
+          <a href="https://www.axios.com/2026/08/07/openai-astra-model-delay-cybersecurity-risks">Axios</a>
+          <a href="https://the-decoder.com/openai-flags-its-new-astra-model-as-potentially-reaching-the-highest-cybersecurity-risk-level-for-the-first-time/">The Decoder</a>
+        </p>
+      </article>
+
+      <article class="story">
+        <div class="story-meta">
+          <span class="tag">OpenAI</span>
+          <span class="eyebrow">Still open</span>
+        </div>
+        <h3>Nobody knows what Astra will be called</h3>
+        <p class="body">
+          OpenAI calls Astra its &ldquo;next major model&rdquo; and says it is built for long jobs that run for
+          a while. It has not said what name Astra will ship under. It could be GPT-6. It could be a
+          smaller step like GPT-5.7. It could become a fourth tier next to the current Sol, Terra and
+          Luna models. There is no release date.
+        </p>
+        <div class="caution">
+          <strong>Not confirmed</strong>
+          <p>
+            Some social media posts claim Astra is GPT-6 and will arrive within days. That is a leak,
+            not an announcement. Treat it as a rumour until OpenAI says so.
+          </p>
+        </div>
+        <p class="sourceline">
+          <a href="https://www.orcarouter.ai/blog/openai-astra-gpt-6-leak">Orca Router</a>
+          <a href="https://www.bleepingcomputer.com/news/artificial-intelligence/openai-teases-astra-its-next-major-ai-model-after-it-solves-10-long-standing-math-problems/">BleepingComputer</a>
+        </p>
+      </article>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Other OpenAI news this month</h2>
+      <p>Smaller changes to products people use every day.</p>
+    </div>
+
+    <div class="stories">
+      <article class="story">
+        <div class="story-meta">
+          <span class="tag">ChatGPT</span>
+          <span class="eyebrow">4&ndash;7 August 2026</span>
+        </div>
+        <h3>GPT-5.6 arrived, and free users got more</h3>
+        <p class="body">
+          OpenAI released GPT-5.6 on 4 August. It gives more quality for the money than the model
+          before it. On 7 August, OpenAI improved GPT-5.6 Sol inside ChatGPT and opened up wider
+          access to GPT-5.6 Luna for people on the free plan.
+        </p>
+        <p class="body">
+          OpenAI also started a beta of &ldquo;Sign in with ChatGPT&rdquo;, so you can log in to other sites with
+          your ChatGPT account. Airtable, GitLab, HubSpot, Notion, Supabase and Vercel are in the
+          first group. One thing is going away: the official DALL&middot;E GPT closes on
+          <strong>30 August 2026</strong>. Save any images you want to keep, and use ChatGPT Images instead.
+        </p>
+        <p class="sourceline">
+          <a href="https://releasebot.io/updates/openai">Releasebot &mdash; OpenAI</a>
+          <a href="https://openai.com/news/product-releases/">OpenAI Newsroom</a>
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Anthropic and Claude</h2>
+      <p>Anthropic makes Claude. Its recent news is less about raw power and more about work, control and trust.</p>
+    </div>
+
+    <div class="stories">
+
+      <article class="story">
+        <div class="story-meta">
+          <span class="tag">Anthropic</span>
+          <span class="eyebrow">24 July 2026</span>
+        </div>
+        <h3>Claude Opus 5 is out on every Anthropic platform</h3>
+        <p class="body">
+          Claude Opus 5 is now the normal model for Claude Max users, the strongest choice on Claude
+          Pro, and available to developers through the API. Anthropic says it comes close to Fable,
+          its most powerful model, on many tasks &mdash; but costs half as much.
+        </p>
+        <p class="body">
+          It also has an effort switch. You choose low, medium or high, and the model spends more or
+          less thinking on your task. Low effort is cheap and quick; high effort costs more and works
+          harder.
+        </p>
+        <div class="facts">
+          <div class="fact"><span class="num">$5</span><span class="label">Per million input tokens</span></div>
+          <div class="fact"><span class="num">$25</span><span class="label">Per million output tokens</span></div>
+          <div class="fact"><span class="num">1/2</span><span class="label">The price of Fable 5</span></div>
+          <div class="fact"><span class="num">2.3</span><span class="label">Misbehaviour audit score</span></div>
+        </div>
+        <div class="matters">
+          <p class="eyebrow">Why this matters</p>
+          <p>
+            Anthropic calls Opus 5 its most aligned Opus model and the hardest one to trick into
+            misuse. In an automated behaviour audit it scored 2.3 &mdash; the lowest rate of bad
+            behaviour among current models. Lower is better here.
+          </p>
+        </div>
+        <p class="sourceline">
+          <a href="https://www.anthropic.com/news/claude-opus-5">Anthropic</a>
+          <a href="https://www.axios.com/2026/07/24/anthropic-releases-new-model-opus-5">Axios</a>
+          <a href="https://venturebeat.com/orchestration/anthropic-launches-claude-opus-5-a-cheaper-ai-model-for-coding-agents-and-enterprise-workflows">VentureBeat</a>
+        </p>
+      </article>
+
+      <article class="story">
+        <div class="story-meta">
+          <span class="tag">Anthropic</span>
+          <span class="eyebrow">August 2026</span>
+        </div>
+        <h3>New tools for companies and governments</h3>
+        <p class="body">
+          Claude Cowork now works on mobile and on the web, so your sessions and files follow you
+          between devices. It can run tasks in the background, run them on a schedule, share chats
+          and projects, and let you approve steps from your phone.
+        </p>
+        <p class="body">
+          For large companies, Anthropic added inference hooks in beta. These check prompts and tool
+          calls before they reach the model, so a compliance team can block sensitive data in real
+          time across chat, Claude Code and Cowork. Teams can also run Claude Code on their own
+          servers now, in a public beta, with access to their internal network. And Claude for
+          Government is in beta, with Anthropic billing agencies directly, so they do not need a
+          separate cloud contract.
+        </p>
+        <p class="sourceline">
+          <a href="https://releasebot.io/updates/anthropic">Releasebot &mdash; Anthropic</a>
+          <a href="https://www.anthropic.com/news">Anthropic Newsroom</a>
+        </p>
+      </article>
+
+      <article class="story">
+        <div class="story-meta">
+          <span class="tag">People</span>
+          <span class="eyebrow">4 August 2026</span>
+        </div>
+        <h3>A new head of global affairs</h3>
+        <p class="body">
+          Mariano-Florentino &ldquo;Tino&rdquo; Cu&eacute;llar joined Anthropic as Chief Global Affairs Officer. That
+          job is about governments and policy. Hiring for it now fits the rest of the month&rsquo;s news:
+          both big labs are talking to regulators far more than they used to.
+        </p>
+        <p class="sourceline">
+          <a href="https://blog.mean.ceo/anthropic-claude-news-august-2026/">Anthropic Claude News &mdash; August 2026</a>
+        </p>
+      </article>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>How it happened, in order</h2>
+      <p>The same news, on a calendar.</p>
+    </div>
+
+    <div class="timeline">
+      <div class="event">
+        <span class="when">24 Jul 2026</span>
+        <span class="what">Anthropic releases Claude Opus 5 on all platforms, at half the price of Fable 5.</span>
+      </div>
+      <div class="event">
+        <span class="when">1&ndash;2 Aug 2026</span>
+        <span class="what">OpenAI names Astra in a maths post, and publishes 10 solutions with Lean 4 proofs.</span>
+      </div>
+      <div class="event">
+        <span class="when">4 Aug 2026</span>
+        <span class="what">OpenAI releases GPT-5.6. Tino Cu&eacute;llar joins Anthropic to lead global affairs.</span>
+      </div>
+      <div class="event">
+        <span class="when">6 Aug 2026</span>
+        <span class="what">OpenAI adds teaching and learning features to ChatGPT Work and Codex.</span>
+      </div>
+      <div class="event">
+        <span class="when">7 Aug 2026</span>
+        <span class="what">OpenAI says it slowed Astra work after tests pointed to &ldquo;Critical&rdquo; cyber skills.</span>
+      </div>
+      <div class="event">
+        <span class="when">30 Aug 2026</span>
+        <span class="what">Coming up: the official DALL&middot;E GPT in ChatGPT shuts down.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Words to know</h2>
+      <p>Short meanings for the terms used above.</p>
+    </div>
+
+    <dl class="glossary">
+      <div class="term">
+        <dt>Model</dt>
+        <dd>The AI system itself. GPT-5.6, Astra and Claude Opus 5 are all models.</dd>
+      </div>
+      <div class="term">
+        <dt>Frontier model</dt>
+        <dd>One of the most capable models that exists right now.</dd>
+      </div>
+      <div class="term">
+        <dt>Token</dt>
+        <dd>A small piece of text, roughly part of a word. Companies charge by the million tokens.</dd>
+      </div>
+      <div class="term">
+        <dt>Agentic</dt>
+        <dd>The model does not just answer. It takes steps and uses tools on its own.</dd>
+      </div>
+      <div class="term">
+        <dt>Zero-day</dt>
+        <dd>A security hole nobody has fixed yet, because nobody knew about it.</dd>
+      </div>
+      <div class="term">
+        <dt>Lean proof</dt>
+        <dd>A maths proof written so a computer can check every single step.</dd>
+      </div>
+      <div class="term">
+        <dt>Alignment</dt>
+        <dd>How well a model follows the rules and intentions it was given.</dd>
+      </div>
+      <div class="term">
+        <dt>Peer review</dt>
+        <dd>Other experts read the work and check it before a journal publishes it.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Where this came from</h2>
+      <p>Every story above is based on these reports. Open them to read the full detail.</p>
+    </div>
+
+    <ul class="sources">
+      <li><span class="pub">TechCrunch</span><a href="https://techcrunch.com/2026/08/07/openai-says-it-slowed-astra-model-development-over-security-concerns/">OpenAI says it slowed Astra model development over security concerns</a></li>
+      <li><span class="pub">Axios</span><a href="https://www.axios.com/2026/08/07/openai-astra-model-delay-cybersecurity-risks">OpenAI slows release of Astra model citing cyber capabilities</a></li>
+      <li><span class="pub">The Decoder</span><a href="https://the-decoder.com/openai-announces-its-next-major-model-astra-by-dropping-ten-previously-unsolved-math-solutions/">OpenAI announces its next major model Astra with ten unsolved maths solutions</a></li>
+      <li><span class="pub">The Decoder</span><a href="https://the-decoder.com/openai-flags-its-new-astra-model-as-potentially-reaching-the-highest-cybersecurity-risk-level-for-the-first-time/">OpenAI flags Astra as possibly reaching the highest cyber risk level</a></li>
+      <li><span class="pub">Tech Times</span><a href="https://www.techtimes.com/articles/322710/20260802/openais-astra-solves-ten-decade-old-math-problems-machine-checkable-lean-proofs.htm">Astra solves ten decade-old maths problems with Lean proofs</a></li>
+      <li><span class="pub">Gizmodo</span><a href="https://gizmodo.com/openai-smuggled-the-announcement-of-astra-its-next-ai-model-into-a-blog-post-about-math-2000793689">OpenAI hid the announcement of Astra inside a blog post about maths</a></li>
+      <li><span class="pub">BleepingComputer</span><a href="https://www.bleepingcomputer.com/news/artificial-intelligence/openai-teases-astra-its-next-major-ai-model-after-it-solves-10-long-standing-math-problems/">OpenAI teases Astra, its next major AI model</a></li>
+      <li><span class="pub">Anthropic</span><a href="https://www.anthropic.com/news/claude-opus-5">Introducing Claude Opus 5</a></li>
+      <li><span class="pub">Axios</span><a href="https://www.axios.com/2026/07/24/anthropic-releases-new-model-opus-5">Anthropic releases new model, Opus 5</a></li>
+      <li><span class="pub">VentureBeat</span><a href="https://venturebeat.com/orchestration/anthropic-launches-claude-opus-5-a-cheaper-ai-model-for-coding-agents-and-enterprise-workflows">Anthropic launches Claude Opus 5, a cheaper model for coding and agents</a></li>
+      <li><span class="pub">Fortune</span><a href="https://fortune.com/2026/07/24/anthropic-debuts-claude-opus-5-with-feature-that-lets-users-toggle-between-cost-and-capability/">Claude Opus 5 lets users toggle between cost and capability</a></li>
+      <li><span class="pub">Releasebot</span><a href="https://releasebot.io/updates/openai">OpenAI release notes, August 2026</a></li>
+      <li><span class="pub">Releasebot</span><a href="https://releasebot.io/updates/anthropic">Anthropic release notes, August 2026</a></li>
+      <li><span class="pub">Orca Router</span><a href="https://www.orcarouter.ai/blog/openai-astra-gpt-6-leak">OpenAI Astra: what we know and why it is not GPT-6 yet</a></li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>
+      This page is a plain-English summary of news reports published between 24 July and 9 August
+      2026. It is not official communication from OpenAI or Anthropic.
+    </p>
+    <p>
+      News changes fast. Check the linked sources for the latest word, and treat anything marked
+      &ldquo;not confirmed&rdquo; as a rumour.
+    </p>
+  </footer>
+
+</div>
