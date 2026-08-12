@@ -281,6 +281,7 @@ tools/
   gen_fungi_textures.py      draws every PNG
   gen_fungi_pack.py          writes every JSON/text file
   build_fungi.py             validates + packages the .mcaddon
+  test_validator.py          proves the validator rejects broken packs
   sim_test.mjs               runtime simulation of main.js
   render_preview.py          rasterises the block models to a contact sheet
 dist/Dangerous_Fungi.mcaddon
@@ -293,6 +294,7 @@ docs/preview_models.png
 python3 tools/gen_fungi_textures.py    # redraw every PNG (--preview <key> for ASCII art)
 python3 tools/gen_fungi_pack.py        # regenerate all pack JSON from the spec
 python3 tools/build_fungi.py           # validate + write dist/Dangerous_Fungi.mcaddon
+python3 tools/test_validator.py        # check the validator still rejects broken packs
 node    tools/sim_test.mjs             # run the behaviour script against a stubbed API
 python3 tools/render_preview.py        # redraw docs/preview_models.png from the geometry
 ```
@@ -312,6 +314,10 @@ missing feature, an unknown placement pass, a `give` command naming an item that
 exist, a `scriptevent` main.js does not handle, a missing display name in `en_US.lang`,
 two species sharing a name, a JavaScript syntax error, and a finished archive whose
 top-level folders or block count are wrong.
+
+`test_validator.py` keeps that honest: it corrupts one thing at a time — 29 mutations,
+each restored afterwards — and asserts the build rejects every one with a message naming
+the real problem. All 29 are currently caught.
 
 `sim_test.mjs` then executes `main.js` against a strict stub of `@minecraft/server` — 43
 assertions covering aura application, range limits, protection maths, the Level V cap, all
