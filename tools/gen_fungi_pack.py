@@ -243,6 +243,19 @@ def gen_blocks():
     return len(spec.SPECIES)
 
 
+def gen_block_sounds():
+    """RP/blocks.json - the only way a data-driven block gets any sound.
+
+    Visual properties stay in the block's own components; this file is used
+    purely as the sound configuration system, which is what the docs recommend.
+    """
+    payload = {"format_version": "1.19.30"}
+    for sp in spec.SPECIES:
+        payload[spec.ident(sp["key"])] = {"sound": spec.SOUNDS[sp["key"]]}
+    write_json(os.path.join(RP, "blocks.json"), payload)
+    return len(spec.SPECIES)
+
+
 def gen_terrain_texture():
     data = {}
     for sp in spec.SPECIES:
@@ -863,6 +876,7 @@ def main():
     gen_manifests()
     shapes = gen_geometries()
     blocks = gen_blocks()
+    sounds = gen_block_sounds()
     textures = gen_terrain_texture()
     items = gen_items()
     gen_item_texture()
@@ -874,7 +888,8 @@ def main():
     species = gen_script_data()
 
     print(
-        f"Generated: {blocks} blocks, {shapes} geometries, {textures} block textures, "
+        f"Generated: {blocks} blocks ({sounds} sound bindings), "
+        f"{shapes} geometries, {textures} block textures, "
         f"{items} items, {attachables} attachables, {particles} particles, "
         f"{features} feature+rule pairs, {functions} functions, {species} script records."
     )

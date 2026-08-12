@@ -31,6 +31,33 @@ UUIDS = {
     "rp_resources": "7c1e0b62-4b3d-4b7a-9f2c-8a1d5e6f3a05",
 }
 
+# Vanilla sound sets for mining, stepping on, breaking and placing each
+# species. The resource pack's blocks.json is the only place a data-driven
+# block can get sounds - without an entry there a custom block is completely
+# silent. Every name below exists in vanilla 1.21.0.
+SOUNDS = {
+    "bloodcap": "grass",
+    "toxic_veil": "grass",
+    "sporeburst": "grass",
+    "shadow_morel": "grass",
+    "embercap": "nether_wart",
+    "frost_mold": "snow",
+    "rotcap": "grass",
+    "phantom_fungus": "cloth",
+    "shockshroom": "amethyst_block",
+    "acid_bloom": "slime",
+    "voidcap": "sculk",
+    "spine_fungus": "stone",
+    "crimson_brain": "nether_wart",
+    "glowspore": "moss",
+    "deathbell": "grass",
+    "creeping_mold": "moss",
+    "ash_fungus": "gravel",
+    "nightmare_cap": "grass",
+    "parasite_bloom": "slime",
+    "mycelium_x": "sculk",
+}
+
 DANGER_NAMES = {
     1: "LEVEL I - IRRITANT",
     2: "LEVEL II - HARMFUL",

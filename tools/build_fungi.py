@@ -205,6 +205,35 @@ VALID_RENDER_METHODS = {
 }
 
 
+VALID_BLOCK_SOUNDS = {
+    "amethyst_block", "anvil", "azalea", "bamboo", "candle", "cloth", "coral",
+    "deepslate", "glass", "grass", "gravel", "honey_block", "itemframe",
+    "ladder", "metal", "moss", "mud", "nether_wart", "netherrack",
+    "powder_snow", "sand", "scaffolding", "sculk", "silent", "slime", "snow",
+    "soul_sand", "stone", "sweet_berry_bush", "turtle_egg", "wood",
+}
+
+
+def check_block_sounds(block_ids):
+    """Every custom block needs a blocks.json entry or it is entirely silent."""
+    path = os.path.join(RP, "blocks.json")
+    doc = load_json(path)
+    if doc is None:
+        fail(f"missing {path} - every custom block would be silent")
+        return
+    for identifier in block_ids:
+        entry = doc.get(identifier)
+        if not isinstance(entry, dict) or not entry.get("sound"):
+            fail(f"{path}: no sound entry for {identifier} - it would be silent")
+        elif entry["sound"] not in VALID_BLOCK_SOUNDS:
+            fail(f"{path}: {identifier} uses unknown sound {entry['sound']!r}")
+    for key in doc:
+        if key == "format_version":
+            continue
+        if key not in block_ids:
+            warn(f"{path}: entry for unknown block {key}")
+
+
 def check_blocks(terrain, geometries):
     identifiers = []
     for path in sorted(walk(os.path.join(BP, "blocks"), ".json")):
@@ -805,6 +834,7 @@ def main():
     attachables = read_attachables()
 
     block_ids = check_blocks(terrain, geometries)
+    check_block_sounds(block_ids)
     item_ids = check_items(item_atlas, attachables)
     check_geometry_materials()
     check_particles()

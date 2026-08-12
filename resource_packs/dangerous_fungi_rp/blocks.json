@@ -1,0 +1,63 @@
+{
+  "format_version": "1.19.30",
+  "fungi:bloodcap": {
+    "sound": "grass"
+  },
+  "fungi:toxic_veil": {
+    "sound": "grass"
+  },
+  "fungi:sporeburst": {
+    "sound": "grass"
+  },
+  "fungi:shadow_morel": {
+    "sound": "grass"
+  },
+  "fungi:embercap": {
+    "sound": "nether_wart"
+  },
+  "fungi:frost_mold": {
+    "sound": "snow"
+  },
+  "fungi:rotcap": {
+    "sound": "grass"
+  },
+  "fungi:phantom_fungus": {
+    "sound": "cloth"
+  },
+  "fungi:shockshroom": {
+    "sound": "amethyst_block"
+  },
+  "fungi:acid_bloom": {
+    "sound": "slime"
+  },
+  "fungi:voidcap": {
+    "sound": "sculk"
+  },
+  "fungi:spine_fungus": {
+    "sound": "stone"
+  },
+  "fungi:crimson_brain": {
+    "sound": "nether_wart"
+  },
+  "fungi:glowspore": {
+    "sound": "moss"
+  },
+  "fungi:deathbell": {
+    "sound": "grass"
+  },
+  "fungi:creeping_mold": {
+    "sound": "moss"
+  },
+  "fungi:ash_fungus": {
+    "sound": "gravel"
+  },
+  "fungi:nightmare_cap": {
+    "sound": "grass"
+  },
+  "fungi:parasite_bloom": {
+    "sound": "slime"
+  },
+  "fungi:mycelium_x": {
+    "sound": "sculk"
+  }
+}
