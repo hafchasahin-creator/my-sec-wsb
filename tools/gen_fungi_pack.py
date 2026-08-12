@@ -722,7 +722,9 @@ def gen_functions():
         f"tellraw @s {raw('§a[Fungi] §7Building the testing field... stand still for a moment.')}",
         "fill ~-24 ~-1 ~-24 ~24 ~-1 ~24 minecraft:polished_andesite",
         "fill ~-24 ~ ~-24 ~24 ~9 ~24 air",
-        "fill ~-25 ~ ~-25 ~25 ~9 ~-25 minecraft:glass hollow",
+        # 'hollow' on a single-layer box leaves just the perimeter, marking the
+        # edge of the field without walling the player in.
+        "fill ~-25 ~ ~-25 ~25 ~ ~25 minecraft:glass hollow",
         "scriptevent fungi:test_area",
     ]
     files["fungi_test_area"] = "\n".join(test_lines)

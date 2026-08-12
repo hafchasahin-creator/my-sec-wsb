@@ -96,6 +96,11 @@ Each species has its own 3D model (broad caps, spires, bells, crusts, spike clus
 hanging veils, tendrils and a mutated core), its own cap and stem materials, its own
 light level, and its own tinted spore particle. They are not recolours of one mushroom.
 
+![All twenty fungus models](docs/preview_models.png)
+
+*Rendered from the shipped geometry and textures by `tools/render_preview.py`, in the
+species order of the table above.*
+
 ### Two fictional statuses
 
 - **Contamination** — Glowspore and Mycelium-X saturate a wide area. While you are in it
@@ -277,7 +282,9 @@ tools/
   gen_fungi_pack.py          writes every JSON/text file
   build_fungi.py             validates + packages the .mcaddon
   sim_test.mjs               runtime simulation of main.js
+  render_preview.py          rasterises the block models to a contact sheet
 dist/Dangerous_Fungi.mcaddon
+docs/preview_models.png
 ```
 
 ## Rebuilding
@@ -287,6 +294,7 @@ python3 tools/gen_fungi_textures.py    # redraw every PNG (--preview <key> for A
 python3 tools/gen_fungi_pack.py        # regenerate all pack JSON from the spec
 python3 tools/build_fungi.py           # validate + write dist/Dangerous_Fungi.mcaddon
 node    tools/sim_test.mjs             # run the behaviour script against a stubbed API
+python3 tools/render_preview.py        # redraw docs/preview_models.png from the geometry
 ```
 
 ### What the validator refuses to ship

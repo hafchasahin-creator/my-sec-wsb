@@ -12,7 +12,12 @@ cap texture, a stem texture and a glowing texture without any block states.
 Two layouts exist:
   * "material"   - box models skinned with tiling cap/stem materials
   * "silhouette" - crossed planes skinned with one cut-out texture
+
+Run `python3 tools/render_preview.py` to rasterise every shape and check the
+result before shipping.
 """
+
+import math
 
 
 def cube(x, y, z, w, h, d, mat="cap", rotation=None, pivot=None):
@@ -107,17 +112,22 @@ SHAPES = {
             cube(3, 2, -1, 2, 1, 2, "cap"),
         ],
     },
-    # 10 - Acid Bloom: open cup with a pool of acid in it.
+    # 10 - Acid Bloom: open cup. Walls run high and the lip is built from four
+    # separate flanges so the mouth stays genuinely open from above - a solid
+    # rim slab would cap it and the whole thing would read as a box.
     "bowl": {
         "layout": "material",
         "cubes": [
             cube(-2, 0, -2, 4, 3, 4, "stem"),
-            cube(-6, 3, -6, 12, 1, 12, "cap"),
-            cube(-6, 4, -6, 12, 4, 2, "cap"),
-            cube(-6, 4, 4, 12, 4, 2, "cap"),
-            cube(-6, 4, -4, 2, 4, 8, "cap"),
-            cube(4, 4, -4, 2, 4, 8, "cap"),
-            cube(-4, 4, -4, 8, 1, 8, "cap"),
+            cube(-5, 3, -5, 10, 1, 10, "cap"),
+            cube(-5, 4, -5, 10, 6, 2, "cap"),
+            cube(-5, 4, 3, 10, 6, 2, "cap"),
+            cube(-5, 4, -3, 2, 6, 6, "cap"),
+            cube(3, 4, -3, 2, 6, 6, "cap"),
+            cube(-6, 9, -6, 12, 1, 2, "cap"),
+            cube(-6, 9, 4, 12, 1, 2, "cap"),
+            cube(-6, 9, -4, 2, 1, 8, "cap"),
+            cube(4, 9, -4, 2, 1, 8, "cap"),
         ],
     },
     # 11 - Voidcap: dark cap drawn up into a spire.
@@ -130,16 +140,22 @@ SHAPES = {
             cube(-1, 12, -1, 2, 3, 2, "glow"),
         ],
     },
-    # 12 - Spine Fungus: hardened needles at four heights.
+    # 12 - Spine Fungus: hardened needles at five heights, each tapering to a
+    # 1px tip so they read as spines rather than posts.
     "spikes": {
         "layout": "material",
         "cubes": [
             cube(-6, 0, -6, 12, 2, 12, "stem"),
-            cube(-5, 2, -4, 2, 7, 2, "cap"),
-            cube(1, 2, -5, 2, 9, 2, "cap"),
-            cube(-2, 2, 2, 2, 6, 2, "cap"),
-            cube(3, 2, 1, 2, 5, 2, "cap"),
-            cube(-1, 2, -1, 2, 4, 2, "cap"),
+            cube(-5, 2, -4, 2, 6, 2, "cap"),
+            cube(-4.5, 8, -3.5, 1, 3, 1, "cap"),
+            cube(1, 2, -5, 2, 8, 2, "cap"),
+            cube(1.5, 10, -4.5, 1, 3, 1, "cap"),
+            cube(-2, 2, 2, 2, 5, 2, "cap"),
+            cube(-1.5, 7, 2.5, 1, 3, 1, "cap"),
+            cube(3, 2, 1, 2, 4, 2, "cap"),
+            cube(3.5, 6, 1.5, 1, 2, 1, "cap"),
+            cube(-1, 2, -1, 2, 3, 2, "cap"),
+            cube(-0.5, 5, -0.5, 1, 2, 1, "cap"),
         ],
     },
     # 13 - Crimson Brain: stacked lobes.
@@ -261,6 +277,11 @@ def bounds(shape_name):
 
 def selection_box(shape_name):
     origin, size = bounds(shape_name)
+    # Shapes may use fractional cubes for tapered tips; the selection box is
+    # rounded outward so it always encloses the model in whole block-units.
+    hi = [origin[i] + size[i] for i in range(3)]
+    origin = [math.floor(v) for v in origin]
+    size = [math.ceil(hi[i]) - origin[i] for i in range(3)]
     origin = [max(-8, min(8, v)) for v in origin]
     origin[1] = max(0, origin[1])
     size = [max(1, min(16, v)) for v in size]
