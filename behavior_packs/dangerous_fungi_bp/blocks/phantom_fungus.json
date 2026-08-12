@@ -1,0 +1,45 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "fungi:phantom_fungus",
+      "menu_category": {
+        "category": "nature",
+        "group": "itemGroup.name.mushroom"
+      }
+    },
+    "components": {
+      "minecraft:geometry": {
+        "identifier": "geometry.fungi.phantom_veil"
+      },
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "fungi_phantom_fungus_cap",
+          "render_method": "alpha_test"
+        }
+      },
+      "minecraft:collision_box": false,
+      "minecraft:selection_box": {
+        "origin": [
+          -8,
+          0,
+          -8
+        ],
+        "size": [
+          16,
+          16,
+          16
+        ]
+      },
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 0.25
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 0.2
+      },
+      "minecraft:light_dampening": 0,
+      "minecraft:light_emission": 4,
+      "minecraft:map_color": "#C8D6E5"
+    }
+  }
+}

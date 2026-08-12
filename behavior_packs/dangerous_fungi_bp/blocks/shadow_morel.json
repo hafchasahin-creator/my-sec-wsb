@@ -1,0 +1,49 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "fungi:shadow_morel",
+      "menu_category": {
+        "category": "nature",
+        "group": "itemGroup.name.mushroom"
+      }
+    },
+    "components": {
+      "minecraft:geometry": {
+        "identifier": "geometry.fungi.morel"
+      },
+      "minecraft:material_instances": {
+        "stem": {
+          "texture": "fungi_shadow_morel_stem",
+          "render_method": "alpha_test"
+        },
+        "*": {
+          "texture": "fungi_shadow_morel_cap",
+          "render_method": "alpha_test"
+        }
+      },
+      "minecraft:collision_box": false,
+      "minecraft:selection_box": {
+        "origin": [
+          -4,
+          0,
+          -4
+        ],
+        "size": [
+          8,
+          16,
+          8
+        ]
+      },
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 0.25
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 0.2
+      },
+      "minecraft:light_dampening": 0,
+      "minecraft:light_emission": 0,
+      "minecraft:map_color": "#2E2438"
+    }
+  }
+}

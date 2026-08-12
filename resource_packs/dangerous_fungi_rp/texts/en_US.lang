@@ -1,0 +1,32 @@
+pack.name=Dangerous Fungi RP
+pack.description=Models, textures and particles for the twenty dangerous fungi.
+
+## Fungus blocks
+tile.fungi:bloodcap.name=Bloodcap Fungus
+tile.fungi:toxic_veil.name=Toxic Veil
+tile.fungi:sporeburst.name=Sporeburst Mushroom
+tile.fungi:shadow_morel.name=Shadow Morel
+tile.fungi:embercap.name=Embercap
+tile.fungi:frost_mold.name=Frost Mold
+tile.fungi:rotcap.name=Rotcap
+tile.fungi:phantom_fungus.name=Phantom Fungus
+tile.fungi:shockshroom.name=Shockshroom
+tile.fungi:acid_bloom.name=Acid Bloom
+tile.fungi:voidcap.name=Voidcap
+tile.fungi:spine_fungus.name=Spine Fungus
+tile.fungi:crimson_brain.name=Crimson Brain Fungus
+tile.fungi:glowspore.name=Glowspore
+tile.fungi:deathbell.name=Deathbell Mushroom
+tile.fungi:creeping_mold.name=Creeping Mold
+tile.fungi:ash_fungus.name=Ash Fungus
+tile.fungi:nightmare_cap.name=Nightmare Cap
+tile.fungi:parasite_bloom.name=Parasite Bloom
+tile.fungi:mycelium_x.name=Mycelium-X Core
+
+## Equipment
+item.fungi:fungal_scanner.name=Fungal Scanner
+item.fungi:spore_mask.name=Spore Mask
+item.fungi:hazard_helmet.name=Hazard Helmet
+item.fungi:hazard_chestplate.name=Hazard Chestplate
+item.fungi:hazard_leggings.name=Hazard Leggings
+item.fungi:hazard_boots.name=Hazard Boots

@@ -1,0 +1,131 @@
+{
+  "resource_pack_name": "dangerous_fungi",
+  "texture_name": "atlas.terrain",
+  "padding": 8,
+  "num_mip_levels": 4,
+  "texture_data": {
+    "fungi_bloodcap_stem": {
+      "textures": "textures/blocks/fungi_bloodcap_stem"
+    },
+    "fungi_bloodcap_cap": {
+      "textures": "textures/blocks/fungi_bloodcap_cap"
+    },
+    "fungi_toxic_veil_cap": {
+      "textures": "textures/blocks/fungi_toxic_veil_cap"
+    },
+    "fungi_sporeburst_stem": {
+      "textures": "textures/blocks/fungi_sporeburst_stem"
+    },
+    "fungi_sporeburst_cap": {
+      "textures": "textures/blocks/fungi_sporeburst_cap"
+    },
+    "fungi_shadow_morel_stem": {
+      "textures": "textures/blocks/fungi_shadow_morel_stem"
+    },
+    "fungi_shadow_morel_cap": {
+      "textures": "textures/blocks/fungi_shadow_morel_cap"
+    },
+    "fungi_embercap_stem": {
+      "textures": "textures/blocks/fungi_embercap_stem"
+    },
+    "fungi_embercap_cap": {
+      "textures": "textures/blocks/fungi_embercap_cap"
+    },
+    "fungi_embercap_glow": {
+      "textures": "textures/blocks/fungi_embercap_glow"
+    },
+    "fungi_frost_mold_cap": {
+      "textures": "textures/blocks/fungi_frost_mold_cap"
+    },
+    "fungi_rotcap_stem": {
+      "textures": "textures/blocks/fungi_rotcap_stem"
+    },
+    "fungi_rotcap_cap": {
+      "textures": "textures/blocks/fungi_rotcap_cap"
+    },
+    "fungi_phantom_fungus_cap": {
+      "textures": "textures/blocks/fungi_phantom_fungus_cap"
+    },
+    "fungi_shockshroom_stem": {
+      "textures": "textures/blocks/fungi_shockshroom_stem"
+    },
+    "fungi_shockshroom_glow": {
+      "textures": "textures/blocks/fungi_shockshroom_glow"
+    },
+    "fungi_shockshroom_cap": {
+      "textures": "textures/blocks/fungi_shockshroom_cap"
+    },
+    "fungi_acid_bloom_stem": {
+      "textures": "textures/blocks/fungi_acid_bloom_stem"
+    },
+    "fungi_acid_bloom_cap": {
+      "textures": "textures/blocks/fungi_acid_bloom_cap"
+    },
+    "fungi_voidcap_stem": {
+      "textures": "textures/blocks/fungi_voidcap_stem"
+    },
+    "fungi_voidcap_cap": {
+      "textures": "textures/blocks/fungi_voidcap_cap"
+    },
+    "fungi_voidcap_glow": {
+      "textures": "textures/blocks/fungi_voidcap_glow"
+    },
+    "fungi_spine_fungus_stem": {
+      "textures": "textures/blocks/fungi_spine_fungus_stem"
+    },
+    "fungi_spine_fungus_cap": {
+      "textures": "textures/blocks/fungi_spine_fungus_cap"
+    },
+    "fungi_crimson_brain_stem": {
+      "textures": "textures/blocks/fungi_crimson_brain_stem"
+    },
+    "fungi_crimson_brain_cap": {
+      "textures": "textures/blocks/fungi_crimson_brain_cap"
+    },
+    "fungi_glowspore_cap": {
+      "textures": "textures/blocks/fungi_glowspore_cap"
+    },
+    "fungi_glowspore_glow": {
+      "textures": "textures/blocks/fungi_glowspore_glow"
+    },
+    "fungi_deathbell_stem": {
+      "textures": "textures/blocks/fungi_deathbell_stem"
+    },
+    "fungi_deathbell_cap": {
+      "textures": "textures/blocks/fungi_deathbell_cap"
+    },
+    "fungi_creeping_mold_cap": {
+      "textures": "textures/blocks/fungi_creeping_mold_cap"
+    },
+    "fungi_ash_fungus_stem": {
+      "textures": "textures/blocks/fungi_ash_fungus_stem"
+    },
+    "fungi_ash_fungus_cap": {
+      "textures": "textures/blocks/fungi_ash_fungus_cap"
+    },
+    "fungi_nightmare_cap_stem": {
+      "textures": "textures/blocks/fungi_nightmare_cap_stem"
+    },
+    "fungi_nightmare_cap_cap": {
+      "textures": "textures/blocks/fungi_nightmare_cap_cap"
+    },
+    "fungi_parasite_bloom_stem": {
+      "textures": "textures/blocks/fungi_parasite_bloom_stem"
+    },
+    "fungi_parasite_bloom_cap": {
+      "textures": "textures/blocks/fungi_parasite_bloom_cap"
+    },
+    "fungi_parasite_bloom_glow": {
+      "textures": "textures/blocks/fungi_parasite_bloom_glow"
+    },
+    "fungi_mycelium_x_stem": {
+      "textures": "textures/blocks/fungi_mycelium_x_stem"
+    },
+    "fungi_mycelium_x_cap": {
+      "textures": "textures/blocks/fungi_mycelium_x_cap"
+    },
+    "fungi_mycelium_x_glow": {
+      "textures": "textures/blocks/fungi_mycelium_x_glow"
+    }
+  }
+}

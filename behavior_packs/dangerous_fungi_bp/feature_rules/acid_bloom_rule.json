@@ -1,0 +1,46 @@
+{
+  "format_version": "1.13.0",
+  "minecraft:feature_rules": {
+    "description": {
+      "identifier": "fungi:acid_bloom_rule",
+      "places_feature": "fungi:acid_bloom_feature"
+    },
+    "conditions": {
+      "placement_pass": "surface_pass",
+      "minecraft:biome_filter": [
+        {
+          "test": "has_biome_tag",
+          "operator": "==",
+          "value": "jungle"
+        },
+        {
+          "test": "has_biome_tag",
+          "operator": "==",
+          "value": "swamp"
+        }
+      ]
+    },
+    "distribution": {
+      "iterations": 2,
+      "scatter_chance": {
+        "numerator": 1,
+        "denominator": 6
+      },
+      "x": {
+        "distribution": "uniform",
+        "extent": [
+          0,
+          15
+        ]
+      },
+      "z": {
+        "distribution": "uniform",
+        "extent": [
+          0,
+          15
+        ]
+      },
+      "y": "query.heightmap(variable.worldx, variable.worldz)"
+    }
+  }
+}

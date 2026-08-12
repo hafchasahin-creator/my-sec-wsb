@@ -1,0 +1,56 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "fungi:embercap",
+      "menu_category": {
+        "category": "nature",
+        "group": "itemGroup.name.mushroom"
+      }
+    },
+    "components": {
+      "minecraft:geometry": {
+        "identifier": "geometry.fungi.cap_glow"
+      },
+      "minecraft:material_instances": {
+        "stem": {
+          "texture": "fungi_embercap_stem",
+          "render_method": "alpha_test",
+          "face_dimming": false
+        },
+        "*": {
+          "texture": "fungi_embercap_cap",
+          "render_method": "alpha_test",
+          "face_dimming": false
+        },
+        "glow": {
+          "texture": "fungi_embercap_glow",
+          "render_method": "alpha_test",
+          "face_dimming": false
+        }
+      },
+      "minecraft:collision_box": false,
+      "minecraft:selection_box": {
+        "origin": [
+          -6,
+          0,
+          -6
+        ],
+        "size": [
+          12,
+          9,
+          12
+        ]
+      },
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 0.25
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 0.2
+      },
+      "minecraft:light_dampening": 0,
+      "minecraft:light_emission": 11,
+      "minecraft:map_color": "#E2571E"
+    }
+  }
+}

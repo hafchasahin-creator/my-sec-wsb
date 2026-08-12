@@ -1,0 +1,68 @@
+{
+  "format_version": "1.10.0",
+  "particle_effect": {
+    "description": {
+      "identifier": "fungi:toxic_veil_spore",
+      "basic_render_parameters": {
+        "material": "particles_blend",
+        "texture": "textures/particle/fungal_spore"
+      }
+    },
+    "components": {
+      "minecraft:emitter_local_space": {
+        "position": true,
+        "rotation": false
+      },
+      "minecraft:emitter_rate_instant": {
+        "num_particles": 4
+      },
+      "minecraft:emitter_lifetime_once": {
+        "active_time": 0.25
+      },
+      "minecraft:emitter_shape_sphere": {
+        "radius": 0.5,
+        "direction": "outwards"
+      },
+      "minecraft:particle_initial_speed": 0.28,
+      "minecraft:particle_lifetime_expression": {
+        "max_lifetime": 1.6
+      },
+      "minecraft:particle_motion_dynamic": {
+        "linear_acceleration": [
+          0,
+          0.12,
+          0
+        ],
+        "linear_drag_coefficient": 1.2
+      },
+      "minecraft:particle_appearance_billboard": {
+        "size": [
+          0.05,
+          0.05
+        ],
+        "facing_camera_mode": "lookat_xyz",
+        "uv": {
+          "texture_width": 8,
+          "texture_height": 8,
+          "uv": [
+            0,
+            0
+          ],
+          "uv_size": [
+            8,
+            8
+          ]
+        }
+      },
+      "minecraft:particle_appearance_tinting": {
+        "color": [
+          0.28,
+          0.75,
+          0.3,
+          "math.max(0.0, 1.0 - (variable.particle_age / variable.particle_lifetime))"
+        ]
+      },
+      "minecraft:particle_appearance_lighting": {}
+    }
+  }
+}

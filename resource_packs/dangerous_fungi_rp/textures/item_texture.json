@@ -1,0 +1,24 @@
+{
+  "resource_pack_name": "dangerous_fungi",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "fungal_scanner": {
+      "textures": "textures/items/fungal_scanner"
+    },
+    "spore_mask": {
+      "textures": "textures/items/spore_mask"
+    },
+    "hazard_helmet": {
+      "textures": "textures/items/hazard_helmet"
+    },
+    "hazard_chestplate": {
+      "textures": "textures/items/hazard_chestplate"
+    },
+    "hazard_leggings": {
+      "textures": "textures/items/hazard_leggings"
+    },
+    "hazard_boots": {
+      "textures": "textures/items/hazard_boots"
+    }
+  }
+}

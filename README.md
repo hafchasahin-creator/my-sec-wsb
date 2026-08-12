@@ -1,3 +1,15 @@
+# Bedrock add-ons
+
+This repository holds two standalone Minecraft **Bedrock Edition** add-ons, each built and
+validated against **1.21.0** (Android / Pocket Edition) with no experimental toggles.
+
+| Add-on | Download | Docs |
+|--------|----------|------|
+| **Dangerous Fungi** — 20 fictional dangerous fungus species, a Fungal Scanner and hazard equipment | [`dist/Dangerous_Fungi.mcaddon`](dist/Dangerous_Fungi.mcaddon) | [DANGEROUS_FUNGI.md](DANGEROUS_FUNGI.md) |
+| **Arcane Arsenal** — six legendary weapons with scripted magic effects | [`dist/ArcaneArsenal.mcaddon`](dist/ArcaneArsenal.mcaddon) | below |
+
+---
+
 # Arcane Arsenal
 
 A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six

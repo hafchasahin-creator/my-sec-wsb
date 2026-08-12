@@ -1,0 +1,56 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "fungi:shockshroom",
+      "menu_category": {
+        "category": "nature",
+        "group": "itemGroup.name.mushroom"
+      }
+    },
+    "components": {
+      "minecraft:geometry": {
+        "identifier": "geometry.fungi.antenna"
+      },
+      "minecraft:material_instances": {
+        "stem": {
+          "texture": "fungi_shockshroom_stem",
+          "render_method": "alpha_test",
+          "face_dimming": false
+        },
+        "glow": {
+          "texture": "fungi_shockshroom_glow",
+          "render_method": "alpha_test",
+          "face_dimming": false
+        },
+        "*": {
+          "texture": "fungi_shockshroom_cap",
+          "render_method": "alpha_test",
+          "face_dimming": false
+        }
+      },
+      "minecraft:collision_box": false,
+      "minecraft:selection_box": {
+        "origin": [
+          -5,
+          0,
+          -4
+        ],
+        "size": [
+          10,
+          15,
+          8
+        ]
+      },
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 0.25
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 0.2
+      },
+      "minecraft:light_dampening": 0,
+      "minecraft:light_emission": 7,
+      "minecraft:map_color": "#2F7FE0"
+    }
+  }
+}
