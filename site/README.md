@@ -26,6 +26,17 @@ python3 build.py            # both builds
 python3 build.py --linked   # just the small one
 ```
 
+### Swapping the background
+
+Drop a file into `assets/` named `background.mp4`, `.webm`, `.jpg` or `.png` and
+rebuild — the build picks it up and the page renders a muted looping inline
+video or a still to match. A video takes precedence over an image when both are
+present, so to go back to the still just delete the clip.
+
+Video is always streamed from `assets/` even in the inlined build; base64-ing
+tens of megabytes of footage would make the single file unusable. So a video
+background means shipping the `assets/` folder alongside the HTML.
+
 ## Configuration
 
 Everything you would normally want to change sits in the `CONFIG` block at the

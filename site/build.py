@@ -21,17 +21,36 @@ ROOT = Path(__file__).resolve().parent
 ASSETS = ROOT / "assets"
 TEMPLATE = ROOT / "template.html"
 
-# token -> asset file
+# token -> asset file. BG_URI is resolved at build time so that dropping a
+# background.mp4 (or .webm/.png/...) into assets/ is all it takes to swap the
+# backdrop — the page renders a video or an image to match.
 FILES = {
     "FONT_URI": "Angel_wish.ttf",
     "MONO_URI": "mono.woff2",
-    "BG_URI": "background.jpg",
+    "BG_URI": None,
     "AVATAR_URI": "avatar.png",
     "COVER_URI": "cover-placeholder.jpg",
     "SONG_URI": "song.mp3",
 }
 
-EXTRA_TYPES = {".ttf": "font/ttf", ".gif": "image/gif", ".mp3": "audio/mpeg"}
+# first match wins; video before image so a dropped-in clip takes over
+BACKGROUND_CANDIDATES = ["background.mp4", "background.webm", "background.jpg",
+                         "background.png", "background.jpeg", "background.gif"]
+
+
+def resolve_background() -> str:
+    for name in BACKGROUND_CANDIDATES:
+        if (ASSETS / name).exists():
+            return name
+    raise SystemExit(f"no background found in {ASSETS} (looked for: "
+                     + ", ".join(BACKGROUND_CANDIDATES) + ")")
+
+EXTRA_TYPES = {".ttf": "font/ttf", ".gif": "image/gif", ".mp3": "audio/mpeg",
+               ".woff2": "font/woff2", ".mp4": "video/mp4", ".webm": "video/webm"}
+
+# a video background is streamed from assets/ even in the inlined build —
+# base64-ing tens of megabytes of video would make the file unusable
+NEVER_INLINE = {".mp4", ".webm"}
 
 
 def mime_for(path: Path) -> str:
@@ -48,10 +67,12 @@ def data_uri(path: Path) -> str:
 def render(template: str, inline: bool) -> str:
     out = template
     for token, filename in FILES.items():
+        filename = filename or resolve_background()
         path = ASSETS / filename
         if not path.exists():
             raise SystemExit(f"missing asset: {path}")
-        value = data_uri(path) if inline else f"assets/{filename}"
+        embed = inline and path.suffix.lower() not in NEVER_INLINE
+        value = data_uri(path) if embed else f"assets/{filename}"
         # tokens are always substituted where a quoted string is expected
         out = out.replace("{{" + token + "}}", '"' + value + '"')
     return out
