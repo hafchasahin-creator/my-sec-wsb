@@ -29,18 +29,22 @@ top of the `<script>` in `template.html`:
 ```js
 const CONFIG = {
     username: "imran",
+    pageTitle: "",              // browser tab; "" uses the username
     status: "dnd",              // online | idle | dnd | offline
     statusText: "",             // "" uses the default label for `status`
+    discordUserId: "...",       // live presence via lanyard; "" disables it
     bio: [ ... ],               // one string, or several to cycle through
-    profilePicture: ...,
-    backgroundImage: ...,
+    profilePicture: ...,        // one source, or a list to pick from at random
+    backgroundImage: ...,       // same, and .mp4 / .webm render as video
     viewCount: 1073,
+    viewCountAPI: "",           // optional POST endpoint returning { count }
     discordURL / githubURL / telegramURL / robloxURL / youtubeURL / tiktokURL,
     playlist: [ { file, title, artist, cover } ],
     enterText: "click to enter",
     volume: 0.3,                // 0 - 1
     cardOpacity: 0.4,           // 0 - 1, the "eye" slider default
     loop: true,
+    shuffle: false,             // start on a random track
     tilt: true
 };
 ```
@@ -57,6 +61,26 @@ Notes:
   cover into `assets/`, point `playlist[0].cover` at it and rebuild.
 - Add more objects to `playlist` and the previous / next buttons cycle through
   them. With a single track those buttons restart it.
+
+## Living like the real page
+
+The live site does several things a static copy normally loses. These are
+reproduced, and every one of them falls back cleanly when there is no network,
+so the page is still complete opened straight off a phone.
+
+| Feature | How it behaves |
+| --- | --- |
+| **Discord presence** | `discordUserId` polls lanyard.rest every 30s and drives the dot and label — including `Online · Playing X` and `Do Not Disturb · Listening to X by Y`, the same format the live site uses. Unreachable, blocked, or `""` → the configured `status` stays. |
+| **Rotating artwork** | `profilePicture` and `backgroundImage` accept a list and pick one per load, the way the live site rotates its avatars and backgrounds. |
+| **Video backgrounds** | An `.mp4` / `.webm` background renders as a muted looping inline video instead of an image. |
+| **View counter** | `viewCountAPI` is POSTed on load and its `{ count }` replaces the number; otherwise `viewCount` is shown. |
+| **Shuffle** | `shuffle: true` starts on a random track when the playlist has more than one. |
+| **Tab identity** | Favicon is generated from the avatar, plus `og:` / `twitter:` tags so a shared link embeds properly. |
+| **Lock screen** | Media Session metadata means the track shows on the phone's lock screen and notification shade. |
+
+Presence and the counter are the only network calls the page ever makes, and both
+are opt-out: set `discordUserId` and `viewCountAPI` to `""` for a page that
+touches the network zero times.
 
 ## Behaviour
 

@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
+<meta name="description" content="imran">
+<meta name="color-scheme" content="dark">
+<!-- link embeds, for when the page is shared -->
+<meta property="og:type" content="profile">
+<meta property="og:title" content="imran">
+<meta property="og:description" content="Do Not Disturb">
+<meta name="twitter:card" content="summary_large_image">
 <title>imran</title>
 <style>
 /* ============================================================
@@ -211,6 +218,7 @@ body {
 #profile-block {
     width: 820px;
     min-height: 332px;
+    max-height: min(400px, calc(100vh - 220px));
     overflow: visible;
     background-color: rgba(0, 0, 0, 0.4);
     border: none;
@@ -771,6 +779,7 @@ body {
         width: 90vw;
         max-width: 350px;
         min-height: unset;
+        max-height: none;
         padding: 12px;
         gap: 8px;
     }
@@ -972,8 +981,15 @@ body {
 const CONFIG = {
     /* ---------- identity ---------- */
     username: "imran",
+    pageTitle: "",                      // browser tab; "" uses the username
     status: "dnd",                      // "online" | "idle" | "dnd" | "offline"
     statusText: "",                     // leave "" to use the default label for `status`
+
+    /* Live Discord presence via lanyard.rest — the dot and label then follow
+       your real status, including what you are playing or listening to.
+       Requires you to have joined discord.gg/lanyard. Set to "" for a page
+       that makes no network requests at all; the status above is then used. */
+    discordUserId: "1327961337757831219",
     bio: [                              // string, or list of strings to cycle through
         "n1 skidder oat",
         "\"Hello, World!\"",
@@ -981,12 +997,19 @@ const CONFIG = {
         "\"larp larp larp sahur\""
     ],
 
-    /* ---------- media ---------- */
+    /* ---------- media ----------
+       Both accept a single source or a list — a list picks one at random on
+       each load, the way the live site rotates its artwork. The background
+       also takes .mp4 / .webm and is rendered as a muted looping video. */
     profilePicture: {{AVATAR_URI}},
     backgroundImage: {{BG_URI}},
 
-    /* ---------- counter ---------- */
+    /* ---------- counter ----------
+       viewCountAPI: optional endpoint that is POSTed on load and returns
+       { count: n }. Falls back to the fixed number below when it is "" or
+       unreachable, so the page still reads correctly offline. */
     viewCount: 1073,
+    viewCountAPI: "",
 
     /* ---------- social links (set to "" to hide an icon) ---------- */
     discordURL:  "https://discord.com/users/1327961337757831219",
@@ -1012,6 +1035,7 @@ const CONFIG = {
     volume: 0.3,                        // 0 - 1
     cardOpacity: 0.4,                   // 0 - 1, the "eye" slider default
     loop: true,                         // loop the playlist
+    shuffle: false,                     // start on a random track
     tilt: true                          // subtle 3D tilt following pointer / touch
 };
 
@@ -1058,12 +1082,18 @@ const PLAY_PATH  = '<path d="M8 5v14l11-7z"/>';
 const PAUSE_PATH = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
 
 const STATUS_LABELS = { online: 'Online', idle: 'Idle', dnd: 'Do Not Disturb', offline: 'Offline' };
+const ACTIVITY_PREFIXES = ['Playing', 'Streaming', 'Listening to', 'Watching', '', 'Competing in'];
 
 /* ================================================================
    SMALL HELPERS
    ================================================================ */
 const $ = (id) => document.getElementById(id);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+/* a list picks one at random per load, a single value is used as-is */
+const pick = (v) => Array.isArray(v) ? v[Math.floor(Math.random() * v.length)] : v;
+
+const isVideo = (src) => typeof src === 'string' && /\.(mp4|webm|ogv)(\?|#|$)/i.test(src);
 
 function formatTime(s) {
     if (!isFinite(s) || s < 0) s = 0;
@@ -1178,7 +1208,6 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ---------- element refs ---------- */
     const startScreen    = $('start-screen');
     const startText      = $('start-text');
-    const background     = $('background');
     const profileName    = $('profile-name');
     const profileBio     = $('profile-bio');
     const profilePicture = $('profile-picture');
@@ -1205,16 +1234,90 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ============================================================
        STATIC CONTENT FROM CONFIG
        ============================================================ */
-    document.title = CONFIG.username;
-    background.src = CONFIG.backgroundImage;
-    profilePicture.src = CONFIG.profilePicture;
+    document.title = CONFIG.pageTitle || CONFIG.username;
+    profilePicture.src = pick(CONFIG.profilePicture);
     profilePicture.alt = CONFIG.username;
+
+    /* ---------- background: still image or looping video ---------- */
+    let background = $('background');
+    const backgroundSrc = pick(CONFIG.backgroundImage);
+
+    if (isVideo(backgroundSrc)) {
+        const video = document.createElement('video');
+        video.id = 'background';
+        video.autoplay = true;
+        video.loop = true;
+        video.muted = true;
+        video.playsInline = true;
+        video.setAttribute('webkit-playsinline', '');
+        video.src = backgroundSrc;
+        background.replaceWith(video);
+        background = video;
+        video.play().catch(() => {});        // resumes on the entry tap if blocked
+    } else {
+        background.src = backgroundSrc;
+    }
+
+    /* ---------- the browser tab gets the avatar as its icon ---------- */
+    const favicon = document.createElement('link');
+    favicon.rel = 'icon';
+    favicon.href = pick(CONFIG.profilePicture);
+    document.head.appendChild(favicon);
 
     statusDot.className = 'status-dot ' + (CONFIG.status || 'offline');
     statusText.textContent = CONFIG.statusText || STATUS_LABELS[CONFIG.status] || 'Offline';
 
-    const views = Number(CONFIG.viewCount || 0);
+    let views = Number(CONFIG.viewCount || 0);
     visitorCount.textContent = views.toLocaleString('en-US');
+
+    /* ============================================================
+       LIVE PRESENCE + VIEW COUNT
+       Both are optional. Every failure path leaves the configured
+       values on screen, so the page is complete with no network.
+       ============================================================ */
+    async function fetchDiscordStatus() {
+        if (!CONFIG.discordUserId) return;
+        try {
+            const res = await fetch(`https://api.lanyard.rest/v1/users/${CONFIG.discordUserId}`);
+            const { success, data } = await res.json();
+            if (!success || !data) return;
+
+            const { discord_status, activities = [], spotify } = data;
+            statusDot.className = `status-dot ${discord_status}`;
+
+            let label = STATUS_LABELS[discord_status] || 'Offline';
+            const activity = activities.find(a => a.type !== 4);   // 4 = custom status
+            if (spotify) {
+                label += ` · Listening to ${spotify.song} by ${spotify.artist}`;
+            } else if (activity) {
+                const prefix = ACTIVITY_PREFIXES[activity.type] || '';
+                label += ` · ${prefix ? prefix + ' ' : ''}${activity.name}`;
+            }
+            statusText.textContent = label;
+        } catch {
+            /* offline, blocked, or not registered with lanyard — keep CONFIG.status */
+        }
+    }
+
+    fetchDiscordStatus();
+    setInterval(fetchDiscordStatus, 30000);
+
+    async function fetchViewCount() {
+        if (!CONFIG.viewCountAPI) return;
+        try {
+            const res = await fetch(CONFIG.viewCountAPI, { method: 'POST' });
+            const data = await res.json();
+            const count = Number(data.count);
+            if (Number.isFinite(count)) {
+                views = count;
+                visitorCount.textContent = views.toLocaleString('en-US');
+            }
+        } catch {
+            /* keep CONFIG.viewCount */
+        }
+    }
+
+    fetchViewCount();
 
     /* ---------- social icons ---------- */
     [
@@ -1653,6 +1756,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => startScreen.classList.add('hidden'), 600);
 
         background.classList.add('animate');
+        if (background.tagName === 'VIDEO') background.play().catch(() => {});
         document.getElementById('background-wrap').classList.add('animate');
         reveal.classList.add('revealed');
 
@@ -1679,6 +1783,9 @@ document.addEventListener('DOMContentLoaded', () => {
     startScreen.tabIndex = 0;
 
     /* ---------- initial state ---------- */
+    if (CONFIG.shuffle && CONFIG.playlist.length > 1) {
+        trackIndex = Math.floor(Math.random() * CONFIG.playlist.length);
+    }
     applyGlass(CONFIG.cardOpacity);
     audio.volume = clamp(CONFIG.volume, 0, 1);
     audio.loop = CONFIG.loop && CONFIG.playlist.length === 1;
