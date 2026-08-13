@@ -1,0 +1,39 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "onetap:judgment_hammer"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "GNG",
+      "G*G",
+      " S "
+    ],
+    "key": {
+      "G": {
+        "item": "minecraft:gold_block"
+      },
+      "N": {
+        "item": "minecraft:netherite_ingot"
+      },
+      "*": {
+        "item": "minecraft:nether_star"
+      },
+      "S": {
+        "item": "minecraft:stick"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "onetap:judgment_hammer",
+      "count": 1
+    }
+  }
+}

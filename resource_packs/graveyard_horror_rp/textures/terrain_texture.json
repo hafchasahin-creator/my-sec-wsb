@@ -1,0 +1,20 @@
+{
+  "resource_pack_name": "graveyard_horror",
+  "texture_name": "atlas.terrain",
+  "padding": 8,
+  "num_mip_levels": 4,
+  "texture_data": {
+    "grave_soil": {
+      "textures": "textures/blocks/grave_soil"
+    },
+    "grave_crypt_stone": {
+      "textures": "textures/blocks/grave_crypt_stone"
+    },
+    "grave_lantern": {
+      "textures": "textures/blocks/grave_lantern"
+    },
+    "grave_tombstone": {
+      "textures": "textures/blocks/grave_tombstone"
+    }
+  }
+}

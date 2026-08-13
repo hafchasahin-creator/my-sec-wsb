@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "grave:gravekeepers_ledger"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "BPB",
+      "PSP",
+      "BPB"
+    ],
+    "key": {
+      "B": {
+        "item": "minecraft:bone"
+      },
+      "P": {
+        "item": "minecraft:paper"
+      },
+      "S": {
+        "item": "minecraft:soul_sand"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "grave:gravekeepers_ledger",
+      "count": 1
+    }
+  }
+}

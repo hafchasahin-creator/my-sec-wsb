@@ -1,0 +1,61 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Luxury Estate BP",
+    "description": "Build a fully furnished luxury villa from a single deed. Behavior Pack.",
+    "uuid": "fcda328d-ae32-498f-bce1-80e27f95ef1f",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "ed52401e-f136-4cf7-a1de-3e3a62dec68f",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "569e6bae-3132-4b43-87dd-c18a1d444da7",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "6d7429ea-7040-4b2f-bf6e-4028c2da040b",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Luxury Estate"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

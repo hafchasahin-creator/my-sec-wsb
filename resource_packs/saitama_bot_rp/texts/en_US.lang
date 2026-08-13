@@ -1,0 +1,7 @@
+## Saitama Bot - English (US)
+
+pack.name=Saitama Bot RP
+pack.description=Model, texture and animations for the hero bot.
+
+entity.saitama:hero.name=Saitama
+item.spawn_egg.entity.saitama:hero.name=Spawn Saitama

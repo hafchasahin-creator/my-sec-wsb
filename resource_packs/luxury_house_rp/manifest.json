@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Luxury Estate RP",
+    "description": "Marble, onyx, gilding, crystal glass and rugs for the Luxury Estate. Resource Pack.",
+    "uuid": "6d7429ea-7040-4b2f-bf6e-4028c2da040b",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "57fa1f2b-7a28-4582-92d6-ee3249a2ee1c",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Luxury Estate"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

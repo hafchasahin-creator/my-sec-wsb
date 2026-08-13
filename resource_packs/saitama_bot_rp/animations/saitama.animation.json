@@ -1,0 +1,88 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.saitama_hero.idle": {
+      "loop": true,
+      "animation_length": 4,
+      "bones": {
+        "body": {
+          "rotation": ["math.sin(query.anim_time * 45) * 1.5", 0, 0]
+        },
+        "head": {
+          "rotation": [0, "math.sin(query.anim_time * 30) * 6", 0]
+        },
+        "armRight": {
+          "rotation": ["math.sin(query.anim_time * 40) * 3", 0, -3]
+        },
+        "armLeft": {
+          "rotation": ["math.sin(query.anim_time * 40 + 180) * 3", 0, 3]
+        },
+        "cape": {
+          "rotation": ["-6 - math.sin(query.anim_time * 50) * 4", 0, 0]
+        }
+      }
+    },
+    "animation.saitama_hero.run": {
+      "loop": true,
+      "animation_length": 0.5,
+      "bones": {
+        "body": {
+          "rotation": [8, 0, 0]
+        },
+        "legRight": {
+          "rotation": ["math.cos(query.anim_time * 1440) * 45", 0, 0]
+        },
+        "legLeft": {
+          "rotation": ["math.cos(query.anim_time * 1440 + 180) * 45", 0, 0]
+        },
+        "armRight": {
+          "rotation": ["math.cos(query.anim_time * 1440 + 180) * 40", 0, 0]
+        },
+        "armLeft": {
+          "rotation": ["math.cos(query.anim_time * 1440) * 40", 0, 0]
+        },
+        "cape": {
+          "rotation": ["-38 - math.sin(query.anim_time * 720) * 8", 0, 0]
+        }
+      }
+    },
+    "animation.saitama_hero.punch": {
+      "loop": false,
+      "animation_length": 0.6,
+      "bones": {
+        "body": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "0.15": [-6, 28, 0],
+            "0.25": [4, -20, 0],
+            "0.6": [0, 0, 0]
+          }
+        },
+        "armRight": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "0.15": [40, -20, 0],
+            "0.25": [-104, -6, 0],
+            "0.45": [-96, 0, 0],
+            "0.6": [0, 0, 0]
+          }
+        },
+        "armLeft": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "0.15": [-30, 0, 0],
+            "0.25": [20, 0, 0],
+            "0.6": [0, 0, 0]
+          }
+        },
+        "cape": {
+          "rotation": {
+            "0.0": [-6, 0, 0],
+            "0.25": [-52, 0, 0],
+            "0.6": [-6, 0, 0]
+          }
+        }
+      }
+    }
+  }
+}

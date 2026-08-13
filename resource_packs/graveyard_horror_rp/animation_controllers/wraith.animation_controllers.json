@@ -1,0 +1,52 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.grave_wraith.state": {
+      "initial_state": "drift",
+      "states": {
+        "drift": {
+          "animations": [
+            "drift"
+          ],
+          "blend_transition": 0.4,
+          "transitions": [
+            {
+              "stare": "query.variant == 1"
+            },
+            {
+              "lunge": "query.variant == 2"
+            }
+          ]
+        },
+        "stare": {
+          "animations": [
+            "stare"
+          ],
+          "blend_transition": 0.3,
+          "transitions": [
+            {
+              "drift": "query.variant == 0"
+            },
+            {
+              "lunge": "query.variant == 2"
+            }
+          ]
+        },
+        "lunge": {
+          "animations": [
+            "lunge"
+          ],
+          "blend_transition": 0.1,
+          "transitions": [
+            {
+              "drift": "query.variant == 0"
+            },
+            {
+              "stare": "query.variant == 1"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

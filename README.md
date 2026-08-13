@@ -1,3 +1,21 @@
+# Minecraft Bedrock add-ons
+
+Six self-contained add-ons for **Bedrock 1.21.0** (Android / Pocket Edition included):
+
+| Add-on | What it adds | Docs | Download |
+| --- | --- | --- | --- |
+| **Arcane Arsenal** | Six legendary weapons with scripted magic effects | below | `dist/ArcaneArsenal.mcaddon` |
+| **Onetap Armory** | Five weapons that kill anything in one tap, each with its own animation and ability | [ONETAP_ARMORY.md](ONETAP_ARMORY.md) | `dist/OnetapArmory.mcaddon` |
+| **Spirit Guardian** | A flying spirit that guards you and takes the souls of whatever attacks you | [SPIRIT_GUARDIAN.md](SPIRIT_GUARDIAN.md) | `dist/SpiritGuardian.mcaddon` |
+| **Saitama Bot** | A hero bot that follows you, one-punches whatever hurts you, and erases 99,000+ blocks doing it | [SAITAMA_BOT.md](SAITAMA_BOT.md) | `dist/SaitamaBot.mcaddon` |
+| **Graveyard Horror** | Haunted graveyards, and a wraith that only moves when you are not looking at it | [GRAVEYARD_HORROR.md](GRAVEYARD_HORROR.md) | `dist/GraveyardHorror.mcaddon` |
+| **Luxury Estate** | A furnished three-storey luxury villa built from one item, plus six decorative blocks | [LUXURY_HOUSE.md](LUXURY_HOUSE.md) | `dist/LuxuryEstate.mcaddon` |
+
+All six are built and packaged by `python3 tools/build.py` (or `tools/build.py arcane` /
+`onetap` / `spirit` / `saitama` / `graveyard` / `luxury` for one at a time).
+
+---
+
 # Arcane Arsenal
 
 A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six
@@ -132,7 +150,7 @@ dist/ArcaneArsenal.mcaddon
 
 ```bash
 python3 tools/gen_textures.py      # redraw the icons (add --preview for ASCII art)
-python3 tools/build.py             # validate + repackage dist/ArcaneArsenal.mcaddon
+python3 tools/build.py arcane      # validate + repackage dist/ArcaneArsenal.mcaddon
 ```
 
 `build.py` fails loudly if any JSON is malformed, if manifest UUIDs collide, if the

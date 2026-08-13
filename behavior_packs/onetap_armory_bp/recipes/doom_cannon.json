@@ -1,0 +1,39 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "onetap:doom_cannon"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "NIN",
+      "R*R",
+      " I "
+    ],
+    "key": {
+      "N": {
+        "item": "minecraft:netherite_ingot"
+      },
+      "I": {
+        "item": "minecraft:iron_block"
+      },
+      "R": {
+        "item": "minecraft:redstone_block"
+      },
+      "*": {
+        "item": "minecraft:nether_star"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "onetap:doom_cannon",
+      "count": 1
+    }
+  }
+}

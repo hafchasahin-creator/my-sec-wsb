@@ -1,0 +1,52 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.saitama_hero.state": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": [
+            "idle"
+          ],
+          "blend_transition": 0.2,
+          "transitions": [
+            {
+              "run": "query.variant == 1"
+            },
+            {
+              "punch": "query.variant == 2"
+            }
+          ]
+        },
+        "run": {
+          "animations": [
+            "run"
+          ],
+          "blend_transition": 0.2,
+          "transitions": [
+            {
+              "idle": "query.variant == 0"
+            },
+            {
+              "punch": "query.variant == 2"
+            }
+          ]
+        },
+        "punch": {
+          "animations": [
+            "punch"
+          ],
+          "blend_transition": 0.1,
+          "transitions": [
+            {
+              "idle": "query.variant == 0"
+            },
+            {
+              "run": "query.variant == 1"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "luxury:wrecking_permit",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "wrecking_permit"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Demolition Permit"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:hand_equipped": false,
+      "minecraft:glint": false,
+      "minecraft:use_modifiers": {
+        "use_duration": 0.4,
+        "movement_modifier": 0.85
+      },
+      "minecraft:cooldown": {
+        "category": "luxury_demolish",
+        "duration": 8
+      },
+      "minecraft:tags": {
+        "tags": [
+          "luxury:blueprint"
+        ]
+      }
+    }
+  }
+}

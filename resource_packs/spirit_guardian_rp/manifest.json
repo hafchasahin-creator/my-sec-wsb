@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Spirit Guardian RP",
+    "description": "Model, texture and animations for the Guardian Spirit. Resource Pack.",
+    "uuid": "2d23a448-c26e-4614-9696-153403cea7c1",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "89ae74c7-36f9-48a3-9bbc-b49f52279ab6",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Spirit Guardian"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

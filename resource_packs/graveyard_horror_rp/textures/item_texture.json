@@ -1,0 +1,12 @@
+{
+  "resource_pack_name": "graveyard_horror",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "gravekeepers_ledger": {
+      "textures": "textures/items/gravekeepers_ledger"
+    },
+    "grave_wraith_spawn_egg": {
+      "textures": "textures/items/grave_wraith_spawn_egg"
+    }
+  }
+}

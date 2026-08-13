@@ -1,0 +1,32 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "grave:crypt_stone"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "SV",
+      "VS"
+    ],
+    "key": {
+      "S": {
+        "item": "minecraft:stone_bricks"
+      },
+      "V": {
+        "item": "minecraft:vine"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "grave:crypt_stone",
+      "count": 4
+    }
+  }
+}

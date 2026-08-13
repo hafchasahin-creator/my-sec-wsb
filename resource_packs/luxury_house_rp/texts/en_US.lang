@@ -1,0 +1,16 @@
+## Luxury Estate - English (US)
+
+pack.name=Luxury Estate RP
+pack.description=Marble, onyx, gilding, crystal glass and rugs for the Luxury Estate.
+
+item.luxury:villa_deed=Luxury Villa Deed
+item.luxury:villa_deed.name=Luxury Villa Deed
+item.luxury:wrecking_permit=Demolition Permit
+item.luxury:wrecking_permit.name=Demolition Permit
+
+tile.luxury:marble.name=Polished Marble
+tile.luxury:onyx_marble.name=Onyx Marble
+tile.luxury:gilded_marble.name=Gilded Marble
+tile.luxury:crystal_glass.name=Crystal Glass
+tile.luxury:gold_lamp.name=Gold Lamp
+tile.luxury:royal_rug.name=Royal Rug

@@ -1,0 +1,21 @@
+{
+  "resource_pack_name": "onetap_armory",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "reapers_edge": {
+      "textures": "textures/items/reapers_edge"
+    },
+    "void_lance": {
+      "textures": "textures/items/void_lance"
+    },
+    "judgment_hammer": {
+      "textures": "textures/items/judgment_hammer"
+    },
+    "whisper_dagger": {
+      "textures": "textures/items/whisper_dagger"
+    },
+    "doom_cannon": {
+      "textures": "textures/items/doom_cannon"
+    }
+  }
+}

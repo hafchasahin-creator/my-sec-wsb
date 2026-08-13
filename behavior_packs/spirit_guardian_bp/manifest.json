@@ -1,0 +1,61 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Spirit Guardian BP",
+    "description": "A flying spirit that guards you and takes the souls of whatever attacks you. Behavior Pack.",
+    "uuid": "248d0e38-3a95-45ff-b9c2-97ed83a20d49",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "bd3a368f-7a6c-4f2d-8258-d13d6e1cea06",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "546f145c-e5b3-4c2a-abda-9b96fec44df0",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "2d23a448-c26e-4614-9696-153403cea7c1",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Spirit Guardian"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

@@ -1,0 +1,15 @@
+## Onetap Armory - English (US)
+
+pack.name=Onetap Armory RP
+pack.description=Icons and names for the Onetap Armory weapons.
+
+item.onetap:reapers_edge=Reaper's Edge
+item.onetap:reapers_edge.name=Reaper's Edge
+item.onetap:void_lance=Void Lance
+item.onetap:void_lance.name=Void Lance
+item.onetap:judgment_hammer=Judgment Hammer
+item.onetap:judgment_hammer.name=Judgment Hammer
+item.onetap:whisper_dagger=Whisper Dagger
+item.onetap:whisper_dagger.name=Whisper Dagger
+item.onetap:doom_cannon=Doom Cannon
+item.onetap:doom_cannon.name=Doom Cannon

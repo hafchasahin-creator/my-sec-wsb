@@ -1,0 +1,7 @@
+## Spirit Guardian - English (US)
+
+pack.name=Spirit Guardian RP
+pack.description=Model, texture and animations for the Guardian Spirit.
+
+entity.spirit:guardian.name=Guardian Spirit
+item.spawn_egg.entity.spirit:guardian.name=Spawn Guardian Spirit

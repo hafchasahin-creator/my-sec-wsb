@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Onetap Armory RP",
+    "description": "Icons and names for the Onetap Armory weapons. Resource Pack.",
+    "uuid": "4d044cf1-329f-4479-a9b0-29e8a6823c39",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "6038dd97-a4ea-4a57-9d77-ce08a92e16cb",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Onetap Armory"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}
