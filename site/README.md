@@ -71,4 +71,35 @@ Notes:
 - The card tilts slightly toward the pointer or finger; tilting is suspended
   while a slider is being dragged.
 
+## Animation
+
+At rest the page looks exactly like the reference — all of this is motion layered
+on top.
+
+- **Entry:** the prompt breathes, then scales away as the screen blurs out.
+- **Reveal:** panels rise in sequence (card, player, controls), then the pieces
+  inside the card follow — avatar, name, status, bio, the divider drawing outward
+  from its centre, the six icons dropping in one after another, and the view
+  counter rolling up to its number.
+- **Ambient:** the artwork holds a 42s zoom and drifts behind the card as the
+  pointer moves; a reflection sweeps across the glass every 11s; the icons float
+  on staggered offsets.
+- **Music reactive:** the avatar ring and card glow pulse with the low end of the
+  track, the album art swells slightly on the beat, and an equaliser runs on the
+  artwork — all of it stops when the track pauses.
+
+Two notes on how this is built, because both are easy to break later:
+
+- The beat comes from a Web Audio analyser, but one is only attached when the
+  audio is provably same-origin (a data URI, or a same-origin URL over http/s).
+  Chrome silences a `MediaElementSource` fed by an opaque resource — which is what
+  a plain `file://` mp3 is — and that routing **cannot be undone**. So the
+  `file://` linked build deliberately falls back to a time-based pulse rather than
+  risk silent audio. See `canAnalyse()`.
+- Glow intensity animates the *opacity* of a static shadow rather than the shadow
+  itself, and pointer moves are coalesced into one update per frame. Doing it the
+  obvious way costs roughly half the frame rate on a mid-range phone.
+
+Everything heavy is disabled under `prefers-reduced-motion`.
+
 No frameworks and no external requests — all icons are inline SVG.

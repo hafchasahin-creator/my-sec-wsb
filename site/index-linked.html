@@ -54,17 +54,28 @@ body {
 /* ============================================================
    BACKGROUND — full screen artwork with a very slow zoom
    ============================================================ */
-#background {
+/* wrapper carries the parallax drift, the image itself carries the slow zoom */
+#background-wrap {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    object-position: center;
+    overflow: hidden;
     z-index: 1;
     pointer-events: none;
-    transform: scale(1.02);
+    transform: translate3d(var(--bg-x, 0px), var(--bg-y, 0px), 0);
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+}
+
+#background {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    transform: scale(1.06);
     will-change: transform;
 }
 
@@ -73,9 +84,21 @@ body {
 }
 
 @keyframes bg-zoom {
-    from { transform: scale(1.02); }
-    to   { transform: scale(1.12); }
+    from { transform: scale(1.06); }
+    to   { transform: scale(1.16); }
 }
+
+/* the artwork lifts a touch out of black as the page opens */
+#background-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+    opacity: 0;
+    transition: opacity 1.6s ease;
+}
+
+#background-wrap.animate::after { opacity: 1; }
 
 /* ============================================================
    LAYOUT — centered stack: profile card / music player / controls
@@ -101,6 +124,63 @@ body {
 @keyframes reveal-in {
     from { opacity: 0; transform: translateY(-50px); }
     to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- staggered entrance: panels first, then the pieces inside the card ---- */
+.revealed .top-controls {
+    animation: panel-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
+}
+
+@keyframes panel-in {
+    from { opacity: 0; transform: translateY(18px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.revealed .profile-container,
+.revealed .name-and-badges,
+.revealed .discord-status,
+.revealed #profile-bio,
+.revealed .visitor-counter {
+    animation: piece-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.revealed .profile-container { animation-delay: 0.30s; }
+.revealed .name-and-badges   { animation-delay: 0.38s; }
+.revealed .discord-status    { animation-delay: 0.46s; }
+.revealed #profile-bio       { animation-delay: 0.54s; }
+.revealed .visitor-counter   { animation-delay: 0.86s; }
+
+@keyframes piece-in {
+    from { opacity: 0; transform: translateX(-10px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* the divider draws itself outward from the centre */
+.revealed .bio-separator {
+    animation: divider-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.58s both;
+    transform-origin: center;
+}
+
+@keyframes divider-in {
+    from { opacity: 0; transform: scaleX(0); }
+    to   { opacity: 1; transform: scaleX(1); }
+}
+
+/* social icons drop in one after another */
+.revealed .social-links a {
+    animation: icon-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.revealed .social-links a:nth-child(1) { animation-delay: 0.62s; }
+.revealed .social-links a:nth-child(2) { animation-delay: 0.68s; }
+.revealed .social-links a:nth-child(3) { animation-delay: 0.74s; }
+.revealed .social-links a:nth-child(4) { animation-delay: 0.80s; }
+.revealed .social-links a:nth-child(5) { animation-delay: 0.86s; }
+.revealed .social-links a:nth-child(6) { animation-delay: 0.92s; }
+
+@keyframes icon-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.5); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 #stack {
@@ -132,7 +212,7 @@ body {
     width: 820px;
     min-height: 332px;
     overflow: visible;
-    background: rgba(0, 0, 0, 0.4);
+    background-color: rgba(0, 0, 0, 0.4);
     border: none;
     padding: 20px;
     border-radius: 15px;
@@ -142,8 +222,52 @@ body {
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     box-shadow: 0 0 30px rgba(255, 255, 255, 0.04);
-    transition: background 0.25s ease, box-shadow 0.4s ease;
+    transition: background-color 0.25s ease;
     pointer-events: auto;
+}
+
+/* beat glow rides on opacity of a static shadow — changing the shadow itself
+   every frame would repaint the whole card */
+#profile-block::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 15px;
+    box-shadow: 0 0 34px rgba(255, 255, 255, 0.14);
+    opacity: var(--beat, 0);
+    pointer-events: none;
+    will-change: opacity;
+}
+
+/* a slow reflection travelling across the glass — the gradient is clipped by
+   the card's own radius, so no extra element is needed */
+#profile-block,
+#music-player {
+    background-image: linear-gradient(105deg,
+        transparent 38%,
+        rgba(255, 255, 255, 0.06) 47%,
+        rgba(255, 255, 255, 0.09) 50%,
+        rgba(255, 255, 255, 0.06) 53%,
+        transparent 62%);
+    background-size: 260% 100%;
+    background-repeat: no-repeat;
+    background-position: 210% 0;
+}
+
+/* entrance and reflection run together on the two big panels */
+.revealed #profile-block {
+    animation: panel-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both,
+               card-shine 11s ease-in-out 2.2s infinite;
+}
+
+.revealed #music-player {
+    animation: panel-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both,
+               card-shine 11s ease-in-out 2.6s infinite;
+}
+
+@keyframes card-shine {
+    0%        { background-position: 210% 0; }
+    20%, 100% { background-position: -110% 0; }
 }
 
 .profile-header {
@@ -195,6 +319,20 @@ body {
 }
 
 .profile-picture:active { transform: scale(0.94); }
+
+/* the avatar breathes with the low end of the track */
+.profile-container::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    box-shadow: 0 0 22px rgba(255, 255, 255, 0.42);
+    opacity: 0;
+    pointer-events: none;
+    will-change: opacity;
+}
+
+.playing .profile-container::before { opacity: var(--beat, 0); }
 
 .profile-info {
     flex: 1;
@@ -291,7 +429,24 @@ body {
 }
 
 .social-icon:hover { transform: scale(1.4) rotateY(15deg); }
-.social-links a:active .social-icon { transform: scale(1.25); }
+.social-links a:active .social-icon { transform: scale(1.25) translateY(-2px); }
+
+/* idle float, offset per icon so the row breathes rather than bobs in unison */
+.revealed .social-links a { animation-fill-mode: both; }
+.social-links a .social-icon { animation: icon-float 4.5s ease-in-out infinite; }
+.social-links a:nth-child(2) .social-icon { animation-delay: -0.6s; }
+.social-links a:nth-child(3) .social-icon { animation-delay: -1.2s; }
+.social-links a:nth-child(4) .social-icon { animation-delay: -1.8s; }
+.social-links a:nth-child(5) .social-icon { animation-delay: -2.4s; }
+.social-links a:nth-child(6) .social-icon { animation-delay: -3.0s; }
+
+@keyframes icon-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-2.5px); }
+}
+
+/* hover cancels the float so the scale reads cleanly */
+.social-links a:hover .social-icon { animation: none; }
 
 /* ---- visitor counter ---- */
 .visitor-counter {
@@ -357,11 +512,14 @@ body {
 }
 
 .player-art {
+    position: relative;
     width: 42px;
     height: 42px;
     border-radius: 8px;
     flex-shrink: 0;
     overflow: hidden;
+    transform: scale(calc(1 + 0.045 * var(--beat, 0)));
+    transition: transform 0.12s ease-out;
 }
 
 .player-art img {
@@ -370,6 +528,44 @@ body {
     object-fit: cover;
     border-radius: 6px;
     display: block;
+    transition: opacity 0.35s ease;
+}
+
+/* little equaliser that only runs while the track plays */
+.eq {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 42%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    padding-bottom: 3px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+}
+
+.playing .eq { opacity: 1; }
+
+.eq span {
+    width: 2px;
+    height: 20%;
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 1px;
+    transform-origin: bottom;
+}
+
+.playing .eq span { animation: eq-bar 0.9s ease-in-out infinite; }
+.playing .eq span:nth-child(2) { animation-duration: 0.7s; animation-delay: 0.15s; }
+.playing .eq span:nth-child(3) { animation-duration: 1.1s; animation-delay: 0.3s; }
+
+@keyframes eq-bar {
+    0%, 100% { transform: scaleY(1); }
+    50%      { transform: scaleY(3.2); }
 }
 
 #current-time, #total-time {
@@ -529,13 +725,30 @@ body {
     transition: opacity 0.6s ease;
 }
 
-#start-screen.fading { opacity: 0; }
+#start-screen.fading {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+}
 
 #start-text {
     font-size: 24px;
     color: #fff;
     text-align: center;
     white-space: pre;
+    animation: start-breathe 3.2s ease-in-out infinite;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+}
+
+@keyframes start-breathe {
+    0%, 100% { opacity: 0.72; text-shadow: 0 0 12px rgba(255, 255, 255, 0.18); }
+    50%      { opacity: 1;    text-shadow: 0 0 22px rgba(255, 255, 255, 0.45); }
+}
+
+#start-screen.fading #start-text {
+    animation: none;
+    transform: scale(1.25);
+    opacity: 0;
 }
 
 /* glitch nudge used by the typewriters */
@@ -613,8 +826,16 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    #background.animate { animation: none; }
+    #background.animate,
+    .revealed #profile-block,
+    .revealed #music-player,
+    .social-links a .social-icon,
+    #start-text,
+    .playing .eq span { animation: none; }
+
     .profile-container::after { animation: none; opacity: 0; }
+    #background-wrap { transition: none; }
+    .player-art { transform: none; }
 }
 </style>
 </head>
@@ -628,7 +849,9 @@ body {
 <div class="container">
 
     <!-- ================= BACKGROUND ================= -->
-    <img id="background" alt="">
+    <div id="background-wrap">
+        <img id="background" alt="">
+    </div>
 
     <!-- ================= CONTENT ================= -->
     <div id="content-wrapper">
@@ -677,6 +900,7 @@ body {
         <div id="music-player">
             <div class="player-art">
                 <img id="player-art-img" src="" alt="Album art">
+                <div class="eq" aria-hidden="true"><span></span><span></span><span></span></div>
             </div>
 
             <span id="current-time">0:00</span>
@@ -989,7 +1213,8 @@ document.addEventListener('DOMContentLoaded', () => {
     statusDot.className = 'status-dot ' + (CONFIG.status || 'offline');
     statusText.textContent = CONFIG.statusText || STATUS_LABELS[CONFIG.status] || 'Offline';
 
-    visitorCount.textContent = Number(CONFIG.viewCount || 0).toLocaleString('en-US');
+    const views = Number(CONFIG.viewCount || 0);
+    visitorCount.textContent = views.toLocaleString('en-US');
 
     /* ---------- social icons ---------- */
     [
@@ -1076,14 +1301,74 @@ document.addEventListener('DOMContentLoaded', () => {
         const blur = 10 * opacity;
         const panels = [profileBlock, musicPlayerEl, topControlsEl];
         panels.forEach(p => {
-            p.style.background = `rgba(0, 0, 0, ${opacity})`;
+            // backgroundColor, not background — the shine gradient lives in background-image
+            p.style.backgroundColor = `rgba(0, 0, 0, ${opacity})`;
             p.style.backdropFilter = opacity ? `blur(${blur}px)` : 'none';
             p.style.webkitBackdropFilter = opacity ? `blur(${blur}px)` : 'none';
         });
         musicPlayerEl.style.borderColor = opacity
             ? `rgba(255, 255, 255, ${0.2 * opacity})`
             : 'transparent';
-        profileBlock.style.boxShadow = `0 0 30px rgba(255, 255, 255, ${0.06 * opacity})`;
+    }
+
+    /* ============================================================
+       AUDIO REACTIVITY — drives the --beat custom property
+       ============================================================
+       An analyser is only attached when the audio is guaranteed same-origin.
+       Chrome silences a MediaElementSource fed by an opaque resource (which is
+       what a plain file:// mp3 is), and that routing cannot be undone — so when
+       in doubt we skip it and use a gentle time-based pulse instead. */
+    const root = document.documentElement;
+    let analyser = null, freqData = null, beat = 0;
+
+    function canAnalyse(src) {
+        if (!src) return false;
+        if (src.startsWith('data:')) return true;                 // inlined build
+        if (location.protocol === 'file:') return false;          // opaque origin
+        try { return new URL(src, location.href).origin === location.origin; }
+        catch { return false; }
+    }
+
+    function initAnalyser() {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (analyser || !Ctx || !canAnalyse(audio.currentSrc || audio.src)) return;
+        try {
+            const ctx = new Ctx();
+            const source = ctx.createMediaElementSource(audio);
+            const node = ctx.createAnalyser();
+            node.fftSize = 128;
+            node.smoothingTimeConstant = 0.75;
+            source.connect(node);
+            node.connect(ctx.destination);                        // audio keeps flowing
+            analyser = node;
+            freqData = new Uint8Array(node.frequencyBinCount);
+            if (ctx.state === 'suspended') ctx.resume();
+        } catch {
+            analyser = null;                                      // fall back to the pulse
+        }
+    }
+
+    let beatWritten = -1, beatClock = 0;
+
+    function updateBeat(now) {
+        if (now - beatClock < 32) return;                          // ~30 writes a second is plenty
+        beatClock = now;
+
+        let target;
+        if (analyser) {
+            analyser.getByteFrequencyData(freqData);
+            let sum = 0;
+            for (let i = 1; i < 9; i++) sum += freqData[i];        // low end
+            target = clamp((sum / 8 / 255 - 0.32) / 0.45, 0, 1);
+        } else {
+            target = 0.32 + 0.28 * Math.sin(now / 380);
+        }
+
+        beat += (target - beat) * 0.3;                             // smooth the jitter
+        const rounded = Math.round(beat * 50) / 50;
+        if (rounded === beatWritten) return;                       // skip no-op style writes
+        beatWritten = rounded;
+        root.style.setProperty('--beat', rounded);
     }
 
     /* ============================================================
@@ -1140,6 +1425,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!track) return;
         audio.src = track.file;
         audio.load();
+        playerArt.style.opacity = '0';                             // cross-fade the artwork
+        playerArt.addEventListener('load', () => { playerArt.style.opacity = '1'; }, { once: true });
         playerArt.src = track.cover || '';
         playerArt.alt = track.title ? track.title + ' cover' : 'Album art';
         document.querySelector('.player-art').title =
@@ -1171,11 +1458,12 @@ document.addEventListener('DOMContentLoaded', () => {
         playPauseBtn.classList.add('pulse');
     }
 
-    function step() {
+    function step(now) {
         if (!progress.dragging && !seekTweening) {
             progress.set(audio.currentTime, true);
             currentTimeEl.textContent = formatTime(audio.currentTime);
         }
+        updateBeat(now || performance.now());
         rafId = requestAnimationFrame(step);
     }
 
@@ -1192,12 +1480,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     audio.addEventListener('play', () => {
         setPlayIcon(true);
+        document.body.classList.add('playing');
+        initAnalyser();
         if (!rafId) rafId = requestAnimationFrame(step);
     });
 
     audio.addEventListener('pause', () => {
         setPlayIcon(false);
+        document.body.classList.remove('playing');
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        root.style.setProperty('--beat', '0');                     // glow settles back down
+        beat = 0;
+        beatWritten = 0;
     });
 
     audio.addEventListener('ended', () => {
@@ -1282,32 +1576,54 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ============================================================
        SUBTLE 3D TILT
        ============================================================ */
-    if (CONFIG.tilt) {
-        const MAX_TILT = 15;
+    /* Pointer movement drives two things — the card tilt and the background
+       parallax. Both are applied once per frame from the latest coordinates,
+       so a high-rate touch stream costs one style update, not dozens. */
+    const backgroundWrap = $('background-wrap');
+    const MAX_PARALLAX = 14;                 // px the artwork drifts behind the card
+    const MAX_TILT = 15;
 
-        function tilt(clientX, clientY) {
-            const x = clientX - window.innerWidth / 2;
-            const y = clientY - window.innerHeight / 2;
-            stack.style.setProperty('--tilt-x', (y / (window.innerHeight / 2)) * MAX_TILT + 'deg');
-            stack.style.setProperty('--tilt-y', -(x / (window.innerWidth / 2)) * MAX_TILT + 'deg');
+    let pointerX = 0, pointerY = 0, pointerLive = false, frameQueued = false;
+
+    function applyPointer() {
+        frameQueued = false;
+        const nx = (pointerX - window.innerWidth / 2) / (window.innerWidth / 2);
+        const ny = (pointerY - window.innerHeight / 2) / (window.innerHeight / 2);
+
+        backgroundWrap.style.setProperty('--bg-x', (pointerLive ? -nx * MAX_PARALLAX : 0).toFixed(1) + 'px');
+        backgroundWrap.style.setProperty('--bg-y', (pointerLive ? -ny * MAX_PARALLAX : 0).toFixed(1) + 'px');
+
+        if (CONFIG.tilt) {
+            // never tilt while a slider is being dragged — the control would slide away
+            const live = pointerLive && !slidersDragging;
+            stack.style.setProperty('--tilt-x', (live ? ny * MAX_TILT : 0).toFixed(2) + 'deg');
+            stack.style.setProperty('--tilt-y', (live ? -nx * MAX_TILT : 0).toFixed(2) + 'deg');
         }
-
-        function resetTilt() {
-            stack.style.setProperty('--tilt-x', '0deg');
-            stack.style.setProperty('--tilt-y', '0deg');
-        }
-
-        // never tilt while a slider is being dragged — the control would move under the finger
-        stack.addEventListener('mousemove', (e) => {
-            if (!slidersDragging) tilt(e.clientX, e.clientY);
-        });
-        stack.addEventListener('mouseleave', resetTilt);
-        stack.addEventListener('touchmove', (e) => {
-            const t = e.touches[0];
-            if (t && !slidersDragging) tilt(t.clientX, t.clientY);
-        }, { passive: true });
-        stack.addEventListener('touchend', resetTilt);
     }
+
+    function schedulePointer() {
+        if (frameQueued) return;
+        frameQueued = true;
+        requestAnimationFrame(applyPointer);
+    }
+
+    function onPointerMove(e) {
+        pointerX = e.clientX;
+        pointerY = e.clientY;
+        pointerLive = true;
+        schedulePointer();
+    }
+
+    function onPointerRest() {
+        pointerLive = false;
+        schedulePointer();
+    }
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerup', onPointerRest);
+    window.addEventListener('pointercancel', onPointerRest);
+    window.addEventListener('pointerleave', onPointerRest);
+    window.addEventListener('blur', onPointerRest);
 
     /* ============================================================
        AVATAR INTERACTION
@@ -1337,7 +1653,15 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => startScreen.classList.add('hidden'), 600);
 
         background.classList.add('animate');
+        document.getElementById('background-wrap').classList.add('animate');
         reveal.classList.add('revealed');
+
+        // the view counter rolls up to its value as the card settles
+        if (views > 0) {
+            tween(0, views, 1400, (v) => {
+                visitorCount.textContent = Math.round(v).toLocaleString('en-US');
+            }, () => { visitorCount.textContent = views.toLocaleString('en-US'); });
+        }
 
         applyGlass(transparency.value);
         nameTyper.start();
