@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>imran</title>
+<style>
+/* ============================================================
+   FONTS
+   ============================================================ */
+@font-face {
+    font-family: 'Angel Wish';
+    src: url({{FONT_URI}}) format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Courier New', Courier, monospace;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+body {
+    background-color: #000;
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
+}
+
+.container {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    position: relative;
+    perspective: 1000px;
+}
+
+.hidden { display: none !important; }
+
+/* ============================================================
+   BACKGROUND — full screen artwork with a very slow zoom
+   ============================================================ */
+#background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: 1;
+    pointer-events: none;
+    transform: scale(1.02);
+    will-change: transform;
+}
+
+#background.animate {
+    animation: bg-zoom 42s ease-in-out infinite alternate;
+}
+
+@keyframes bg-zoom {
+    from { transform: scale(1.02); }
+    to   { transform: scale(1.12); }
+}
+
+/* ============================================================
+   LAYOUT — centered stack: profile card / music player / controls
+   ============================================================ */
+#content-wrapper {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    perspective: 1000px;
+}
+
+#reveal {
+    opacity: 0;
+    transform: translateY(-50px);
+}
+
+#reveal.revealed {
+    animation: reveal-in 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes reveal-in {
+    from { opacity: 0; transform: translateY(-50px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+#stack {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+    transform-style: preserve-3d;
+    transition: transform 0.3s ease-out;
+}
+
+/* animated marching outline that traces the profile card */
+#profile-outline {
+    position: absolute;
+    overflow: visible;
+    mix-blend-mode: difference;
+    pointer-events: none;
+    z-index: 4;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+}
+
+/* ============================================================
+   PROFILE CARD
+   ============================================================ */
+#profile-block {
+    width: 820px;
+    min-height: 332px;
+    overflow: visible;
+    background: rgba(0, 0, 0, 0.4);
+    border: none;
+    padding: 20px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.04);
+    transition: background 0.25s ease, box-shadow 0.4s ease;
+    pointer-events: auto;
+}
+
+.profile-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.profile-container {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    flex-shrink: 0;
+}
+
+/* orbiting light dot around the avatar */
+.profile-container::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 10px 10px, white 10%, transparent 15%);
+    animation: orbit 3s linear infinite;
+    z-index: -1;
+    filter: blur(1px);
+}
+
+.profile-container.fast-orbit::after {
+    animation: orbit 0.5s linear forwards;
+}
+
+@keyframes orbit {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+.profile-picture {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    cursor: pointer;
+    pointer-events: auto;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.profile-picture:active { transform: scale(0.94); }
+
+.profile-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.name-and-badges {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+#profile-name {
+    font-family: 'Angel Wish', 'Courier New', monospace;
+    font-size: 32px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    color: #fff;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.7));
+    white-space: pre;
+}
+
+.discord-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
+}
+
+.status-dot.online  { background: #3ba55d; color: #3ba55d; }
+.status-dot.idle    { background: #faa81a; color: #faa81a; }
+.status-dot.dnd     { background: #ed4245; color: #ed4245; }
+.status-dot.offline { background: #747f8d; color: #747f8d; box-shadow: none; }
+
+#profile-bio {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 18px;
+    line-height: 1.5;
+    margin-bottom: 10px;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bio-separator {
+    width: 100%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 20px 0;
+}
+
+.profile-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+    margin-top: auto;
+}
+
+/* ---- social icons ---- */
+.social-links {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    pointer-events: auto;
+}
+
+.social-links a {
+    display: block;
+    line-height: 0;
+    text-decoration: none;
+}
+
+.social-icon {
+    width: 36px;
+    height: 36px;
+    display: block;
+    transition: transform 0.3s ease;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.7));
+    pointer-events: auto;
+}
+
+.social-icon:hover { transform: scale(1.4) rotateY(15deg); }
+.social-links a:active .social-icon { transform: scale(1.25); }
+
+/* ---- visitor counter ---- */
+.visitor-counter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    align-self: flex-start;
+    position: relative;
+    pointer-events: auto;
+}
+
+.visitor-icon {
+    width: 18px;
+    height: 18px;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.visitor-counter .tooltip {
+    visibility: hidden;
+    width: 120px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    font-size: 12px;
+    position: absolute;
+    z-index: 100;
+    top: -35px;
+    left: 50%;
+    margin-left: -60px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.visitor-counter:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* ============================================================
+   MUSIC PLAYER
+   ============================================================ */
+#music-player {
+    width: 820px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border-radius: 15px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: #fff;
+    box-shadow: 0 0 24px rgba(255, 255, 255, 0.03);
+    transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.player-art {
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.player-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+    display: block;
+}
+
+#current-time, #total-time {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    min-width: 28px;
+}
+
+#progress-container {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.player-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.ctrl-btn {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    color: #fff;
+    flex-shrink: 0;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.ctrl-play { width: 26px; height: 26px; }
+.ctrl-btn:hover { opacity: 0.6; }
+.ctrl-btn:active { transform: scale(0.85); }
+
+/* play/pause icon swap animation */
+.ctrl-play.pulse { animation: play-pulse 0.35s ease-out; }
+
+@keyframes play-pulse {
+    0%   { transform: scale(0.7); opacity: 0.5; }
+    60%  { transform: scale(1.12); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* ============================================================
+   FLOATING VOLUME / EFFECTS PANEL
+   ============================================================ */
+.top-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 8px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: background 0.25s ease;
+}
+
+.volume-control,
+.transparency-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.volume-icon,
+.transparency-icon {
+    width: 20px;
+    height: 20px;
+    color: #fff;
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+}
+
+.volume-icon { cursor: pointer; }
+.volume-icon:active { transform: scale(0.85); }
+
+/* ============================================================
+   CUSTOM RANGE SLIDERS (pointer driven — work with touch drags)
+   ============================================================ */
+.range {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 22px;
+    cursor: pointer;
+    touch-action: none;
+    flex-shrink: 0;
+}
+
+.range-track {
+    position: relative;
+    width: 100%;
+    height: 5px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.3);
+    overflow: hidden;
+}
+
+.range-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 5px;
+}
+
+.range-thumb {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 12px;
+    height: 12px;
+    margin-left: -6px;
+    border-radius: 50%;
+    background: #fff;
+    transform: translateY(-50%);
+    pointer-events: none;
+    transition: box-shadow 0.2s ease;
+}
+
+.range.dragging .range-thumb { box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.18); }
+
+/* volume + effects sliders keep the flat unfilled track of the original */
+.slider { width: 80px; }
+.slider .range-fill { display: none; }
+
+/* music progress bar */
+#music-progress { width: 100%; }
+#music-progress .range-track { height: 3px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); }
+#music-progress .range-thumb { width: 11px; height: 11px; margin-left: -5.5px; }
+
+/* ============================================================
+   ENTRY SCREEN
+   ============================================================ */
+#start-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+    cursor: pointer;
+    opacity: 1;
+    transition: opacity 0.6s ease;
+}
+
+#start-screen.fading { opacity: 0; }
+
+#start-text {
+    font-size: 24px;
+    color: #fff;
+    text-align: center;
+    white-space: pre;
+}
+
+/* glitch nudge used by the typewriters */
+.glitch { animation: glitch 0.2s ease-in-out; }
+
+@keyframes glitch {
+    0%   { transform: translate(0); }
+    20%  { transform: translate(-2px, 2px); }
+    40%  { transform: translate(-2px, -2px); }
+    60%  { transform: translate(2px, 2px); }
+    80%  { transform: translate(2px, -2px); }
+    100% { transform: translate(0); }
+}
+
+/* ============================================================
+   MOBILE (the layout the reference screenshots were taken in)
+   ============================================================ */
+@media (max-width: 430px) {
+    #profile-block {
+        width: 90vw;
+        max-width: 350px;
+        min-height: unset;
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .profile-header { gap: 10px; }
+
+    .profile-container,
+    .profile-picture { width: 70px; height: 70px; }
+
+    .profile-info { align-items: flex-start; text-align: left; }
+
+    .name-and-badges {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    #profile-name { font-size: 20px; letter-spacing: 1px; }
+    #profile-bio { font-size: 12px; line-height: 1.3; }
+    .bio-separator { margin: 6px 0; }
+
+    .social-links { gap: 10px; }
+    .social-icon { width: 32px; height: 32px; }
+
+    .visitor-counter { font-size: 12px; padding: 6px 12px; align-self: center; }
+    .visitor-icon { width: 16px; height: 16px; }
+    .visitor-counter .tooltip { width: 100px; font-size: 12px; margin-left: -50px; top: -30px; }
+
+    #music-player {
+        width: 90vw;
+        max-width: 350px;
+        padding: 8px 12px;
+        gap: 8px;
+    }
+
+    .player-art { width: 32px; height: 32px; }
+
+    .top-controls { gap: 10px; padding: 6px 10px; }
+    .volume-control, .transparency-control { gap: 6px; }
+    .volume-icon, .transparency-icon { width: 18px; height: 18px; }
+
+    .slider { width: 60px; }
+    .slider .range-track { height: 4px; }
+    .slider .range-thumb { width: 10px; height: 10px; margin-left: -5px; }
+
+    #start-text { font-size: 18px; padding: 0 20px; }
+}
+
+/* very short viewports — keep everything on screen */
+@media (max-height: 620px) {
+    #stack { gap: 8px; }
+    #profile-block { padding: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #background.animate { animation: none; }
+    .profile-container::after { animation: none; opacity: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ================= ENTRY SCREEN ================= -->
+<div id="start-screen">
+    <div id="start-text"></div>
+</div>
+
+<div class="container">
+
+    <!-- ================= BACKGROUND ================= -->
+    <img id="background" alt="">
+
+    <!-- ================= CONTENT ================= -->
+    <div id="content-wrapper">
+    <div id="reveal">
+    <div id="stack">
+
+        <svg id="profile-outline" aria-hidden="true">
+            <rect fill="none" stroke="white" stroke-width="1.5" rx="15" ry="15"/>
+        </svg>
+
+        <!-- ---------- profile card ---------- -->
+        <div id="profile-block">
+            <div class="profile-header">
+                <div class="profile-container">
+                    <img src="" alt="Profile" class="profile-picture" id="profile-picture">
+                </div>
+                <div class="profile-info">
+                    <div class="name-and-badges">
+                        <div id="profile-name"></div>
+                    </div>
+                    <div id="discord-status" class="discord-status">
+                        <span id="status-dot" class="status-dot dnd"></span>
+                        <span id="status-text">Do Not Disturb</span>
+                    </div>
+                    <div id="profile-bio"></div>
+                </div>
+            </div>
+
+            <div class="bio-separator"></div>
+
+            <div class="profile-footer">
+                <div class="social-links" id="social-links"><!-- built from CONFIG --></div>
+
+                <div class="visitor-counter">
+                    <svg class="visitor-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    <span id="visitor-count">0</span>
+                    <span class="tooltip">Profile Views</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---------- music player ---------- -->
+        <div id="music-player">
+            <div class="player-art">
+                <img id="player-art-img" src="" alt="Album art">
+            </div>
+
+            <span id="current-time">0:00</span>
+
+            <div id="progress-container">
+                <div class="range" id="music-progress" role="slider"
+                     aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+                    <div class="range-track"><div class="range-fill"></div></div>
+                    <div class="range-thumb"></div>
+                </div>
+            </div>
+
+            <span id="total-time">0:00</span>
+
+            <div class="player-controls">
+                <svg id="prev-btn" viewBox="0 0 24 24" fill="currentColor" class="ctrl-btn"
+                     role="button" aria-label="Previous track" tabindex="0">
+                    <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>
+                </svg>
+                <svg id="play-pause-btn" viewBox="0 0 24 24" fill="currentColor" class="ctrl-btn ctrl-play"
+                     role="button" aria-label="Play" tabindex="0">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+                <svg id="next-btn" viewBox="0 0 24 24" fill="currentColor" class="ctrl-btn"
+                     role="button" aria-label="Next track" tabindex="0">
+                    <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- ---------- floating volume / effects panel ---------- -->
+        <div class="top-controls">
+            <div class="volume-control">
+                <svg id="volume-icon" class="volume-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     role="button" aria-label="Mute" tabindex="0">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                </svg>
+                <div class="range slider" id="volume-slider" role="slider"
+                     aria-label="Volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="30" tabindex="0">
+                    <div class="range-track"><div class="range-fill"></div></div>
+                    <div class="range-thumb"></div>
+                </div>
+            </div>
+
+            <div class="transparency-control">
+                <svg class="transparency-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <div class="range slider" id="transparency-slider" role="slider"
+                     aria-label="Card transparency" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40" tabindex="0">
+                    <div class="range-track"><div class="range-fill"></div></div>
+                    <div class="range-thumb"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    </div>
+    </div>
+</div>
+
+<audio id="background-music" preload="metadata" playsinline></audio>
+
+<script>
+/* ================================================================
+   CONFIGURATION — everything you would normally want to change
+   ================================================================ */
+const CONFIG = {
+    /* ---------- identity ---------- */
+    username: "imran",
+    status: "dnd",                      // "online" | "idle" | "dnd" | "offline"
+    statusText: "",                     // leave "" to use the default label for `status`
+    bio: [                              // string, or list of strings to cycle through
+        "n1 skidder oat",
+        "\"Hello, World!\"",
+        "top paster",
+        "\"larp larp larp sahur\""
+    ],
+
+    /* ---------- media ---------- */
+    profilePicture: {{AVATAR_URI}},
+    backgroundImage: {{BG_URI}},
+
+    /* ---------- counter ---------- */
+    viewCount: 1073,
+
+    /* ---------- social links (set to "" to hide an icon) ---------- */
+    discordURL:  "https://discord.com/users/1327961337757831219",
+    githubURL:   "https://github.com/mynamescrax",
+    telegramURL: "https://t.me/craxlarps",
+    robloxURL:   "https://roblox.com/users/4224871582",
+    youtubeURL:  "https://www.youtube.com/@imcrax",
+    tiktokURL:   "https://www.tiktok.com/@crax.ae",
+
+    /* ---------- music ----------
+       Add more objects to `playlist` and prev / next will cycle through them. */
+    playlist: [
+        {
+            file:   {{SONG_URI}},
+            title:  "Starboy",
+            artist: "The Weeknd",
+            cover:  {{COVER_URI}}       // <- swap for real cover art when you have it
+        }
+    ],
+
+    /* ---------- behaviour ---------- */
+    enterText: "click to enter",        // text typed on the entry screen
+    volume: 0.3,                        // 0 - 1
+    cardOpacity: 0.4,                   // 0 - 1, the "eye" slider default
+    loop: true,                         // loop the playlist
+    tilt: true                          // subtle 3D tilt following pointer / touch
+};
+
+/* ================================================================
+   ICONS — inline SVG, no external requests
+   ================================================================ */
+const SOCIAL_ICONS = {
+    discord: `<svg class="social-icon" viewBox="0 0 127.14 96.36" aria-hidden="true">
+        <path fill="#5865F2" d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/>
+    </svg>`,
+
+    github: `<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="12" fill="#0d0d0d"/>
+        <path fill="#fff" d="M12 3.2a8.9 8.9 0 0 0-2.81 17.35c.44.08.6-.19.6-.43v-1.5c-2.47.54-3-1.19-3-1.19a2.36 2.36 0 0 0-.99-1.3c-.81-.55.06-.54.06-.54a1.87 1.87 0 0 1 1.36.92 1.9 1.9 0 0 0 2.59.74 1.9 1.9 0 0 1 .56-1.19c-1.97-.22-4.05-.99-4.05-4.4a3.45 3.45 0 0 1 .92-2.39 3.2 3.2 0 0 1 .09-2.36s.75-.24 2.46.91a8.47 8.47 0 0 1 4.48 0c1.71-1.15 2.46-.91 2.46-.91a3.2 3.2 0 0 1 .09 2.36 3.44 3.44 0 0 1 .92 2.39c0 3.42-2.09 4.18-4.07 4.4a2.13 2.13 0 0 1 .6 1.65v2.45c0 .24.16.52.61.43A8.9 8.9 0 0 0 12 3.2Z"/>
+    </svg>`,
+
+    telegram: `<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="12" fill="#29A0DA"/>
+        <path fill="#fff" d="M5.3 11.8c3.7-1.6 6.2-2.7 7.4-3.2 3.5-1.5 4.3-1.7 4.8-1.8.1 0 .35 0 .5.15a.55.55 0 0 1 .18.35 2.3 2.3 0 0 1 .02.5c-.19 2-1.02 6.85-1.44 9.08-.18.95-.53 1.26-.87 1.3-.74.06-1.3-.5-2.01-.96-1.12-.73-1.75-1.19-2.84-1.9-1.25-.83-.44-1.28.27-2.02.19-.2 3.44-3.15 3.5-3.42.01-.03.01-.16-.06-.22-.08-.06-.19-.04-.27-.02-.12.03-1.9 1.21-5.37 3.55-.5.35-.96.52-1.38.51-.46-.01-1.33-.25-1.98-.46-.8-.26-1.43-.4-1.38-.85.03-.23.35-.46.94-.7Z"/>
+    </svg>`,
+
+    roblox: `<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#fff" d="M4.94 0 0 19.06 19.06 24 24 4.94 4.94 0Zm5.3 9.03 4.73 1.23-1.23 4.72-4.73-1.23 1.23-4.72Z"/>
+    </svg>`,
+
+    youtube: `<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#FF0000" d="M23.5 6.2a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.51A3.02 3.02 0 0 0 .5 6.2C0 8.09 0 12 0 12s0 3.91.5 5.8a3.02 3.02 0 0 0 2.12 2.14c1.88.51 9.38.51 9.38.51s7.5 0 9.38-.51a3.02 3.02 0 0 0 2.12-2.14C24 15.91 24 12 24 12s0-3.91-.5-5.8Z"/>
+        <path fill="#fff" d="M9.6 15.6 15.82 12 9.6 8.4v7.2Z"/>
+    </svg>`,
+
+    tiktok: `<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#25F4EE" d="M8.9 9.4v-1.7a6.6 6.6 0 0 0-.9-.06A6.62 6.62 0 0 0 4.4 19.6a6.6 6.6 0 0 1 4.5-11.44c.31 0 .61.03.9.07v1.16Z"/>
+        <path fill="#25F4EE" d="M9.07 17.1a3.02 3.02 0 0 0 3.01-2.9V2.2h2.63a5 5 0 0 1-.08-.91h-3.6v12a3.02 3.02 0 0 1-4.47 2.64 3.01 3.01 0 0 0 2.51 1.17Z"/>
+        <path fill="#FE2C55" d="M19.32 7.1V5.5a4.94 4.94 0 0 1-2.7-.8 4.97 4.97 0 0 0 2.7 2.4Z"/>
+        <path fill="#FE2C55" d="M16.62 4.7a4.96 4.96 0 0 1-1.23-3.4h-.96a4.98 4.98 0 0 0 2.19 3.4ZM8.98 11.15a3.02 3.02 0 0 0-1.42 5.68 3.01 3.01 0 0 1 2.42-4.8c.31 0 .61.05.9.14V8.5a6.6 6.6 0 0 0-.9-.06h-.16v2.78a3 3 0 0 0-.84-.07Z"/>
+        <path fill="#fff" d="M19.32 7.1a4.97 4.97 0 0 1-2.7-2.4 4.98 4.98 0 0 1-2.19-3.4h-2.65v12.9a3.02 3.02 0 0 1-5.46 1.63 3.02 3.02 0 0 1 2.82-5.54V7.5A6.62 6.62 0 0 0 4.4 19.6 6.62 6.62 0 0 0 15.6 14.9V8.6a7.9 7.9 0 0 0 4.62 1.48V7.13a5 5 0 0 1-.9-.03Z"/>
+    </svg>`
+};
+
+const VOLUME_ICON_ON = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>`;
+const VOLUME_ICON_OFF = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>`;
+
+const PLAY_PATH  = '<path d="M8 5v14l11-7z"/>';
+const PAUSE_PATH = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+
+const STATUS_LABELS = { online: 'Online', idle: 'Idle', dnd: 'Do Not Disturb', offline: 'Offline' };
+
+/* ================================================================
+   SMALL HELPERS
+   ================================================================ */
+const $ = (id) => document.getElementById(id);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+function formatTime(s) {
+    if (!isFinite(s) || s < 0) s = 0;
+    return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+}
+
+/* tiny tween used for smooth click-to-seek — replaces the GSAP call of the original */
+function tween(from, to, duration, onUpdate, onComplete) {
+    const start = performance.now();
+    const ease = (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;   // power2.inOut
+    function step(now) {
+        const t = clamp((now - start) / duration, 0, 1);
+        onUpdate(from + (to - from) * ease(t));
+        if (t < 1) requestAnimationFrame(step);
+        else if (onComplete) onComplete();
+    }
+    requestAnimationFrame(step);
+}
+
+/* ================================================================
+   CUSTOM SLIDER — pointer based so touch dragging works everywhere
+   ================================================================ */
+let slidersDragging = 0;          // pauses the 3D tilt while a slider is in use
+
+function createSlider(el, { min = 0, max = 1, value = 0, onInput, onChange, onDown } = {}) {
+    const fill = el.querySelector('.range-fill');
+    const thumb = el.querySelector('.range-thumb');
+    const state = { min, max, value, dragging: false };
+
+    function paint() {
+        const pct = state.max > state.min
+            ? clamp((state.value - state.min) / (state.max - state.min), 0, 1) * 100
+            : 0;
+        fill.style.width = pct + '%';
+        thumb.style.left = pct + '%';
+        el.setAttribute('aria-valuenow', Math.round(pct));
+    }
+
+    function valueFromEvent(e) {
+        const rect = el.getBoundingClientRect();
+        const pct = rect.width ? clamp((e.clientX - rect.left) / rect.width, 0, 1) : 0;
+        return state.min + pct * (state.max - state.min);
+    }
+
+    el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        state.dragging = true;
+        slidersDragging++;
+        el.classList.add('dragging');
+        el.setPointerCapture(e.pointerId);
+        if (onDown) onDown();
+        state.value = valueFromEvent(e);
+        paint();
+        if (onInput) onInput(state.value, false);
+    });
+
+    el.addEventListener('pointermove', (e) => {
+        if (!state.dragging) return;
+        e.preventDefault();
+        state.value = valueFromEvent(e);
+        paint();
+        if (onInput) onInput(state.value, true);
+    });
+
+    function release() {
+        if (!state.dragging) return;
+        state.dragging = false;
+        slidersDragging = Math.max(0, slidersDragging - 1);
+        el.classList.remove('dragging');
+        if (onChange) onChange(state.value);
+    }
+
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+
+    el.addEventListener('keydown', (e) => {
+        const step = (state.max - state.min) / 20;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowUp') state.value = clamp(state.value + step, state.min, state.max);
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') state.value = clamp(state.value - step, state.min, state.max);
+        else return;
+        e.preventDefault();
+        paint();
+        if (onInput) onInput(state.value, true);
+        if (onChange) onChange(state.value);
+    });
+
+    paint();                                    // draw the starting position
+
+    return {
+        el,
+        get value() { return state.value; },
+        get dragging() { return state.dragging; },
+        set(v, silent) {
+            state.value = clamp(v, state.min, state.max);
+            paint();
+            if (!silent && onInput) onInput(state.value, false);
+        },
+        setRange(newMin, newMax) {
+            state.min = newMin;
+            state.max = newMax;
+            paint();
+        }
+    };
+}
+
+/* ================================================================
+   BOOT
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+
+    /* ---------- element refs ---------- */
+    const startScreen    = $('start-screen');
+    const startText      = $('start-text');
+    const background     = $('background');
+    const profileName    = $('profile-name');
+    const profileBio     = $('profile-bio');
+    const profilePicture = $('profile-picture');
+    const profileContainer = document.querySelector('.profile-container');
+    const profileBlock   = $('profile-block');
+    const profileOutline = $('profile-outline');
+    const statusDot      = $('status-dot');
+    const statusText     = $('status-text');
+    const visitorCount   = $('visitor-count');
+    const socialLinks    = $('social-links');
+    const stack          = $('stack');
+    const reveal         = $('reveal');
+    const musicPlayerEl  = $('music-player');
+    const topControlsEl  = document.querySelector('.top-controls');
+    const audio          = $('background-music');
+    const playerArt      = $('player-art-img');
+    const currentTimeEl  = $('current-time');
+    const totalTimeEl    = $('total-time');
+    const playPauseBtn   = $('play-pause-btn');
+    const prevBtn        = $('prev-btn');
+    const nextBtn        = $('next-btn');
+    const volumeIcon     = $('volume-icon');
+
+    /* ============================================================
+       STATIC CONTENT FROM CONFIG
+       ============================================================ */
+    document.title = CONFIG.username;
+    background.src = CONFIG.backgroundImage;
+    profilePicture.src = CONFIG.profilePicture;
+    profilePicture.alt = CONFIG.username;
+
+    statusDot.className = 'status-dot ' + (CONFIG.status || 'offline');
+    statusText.textContent = CONFIG.statusText || STATUS_LABELS[CONFIG.status] || 'Offline';
+
+    visitorCount.textContent = Number(CONFIG.viewCount || 0).toLocaleString('en-US');
+
+    /* ---------- social icons ---------- */
+    [
+        ['discord',  CONFIG.discordURL,  'Discord'],
+        ['github',   CONFIG.githubURL,   'GitHub'],
+        ['telegram', CONFIG.telegramURL, 'Telegram'],
+        ['roblox',   CONFIG.robloxURL,   'Roblox'],
+        ['youtube',  CONFIG.youtubeURL,  'YouTube'],
+        ['tiktok',   CONFIG.tiktokURL,   'TikTok']
+    ].forEach(([key, url, label]) => {
+        if (!url) return;
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.title = label;
+        a.setAttribute('aria-label', label);
+        a.innerHTML = SOCIAL_ICONS[key];
+        socialLinks.appendChild(a);
+    });
+
+    /* ============================================================
+       TYPEWRITERS (entry text, username, bio)
+       ============================================================ */
+    function typewriter(el, messages, opts) {
+        const list = Array.isArray(messages) ? messages.filter(Boolean) : [messages];
+        if (!list.length) return { start() {} };
+
+        const o = Object.assign({
+            typeDelay: 150, deleteDelay: 75, holdDelay: 2000,
+            loop: true, glitch: true, cursor: true
+        }, opts);
+
+        let text = '', index = 0, msg = 0, deleting = false, cursorOn = true, running = false;
+
+        function render() {
+            el.textContent = text + (o.cursor ? (cursorOn ? '|' : ' ') : '');
+        }
+
+        setInterval(() => { cursorOn = !cursorOn; render(); }, 500);
+
+        function tick() {
+            const full = list[msg];
+            if (!deleting && index < full.length) {
+                index++;
+                text = full.slice(0, index);
+            } else if (deleting && index > 0) {
+                index--;
+                text = full.slice(0, index);
+            } else if (!deleting && index === full.length) {
+                if (!o.loop) { render(); return; }
+                deleting = true;
+                setTimeout(tick, o.holdDelay);
+                return;
+            } else {
+                deleting = false;
+                msg = (msg + 1) % list.length;
+            }
+
+            render();
+
+            if (o.glitch && Math.random() < 0.1) {
+                el.classList.add('glitch');
+                setTimeout(() => el.classList.remove('glitch'), 200);
+            }
+            setTimeout(tick, deleting ? o.deleteDelay : o.typeDelay);
+        }
+
+        return { start() { if (!running) { running = true; tick(); } } };
+    }
+
+    typewriter(startText, CONFIG.enterText, { loop: false, glitch: false, typeDelay: 100 }).start();
+
+    const nameTyper = typewriter(profileName, CONFIG.username, {
+        typeDelay: 300, deleteDelay: 150, holdDelay: 10000,
+        loop: Array.isArray(CONFIG.username)
+    });
+    const bioTyper = typewriter(profileBio, CONFIG.bio, { typeDelay: 150, deleteDelay: 75, holdDelay: 2000 });
+
+    /* ============================================================
+       GLASS / TRANSPARENCY CONTROL
+       ============================================================ */
+    function applyGlass(opacity) {
+        const blur = 10 * opacity;
+        const panels = [profileBlock, musicPlayerEl, topControlsEl];
+        panels.forEach(p => {
+            p.style.background = `rgba(0, 0, 0, ${opacity})`;
+            p.style.backdropFilter = opacity ? `blur(${blur}px)` : 'none';
+            p.style.webkitBackdropFilter = opacity ? `blur(${blur}px)` : 'none';
+        });
+        musicPlayerEl.style.borderColor = opacity
+            ? `rgba(255, 255, 255, ${0.2 * opacity})`
+            : 'transparent';
+        profileBlock.style.boxShadow = `0 0 30px rgba(255, 255, 255, ${0.06 * opacity})`;
+    }
+
+    /* ============================================================
+       MUSIC PLAYER
+       ============================================================ */
+    let trackIndex = 0;
+    let seekTweening = false;
+    let rafId = null;
+
+    let seekToken = 0;               // invalidates a running glide when the user grabs the bar
+
+    const progress = createSlider($('music-progress'), {
+        min: 0, max: 100, value: 0,
+        onDown: () => { seekToken++; seekTweening = false; },
+        onInput: (value) => { currentTimeEl.textContent = formatTime(value); },
+        onChange: (value) => {
+            const from = audio.currentTime;
+            const to = clamp(value, 0, audio.duration || 0);
+            audio.currentTime = to;                      // the audio jumps straight away
+
+            // a short hop lands instantly, a jump glides the bar over to the new spot
+            if (Math.abs(to - from) <= 1.5) return;
+
+            const token = ++seekToken;
+            seekTweening = true;
+            tween(from, to, 350, (v) => {
+                if (token !== seekToken) return;
+                progress.set(v, true);
+                currentTimeEl.textContent = formatTime(v);
+            }, () => {
+                if (token !== seekToken) return;
+                seekTweening = false;
+                progress.set(to, true);
+            });
+        }
+    });
+
+    const volume = createSlider($('volume-slider'), {
+        min: 0, max: 1, value: CONFIG.volume,
+        onInput: (v) => {
+            audio.volume = clamp(v, 0, 1);
+            if (audio.muted) { audio.muted = false; }
+            volumeIcon.innerHTML = v > 0 ? VOLUME_ICON_ON : VOLUME_ICON_OFF;
+        }
+    });
+
+    const transparency = createSlider($('transparency-slider'), {
+        min: 0, max: 1, value: CONFIG.cardOpacity,
+        onInput: (v) => applyGlass(v)
+    });
+
+    function loadTrack(index, autoPlay) {
+        const track = CONFIG.playlist[index];
+        if (!track) return;
+        audio.src = track.file;
+        audio.load();
+        playerArt.src = track.cover || '';
+        playerArt.alt = track.title ? track.title + ' cover' : 'Album art';
+        document.querySelector('.player-art').title =
+            [track.title, track.artist].filter(Boolean).join(' — ');
+        currentTimeEl.textContent = '0:00';
+        totalTimeEl.textContent = '0:00';
+        progress.set(0, true);
+
+        if ('mediaSession' in navigator && typeof MediaMetadata !== 'undefined' && track.title) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: track.title,
+                artist: track.artist || '',
+                artwork: track.cover ? [{ src: track.cover }] : []
+            });
+        }
+        if (autoPlay) play();
+    }
+
+    function play() {
+        const p = audio.play();
+        if (p && p.catch) p.catch(() => setPlayIcon(false));   // autoplay blocked → stay paused
+    }
+
+    function setPlayIcon(playing) {
+        playPauseBtn.innerHTML = playing ? PAUSE_PATH : PLAY_PATH;
+        playPauseBtn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+        playPauseBtn.classList.remove('pulse');
+        void playPauseBtn.offsetWidth;                          // restart the animation
+        playPauseBtn.classList.add('pulse');
+    }
+
+    function step() {
+        if (!progress.dragging && !seekTweening) {
+            progress.set(audio.currentTime, true);
+            currentTimeEl.textContent = formatTime(audio.currentTime);
+        }
+        rafId = requestAnimationFrame(step);
+    }
+
+    audio.addEventListener('loadedmetadata', () => {
+        totalTimeEl.textContent = formatTime(audio.duration);
+        progress.setRange(0, audio.duration || 0);
+    });
+
+    audio.addEventListener('timeupdate', () => {
+        if (progress.dragging || seekTweening) return;
+        progress.set(audio.currentTime, true);
+        currentTimeEl.textContent = formatTime(audio.currentTime);
+    });
+
+    audio.addEventListener('play', () => {
+        setPlayIcon(true);
+        if (!rafId) rafId = requestAnimationFrame(step);
+    });
+
+    audio.addEventListener('pause', () => {
+        setPlayIcon(false);
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    });
+
+    audio.addEventListener('ended', () => {
+        if (CONFIG.playlist.length > 1 || CONFIG.loop) {
+            trackIndex = (trackIndex + 1) % CONFIG.playlist.length;
+            loadTrack(trackIndex, true);
+        }
+    });
+
+    function togglePlay() {
+        if (audio.paused) { audio.muted = false; play(); }
+        else audio.pause();
+    }
+
+    function skip(direction) {
+        // with a single track, prev/next restarts it rather than doing nothing
+        if (CONFIG.playlist.length < 2) {
+            audio.currentTime = 0;
+            progress.set(0, true);
+            if (audio.paused) play();
+            return;
+        }
+        trackIndex = (trackIndex + direction + CONFIG.playlist.length) % CONFIG.playlist.length;
+        loadTrack(trackIndex, !audio.paused);
+    }
+
+    /* buttons — pointerup keeps the tap responsive on Android */
+    function bindTap(el, fn) {
+        el.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); fn(); });
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); }
+        });
+    }
+
+    bindTap(playPauseBtn, togglePlay);
+    bindTap(prevBtn, () => skip(-1));
+    bindTap(nextBtn, () => skip(1));
+
+    bindTap(volumeIcon, () => {
+        audio.muted = !audio.muted;
+        volumeIcon.innerHTML = audio.muted ? VOLUME_ICON_OFF : VOLUME_ICON_ON;
+    });
+
+    /* ============================================================
+       CARD OUTLINE — a light segment that travels around the card
+       ============================================================ */
+    function startOutline() {
+        profileOutline.style.opacity = '1';
+        const rect = profileOutline.querySelector('rect');
+        const bw = 1.5;
+
+        function position() {
+            const w = profileBlock.offsetWidth + bw * 2;
+            const h = profileBlock.offsetHeight + bw * 2;
+            profileOutline.style.top = (profileBlock.offsetTop - bw) + 'px';
+            profileOutline.style.left = (profileBlock.offsetLeft - bw) + 'px';
+            profileOutline.setAttribute('width', w);
+            profileOutline.setAttribute('height', h);
+            rect.setAttribute('x', bw);
+            rect.setAttribute('y', bw);
+            rect.setAttribute('width', w - bw * 2);
+            rect.setAttribute('height', h - bw * 2);
+        }
+
+        position();
+        window.addEventListener('resize', position);
+
+        const segment = 80;
+        let offset = 0;
+        (function frame() {
+            const perimeter = rect.getTotalLength();
+            if (perimeter) {
+                rect.style.strokeDasharray = segment + ' ' + (perimeter - segment);
+                offset -= 1.5;
+                if (offset < -perimeter) offset += perimeter;
+                rect.style.strokeDashoffset = offset;
+            }
+            requestAnimationFrame(frame);
+        })();
+    }
+
+    /* ============================================================
+       SUBTLE 3D TILT
+       ============================================================ */
+    if (CONFIG.tilt) {
+        const MAX_TILT = 15;
+
+        function tilt(clientX, clientY) {
+            const x = clientX - window.innerWidth / 2;
+            const y = clientY - window.innerHeight / 2;
+            stack.style.setProperty('--tilt-x', (y / (window.innerHeight / 2)) * MAX_TILT + 'deg');
+            stack.style.setProperty('--tilt-y', -(x / (window.innerWidth / 2)) * MAX_TILT + 'deg');
+        }
+
+        function resetTilt() {
+            stack.style.setProperty('--tilt-x', '0deg');
+            stack.style.setProperty('--tilt-y', '0deg');
+        }
+
+        // never tilt while a slider is being dragged — the control would move under the finger
+        stack.addEventListener('mousemove', (e) => {
+            if (!slidersDragging) tilt(e.clientX, e.clientY);
+        });
+        stack.addEventListener('mouseleave', resetTilt);
+        stack.addEventListener('touchmove', (e) => {
+            const t = e.touches[0];
+            if (t && !slidersDragging) tilt(t.clientX, t.clientY);
+        }, { passive: true });
+        stack.addEventListener('touchend', resetTilt);
+    }
+
+    /* ============================================================
+       AVATAR INTERACTION
+       ============================================================ */
+    function spinAvatar() {
+        profileContainer.classList.remove('fast-orbit');
+        void profileContainer.offsetWidth;
+        profileContainer.classList.add('fast-orbit');
+        setTimeout(() => profileContainer.classList.remove('fast-orbit'), 500);
+    }
+    profilePicture.addEventListener('click', spinAvatar);
+
+    /* ============================================================
+       ENTRY SCREEN → reveal + playback (needs the user gesture)
+       ============================================================ */
+    let unlocked = false;
+
+    function unlockPage() {
+        if (unlocked) return;
+        unlocked = true;
+
+        audio.muted = false;
+        audio.volume = clamp(CONFIG.volume, 0, 1);
+        play();
+
+        startScreen.classList.add('fading');
+        setTimeout(() => startScreen.classList.add('hidden'), 600);
+
+        background.classList.add('animate');
+        reveal.classList.add('revealed');
+
+        applyGlass(transparency.value);
+        nameTyper.start();
+        bioTyper.start();
+
+        // the outline needs the card at its final size
+        setTimeout(startOutline, 300);
+    }
+
+    startScreen.addEventListener('click', unlockPage);
+    startScreen.addEventListener('touchstart', (e) => { e.preventDefault(); unlockPage(); }, { passive: false });
+    startScreen.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') unlockPage();
+    });
+    startScreen.tabIndex = 0;
+
+    /* ---------- initial state ---------- */
+    applyGlass(CONFIG.cardOpacity);
+    audio.volume = clamp(CONFIG.volume, 0, 1);
+    audio.loop = CONFIG.loop && CONFIG.playlist.length === 1;
+    volumeIcon.innerHTML = VOLUME_ICON_ON;
+    setPlayIcon(false);
+    playPauseBtn.classList.remove('pulse');
+    loadTrack(trackIndex, false);
+});
+</script>
+</body>
+</html>
