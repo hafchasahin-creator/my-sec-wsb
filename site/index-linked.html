@@ -24,6 +24,17 @@
     font-display: block;
 }
 
+/* Liberation Mono, subset to the glyphs this page uses (SIL OFL 1.1).
+   It is metric-compatible with Courier New, so the text occupies exactly the
+   same widths everywhere instead of whatever mono a phone substitutes. */
+@font-face {
+    font-family: 'Mono';
+    src: url("assets/mono.woff2") format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 /* ============================================================
    BASE
    ============================================================ */
@@ -31,8 +42,16 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Mono', 'Courier New', Courier, monospace;
     -webkit-tap-highlight-color: transparent;
+}
+
+/* the page is a UI, not a document — stop long-press selection and the
+   image save sheet from firing mid-drag */
+body, #stack, #start-screen {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 html, body {
@@ -323,6 +342,8 @@ body {
     cursor: pointer;
     pointer-events: auto;
     display: block;
+    /* a hairline rim keeps a light avatar from bleeding into the card */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 2px 12px rgba(0, 0, 0, 0.5);
     transition: transform 0.3s ease;
 }
 
@@ -372,7 +393,16 @@ body {
     gap: 6px;
     margin-bottom: 8px;
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.72);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+    min-width: 0;
+}
+
+/* a long presence string (Listening to X by Y) trims instead of wrapping */
+#status-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .status-dot {
@@ -381,6 +411,29 @@ body {
     border-radius: 50%;
     flex-shrink: 0;
     box-shadow: 0 0 6px currentColor;
+    position: relative;
+}
+
+#status-text { transition: opacity 0.22s ease; }
+
+/* a slow halo so the status reads as live rather than painted on */
+.status-dot::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    opacity: 0;
+    animation: status-ping 2.6s ease-out infinite;
+    will-change: transform, opacity;    /* own layer, keeps the text out of the repaint */
+}
+
+.status-dot.offline::after { animation: none; }
+
+@keyframes status-ping {
+    0%   { opacity: 0.55; transform: scale(0.75); }
+    70%  { opacity: 0;    transform: scale(1.6); }
+    100% { opacity: 0;    transform: scale(1.6); }
 }
 
 .status-dot.online  { background: #3ba55d; color: #3ba55d; }
@@ -389,13 +442,14 @@ body {
 .status-dot.offline { background: #747f8d; color: #747f8d; box-shadow: none; }
 
 #profile-bio {
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.82);
     font-size: 18px;
     line-height: 1.5;
     margin-bottom: 10px;
     white-space: pre;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
 }
 
 .bio-separator {
@@ -598,12 +652,18 @@ body {
     flex-shrink: 0;
 }
 
+/* padding grows the touch target, the negative margin keeps the drawn icon
+   and the spacing between controls exactly where the design puts them */
 .ctrl-btn {
     width: 20px;
     height: 20px;
+    padding: 7px;
+    margin: -7px;
+    box-sizing: content-box;
     cursor: pointer;
     color: #fff;
     flex-shrink: 0;
+    overflow: visible;
     transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
@@ -649,6 +709,13 @@ body {
     color: #fff;
     flex-shrink: 0;
     transition: transform 0.15s ease;
+}
+
+.volume-icon {
+    padding: 7px;
+    margin: -7px;
+    box-sizing: content-box;
+    overflow: visible;
 }
 
 .volume-icon { cursor: pointer; }
@@ -982,8 +1049,18 @@ const CONFIG = {
     /* ---------- identity ---------- */
     username: "imran",
     pageTitle: "",                      // browser tab; "" uses the username
-    status: "dnd",                      // "online" | "idle" | "dnd" | "offline"
-    statusText: "",                     // leave "" to use the default label for `status`
+    /* Any key from STATUS_MODES below the CONFIG block — online, idle, dnd,
+       offline, invisible, busy, focus, working, gaming, streaming, away,
+       sleeping, touchGrass, doNotPerceiveMe. Each brings its own dot colour
+       and wording, so changing your status is one word here.
+
+       Pass a list instead and the status cycles through them:
+           status: ["dnd", "gaming", "sleeping"]
+       statusText overrides the wording for a single mode; leave "" to use the
+       mode's own label. */
+    status: "dnd",
+    statusText: "",
+    statusInterval: 5000,               // ms per mode when status is a list
 
     /* Live Discord presence via lanyard.rest — the dot and label then follow
        your real status, including what you are playing or listening to.
@@ -991,10 +1068,10 @@ const CONFIG = {
        that makes no network requests at all; the status above is then used. */
     discordUserId: "1327961337757831219",
     bio: [                              // string, or list of strings to cycle through
-        "n1 skidder oat",
         "\"Hello, World!\"",
-        "top paster",
-        "\"larp larp larp sahur\""
+        "always online, never here",
+        "built in the dark",
+        "less noise, more signal"
     ],
 
     /* ---------- media ----------
@@ -1031,7 +1108,7 @@ const CONFIG = {
     ],
 
     /* ---------- behaviour ---------- */
-    enterText: "click to enter",        // text typed on the entry screen
+    enterText: "",                      // entry prompt; "" picks tap/click to suit the device
     volume: 0.3,                        // 0 - 1
     cardOpacity: 0.4,                   // 0 - 1, the "eye" slider default
     loop: true,                         // loop the playlist
@@ -1080,6 +1157,29 @@ const VOLUME_ICON_OFF = `<path stroke-linecap="round" stroke-linejoin="round" st
 
 const PLAY_PATH  = '<path d="M8 5v14l11-7z"/>';
 const PAUSE_PATH = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+
+/* ================================================================
+   STATUS MODES — set CONFIG.status to any key below.
+   The first four match Discord and are what live presence reports;
+   the rest are yours to use. Add your own: give it a label and a colour.
+   ================================================================ */
+const STATUS_MODES = {
+    online:    { label: 'Online',         color: '#3ba55d' },
+    idle:      { label: 'Idle',           color: '#faa81a' },
+    dnd:       { label: 'Do Not Disturb', color: '#ed4245' },
+    offline:   { label: 'Offline',        color: '#747f8d', glow: false },
+
+    invisible: { label: 'Invisible',      color: '#747f8d', glow: false },
+    busy:      { label: 'Busy',           color: '#f0483e' },
+    focus:     { label: 'Focus Mode',     color: '#5865f2' },
+    working:   { label: 'Working',        color: '#00b0f4' },
+    gaming:    { label: 'Gaming',         color: '#43b581' },
+    streaming: { label: 'Streaming',      color: '#9146ff' },
+    away:      { label: 'Away',           color: '#faa81a' },
+    sleeping:  { label: 'Sleeping',       color: '#7a6ff0' },
+    touchGrass: { label: 'Touching Grass', color: '#4ca64c' },
+    doNotPerceiveMe: { label: 'Do Not Perceive Me', color: '#b14aed' }
+};
 
 const STATUS_LABELS = { online: 'Online', idle: 'Idle', dnd: 'Do Not Disturb', offline: 'Offline' };
 const ACTIVITY_PREFIXES = ['Playing', 'Streaming', 'Listening to', 'Watching', '', 'Competing in'];
@@ -1264,8 +1364,31 @@ document.addEventListener('DOMContentLoaded', () => {
     favicon.href = pick(CONFIG.profilePicture);
     document.head.appendChild(favicon);
 
-    statusDot.className = 'status-dot ' + (CONFIG.status || 'offline');
-    statusText.textContent = CONFIG.statusText || STATUS_LABELS[CONFIG.status] || 'Offline';
+    /* ---------- status modes ---------- */
+    function setStatus(mode, textOverride) {
+        const preset = STATUS_MODES[mode] || STATUS_MODES.offline;
+        statusDot.className = 'status-dot ' + mode;
+        statusDot.style.color = preset.color;
+        statusDot.style.background = preset.color;
+        statusDot.style.boxShadow = preset.glow === false ? 'none' : `0 0 6px ${preset.color}`;
+        statusText.textContent = textOverride || preset.label;
+    }
+
+    const statusList = Array.isArray(CONFIG.status) ? CONFIG.status : [CONFIG.status];
+    const cyclingStatus = statusList.length > 1;
+    setStatus(statusList[0], CONFIG.statusText);
+
+    if (cyclingStatus) {
+        let statusIndex = 0;
+        setInterval(() => {
+            statusIndex = (statusIndex + 1) % statusList.length;
+            statusText.style.opacity = '0';
+            setTimeout(() => {
+                setStatus(statusList[statusIndex]);
+                statusText.style.opacity = '1';
+            }, 220);
+        }, Math.max(1200, CONFIG.statusInterval || 5000));
+    }
 
     let views = Number(CONFIG.viewCount || 0);
     visitorCount.textContent = views.toLocaleString('en-US');
@@ -1276,15 +1399,14 @@ document.addEventListener('DOMContentLoaded', () => {
        values on screen, so the page is complete with no network.
        ============================================================ */
     async function fetchDiscordStatus() {
-        if (!CONFIG.discordUserId) return;
+        // a cycling status is an explicit choice — live presence would fight it
+        if (!CONFIG.discordUserId || cyclingStatus) return;
         try {
             const res = await fetch(`https://api.lanyard.rest/v1/users/${CONFIG.discordUserId}`);
             const { success, data } = await res.json();
             if (!success || !data) return;
 
             const { discord_status, activities = [], spotify } = data;
-            statusDot.className = `status-dot ${discord_status}`;
-
             let label = STATUS_LABELS[discord_status] || 'Offline';
             const activity = activities.find(a => a.type !== 4);   // 4 = custom status
             if (spotify) {
@@ -1293,7 +1415,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const prefix = ACTIVITY_PREFIXES[activity.type] || '';
                 label += ` · ${prefix ? prefix + ' ' : ''}${activity.name}`;
             }
-            statusText.textContent = label;
+            setStatus(discord_status, label);
         } catch {
             /* offline, blocked, or not registered with lanyard — keep CONFIG.status */
         }
@@ -1389,7 +1511,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return { start() { if (!running) { running = true; tick(); } } };
     }
 
-    typewriter(startText, CONFIG.enterText, { loop: false, glitch: false, typeDelay: 100 }).start();
+    const touchDevice = window.matchMedia('(hover: none)').matches;
+    const enterText = CONFIG.enterText || (touchDevice ? 'tap to enter' : 'click to enter');
+    typewriter(startText, enterText, { loop: false, glitch: false, typeDelay: 100 }).start();
 
     const nameTyper = typewriter(profileName, CONFIG.username, {
         typeDelay: 300, deleteDelay: 150, holdDelay: 10000,

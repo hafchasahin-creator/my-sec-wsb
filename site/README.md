@@ -12,7 +12,12 @@ music player and a floating volume / effects panel.
 | `index-linked.html` | Same page, but loads the files from `assets/`. ~47 KB, much faster to load — use this one when hosting the folder. |
 | `template.html` | The source both builds are generated from. **Edit this**, then rebuild. |
 | `build.py` | Generates the two builds from `template.html` + `assets/`. |
-| `assets/` | Background image, avatar, gothic font, song and cover placeholder. |
+| `assets/` | Background image, avatar, fonts, song and cover placeholder. |
+
+**Fonts.** `Angel_wish.ttf` is the gothic username face. `mono.woff2` is
+Liberation Mono (SIL OFL 1.1), subset to the glyphs this page renders — 6.8 KB.
+It is metric-compatible with Courier New, so the body text keeps the reference's
+exact widths on every device instead of whatever monospace a phone substitutes.
 
 ## Rebuilding
 
@@ -30,8 +35,9 @@ top of the `<script>` in `template.html`:
 const CONFIG = {
     username: "imran",
     pageTitle: "",              // browser tab; "" uses the username
-    status: "dnd",              // online | idle | dnd | offline
-    statusText: "",             // "" uses the default label for `status`
+    status: "dnd",              // any STATUS_MODES key, or a list to cycle
+    statusText: "",             // "" uses the mode's own label
+    statusInterval: 5000,       // ms per mode when status is a list
     discordUserId: "...",       // live presence via lanyard; "" disables it
     bio: [ ... ],               // one string, or several to cycle through
     profilePicture: ...,        // one source, or a list to pick from at random
@@ -61,6 +67,35 @@ Notes:
   cover into `assets/`, point `playlist[0].cover` at it and rebuild.
 - Add more objects to `playlist` and the previous / next buttons cycle through
   them. With a single track those buttons restart it.
+
+## Status modes
+
+`status` takes any key from the `STATUS_MODES` table, each carrying its own dot
+colour and wording, so switching your status is one word:
+
+| Key | Shows | Key | Shows |
+| --- | --- | --- | --- |
+| `online` | Online · green | `gaming` | Gaming · green |
+| `idle` | Idle · amber | `streaming` | Streaming · purple |
+| `dnd` | Do Not Disturb · red | `away` | Away · amber |
+| `offline` | Offline · grey, no glow | `sleeping` | Sleeping · indigo |
+| `invisible` | Invisible · grey, no glow | `touchGrass` | Touching Grass · green |
+| `busy` | Busy · red | `doNotPerceiveMe` | Do Not Perceive Me · violet |
+| `focus` | Focus Mode · blurple | | |
+| `working` | Working · cyan | | |
+
+Add your own by putting a `label` and `color` in the table. `statusText`
+overrides the wording for a single mode.
+
+Give it a list and the status cycles, fading between modes every
+`statusInterval`:
+
+```js
+status: ["dnd", "gaming", "sleeping"],
+```
+
+A cycling status turns live Discord presence off — the rotation is an explicit
+choice, and the two would otherwise overwrite each other.
 
 ## Living like the real page
 

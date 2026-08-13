@@ -24,6 +24,7 @@ TEMPLATE = ROOT / "template.html"
 # token -> asset file
 FILES = {
     "FONT_URI": "Angel_wish.ttf",
+    "MONO_URI": "mono.woff2",
     "BG_URI": "background.jpg",
     "AVATAR_URI": "avatar.png",
     "COVER_URI": "cover-placeholder.jpg",
