@@ -1,0 +1,2209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#FAF8F5">
+<title>Fable — Mobile coding assistant</title>
+<style>
+/* ============================================================
+   Fable — tokens
+   ============================================================ */
+:root{
+  --bg:#FAF8F5;
+  --surface:#FFFFFF;
+  --card:#F1EFEB;
+  --card-press:#E7E3DD;
+  --ink:#141311;
+  --ink-2:#6F6C66;
+  --ink-3:#9C978F;
+  --line:#E6E2DB;
+  --line-2:#D9D4CB;
+  --peach:#FBE3CE;
+  --peach-2:#F7D6BC;
+  --coral:#FF6A3C;
+  --yellow:#E0A92C;
+  --blue:#2C7EF8;
+  --purple:#7C3AED;
+  --purple-deep:#4C1D95;
+
+  --shadow-pop:0 1px 2px rgba(24,20,14,.04), 0 12px 28px -6px rgba(24,20,14,.16), 0 28px 60px -18px rgba(24,20,14,.18);
+  --shadow-dock:0 -12px 24px -18px rgba(24,20,14,.22);
+
+  --r-sm:10px;
+  --r-md:14px;
+  --r-lg:16px;
+  --r-xl:22px;
+
+  --safe-b:env(safe-area-inset-bottom, 0px);
+  --safe-t:env(safe-area-inset-top, 0px);
+  --kb:0px;
+  --dock-h:168px;
+
+  --app-w:430px;
+  --ease:cubic-bezier(.22,.7,.2,1);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font:400 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  overscroll-behavior-y:none;
+  min-height:100vh;
+  min-height:100dvh;
+}
+body.is-desktop{background:#F3F0EC}
+button,input,textarea{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+ul{margin:0;padding:0;list-style:none}
+h1,h2,h3,p{margin:0}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:8px}
+::selection{background:#FFD9C7}
+
+/* ============================================================
+   Shell
+   ============================================================ */
+.app{
+  position:relative;
+  width:100%;
+  max-width:var(--app-w);
+  margin:0 auto;
+  min-height:100vh;
+  min-height:100dvh;
+  background:var(--bg);
+  overflow:hidden;
+}
+@media (min-width:520px){
+  .app{border-left:1px solid var(--line);border-right:1px solid var(--line)}
+}
+
+.screens{position:relative}
+
+.view{
+  position:relative;
+  height:100vh;
+  height:100dvh;
+  padding:calc(var(--safe-t) + 18px) 20px calc(var(--dock-h) + var(--kb) + 26px);
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  scroll-behavior:smooth;
+}
+/* chat drives its own scrolling during streaming, so keep it un-animated */
+#chat{scroll-behavior:auto}
+.view[hidden]{display:none}
+.view.enter{animation:viewIn 320ms var(--ease) both}
+.view.leave{animation:viewOut 180ms ease-in both}
+@keyframes viewIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes viewOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-10px)}}
+
+.press{transition:transform 120ms var(--ease), opacity 120ms linear, background-color 140ms linear}
+.press:active{transform:scale(.965);opacity:.9}
+
+/* ============================================================
+   Dashboard
+   ============================================================ */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+.icon-btn{
+  width:38px;height:38px;display:grid;place-items:center;
+  border-radius:11px;color:var(--ink);
+  transition:transform 120ms var(--ease), background-color 140ms linear;
+}
+.icon-btn:active{transform:scale(.92);background:var(--card)}
+
+.welcome{display:flex;align-items:center;gap:12px;margin-bottom:34px}
+.welcome h1{
+  font-size:27px;line-height:1.2;font-weight:600;letter-spacing:-.024em;
+}
+@media (max-width:374px){ .welcome h1{font-size:24px} }
+
+.section-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin:0 0 12px;
+}
+.section-head h2{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.link-btn{
+  font-size:14.5px;color:var(--ink-2);padding:4px 2px;border-radius:8px;
+  transition:opacity 120ms linear,transform 120ms var(--ease);
+}
+.link-btn:active{opacity:.55;transform:scale(.97)}
+
+.rows{display:flex;flex-direction:column;gap:9px;margin-bottom:30px}
+.row{
+  display:flex;align-items:center;gap:11px;
+  width:100%;text-align:left;
+  background:var(--card);
+  border:1px solid transparent;
+  border-radius:var(--r-lg);
+  padding:16px 14px 16px 15px;
+  transition:background-color 140ms linear, transform 130ms var(--ease);
+}
+.row:active{background:var(--card-press);transform:scale(.985)}
+.row.appear{animation:rowIn 380ms var(--ease) both}
+@keyframes rowIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.row .glyph{flex:0 0 auto;display:grid;place-items:center;width:18px;height:18px}
+.row .glyph.branch{color:var(--yellow)}
+.row .name{
+  flex:1 1 auto;min-width:0;
+  font-size:15.5px;font-weight:500;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.row .meta{flex:0 0 auto;color:var(--ink-2);font-size:13.5px}
+.row .chev{flex:0 0 auto;color:var(--ink-3);display:grid;place-items:center}
+.dot-status{
+  width:8px;height:8px;border-radius:50%;background:var(--ink-3);
+  flex:0 0 auto;box-shadow:0 0 0 3px rgba(156,151,143,.14);
+}
+.row .pr-label{flex:0 0 auto;font-size:15px;font-weight:500;letter-spacing:-.01em}
+.row .pr-num{flex:0 0 auto;font-size:14px;color:var(--ink-2)}
+
+/* Workspace chips */
+.workspace{
+  display:flex;align-items:center;gap:8px;flex-wrap:nowrap;
+  padding-top:4px;
+  /* if a very long name still cannot fit, the row scrolls rather than clipping the + */
+  overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.workspace::-webkit-scrollbar{display:none}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  min-width:0;max-width:100%;
+  border:1px solid var(--line-2);
+  background:var(--surface);
+  border-radius:999px;
+  padding:8px 12px;
+  font-size:13.5px;color:var(--ink);
+  transition:transform 120ms var(--ease), background-color 140ms linear, border-color 140ms linear;
+}
+.chip:active{transform:scale(.95);background:var(--card)}
+.chip .txt{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip svg{flex:0 0 auto;color:var(--ink-2)}
+/* only the repository name gives up space — the short labels stay readable */
+.workspace .chip{flex:0 0 auto}
+.workspace .chip.repo{flex:1 1 auto;min-width:82px}
+.chip-sq{
+  flex:0 0 auto;width:34px;height:34px;display:grid;place-items:center;
+  border:1px solid var(--line-2);border-radius:11px;background:var(--surface);
+  transition:transform 120ms var(--ease), background-color 140ms linear;
+}
+.chip-sq:active{transform:scale(.92);background:var(--card)}
+
+/* ============================================================
+   Starburst
+   ============================================================ */
+.burst{display:block;overflow:visible;animation:burstSpin 14s linear infinite}
+.burst .spokes{transform-origin:50% 50%}
+.burst .spoke{
+  stroke:var(--coral);stroke-linecap:round;fill:none;
+  animation:spokePulse 2.8s ease-in-out infinite;
+  animation-delay:calc(var(--i) * .085s);
+  transform-origin:50% 50%;
+}
+.burst .core{fill:var(--coral);opacity:0;transform-origin:50% 50%}
+@keyframes burstSpin{to{transform:rotate(360deg)}}
+@keyframes spokePulse{
+  0%,100%{opacity:.55;transform:scale(.9)}
+  45%{opacity:1;transform:scale(1.08)}
+}
+/* loader: spin on the svg box, contraction on the spoke group — never the same property twice */
+.burst.loader{animation-duration:7s}
+.burst.loader .spokes{animation:burstContract 5.4s ease-in-out infinite}
+.burst.loader .core{animation:coreDot 5.4s ease-in-out infinite}
+@keyframes burstContract{
+  0%,52%{opacity:1;transform:scale(1)}
+  60%{opacity:0;transform:scale(.08)}
+  74%{opacity:0;transform:scale(.08)}
+  84%{opacity:1;transform:scale(1.06)}
+  92%,100%{opacity:1;transform:scale(1)}
+}
+@keyframes coreDot{
+  0%,54%{opacity:0;transform:scale(.6)}
+  62%{opacity:1;transform:scale(2.3)}
+  72%{opacity:1;transform:scale(2.1)}
+  80%,100%{opacity:0;transform:scale(.6)}
+}
+
+/* ============================================================
+   Dock: composer + tab bar
+   ============================================================ */
+.dock{
+  position:fixed;
+  left:50%;transform:translateX(-50%);
+  bottom:var(--kb);
+  width:100%;max-width:var(--app-w);
+  z-index:40;
+  pointer-events:none;
+}
+.dock > *{pointer-events:auto}
+.composer-wrap{
+  position:relative;
+  padding:10px 14px 12px;
+  background:linear-gradient(to bottom, rgba(250,248,245,0) 0%, var(--bg) 32%, var(--bg) 100%);
+  box-shadow:var(--shadow-dock);
+}
+.composer{
+  background:var(--surface);
+  border:1px solid var(--line-2);
+  border-radius:var(--r-xl);
+  padding:12px 12px 10px 14px;
+  transition:border-color 160ms linear, box-shadow 160ms linear;
+}
+.composer.focused{border-color:#BDB5A8;box-shadow:0 0 0 3px rgba(24,20,14,.05), 0 2px 10px -4px rgba(24,20,14,.12)}
+/* the composer itself carries the focus indicator, so the textarea skips its own ring */
+#input:focus-visible{outline:none}
+.input-line{display:flex;align-items:flex-end;gap:8px}
+#input{
+  flex:1 1 auto;
+  border:0;background:transparent;resize:none;
+  font-size:16px;line-height:1.45;letter-spacing:-.005em;
+  max-height:132px;min-height:24px;
+  padding:2px 0 2px;
+  overflow-y:auto;
+}
+#input::placeholder{color:var(--ink-3)}
+.mini-send{
+  flex:0 0 auto;width:30px;height:30px;display:grid;place-items:center;
+  color:var(--ink-2);border-radius:9px;
+  transition:transform 120ms var(--ease),color 140ms linear,background-color 140ms linear;
+}
+.mini-send:active{transform:scale(.9);background:var(--card)}
+.mini-send:disabled{opacity:.4;cursor:default}
+
+.controls{display:flex;align-items:center;gap:7px;margin-top:9px}
+.ctl{
+  display:inline-flex;align-items:center;gap:5px;
+  border:1px solid var(--line-2);background:var(--surface);
+  border-radius:999px;padding:6px 11px;
+  font-size:13px;color:var(--ink);white-space:nowrap;
+  transition:transform 120ms var(--ease), background-color 140ms linear, border-color 140ms linear, color 140ms linear;
+}
+.ctl:active{transform:scale(.94)}
+.ctl.soft{background:var(--card);border-color:transparent;color:var(--ink-2)}
+.ctl.soft[aria-pressed="true"]{color:var(--ink);background:var(--card-press)}
+.ctl.round{width:30px;height:30px;padding:0;justify-content:center;border-radius:50%}
+.ctl.model{font-weight:500}
+.ctl#effortBtn[data-ultra="1"]{color:var(--purple);border-color:#DCCDF8;background:#FBF7FF}
+.spacer{flex:1 1 auto}
+.send{
+  flex:0 0 auto;width:36px;height:36px;border-radius:50%;
+  background:var(--peach);color:#2B1B10;
+  display:grid;place-items:center;
+  transition:transform 130ms var(--ease), background-color 160ms linear, opacity 160ms linear;
+}
+.send:active{transform:scale(.9);background:var(--peach-2)}
+.send[disabled]{opacity:.55;cursor:default}
+.send.busy{background:var(--card)}
+
+/* Tab bar */
+.tabbar{
+  display:flex;align-items:center;
+  background:var(--peach);
+  padding:10px 8px calc(10px + var(--safe-b));
+  border-top:1px solid rgba(0,0,0,.05);
+}
+.tab{
+  flex:1 1 0;height:46px;display:grid;place-items:center;
+  color:#100E0B;opacity:.5;border-radius:14px;
+  transition:transform 130ms var(--ease), opacity 150ms linear;
+}
+.tab[aria-current="page"]{opacity:1}
+.tab:active{transform:scale(.88);opacity:.75}
+
+/* ============================================================
+   Popovers
+   ============================================================ */
+.pop{
+  position:absolute;
+  bottom:100%;
+  z-index:60;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-lg);
+  box-shadow:var(--shadow-pop);
+  display:none;
+  transform-origin:50% 100%;
+}
+.pop.open{display:block;animation:popIn 190ms var(--ease) both}
+.pop.closing{display:block;animation:popOut 140ms ease-in both}
+@keyframes popIn{from{opacity:0;transform:translateY(10px) scale(.965)}to{opacity:1;transform:none}}
+@keyframes popOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(6px) scale(.98)}}
+
+.pop-title{
+  font-size:12px;font-weight:600;letter-spacing:.02em;
+  color:var(--ink-2);padding:12px 14px 6px;
+}
+.pop-list{padding:2px 6px 8px}
+.pop-item{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:11px 10px;border-radius:11px;font-size:15px;letter-spacing:-.01em;
+  transition:background-color 130ms linear, transform 120ms var(--ease);
+}
+.pop-item:active{background:var(--card);transform:scale(.985)}
+.pop-item .label{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop-item .check{flex:0 0 auto;color:var(--blue);opacity:0;transition:opacity 130ms linear}
+.pop-item[aria-checked="true"] .check{opacity:1}
+.pop-item .sub{display:block;font-size:12.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+#modelPop{left:14px;min-width:236px;margin-bottom:10px}
+#menuPop{left:14px;right:14px;margin-bottom:10px;max-width:340px}
+
+/* ============================================================
+   Effort card
+   ============================================================ */
+#effortPop{
+  width:330px;max-width:calc(100vw - 24px);
+  padding:14px 16px 18px;margin-bottom:10px;
+}
+.effort-head{display:flex;align-items:flex-start;gap:10px}
+.effort-title{
+  flex:1 1 auto;position:relative;
+  font-size:16px;font-weight:600;letter-spacing:-.012em;min-height:22px;
+}
+.effort-title .layer{display:inline-block}
+.effort-title .layer.in{animation:tFadeIn 240ms 40ms ease both}
+.effort-title .layer.out{position:absolute;left:0;top:0;animation:tFadeOut 200ms ease both}
+.effort-title b{font-weight:600;transition:color 240ms linear}
+.effort-title b.ultra{color:var(--purple)}
+@keyframes tFadeOut{to{opacity:0;transform:translateY(-4px)}}
+@keyframes tFadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+.qmark{
+  flex:0 0 auto;width:20px;height:20px;border-radius:50%;
+  border:1px solid var(--line-2);color:var(--ink-2);
+  font-size:11.5px;font-weight:600;line-height:1;
+  display:grid;place-items:center;
+  transition:background-color 130ms linear,transform 120ms var(--ease),color 130ms linear;
+}
+.qmark:active{transform:scale(.9)}
+.qmark[aria-expanded="true"]{background:var(--card);color:var(--ink)}
+.effort-help{
+  font-size:12.5px;line-height:1.45;color:var(--ink-2);
+  margin-top:8px;
+  animation:helpIn 200ms var(--ease) both;
+}
+.effort-help[hidden]{display:none}
+@keyframes helpIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+.ends{
+  display:flex;justify-content:space-between;
+  font-size:12.5px;color:var(--ink-2);
+  margin:14px 2px 9px;
+}
+
+.slider{padding:2px 0 0}
+.track{
+  position:relative;height:34px;border-radius:999px;
+  background:#EBE8E3;
+  border:1px solid rgba(0,0,0,.035);
+  touch-action:none;
+  cursor:pointer;
+  transition:background-color 420ms linear;
+}
+.track.ultra{background:#EFE9FA}
+
+/* pixel field */
+.field{
+  position:absolute;inset:0;border-radius:999px;overflow:hidden;
+  opacity:0;pointer-events:none;
+  clip-path:inset(0 100% 0 0 round 999px);
+}
+.field .glow{
+  position:absolute;inset:0;opacity:0;
+  background:
+    radial-gradient(120% 160% at 100% 50%, rgba(109,40,217,.6), rgba(124,58,237,0) 64%),
+    linear-gradient(90deg, rgba(76,29,149,.4), rgba(109,40,217,.5) 55%, rgba(139,92,246,.56));
+  transition:opacity 460ms linear;
+}
+.px{
+  position:absolute;
+  width:var(--s);height:var(--s);
+  border-radius:1.5px;
+  background:var(--c);
+  opacity:0;
+  transform:translate(-50%,-50%) scale(.25);
+  will-change:opacity,transform;
+}
+.wave{
+  position:absolute;top:-30%;bottom:-30%;width:46%;
+  left:0;opacity:0;pointer-events:none;
+  background:linear-gradient(90deg, rgba(233,213,255,0) 0%, rgba(233,213,255,.5) 46%, rgba(255,255,255,.78) 62%, rgba(196,181,253,.32) 78%, rgba(196,181,253,0) 100%);
+  mix-blend-mode:screen;
+  transform:translateX(-70%);
+}
+.dots{position:absolute;inset:0;pointer-events:none}
+.tick{
+  position:absolute;top:50%;width:4px;height:4px;border-radius:50%;
+  background:rgba(20,19,17,.16);
+  transform:translate(-50%,-50%);
+  transition:opacity 300ms linear, background-color 300ms linear;
+}
+.tick.ultra-tick{background:var(--purple);opacity:.85}
+.track.ultra .tick{opacity:.28}
+.track.ultra .tick.ultra-tick{opacity:0}
+.knob{
+  position:absolute;top:2px;left:2px;
+  width:30px;height:30px;border-radius:50%;
+  background:#fff;
+  box-shadow:0 1px 2px rgba(24,20,14,.14), 0 4px 10px -2px rgba(24,20,14,.22);
+  z-index:3;
+  will-change:transform;
+  touch-action:none;
+  transform:translateX(0) scale(1);
+  transition:box-shadow 160ms linear;
+}
+.knob.grab{box-shadow:0 1px 2px rgba(24,20,14,.16), 0 8px 18px -4px rgba(24,20,14,.3)}
+
+/* field states */
+.field.on{
+  opacity:1;
+  animation:fieldReveal 640ms var(--ease) both;
+}
+.field.on .glow{opacity:1}
+.field.off{
+  opacity:1;
+  animation:fieldRetreat 520ms 120ms ease-in both;
+}
+.field.off .glow{opacity:0}
+@keyframes fieldReveal{
+  from{clip-path:inset(0 100% 0 0 round 999px)}
+  to{clip-path:inset(0 0% 0 0 round 999px)}
+}
+@keyframes fieldRetreat{
+  from{clip-path:inset(0 0% 0 0 round 999px);opacity:1}
+  to{clip-path:inset(0 0% 0 100% round 999px);opacity:0}
+}
+.field.on .px{
+  animation:
+    pxIn 380ms var(--ease) forwards,
+    pxShimmer var(--sd) ease-in-out infinite;
+  animation-delay:
+    calc(var(--x) * 460ms),
+    calc(var(--x) * 460ms + 400ms + var(--d));
+}
+.field.off .px{
+  animation:pxOut 300ms ease both;
+  animation-delay:calc((1 - var(--x)) * 220ms);
+}
+@keyframes pxIn{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.2)}
+  55%{opacity:1;transform:translate(-50%,-50%) scale(1.22)}
+  100%{opacity:var(--o);transform:translate(-50%,-50%) scale(1)}
+}
+@keyframes pxOut{
+  from{opacity:var(--o);transform:translate(-50%,-50%) scale(1)}
+  to{opacity:0;transform:translate(-50%,-50%) scale(.2)}
+}
+@keyframes pxShimmer{
+  0%,100%{opacity:var(--o);transform:translate(-50%,-50%) scale(1)}
+  38%{opacity:1;transform:translate(-50%,-50%) scale(1.14)}
+  64%{opacity:calc(var(--o) * .62);transform:translate(-50%,-50%) scale(.94)}
+}
+.field.on .wave.lead{animation:waveSweep 820ms 140ms var(--ease) both}
+.field.on .wave.idle{animation:waveIdle 5.2s 1.5s linear infinite}
+@keyframes waveSweep{
+  0%{transform:translateX(-80%);opacity:0}
+  18%{opacity:1}
+  85%{opacity:.55}
+  100%{transform:translateX(190%);opacity:0}
+}
+@keyframes waveIdle{
+  0%{transform:translateX(-80%);opacity:0}
+  12%{opacity:.42}
+  70%{opacity:.34}
+  100%{transform:translateX(190%);opacity:0}
+}
+.field.shimmer{animation:fieldReveal 0ms both, fieldShimmer 680ms ease-in-out}
+@keyframes fieldShimmer{
+  0%,100%{filter:brightness(1) saturate(1)}
+  42%{filter:brightness(1.3) saturate(1.12)}
+}
+
+/* ============================================================
+   Drawer
+   ============================================================ */
+.scrim{
+  position:fixed;inset:0;z-index:70;
+  background:rgba(24,20,14,.28);
+  opacity:0;pointer-events:none;
+  transition:opacity 200ms linear;
+}
+.scrim.show{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;top:0;bottom:0;left:50%;
+  margin-left:calc(var(--app-w) / -2);
+  width:min(302px, 82vw);
+  z-index:80;
+  background:var(--surface);
+  border-right:1px solid var(--line);
+  padding:calc(var(--safe-t) + 16px) 14px calc(var(--safe-b) + 16px);
+  display:flex;flex-direction:column;gap:14px;
+  transform:translateX(-104%);
+  transition:transform 240ms var(--ease);
+  overflow-y:auto;
+}
+@media (max-width:529px){ .drawer{margin-left:0;left:0} }
+.drawer.open{transform:none}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px}
+.brand{display:flex;align-items:center;gap:9px;font-size:17px;font-weight:600;letter-spacing:-.02em}
+.drawer h3{
+  font-size:12px;font-weight:600;color:var(--ink-2);
+  letter-spacing:.02em;padding:0 6px;margin-top:4px;
+}
+.drawer-item{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:11px 10px;border-radius:12px;font-size:15px;
+  transition:background-color 130ms linear,transform 120ms var(--ease);
+}
+.drawer-item:active{background:var(--card);transform:scale(.985)}
+.drawer-item .label{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drawer-item .when{flex:0 0 auto;font-size:12.5px;color:var(--ink-2)}
+.drawer-foot{
+  margin-top:auto;display:flex;align-items:center;gap:10px;
+  padding:12px 8px 2px;border-top:1px solid var(--line);
+  font-size:13.5px;color:var(--ink-2);
+}
+.avatar{
+  width:30px;height:30px;border-radius:50%;
+  background:var(--peach);color:#2B1B10;
+  display:grid;place-items:center;font-size:13px;font-weight:600;
+}
+
+/* ============================================================
+   Chat
+   ============================================================ */
+.chat-top{
+  display:flex;align-items:center;gap:6px;
+  margin:-4px -4px 16px;
+}
+.chat-top .title{
+  flex:1 1 auto;min-width:0;text-align:center;
+  font-size:14.5px;font-weight:600;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.chat-top .title small{display:block;font-weight:400;font-size:12px;color:var(--ink-2)}
+
+.thread{display:flex;flex-direction:column;gap:16px;padding-bottom:8px}
+.msg{animation:msgIn 340ms var(--ease) both}
+@keyframes msgIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.msg.user{align-self:flex-end;max-width:82%}
+.bubble{
+  background:var(--card);
+  border-radius:16px 16px 6px 16px;
+  padding:11px 13px;
+  font-size:15.5px;line-height:1.46;letter-spacing:-.005em;
+  white-space:pre-wrap;word-break:break-word;
+}
+.msg.note{align-self:center;max-width:92%}
+.note-inner{
+  font-size:12.5px;color:var(--ink-2);text-align:center;
+  background:var(--card);border-radius:999px;padding:6px 14px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
+}
+.msg.bot{align-self:flex-start;max-width:100%}
+.bot-body{font-size:15.5px;line-height:1.58;letter-spacing:-.005em}
+.bot-body p{margin:0 0 11px}
+.bot-body p:last-child{margin-bottom:0}
+.bot-body ul.b{margin:0 0 11px;display:flex;flex-direction:column;gap:6px}
+.bot-body ul.b li{padding-left:16px;position:relative}
+.bot-body ul.b li::before{
+  content:"";position:absolute;left:3px;top:.62em;
+  width:5px;height:5px;border-radius:50%;background:var(--ink-3);
+}
+.bot-body pre{
+  margin:0 0 12px;padding:12px 13px;
+  background:var(--card);border:1px solid var(--line);
+  border-radius:12px;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size:12.8px;line-height:1.62;
+  overflow-x:auto;white-space:pre;
+  color:#232019;
+}
+.caret{
+  display:inline-block;width:2px;height:1.05em;
+  vertical-align:-.16em;margin-left:2px;
+  background:var(--ink);border-radius:1px;
+  animation:blink 1.05s steps(1,end) infinite;
+}
+@keyframes blink{0%,45%{opacity:1}50%,95%{opacity:0}100%{opacity:1}}
+
+.status-row{display:flex;align-items:center;gap:11px;align-self:flex-start;animation:msgIn 300ms var(--ease) both}
+.status-row .label{
+  font-size:14.5px;color:var(--ink-2);letter-spacing:-.005em;
+  animation:labelFade 5.4s ease-in-out infinite;
+}
+@keyframes labelFade{0%,50%{opacity:1}62%,72%{opacity:.45}84%,100%{opacity:1}}
+
+.empty-chat{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  padding:46px 20px;color:var(--ink-2);font-size:14.5px;text-align:center;
+}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+.toast{
+  position:fixed;left:50%;bottom:calc(var(--dock-h) + var(--kb) + 14px);
+  transform:translate(-50%, 10px);
+  z-index:90;
+  background:#1D1B17;color:#FCFAF7;
+  font-size:13px;padding:9px 15px;border-radius:999px;
+  box-shadow:0 10px 24px -10px rgba(0,0,0,.5);
+  opacity:0;pointer-events:none;
+  transition:opacity 180ms linear, transform 220ms var(--ease);
+  max-width:calc(100vw - 40px);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+
+/* ============================================================
+   Reduced motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  .view{scroll-behavior:auto}
+  .view.enter,.view.leave,.msg,.status-row,.row.appear{animation-duration:1ms !important}
+  .burst .spokes,.burst .spoke,.burst .core{animation:none !important}
+  .burst .spoke{opacity:.85}
+  .status-row .label{animation:none}
+  .pop.open{animation-duration:1ms}
+  .pop.closing{animation-duration:1ms}
+  .field.on{animation:none;opacity:1;clip-path:inset(0 0 0 0 round 999px)}
+  .field.off{animation:none;opacity:0}
+  .field.on .px{animation:none;opacity:var(--o);transform:translate(-50%,-50%) scale(1)}
+  .field.off .px{animation:none;opacity:0}
+  .field .wave{display:none}
+  .field.shimmer{animation:none}
+  .effort-title .layer.in,.effort-title .layer.out{animation-duration:1ms}
+  .caret{animation:none;opacity:1}
+  .press:active,.row:active,.chip:active,.tab:active,.ctl:active{transform:none}
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ===================== SCREENS ===================== -->
+  <div class="screens">
+
+    <!-- ---------- Dashboard ---------- -->
+    <section class="view" id="dashboard" aria-label="Home dashboard" tabindex="-1">
+      <div class="topbar">
+        <button class="icon-btn" id="sidebarBtn" aria-label="Open sidebar" aria-expanded="false" aria-controls="drawer">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3.2" y="4.2" width="17.6" height="15.6" rx="3.4"></rect>
+            <path d="M9.6 4.4v15.2"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="welcome">
+        <span id="logoSlot" aria-hidden="true"></span>
+        <h1>Welcome back, <span id="userName">Imran</span></h1>
+      </div>
+
+      <div class="section-head">
+        <h2 id="sessionsHead">Sessions</h2>
+        <button class="link-btn" id="showMoreBtn" aria-controls="sessionList">Show 10 more</button>
+      </div>
+      <ul class="rows" id="sessionList" aria-labelledby="sessionsHead"></ul>
+
+      <div class="section-head">
+        <h2 id="prHead">Pull requests</h2>
+      </div>
+      <ul class="rows" id="prList" aria-labelledby="prHead"></ul>
+
+      <div class="workspace" id="workspace">
+        <button class="chip" id="envChip" aria-haspopup="menu" aria-expanded="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7.2 18h9.1a3.6 3.6 0 0 0 .4-7.18A5.02 5.02 0 0 0 7.3 11.1 3.5 3.5 0 0 0 7.2 18Z"></path>
+          </svg>
+          <span class="txt" id="envText">Default</span>
+        </button>
+        <button class="chip repo" id="repoChip" aria-haspopup="menu" aria-expanded="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9.2 8.2 5.4 12l3.8 3.8"></path><path d="M14.8 8.2 18.6 12l-3.8 3.8"></path>
+          </svg>
+          <span class="txt" id="repoText">repo</span>
+        </button>
+        <button class="chip branch-chip" id="branchChip" aria-haspopup="menu" aria-expanded="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="7" cy="6.4" r="2.2"></circle><circle cx="7" cy="17.6" r="2.2"></circle><circle cx="17" cy="9" r="2.2"></circle>
+            <path d="M7 8.6v6.8"></path><path d="M17 11.2c0 3.1-2.6 4.6-6 5.1"></path>
+          </svg>
+          <span class="txt" id="branchText">main</span>
+        </button>
+        <button class="chip-sq" id="newSessionBtn" aria-label="Start a new session">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M12 6v12M6 12h12"></path>
+          </svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- ---------- Chat ---------- -->
+    <section class="view" id="chat" aria-label="Chat with Fable 6" tabindex="-1" hidden>
+      <div class="chat-top">
+        <button class="icon-btn" id="backBtn" aria-label="Back to home">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14.5 6 8.5 12l6 6"></path>
+          </svg>
+        </button>
+        <div class="title" id="chatTitle">Fable 6<small id="chatSub">main</small></div>
+        <button class="icon-btn" id="clearBtn" aria-label="Clear chat and start a new one">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4.4 6.6a2.2 2.2 0 0 1 2.2-2.2h10.8a2.2 2.2 0 0 1 2.2 2.2v7.2a2.2 2.2 0 0 1-2.2 2.2H9.6l-5.2 3.6Z"></path>
+            <path d="M12 8.1v4.2M9.9 10.2h4.2"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="thread" id="thread" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Conversation"></div>
+    </section>
+  </div>
+
+  <!-- ===================== DOCK ===================== -->
+  <div class="dock" id="dock">
+    <div class="composer-wrap" id="composerWrap">
+
+      <!-- Model menu -->
+      <div class="pop" id="modelPop" role="dialog" aria-label="Models" aria-modal="false">
+        <div class="pop-title">Models</div>
+        <div class="pop-list" role="radiogroup" aria-label="Models">
+          <button class="pop-item" role="radio" aria-checked="true" id="modelItem">
+            <span class="label" id="modelItemLabel">Fable 6</span>
+            <span class="check" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6 9.6 17.2 19 7.8"></path></svg>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Generic list menu (env / repo / branch / suggestions / profile) -->
+      <div class="pop" id="menuPop" role="dialog" aria-modal="false" aria-label="Options">
+        <div class="pop-title" id="menuPopTitle">Options</div>
+        <div class="pop-list" id="menuPopList"></div>
+      </div>
+
+      <!-- Effort card -->
+      <div class="pop" id="effortPop" role="dialog" aria-modal="false" aria-labelledby="effortTitle">
+        <div class="effort-head">
+          <h2 class="effort-title" id="effortTitle">Effort <b>High</b></h2>
+          <button class="qmark" id="effortHelpBtn" aria-expanded="false" aria-controls="effortHelp" aria-label="About effort levels">?</button>
+        </div>
+        <p class="effort-help" id="effortHelp" hidden>Higher effort gives Fable 6 more room to reason before it writes code. Ultracode is the maximum.</p>
+        <div class="ends" aria-hidden="true"><span>Faster</span><span>Smarter</span></div>
+        <div class="slider">
+          <div class="track" id="track">
+            <div class="field" id="field" aria-hidden="true">
+              <div class="glow"></div>
+              <div class="cells" id="cells"></div>
+              <div class="wave lead" id="waveLead"></div>
+              <div class="wave idle"></div>
+            </div>
+            <div class="dots" id="dots" aria-hidden="true"></div>
+            <div class="knob" id="knob" role="slider" tabindex="0"
+                 aria-label="Effort level" aria-valuemin="1" aria-valuemax="5"
+                 aria-valuenow="3" aria-valuetext="High"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Composer -->
+      <form class="composer" id="composer" autocomplete="off">
+        <div class="input-line">
+          <label class="sr-only" for="input">Describe a task or ask a question</label>
+          <textarea id="input" rows="1" placeholder="Describe a task or ask a question" enterkeyhint="send"></textarea>
+          <button type="submit" class="mini-send" id="miniSend" aria-label="Send message">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9.4 10.2 6 13.6l3.4 3.4"></path>
+              <path d="M6 13.6h9.6A3 3 0 0 0 18.6 10.6V7"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="controls">
+          <button type="button" class="ctl soft" id="autoChip" aria-pressed="true">Auto</button>
+          <button type="button" class="ctl round" id="plusBtn" aria-label="Insert a suggested prompt" aria-haspopup="menu" aria-expanded="false">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"></path></svg>
+          </button>
+          <button type="button" class="ctl model" id="modelBtn" aria-haspopup="dialog" aria-expanded="false">Fable 6</button>
+          <button type="button" class="ctl" id="effortBtn" aria-haspopup="dialog" aria-expanded="false">High</button>
+          <span class="spacer"></span>
+          <button type="submit" class="send" id="sendBtn" aria-label="Send message">
+            <svg id="sendIcon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 18.6V6.2"></path><path d="M6.6 11.6 12 6.2l5.4 5.4"></path>
+            </svg>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ===================== TAB BAR ===================== -->
+    <nav class="tabbar" id="tabbar" aria-label="Main">
+      <button class="tab" id="tabHome" aria-label="Home" aria-current="page">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 11.2 12 4.4l8 6.8"></path>
+          <path d="M5.9 10.6V19a.9.9 0 0 0 .9.9h10.4a.9.9 0 0 0 .9-.9v-8.4"></path>
+        </svg>
+      </button>
+      <button class="tab" id="tabSparkle" aria-label="Suggested prompts">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3.2c.6 4.6 1.9 6 8.8 8.8-6.9 2.8-8.2 4.2-8.8 8.8-.6-4.6-1.9-6-8.8-8.8 6.9-2.8 8.2-4.2 8.8-8.8Z"></path>
+        </svg>
+      </button>
+      <button class="tab" id="tabPlus" aria-label="New chat">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+          <path d="M12 4.8v14.4M4.8 12h14.4"></path>
+        </svg>
+      </button>
+      <button class="tab" id="tabProfile" aria-label="Profile" aria-haspopup="menu" aria-expanded="false">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3.6" y="3.6" width="16.8" height="16.8" rx="6.4"></rect>
+          <path d="M9 10.4v1.2M15 10.4v1.2"></path>
+          <path d="M9.4 15.2c1.6 1.2 3.6 1.2 5.2 0"></path>
+        </svg>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ===================== DRAWER ===================== -->
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="drawer" id="drawer" aria-label="Sidebar" aria-hidden="true">
+    <div class="drawer-head">
+      <span class="brand"><span id="drawerLogo" aria-hidden="true"></span> Fable</span>
+      <button class="icon-btn" id="drawerClose" aria-label="Close sidebar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M6.6 6.6l10.8 10.8M17.4 6.6 6.6 17.4"></path></svg>
+      </button>
+    </div>
+    <button class="drawer-item" id="drawerNew">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"></path></svg>
+      <span class="label">New chat</span>
+    </button>
+    <h3 id="drawerRecentHead">Recent</h3>
+    <ul id="drawerRecent" aria-labelledby="drawerRecentHead"></ul>
+    <div class="drawer-foot">
+      <span class="avatar" id="drawerAvatar" aria-hidden="true">I</span>
+      <span id="drawerUser">Imran</span>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   CONFIG — everything tweakable lives here
+   ============================================================ */
+const CONFIG = {
+  username: "Imran",
+  model: "Fable 6",
+  defaultEffort: "High",
+  efforts: ["Low", "Medium", "High", "Max", "Ultracode"],
+
+  repositories: [
+    "imran/aurora-mobile-platform",
+    "imran/vector-search-service",
+    "imran/fable-design-system",
+    "imran/edge-cache-proxy-experimental"
+  ],
+  branch: "main",
+  branches: ["main", "develop", "feat/effort-slider", "fix/session-loader"],
+  environments: ["Default", "Sandbox"],
+
+  sessionExamples: [
+    { repo: "imran/aurora-mobile-platform",         when: "2m ago" },
+    { repo: "imran/vector-search-service",          when: "6d ago" },
+    { repo: "imran/fable-design-system",            when: "last wk." },
+    { repo: "imran/edge-cache-proxy-experimental",  when: "last wk." },
+    { repo: "imran/telemetry-ingest-worker",        when: "last wk." },
+    { repo: "imran/mobile-release-scripts",         when: "2 wk. ago" },
+    { repo: "imran/schema-migration-toolkit",       when: "2 wk. ago" },
+    { repo: "imran/pixel-shader-playground",        when: "3 wk. ago" },
+    { repo: "imran/auth-gateway",                   when: "3 wk. ago" },
+    { repo: "imran/notes-sync-daemon",              when: "last mo." },
+    { repo: "imran/offline-first-storage-layer",    when: "last mo." },
+    { repo: "imran/gradient-mesh-renderer",         when: "last mo." },
+    { repo: "imran/ci-flake-detector",              when: "last mo." }
+  ],
+
+  pullRequest: { state: "Ready for review", number: "#2", repo: "imran/aurora-mobile-platform", when: "now" },
+
+  suggestions: [
+    "Explain the architecture of this repository",
+    "Find and fix the failing tests",
+    "Write unit tests for the effort slider",
+    "Review my latest commit for bugs"
+  ],
+
+  /* timing */
+  responseDelay: 1400,     // "Starting session…" duration (ms)
+  thinkingDelay: 1000,     // "Fable 6 is thinking…" duration (ms)
+  streamingSpeed: 34,      // ms per word while streaming prose
+  codeStreamingSpeed: 16,  // ms per token inside code blocks
+
+  visibleSessions: 3,
+  sessionBatch: 10,
+  storagePrefix: "fable."
+};
+
+const REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $  = (sel, root) => (root || document).querySelector(sel);
+const $$ = (sel, root) => Array.prototype.slice.call((root || document).querySelectorAll(sel));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* ------------------------------------------------------------
+   Storage (tolerant of private-mode failures)
+   ------------------------------------------------------------ */
+const Store = {
+  get(key, fallback){
+    try {
+      const raw = localStorage.getItem(CONFIG.storagePrefix + key);
+      return raw === null ? fallback : JSON.parse(raw);
+    } catch (e) { return fallback; }
+  },
+  set(key, value){
+    try { localStorage.setItem(CONFIG.storagePrefix + key, JSON.stringify(value)); } catch (e) {}
+  },
+  del(key){
+    try { localStorage.removeItem(CONFIG.storagePrefix + key); } catch (e) {}
+  }
+};
+
+/* ------------------------------------------------------------
+   Starburst logo / loader
+   ------------------------------------------------------------ */
+function makeStarburst(size, opts){
+  const o = opts || {};
+  const spokes = o.spokes || 14;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "-50 -50 100 100");
+  svg.setAttribute("width", size);
+  svg.setAttribute("height", size);
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("class", "burst" + (o.loader ? " loader" : ""));
+
+  const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  group.setAttribute("class", "spokes");
+
+  const inner = o.inner || 15;
+  const outer = o.outer || 43;
+  for (let i = 0; i < spokes; i++){
+    const wrap = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    wrap.setAttribute("transform", "rotate(" + (i * 360 / spokes).toFixed(2) + ")");
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("class", "spoke");
+    line.setAttribute("x1", "0"); line.setAttribute("y1", String(-inner));
+    line.setAttribute("x2", "0"); line.setAttribute("y2", String(-outer));
+    line.setAttribute("stroke-width", String(o.weight || 5.4));
+    line.style.setProperty("--i", String(i));
+    wrap.appendChild(line);
+    group.appendChild(wrap);
+  }
+  svg.appendChild(group);
+
+  const core = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  core.setAttribute("class", "core");
+  core.setAttribute("cx", "0"); core.setAttribute("cy", "0"); core.setAttribute("r", "2");
+  svg.appendChild(core);
+  return svg;
+}
+
+/* ------------------------------------------------------------
+   State
+   ------------------------------------------------------------ */
+const state = {
+  effort: CONFIG.defaultEffort,
+  env: CONFIG.environments[0],
+  repo: CONFIG.repositories[0],
+  branch: CONFIG.branch,
+  view: "dashboard",
+  streaming: false,
+  visible: CONFIG.visibleSessions,
+  messages: [],
+  sessions: []
+};
+
+/* ------------------------------------------------------------
+   Toast
+   ------------------------------------------------------------ */
+const toastEl = $("#toast");
+let toastTimer = null;
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1900);
+}
+
+/* ------------------------------------------------------------
+   Popover manager
+   ------------------------------------------------------------ */
+const Pop = (function(){
+  let openId = null;
+  let anchor = null;
+
+  function el(id){ return document.getElementById(id); }
+
+  function open(id, trigger, place){
+    if (openId === id){ close(); return; }
+    if (openId) close(true);
+    const node = el(id);
+    if (!node) return;
+    openId = id;
+    anchor = trigger || null;
+    node.classList.remove("closing");
+    node.classList.add("open");
+    if (typeof place === "function") place(node);
+    if (trigger) trigger.setAttribute("aria-expanded", "true");
+    node.dispatchEvent(new CustomEvent("pop:open"));
+  }
+
+  function close(silent){
+    if (!openId) return;
+    const node = el(openId);
+    const trigger = anchor;
+    openId = null; anchor = null;
+    if (trigger) trigger.setAttribute("aria-expanded", "false");
+    if (!node) return;
+    node.classList.remove("open");
+    node.classList.add("closing");
+    const done = () => {
+      node.classList.remove("closing");
+      node.removeEventListener("animationend", done);
+    };
+    node.addEventListener("animationend", done);
+    setTimeout(done, 220);
+    node.dispatchEvent(new CustomEvent("pop:close"));
+    if (!silent && trigger && typeof trigger.focus === "function"){
+      // keep focus predictable without stealing it from a text field
+      if (document.activeElement === document.body) trigger.focus();
+    }
+  }
+
+  document.addEventListener("pointerdown", (ev) => {
+    if (!openId) return;
+    const node = el(openId);
+    if (node && node.contains(ev.target)) return;
+    if (anchor && anchor.contains(ev.target)) return;
+    close();
+  }, true);
+
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && openId){ ev.stopPropagation(); close(); }
+  });
+
+  return {
+    open: open,
+    close: close,
+    isOpen: (id) => openId === id,
+    current: () => openId
+  };
+})();
+
+/* place the effort card directly above its button, clamped to the app */
+function placeAboveButton(node, button){
+  const app = $("#app").getBoundingClientRect();
+  const b = button.getBoundingClientRect();
+  const w = node.offsetWidth || 330;
+  let left = (b.left + b.width / 2) - app.left - w / 2;
+  left = clamp(left, 12, Math.max(12, app.width - w - 12));
+  node.style.left = left + "px";
+  node.style.right = "auto";
+}
+
+/* generic list menu ------------------------------------------------ */
+function openListMenu(trigger, title, items){
+  const list = $("#menuPopList");
+  $("#menuPopTitle").textContent = title;
+  list.innerHTML = "";
+  items.forEach((item) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "pop-item";
+    if (item.checked !== undefined){
+      btn.setAttribute("role", "menuitemradio");
+      btn.setAttribute("aria-checked", item.checked ? "true" : "false");
+    } else {
+      btn.setAttribute("role", "menuitem");
+    }
+    const label = document.createElement("span");
+    label.className = "label";
+    label.textContent = item.label;
+    if (item.sub){
+      const sub = document.createElement("span");
+      sub.className = "sub";
+      sub.textContent = item.sub;
+      label.appendChild(sub);
+    }
+    btn.appendChild(label);
+    if (item.checked !== undefined){
+      const check = document.createElement("span");
+      check.className = "check";
+      check.setAttribute("aria-hidden", "true");
+      check.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6 9.6 17.2 19 7.8"></path></svg>';
+      btn.appendChild(check);
+    }
+    btn.addEventListener("click", () => { Pop.close(); item.onSelect && item.onSelect(); });
+    list.appendChild(btn);
+  });
+  list.setAttribute("role", "menu");
+  Pop.open("menuPop", trigger, (node) => {
+    node.style.left = "14px";
+    node.style.right = "14px";
+  });
+}
+
+/* ============================================================
+   EFFORT SLIDER + ULTRACODE PIXEL FIELD
+   ============================================================ */
+const Effort = (function(){
+  const LEVELS = CONFIG.efforts;
+  const ULTRA = LEVELS.length - 1;
+
+  const track = $("#track");
+  const knob = $("#knob");
+  const dots = $("#dots");
+  const field = $("#field");
+  const cells = $("#cells");
+  const waveLead = $("#waveLead");
+  const titleEl = $("#effortTitle");
+  const btn = $("#effortBtn");
+
+  const KNOB = 30, INSET = 2;
+  let index = 2;
+  let pos = 0;            // current px offset of the knob
+  let target = 0;
+  let vel = 0;
+  let raf = null;
+  let dragging = false;
+  let ultraOn = false;
+  let builtWidth = 0;
+
+  function travel(){
+    return Math.max(1, track.clientWidth - KNOB - INSET * 2);
+  }
+  function posFor(i){
+    return (i / (LEVELS.length - 1)) * travel();
+  }
+  function render(){
+    knob.style.transform = "translateX(" + pos.toFixed(2) + "px) scale(" + (dragging ? 1.1 : 1) + ")";
+  }
+
+  /* gentle spring toward the snapped position */
+  function spring(){
+    raf = null;
+    vel += (target - pos) * 0.2;
+    vel *= 0.72;
+    pos += vel;
+    if (Math.abs(target - pos) < 0.15 && Math.abs(vel) < 0.15){
+      pos = target; vel = 0; render(); return;
+    }
+    render();
+    raf = requestAnimationFrame(spring);
+  }
+  function animateTo(px){
+    target = px;
+    if (REDUCED){ pos = px; vel = 0; render(); return; }
+    if (raf === null) raf = requestAnimationFrame(spring);
+  }
+
+  /* ---------- pixel mosaic ---------- */
+  const SHADES = ["#3B0F73","#4C1D95","#5B21B6","#6D28D9","#7C3AED","#8B5CF6","#9F7AEA","#A78BFA","#C4B5FD","#DDD1FE"];
+  function rand(a, b){ return a + Math.random() * (b - a); }
+
+  function buildCells(){
+    const w = track.clientWidth;
+    if (!w || w === builtWidth) return;
+    builtWidth = w;
+    cells.textContent = "";
+
+    const pitch = 7;
+    const cols = Math.max(18, Math.round(w / pitch));
+    const rows = 4;
+    const frag = document.createDocumentFragment();
+
+    function cell(x, y, boost){
+      const d = document.createElement("i");
+      d.className = "px";
+      const size = rand(3.8, 6.6) + (boost ? 0.5 : 0);
+      /* skew toward the deeper end so the mosaic reads rich, with lighter cells as sparkle */
+      const shade = SHADES[Math.floor(Math.pow(Math.random(), 1.3) * SHADES.length)];
+      // right-hand side sits denser + brighter, so the mosaic gathers near Ultracode
+      const opacity = clamp(rand(0.34, 0.82) + x * 0.22 + (boost ? 0.1 : 0), 0.18, 1);
+      d.style.left = (x * 100).toFixed(3) + "%";
+      d.style.top = (y * 100).toFixed(3) + "%";
+      d.style.setProperty("--s", size.toFixed(2) + "px");
+      d.style.setProperty("--c", shade);
+      d.style.setProperty("--o", opacity.toFixed(3));
+      d.style.setProperty("--x", x.toFixed(4));
+      d.style.setProperty("--d", Math.round(rand(0, 2600)) + "ms");
+      d.style.setProperty("--sd", Math.round(rand(2200, 4200)) + "ms");
+      frag.appendChild(d);
+    }
+
+    for (let r = 0; r < rows; r++){
+      for (let c = 0; c < cols; c++){
+        const x = clamp((c + 0.5) / cols + rand(-0.006, 0.006), 0, 1);
+        const y = (r + 0.5) / rows + rand(-0.05, 0.05);
+        cell(x, y, false);
+      }
+    }
+    // extra cells clustered on the right for the "gathering" beat
+    const extras = Math.round(cols * 0.9);
+    for (let i = 0; i < extras; i++){
+      const x = clamp(0.52 + Math.pow(Math.random(), 0.55) * 0.48, 0, 1);
+      cell(x, rand(0.08, 0.92), true);
+    }
+    cells.appendChild(frag);
+  }
+
+  function setUltra(on){
+    if (on === ultraOn) return;
+    ultraOn = on;
+    buildCells();
+    track.classList.toggle("ultra", on);
+    if (on){
+      field.classList.remove("off");
+      void field.offsetWidth;
+      field.classList.add("on");
+    } else {
+      field.classList.remove("on");
+      void field.offsetWidth;
+      field.classList.add("off");
+    }
+  }
+
+  function shimmer(){
+    if (!ultraOn || REDUCED) return;
+    field.classList.remove("shimmer");
+    void field.offsetWidth;
+    field.classList.add("shimmer");
+    waveLead.style.animation = "none";
+    void waveLead.offsetWidth;
+    waveLead.style.animation = "";
+    setTimeout(() => field.classList.remove("shimmer"), 760);
+  }
+
+  /* ---------- heading + composer label ---------- */
+  function paintTitle(name){
+    const layers = $$(".layer", titleEl);
+    const current = layers[layers.length - 1];
+    if (current && current.getAttribute("data-name") === name) return;
+
+    /* a fast drag can outrun the crossfade — never let stale layers stack up */
+    layers.forEach((l) => { if (l !== current && l.parentNode) l.parentNode.removeChild(l); });
+    if (!current) titleEl.textContent = "";   /* drop the static markup on first paint */
+
+    const next = document.createElement("span");
+    next.className = "layer" + (current ? " in" : "");
+    next.setAttribute("data-name", name);
+    next.innerHTML = 'Effort <b class="' + (name === "Ultracode" ? "ultra" : "") + '">' + name + "</b>";
+
+    if (current){
+      current.classList.remove("in");
+      current.classList.add("out");
+      const kill = () => { if (current.parentNode) current.parentNode.removeChild(current); };
+      current.addEventListener("animationend", kill, { once: true });
+      setTimeout(kill, 340);
+    }
+    titleEl.appendChild(next);
+  }
+
+  function paintButton(name){
+    btn.textContent = name;
+    btn.setAttribute("aria-label", "Effort level: " + name);
+    if (name === "Ultracode") btn.setAttribute("data-ultra", "1");
+    else btn.removeAttribute("data-ultra");
+  }
+
+  function apply(i, opts){
+    const o = opts || {};
+    i = clamp(Math.round(i), 0, LEVELS.length - 1);
+    const changed = i !== index;
+    index = i;
+    const name = LEVELS[i];
+
+    knob.setAttribute("aria-valuenow", String(i + 1));
+    knob.setAttribute("aria-valuetext", name);
+    paintTitle(name);
+    paintButton(name);
+    setUltra(i === ULTRA);
+
+    if (!o.silent) Store.set("effort", name);
+    if (!o.noMove) animateTo(posFor(i));
+    state.effort = name;
+    return changed;
+  }
+
+  /* ---------- ticks ---------- */
+  function buildTicks(){
+    dots.textContent = "";
+    for (let i = 0; i < LEVELS.length; i++){
+      const t = document.createElement("span");
+      t.className = "tick" + (i === ULTRA ? " ultra-tick" : "");
+      const x = INSET + KNOB / 2 + posFor(i);
+      t.style.left = x + "px";
+      dots.appendChild(t);
+    }
+  }
+
+  /* ---------- pointer / keyboard ---------- */
+  function indexFromClientX(clientX){
+    const r = track.getBoundingClientRect();
+    const raw = (clientX - r.left - INSET - KNOB / 2) / travel();
+    return clamp(Math.round(raw * (LEVELS.length - 1)), 0, LEVELS.length - 1);
+  }
+  function pxFromClientX(clientX){
+    const r = track.getBoundingClientRect();
+    return clamp(clientX - r.left - INSET - KNOB / 2, 0, travel());
+  }
+
+  track.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault();
+    dragging = true;
+    knob.classList.add("grab");
+    if (track.setPointerCapture) { try { track.setPointerCapture(ev.pointerId); } catch (e) {} }
+    if (raf !== null){ cancelAnimationFrame(raf); raf = null; }
+    vel = 0;
+    pos = pxFromClientX(ev.clientX);
+    render();
+    apply(indexFromClientX(ev.clientX), { noMove: true });
+    knob.focus({ preventScroll: true });
+  });
+
+  track.addEventListener("pointermove", (ev) => {
+    if (!dragging) return;
+    pos = pxFromClientX(ev.clientX);
+    render();
+    apply(indexFromClientX(ev.clientX), { noMove: true });
+  });
+
+  function endDrag(){
+    if (!dragging) return;
+    dragging = false;
+    knob.classList.remove("grab");
+    render();
+    animateTo(posFor(index));
+  }
+  track.addEventListener("pointerup", endDrag);
+  track.addEventListener("pointercancel", endDrag);
+  window.addEventListener("pointerup", endDrag);
+
+  knob.addEventListener("keydown", (ev) => {
+    let next = index;
+    switch (ev.key){
+      case "ArrowLeft": case "ArrowDown": next = index - 1; break;
+      case "ArrowRight": case "ArrowUp": next = index + 1; break;
+      case "Home": next = 0; break;
+      case "End": next = LEVELS.length - 1; break;
+      default: return;
+    }
+    ev.preventDefault();
+    apply(next);
+  });
+
+  /* ---------- layout ---------- */
+  function relayout(){
+    builtWidth = 0;
+    buildTicks();
+    buildCells();
+    pos = posFor(index);
+    target = pos;
+    render();
+  }
+
+  function init(){
+    const saved = Store.get("effort", null);
+    const i = LEVELS.indexOf(saved);
+    index = i >= 0 ? i : LEVELS.indexOf(CONFIG.defaultEffort);
+    if (index < 0) index = 2;
+    paintTitle(LEVELS[index]);
+    paintButton(LEVELS[index]);
+    state.effort = LEVELS[index];
+    knob.setAttribute("aria-valuemax", String(LEVELS.length));
+    knob.setAttribute("aria-valuenow", String(index + 1));
+    knob.setAttribute("aria-valuetext", LEVELS[index]);
+  }
+
+  return {
+    init: init,
+    relayout: relayout,
+    shimmer: shimmer,
+    isUltra: () => index === ULTRA,
+    name: () => LEVELS[index],
+    /* called after the card becomes visible so widths are measurable */
+    activate(){
+      relayout();
+      if (index === ULTRA){
+        ultraOn = false;
+        setUltra(true);
+        shimmer();
+      }
+    }
+  };
+})();
+
+/* ============================================================
+   Dashboard rendering
+   ============================================================ */
+function timeGlyph(){
+  return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<circle cx="7" cy="6.4" r="2.1"></circle><circle cx="7" cy="17.6" r="2.1"></circle><circle cx="17" cy="9" r="2.1"></circle>' +
+    '<path d="M7 8.5v6.9"></path><path d="M17 11.1c0 3.1-2.6 4.6-6 5.1"></path></svg>';
+}
+function chevron(){
+  return '<span class="chev" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 6.4l5.6 5.6-5.6 5.6"></path></svg></span>';
+}
+
+function loadSessions(){
+  const saved = Store.get("sessions", null);
+  state.sessions = Array.isArray(saved) && saved.length
+    ? saved
+    : CONFIG.sessionExamples.map((s) => ({ repo: s.repo, when: s.when }));
+}
+
+function renderSessions(){
+  const list = $("#sessionList");
+  const shown = state.sessions.slice(0, state.visible);
+  const existing = list.children.length;
+  list.textContent = "";
+  shown.forEach((s, i) => {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "row";
+    if (i >= existing) b.classList.add("appear");
+    b.style.animationDelay = Math.max(0, (i - existing)) * 26 + "ms";
+    b.innerHTML =
+      '<span class="glyph branch">' + timeGlyph() + "</span>" +
+      '<span class="name"></span>' +
+      '<span class="meta"></span>' + chevron();
+    b.querySelector(".name").textContent = s.repo;
+    b.querySelector(".meta").textContent = s.when;
+    b.setAttribute("aria-label", "Open session " + s.repo + ", " + s.when);
+    b.addEventListener("click", () => openSession(s));
+    li.appendChild(b);
+    list.appendChild(li);
+  });
+
+  const remaining = state.sessions.length - state.visible;
+  const more = $("#showMoreBtn");
+  if (remaining > 0){
+    more.hidden = false;
+    more.textContent = "Show " + Math.min(CONFIG.sessionBatch, remaining) + " more";
+    more.setAttribute("aria-label", "Show " + Math.min(CONFIG.sessionBatch, remaining) + " more sessions");
+  } else if (state.sessions.length > CONFIG.visibleSessions){
+    more.hidden = false;
+    more.textContent = "Show less";
+    more.setAttribute("aria-label", "Show fewer sessions");
+  } else {
+    more.hidden = true;
+  }
+}
+
+function renderPR(){
+  const pr = CONFIG.pullRequest;
+  const list = $("#prList");
+  list.textContent = "";
+  const li = document.createElement("li");
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "row";
+  b.innerHTML =
+    '<span class="dot-status" aria-hidden="true"></span>' +
+    '<span class="pr-label"></span>' +
+    '<span class="pr-num"></span>' +
+    '<span class="name" style="flex:1 1 auto;font-weight:400;color:var(--ink-2);font-size:14px"></span>' +
+    '<span class="meta"></span>' + chevron();
+  b.querySelector(".pr-label").textContent = pr.state;
+  b.querySelector(".pr-num").textContent = pr.number;
+  b.querySelector(".name").textContent = pr.repo;
+  b.querySelector(".meta").textContent = pr.when;
+  b.setAttribute("aria-label", pr.state + " pull request " + pr.number + " in " + pr.repo + ", " + pr.when);
+  b.addEventListener("click", () => {
+    state.repo = pr.repo;
+    paintWorkspace();
+    goChat();
+    addNote("Pull request " + pr.number + " · " + pr.repo + " · " + pr.state);
+    focusInput();
+  });
+  li.appendChild(b);
+  list.appendChild(li);
+}
+
+function paintWorkspace(){
+  $("#envText").textContent = state.env;
+  $("#repoText").textContent = state.repo;
+  $("#branchText").textContent = state.branch;
+  $("#envChip").setAttribute("aria-label", "Environment: " + state.env);
+  $("#repoChip").setAttribute("aria-label", "Repository: " + state.repo);
+  $("#branchChip").setAttribute("aria-label", "Branch: " + state.branch);
+  $("#chatSub").textContent = state.repo + " · " + state.branch;
+}
+
+function renderDrawerRecent(){
+  const ul = $("#drawerRecent");
+  ul.textContent = "";
+  state.sessions.slice(0, 6).forEach((s) => {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "drawer-item";
+    b.innerHTML = '<span class="glyph branch" style="color:var(--yellow)">' + timeGlyph() + '</span><span class="label"></span><span class="when"></span>';
+    b.querySelector(".label").textContent = s.repo;
+    b.querySelector(".when").textContent = s.when;
+    b.addEventListener("click", () => { closeDrawer(); openSession(s); });
+    li.appendChild(b);
+    ul.appendChild(li);
+  });
+}
+
+function openSession(s){
+  state.repo = s.repo;
+  paintWorkspace();
+  goChat();
+  addNote("Session · " + s.repo + " · " + s.when);
+  focusInput();
+}
+
+/* ============================================================
+   Views
+   ============================================================ */
+function showView(name){
+  if (state.view === name) return;
+  const from = $("#" + state.view);
+  const to = $("#" + name);
+  state.view = name;
+
+  from.classList.remove("enter");
+  from.classList.add("leave");
+  const swap = () => {
+    from.classList.remove("leave");
+    from.hidden = true;
+    to.hidden = false;
+    to.classList.remove("leave");
+    to.classList.add("enter");
+    to.scrollTop = name === "chat" ? to.scrollHeight : 0;
+  };
+  if (REDUCED) swap(); else setTimeout(swap, 150);
+
+  $("#tabHome").setAttribute("aria-current", name === "dashboard" ? "page" : "false");
+}
+function goChat(){
+  if (!state.messages.length && !$("#thread").children.length) renderEmptyChat();
+  showView("chat");
+}
+function goDashboard(){ showView("dashboard"); }
+
+function renderEmptyChat(){
+  const t = $("#thread");
+  if ($(".empty-chat", t)) return;
+  const d = document.createElement("div");
+  d.className = "empty-chat";
+  d.id = "emptyChat";
+  const burst = makeStarburst(30, { spokes: 14, weight: 6 });
+  d.appendChild(burst);
+  const p = document.createElement("p");
+  p.textContent = "Describe a task and " + CONFIG.model + " gets to work.";
+  d.appendChild(p);
+  t.appendChild(d);
+}
+function dropEmptyChat(){
+  const e = $("#emptyChat");
+  if (e && e.parentNode) e.parentNode.removeChild(e);
+}
+
+/* ============================================================
+   Chat rendering
+   ============================================================ */
+const thread = $("#thread");
+const chatView = $("#chat");
+
+function nearBottom(){
+  return chatView.scrollHeight - chatView.scrollTop - chatView.clientHeight < 140;
+}
+function scrollToEnd(force){
+  if (!force && !nearBottom()) return;
+  const top = chatView.scrollHeight;
+  if (force && !REDUCED && chatView.scrollTo){
+    chatView.scrollTo({ top: top, behavior: "smooth" });
+  } else {
+    chatView.scrollTop = top;
+  }
+}
+
+function addUserMessage(text){
+  dropEmptyChat();
+  const wrap = document.createElement("div");
+  wrap.className = "msg user";
+  const b = document.createElement("div");
+  b.className = "bubble";
+  b.textContent = text;
+  wrap.appendChild(b);
+  thread.appendChild(wrap);
+  scrollToEnd(true);
+  return wrap;
+}
+
+function addNote(text){
+  dropEmptyChat();
+  const wrap = document.createElement("div");
+  wrap.className = "msg note";
+  const n = document.createElement("div");
+  n.className = "note-inner";
+  n.textContent = text;
+  wrap.appendChild(n);
+  thread.appendChild(wrap);
+  scrollToEnd(true);
+}
+
+function addStatusRow(label){
+  const row = document.createElement("div");
+  row.className = "status-row";
+  row.appendChild(makeStarburst(28, { spokes: 14, weight: 6.4, loader: true }));
+  const span = document.createElement("span");
+  span.className = "label";
+  span.textContent = label;
+  row.appendChild(span);
+  thread.appendChild(row);
+  scrollToEnd(true);
+  return { row: row, setLabel: (t) => { span.textContent = t; } };
+}
+
+/* ------------------------------------------------------------
+   Offline response simulation
+   ------------------------------------------------------------ */
+const RESPONSES = {
+  greeting: [
+    [{ t: "p", v: "Hey {user} — good to see you. I'm running fully offline in this demo, so nothing here leaves your device." },
+     { t: "p", v: "Tell me what you're working on and I'll pick it up from there: a bug to chase, a feature to sketch, or a file you want explained." }]
+  ],
+  coding: [
+    [{ t: "p", v: "Here's a compact way to do it. I'd keep the debounce outside the render path so the timer survives re-renders:" },
+     { t: "code", v: "function debounce(fn, wait = 200) {\n  let id = null;\n  return function (...args) {\n    clearTimeout(id);\n    id = setTimeout(() => fn.apply(this, args), wait);\n  };\n}\n\nconst onResize = debounce(() => layout(), 120);\nwindow.addEventListener('resize', onResize, { passive: true });" },
+     { t: "p", v: "Two things worth adding once it works:" },
+     { t: "ul", v: ["a cancel() handle so teardown can clear a pending timer", "a leading-edge option — the first call often should not wait"] }],
+    [{ t: "p", v: "I'd model this as a small state machine rather than a pile of booleans — it keeps the transitions honest and makes the edge cases visible:" },
+     { t: "code", v: "const TRANSITIONS = {\n  idle:      { start: 'loading' },\n  loading:   { done: 'ready', fail: 'error' },\n  ready:     { reset: 'idle' },\n  error:     { start: 'loading' }\n};\n\nfunction next(state, event) {\n  return (TRANSITIONS[state] && TRANSITIONS[state][event]) || state;\n}" },
+     { t: "p", v: "Every impossible combination simply stops existing, and the UI can render straight off the single state value." }]
+  ],
+  debug: [
+    [{ t: "p", v: "That reads like a value being used one tick before it exists. Three checks, in this order:" },
+     { t: "ul", v: ["log the value immediately before the line that throws, not inside the handler", "confirm the element is mounted — a measured width of 0 usually means it isn't", "check for an early return that skips the assignment on some paths"] },
+     { t: "p", v: "A guard clause turns the crash into a no-op while you narrow it down:" },
+     { t: "code", v: "const track = el.querySelector('.track');\nif (!track || !track.clientWidth) return; // nothing to measure yet\n\nconst travel = track.clientWidth - KNOB;" },
+     { t: "p", v: "If the width is still 0 there, the measurement is happening while the parent is hidden — measure after it becomes visible instead." }],
+    [{ t: "p", v: "Intermittent failures usually mean shared state, not bad logic. I'd look for a timer or listener that outlives the thing that created it." },
+     { t: "code", v: "let raf = null;\n\nfunction start() {\n  if (raf !== null) return;      // never stack two loops\n  raf = requestAnimationFrame(tick);\n}\n\nfunction stop() {\n  if (raf !== null) cancelAnimationFrame(raf);\n  raf = null;\n}" },
+     { t: "p", v: "Once each loop has exactly one owner, the flake normally disappears on its own." }]
+  ],
+  explain: [
+    [{ t: "p", v: "At a high level this project has three layers, and each one only talks to the one beneath it:" },
+     { t: "ul", v: ["a thin view layer that renders state and forwards intent", "a state module that owns transitions and persistence", "an adapter layer that talks to storage and the platform"] },
+     { t: "p", v: "The useful consequence: you can replace the view without touching the rules, and swap storage without touching the view." }]
+  ],
+  tests: [
+    [{ t: "p", v: "I'd cover the boundaries first — the middle of a range rarely breaks. For the slider that means the ends and the snapping:" },
+     { t: "code", v: "test('defaults to High when nothing is stored', () => {\n  expect(effortFromStorage(null)).toBe('High');\n});\n\ntest('snaps to the nearest level', () => {\n  expect(indexFor(0.62)).toBe(2);\n  expect(indexFor(0.97)).toBe(4);\n});" },
+     { t: "p", v: "Then one test per persisted value, so a rename can never silently reset someone's choice." }]
+  ],
+  general: [
+    [{ t: "p", v: "Good prompt. Here's how I'd approach it:" },
+     { t: "ul", v: ["restate the goal in one sentence, so we agree on done", "find the smallest change that proves the approach works", "widen it only once the small version holds up"] },
+     { t: "p", v: "Point me at the file or paste the part you're unsure about and I'll work through it concretely." }],
+    [{ t: "p", v: "I can take that on. To keep it tight, I'd start from the current behaviour and change one thing at a time — that way anything that breaks has an obvious cause." },
+     { t: "p", v: "If you tell me which file it lives in, I'll sketch the diff first so you can sanity-check the direction before anything gets written." }]
+  ]
+};
+
+function pick(list){ return list[Math.floor(Math.random() * list.length)]; }
+
+const GREETING = /^(hi|hey+|hello|yo|sup|howdy|good (morning|afternoon|evening))\b/;
+
+function chooseResponse(text){
+  const q = text.toLowerCase().trim();
+  const has = (words) => words.some((w) => q.indexOf(w) !== -1);
+
+  if (q.length < 40 && GREETING.test(q))
+    return pick(RESPONSES.greeting);
+  if (has(["error", "bug", "crash", "fails", "failing", "undefined", "null", "stack trace", "why doesn't", "why does not", "broken", "flaky", "nan"]))
+    return pick(RESPONSES.debug);
+  if (has(["test", "tests", "spec", "coverage", "jest", "vitest"]))
+    return pick(RESPONSES.tests);
+  if (has(["explain", "how does", "architecture", "overview", "walk me through", "what is this", "structure"]))
+    return pick(RESPONSES.explain);
+  if (has(["write", "implement", "refactor", "add", "build", "create", "function", "component", "hook", "class", "api", "css", "typescript", "javascript", "python", "optimi"]))
+    return pick(RESPONSES.coding);
+  return pick(RESPONSES.general);
+}
+
+function fill(str){
+  return str.replace(/\{user\}/g, CONFIG.username).replace(/\{model\}/g, CONFIG.model);
+}
+
+/* ------------------------------------------------------------
+   Streaming
+   ------------------------------------------------------------ */
+let streamToken = 0;
+
+function streamResponse(parts, done){
+  const myToken = ++streamToken;
+  dropEmptyChat();
+
+  const wrap = document.createElement("div");
+  wrap.className = "msg bot";
+  const body = document.createElement("div");
+  body.className = "bot-body";
+  wrap.appendChild(body);
+  thread.appendChild(wrap);
+
+  const caret = document.createElement("span");
+  caret.className = "caret";
+  caret.setAttribute("aria-hidden", "true");
+
+  /* flatten into a queue of {block, chunk} */
+  const queue = [];
+  parts.forEach((part, pi) => {
+    if (part.t === "ul"){
+      part.v.forEach((item, li) => {
+        tokenize(fill(item)).forEach((chunk, ci) => {
+          queue.push({ pi: pi, li: li, kind: "ul", chunk: chunk, first: ci === 0 });
+        });
+      });
+    } else {
+      tokenize(fill(part.v)).forEach((chunk, ci) => {
+        queue.push({ pi: pi, kind: part.t, chunk: chunk, first: ci === 0 });
+      });
+    }
+  });
+
+  function tokenize(text){
+    const raw = text.split(/(\s+)/).filter((s) => s.length);
+    const out = [];
+    for (let i = 0; i < raw.length; i++){
+      if (/^\s+$/.test(raw[i]) && out.length) out[out.length - 1] += raw[i];
+      else out.push(raw[i]);
+    }
+    return out;
+  }
+
+  let i = 0;
+  const blocks = {};
+
+  function blockFor(item){
+    const key = item.kind === "ul" ? "ul" + item.pi : "b" + item.pi;
+    if (blocks[key]) return blocks[key];
+    let node;
+    if (item.kind === "code"){
+      node = document.createElement("pre");
+      const code = document.createElement("code");
+      node.appendChild(code);
+      blocks[key] = code;
+      body.appendChild(node);
+      return code;
+    }
+    if (item.kind === "ul"){
+      node = document.createElement("ul");
+      node.className = "b";
+      body.appendChild(node);
+      blocks[key] = node;
+      return node;
+    }
+    node = document.createElement("p");
+    body.appendChild(node);
+    blocks[key] = node;
+    return node;
+  }
+
+  function liFor(item){
+    const ul = blockFor(item);
+    const key = "li" + item.pi + "-" + item.li;
+    if (blocks[key]) return blocks[key];
+    const li = document.createElement("li");
+    ul.appendChild(li);
+    blocks[key] = li;
+    return li;
+  }
+
+  function finish(){
+    if (caret.parentNode) caret.parentNode.removeChild(caret);
+    scrollToEnd();
+    if (typeof done === "function") done(body);
+  }
+
+  if (REDUCED){
+    while (i < queue.length){
+      const item = queue[i++];
+      const host = item.kind === "ul" ? liFor(item) : blockFor(item);
+      host.appendChild(document.createTextNode(item.chunk));
+    }
+    finish();
+    return;
+  }
+
+  function step(){
+    if (myToken !== streamToken){ finish(); return; }
+    if (i >= queue.length){ finish(); return; }
+    const item = queue[i++];
+    const host = item.kind === "ul" ? liFor(item) : blockFor(item);
+    host.appendChild(document.createTextNode(item.chunk));
+    host.appendChild(caret);
+    scrollToEnd();
+    const base = item.kind === "code" ? CONFIG.codeStreamingSpeed : CONFIG.streamingSpeed;
+    const jitter = item.chunk.indexOf("\n") !== -1 ? 90 : Math.random() * base * 0.9;
+    setTimeout(step, base + jitter);
+  }
+  setTimeout(step, 60);
+}
+
+/* ------------------------------------------------------------
+   Send flow
+   ------------------------------------------------------------ */
+const input = $("#input");
+const sendBtn = $("#sendBtn");
+const miniSend = $("#miniSend");
+
+function setBusy(busy){
+  state.streaming = busy;
+  sendBtn.classList.toggle("busy", busy);
+  sendBtn.setAttribute("aria-label", busy ? "Stop generating" : "Send message");
+  miniSend.disabled = busy;
+  $("#sendIcon").innerHTML = busy
+    ? '<rect x="7.4" y="7.4" width="9.2" height="9.2" rx="2.2" fill="currentColor" stroke="none"></rect>'
+    : '<path d="M12 18.6V6.2"></path><path d="M6.6 11.6 12 6.2l5.4 5.4"></path>';
+}
+
+function persistChat(){
+  Store.set("chat", state.messages.slice(-40));
+}
+
+function recordSession(){
+  const first = state.sessions[0];
+  if (first && first.repo === state.repo && first.when === "now") return;
+  /* one row per repository — the newest activity replaces the older entry */
+  state.sessions = [{ repo: state.repo, when: "now" }].concat(
+    state.sessions.filter((s) => s.repo !== state.repo)
+  );
+  Store.set("sessions", state.sessions.slice(0, 24));
+  renderSessions();
+  renderDrawerRecent();
+}
+
+function send(){
+  const text = input.value.replace(/\s+$/, "");
+  if (!text || state.streaming) return;
+
+  Pop.close();
+  input.value = "";
+  autogrow();
+  goChat();
+  dropEmptyChat();
+
+  addUserMessage(text);
+  state.messages.push({ role: "user", text: text });
+  persistChat();
+  recordSession();
+  setBusy(true);
+
+  const status = addStatusRow("Starting session…");
+  const parts = chooseResponse(text);
+
+  setTimeout(() => {
+    status.setLabel(CONFIG.model + " is thinking…");
+    setTimeout(() => {
+      if (status.row.parentNode) status.row.parentNode.removeChild(status.row);
+      streamResponse(parts, (body) => {
+        state.messages.push({ role: "assistant", text: body.textContent });
+        persistChat();
+        setBusy(false);
+      });
+    }, CONFIG.thinkingDelay);
+  }, CONFIG.responseDelay);
+}
+
+function stopStreaming(){
+  streamToken++;
+  setBusy(false);
+}
+
+/* textarea autogrow ------------------------------------------------ */
+function autogrow(){
+  input.style.height = "auto";
+  const max = 132;
+  const h = Math.min(input.scrollHeight, max);
+  input.style.height = h + "px";
+  input.style.overflowY = input.scrollHeight > max ? "auto" : "hidden";
+  measureDock();
+}
+function focusInput(){
+  setTimeout(() => input.focus({ preventScroll: true }), 60);
+}
+
+/* ============================================================
+   Chat restore
+   ============================================================ */
+function restoreChat(){
+  const saved = Store.get("chat", []);
+  if (!Array.isArray(saved) || !saved.length){ renderEmptyChat(); return; }
+  state.messages = saved;
+  saved.forEach((m) => {
+    if (m.role === "user"){ addUserMessage(m.text); return; }
+    const wrap = document.createElement("div");
+    wrap.className = "msg bot";
+    const body = document.createElement("div");
+    body.className = "bot-body";
+    const p = document.createElement("p");
+    p.textContent = m.text;
+    body.appendChild(p);
+    wrap.appendChild(body);
+    thread.appendChild(wrap);
+  });
+}
+
+function clearChat(){
+  streamToken++;
+  setBusy(false);
+  state.messages = [];
+  Store.del("chat");
+  thread.textContent = "";
+  renderEmptyChat();
+  toast("New chat");
+}
+
+/* ============================================================
+   Drawer
+   ============================================================ */
+const drawer = $("#drawer");
+const scrim = $("#scrim");
+let drawerReturn = null;
+
+function openDrawer(){
+  drawerReturn = document.activeElement;
+  scrim.hidden = false;
+  requestAnimationFrame(() => scrim.classList.add("show"));
+  drawer.classList.add("open");
+  drawer.setAttribute("aria-hidden", "false");
+  $("#sidebarBtn").setAttribute("aria-expanded", "true");
+  setTimeout(() => $("#drawerNew").focus({ preventScroll: true }), 120);
+}
+function closeDrawer(){
+  if (!drawer.classList.contains("open")) return;
+  drawer.classList.remove("open");
+  drawer.setAttribute("aria-hidden", "true");
+  scrim.classList.remove("show");
+  $("#sidebarBtn").setAttribute("aria-expanded", "false");
+  setTimeout(() => { scrim.hidden = true; }, 220);
+  if (drawerReturn && typeof drawerReturn.focus === "function") drawerReturn.focus({ preventScroll: true });
+  drawerReturn = null;
+}
+
+/* ============================================================
+   Layout plumbing
+   ============================================================ */
+const dock = $("#dock");
+function measureDock(){
+  const h = dock.offsetHeight;
+  if (h) document.documentElement.style.setProperty("--dock-h", h + "px");
+}
+if (window.ResizeObserver){
+  new ResizeObserver(measureDock).observe(dock);
+} else {
+  window.addEventListener("resize", measureDock);
+}
+
+/* mobile keyboard */
+const vv = window.visualViewport;
+if (vv){
+  const syncViewport = () => {
+    const gap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    document.documentElement.style.setProperty("--kb", Math.round(gap) + "px");
+  };
+  vv.addEventListener("resize", syncViewport);
+  vv.addEventListener("scroll", syncViewport);
+  syncViewport();
+}
+
+function syncDesktopFlag(){
+  document.body.classList.toggle("is-desktop", window.innerWidth > 520);
+}
+
+/* ============================================================
+   Wiring
+   ============================================================ */
+function wire(){
+  /* logo + identity */
+  $("#logoSlot").appendChild(makeStarburst(30, { spokes: 14, weight: 6 }));
+  $("#drawerLogo").appendChild(makeStarburst(20, { spokes: 12, weight: 7 }));
+  $("#userName").textContent = CONFIG.username;
+  $("#drawerUser").textContent = CONFIG.username;
+  $("#drawerAvatar").textContent = CONFIG.username.charAt(0).toUpperCase();
+  $("#modelBtn").textContent = CONFIG.model;
+  $("#modelBtn").setAttribute("aria-label", "Model: " + CONFIG.model);
+  $("#modelItemLabel").textContent = CONFIG.model;
+  $("#chatTitle").firstChild.textContent = CONFIG.model;
+  document.title = "Fable — " + CONFIG.model;
+
+  /* composer */
+  $("#composer").addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    if (state.streaming) stopStreaming(); else send();
+  });
+  input.addEventListener("input", autogrow);
+  input.addEventListener("focus", () => $("#composer").classList.add("focused"));
+  input.addEventListener("blur", () => $("#composer").classList.remove("focused"));
+  input.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" && !ev.shiftKey && !ev.altKey && !ev.ctrlKey && !ev.metaKey){
+      ev.preventDefault();
+      send();
+    }
+  });
+
+  /* model menu */
+  $("#modelBtn").addEventListener("click", () => {
+    Pop.open("modelPop", $("#modelBtn"), (node) => { node.style.left = "14px"; node.style.right = "auto"; });
+  });
+  $("#modelItem").addEventListener("click", () => { Pop.close(); toast(CONFIG.model + " selected"); });
+
+  /* effort card */
+  $("#effortBtn").addEventListener("click", () => {
+    const willOpen = !Pop.isOpen("effortPop");
+    Pop.open("effortPop", $("#effortBtn"), (node) => placeAboveButton(node, $("#effortBtn")));
+    if (willOpen) requestAnimationFrame(() => Effort.activate());
+  });
+  $("#effortHelpBtn").addEventListener("click", () => {
+    const help = $("#effortHelp");
+    const open = help.hidden;
+    help.hidden = !open;
+    $("#effortHelpBtn").setAttribute("aria-expanded", open ? "true" : "false");
+  });
+
+  /* auto chip */
+  $("#autoChip").addEventListener("click", (ev) => {
+    const on = ev.currentTarget.getAttribute("aria-pressed") === "true";
+    ev.currentTarget.setAttribute("aria-pressed", on ? "false" : "true");
+    toast(on ? "Auto mode off" : "Auto mode on");
+  });
+
+  /* suggestions */
+  function openSuggestions(trigger){
+    openListMenu(trigger, "Suggested prompts", CONFIG.suggestions.map((s) => ({
+      label: s,
+      onSelect(){
+        input.value = s;
+        autogrow();
+        focusInput();
+      }
+    })));
+  }
+  $("#plusBtn").addEventListener("click", (ev) => openSuggestions(ev.currentTarget));
+  $("#tabSparkle").addEventListener("click", (ev) => openSuggestions(ev.currentTarget));
+
+  /* workspace chips */
+  $("#envChip").addEventListener("click", (ev) => {
+    openListMenu(ev.currentTarget, "Environment", CONFIG.environments.map((e) => ({
+      label: e, checked: e === state.env,
+      onSelect(){ state.env = e; paintWorkspace(); }
+    })));
+  });
+  $("#repoChip").addEventListener("click", (ev) => {
+    openListMenu(ev.currentTarget, "Repository", CONFIG.repositories.map((r) => ({
+      label: r, checked: r === state.repo,
+      onSelect(){ state.repo = r; paintWorkspace(); }
+    })));
+  });
+  $("#branchChip").addEventListener("click", (ev) => {
+    openListMenu(ev.currentTarget, "Branch", CONFIG.branches.map((b) => ({
+      label: b, checked: b === state.branch,
+      onSelect(){ state.branch = b; paintWorkspace(); }
+    })));
+  });
+  $("#newSessionBtn").addEventListener("click", () => {
+    clearChat();
+    goDashboard();
+    focusInput();
+  });
+
+  /* sessions */
+  $("#showMoreBtn").addEventListener("click", () => {
+    if (state.visible >= state.sessions.length) state.visible = CONFIG.visibleSessions;
+    else state.visible = Math.min(state.sessions.length, state.visible + CONFIG.sessionBatch);
+    renderSessions();
+  });
+
+  /* chat header */
+  $("#backBtn").addEventListener("click", goDashboard);
+  $("#clearBtn").addEventListener("click", () => { clearChat(); focusInput(); });
+
+  /* tab bar */
+  $("#tabHome").addEventListener("click", () => { Pop.close(); goDashboard(); });
+  $("#tabPlus").addEventListener("click", () => { Pop.close(); clearChat(); goChat(); focusInput(); });
+  $("#tabProfile").addEventListener("click", (ev) => {
+    openListMenu(ev.currentTarget, CONFIG.username, [
+      { label: CONFIG.model, sub: "Effort " + state.effort, onSelect(){ focusInput(); } },
+      { label: "New chat", onSelect(){ clearChat(); goChat(); focusInput(); } },
+      { label: "Clear saved history", onSelect(){
+          Store.del("sessions"); Store.del("chat");
+          state.visible = CONFIG.visibleSessions;
+          loadSessions(); renderSessions(); renderDrawerRecent();
+          clearChat();
+          toast("History cleared");
+        } }
+    ]);
+  });
+
+  /* drawer */
+  $("#sidebarBtn").addEventListener("click", openDrawer);
+  $("#drawerClose").addEventListener("click", closeDrawer);
+  scrim.addEventListener("click", closeDrawer);
+  $("#drawerNew").addEventListener("click", () => { closeDrawer(); clearChat(); goChat(); focusInput(); });
+
+  /* escape closes drawer once popovers are done */
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && !Pop.current()) closeDrawer();
+  });
+
+  window.addEventListener("resize", () => {
+    syncDesktopFlag();
+    measureDock();
+    if (Pop.isOpen("effortPop")){
+      placeAboveButton($("#effortPop"), $("#effortBtn"));
+      Effort.relayout();
+    }
+  });
+}
+
+/* ============================================================
+   Boot
+   ============================================================ */
+function boot(){
+  syncDesktopFlag();
+  wire();
+  Effort.init();
+  loadSessions();
+  renderSessions();
+  renderPR();
+  renderDrawerRecent();
+  paintWorkspace();
+  restoreChat();
+  measureDock();
+  autogrow();
+  $("#dashboard").classList.add("enter");
+}
+boot();
+</script>
+</body>
+</html>
