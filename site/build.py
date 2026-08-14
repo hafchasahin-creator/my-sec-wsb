@@ -38,10 +38,6 @@ FILES = {
 # tokens the page can live without — a missing file becomes an empty string
 OPTIONAL = {"BGVIDEO_URI", "PFPVIDEO_URI"}
 
-# videos are never inlined, even in single-file builds; streaming from assets/
-# allows proper buffering and range requests on Android
-NEVER_INLINE = {"background-clip.mp4", "profile-clip.mp4"}
-
 # first match wins; video before image so a dropped-in clip takes over
 BACKGROUND_CANDIDATES = ["background.mp4", "background.webm", "background.jpg",
                          "background.png", "background.jpeg", "background.gif"]
@@ -92,9 +88,6 @@ def data_uri(path: Path) -> str:
 def asset_value(filename: str, inline: bool) -> str:
     """A data URI when inlining, otherwise a path under assets/."""
     path = ASSETS / filename
-    # videos in NEVER_INLINE are always streamed, even when inlining other assets
-    if filename in NEVER_INLINE:
-        return f"assets/{filename}"
     video = path.suffix.lower() in {".mp4", ".webm", ".ogv"}
     embed = inline and (not video or path.stat().st_size <= INLINE_VIDEO_LIMIT)
     return data_uri(path) if embed else f"assets/{filename}"

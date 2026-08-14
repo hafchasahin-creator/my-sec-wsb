@@ -8,7 +8,7 @@ music player and a floating volume / effects panel.
 
 | File | What it is |
 | --- | --- |
-| `index.html` | **The standalone build.** Every asset (background, avatar, font, cover, song) is inlined as a data URI, so this single file works on its own — open it straight from the filesystem, no server, no network. ~13 MB. |
+| `index.html` | **The standalone build.** Every asset (background, clips, avatar, font, cover, song) is inlined as a data URI, so this single file works on its own — open it straight from the filesystem, no server, no network. ~12 MB. |
 | `index-linked.html` | Same page, but loads the files from `assets/`. ~47 KB, much faster to load — use this one when hosting the folder. |
 | `template.html` | The source both builds are generated from. **Edit this**, then rebuild. |
 | `build.py` | Generates the two builds from `template.html` + `assets/`. |
@@ -33,9 +33,25 @@ rebuild — the build picks it up and the page renders a muted looping inline
 video or a still to match. A video takes precedence over an image when both are
 present, so to go back to the still just delete the clip.
 
-Video is always streamed from `assets/` even in the inlined build; base64-ing
-tens of megabytes of footage would make the single file unusable. So a video
-background means shipping the `assets/` folder alongside the HTML.
+Video is inlined like everything else as long as it stays under
+`INLINE_VIDEO_LIMIT` (8 MB); past that it streams from `assets/` and the
+single file falls back to the still.
+
+**Encode clips for a phone, not a desktop.** The bundled clips are 720p30
+(backdrop) and 480p30 (avatar), H.264 **Main** profile, audio stripped. That
+matters: the page can decode two clips at once, and a phone has only a couple
+of hardware decoder slots. Two 1080p60 High-profile streams exhaust them, the
+second clip never gets a decoder, and it parks on its first frame. If you swap
+a clip in, re-encode it first:
+
+```sh
+ffmpeg -i yours.mp4 -vf "scale=1280:720,fps=30" -c:v libx264 \
+       -profile:v main -level 3.1 -pix_fmt yuv420p -crf 27 \
+       -an -movflags +faststart assets/background-clip.mp4
+```
+
+`-an` is not optional housekeeping — the clips are always muted, so a bundled
+audio track is pure weight.
 
 ## Configuration
 
@@ -172,11 +188,18 @@ moving footage rather than a frozen last frame.
 If the clip fails to load or decode, the still is shown permanently — so the
 page still looks right wherever the video can't play.
 
-**Size note.** Video is inlined into the standalone build only while it stays
-under 8 MB; past that it streams from `assets/` and the single file falls back
-to the still. The bundled clip is 5.5 MB, so `index.html` is ~19.7 MB and fully
-self-contained (measured at ~0.8s to first paint). Drop the clip to get back to
-~12.6 MB.
+**Size note.** Both clips are inlined, so `index.html` is ~12 MB and fully
+self-contained — open it straight off a phone, no server and no `assets/`
+folder needed.
+
+**If a clip will not play,** it is almost always the encode rather than the
+page. Every start is verified: `startVideo()` calls `play()`, then checks a
+moment later that `currentTime` actually moved, retrying a few times before
+handing over to the still — because `play()` can resolve while the decoder
+never delivers a frame, which otherwise freezes the layer on frame one with no
+error to catch. `watchForStall()` covers the other case, a clip that starts and
+then stops advancing mid-play. Between them a clip that cannot run degrades to
+the photo instead of a frozen frame.
 
 ## Status picker
 

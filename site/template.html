@@ -1784,6 +1784,50 @@ const isVideo = (src) => typeof src === 'string' && /\.(mp4|webm|ogv)(\?|#|$)/i.
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/* Chrome on Android will not reliably play a <video> fed a large data: URI —
+   it serves no range requests, so the media stack parks on the first frame.
+   A blob URL hands it real seekable bytes instead. Conversion is kicked off
+   at load, long before the entry tap, so a source is ready when play starts.
+   Images are unaffected; only video goes through this. */
+function playableSource(src) {
+    if (!src || !src.startsWith('data:')) return Promise.resolve(src);
+    return fetch(src)
+        .then(r => r.blob())
+        .then(b => URL.createObjectURL(b))
+        .catch(() => src);            // conversion failed: use it as-is
+}
+
+/* A muted clip is allowed to autoplay, but play() can still reject — or
+   resolve while the decoder never delivers a frame — and the element then
+   sits on frame one indefinitely. Every start is therefore verified: if the
+   clock has not moved shortly after, it is tried again, and after a few
+   rounds the caller's fallback takes over. */
+function startVideo(video, onGiveUp) {
+    let tries = 0, timer = null;
+
+    function attempt() {
+        clearTimeout(timer);
+        if (!video.src) { timer = setTimeout(attempt, 400); return; }
+        const p = video.play();
+        if (p && p.catch) p.catch(retry);
+        timer = setTimeout(verify, 900);
+    }
+
+    function verify() {
+        // moving is the only proof that playback actually began
+        if (!video.paused && video.currentTime > 0) { tries = 0; return; }
+        retry();
+    }
+
+    function retry() {
+        clearTimeout(timer);
+        if (++tries > 5) { if (onGiveUp) onGiveUp(); return; }
+        timer = setTimeout(attempt, 350 * tries);
+    }
+
+    attempt();
+}
+
 /* Watches a playing video and calls back if its clock stops advancing, so a
    stalled decoder shows the fallback instead of freezing on one frame. */
 function watchForStall(video, onStall, checkMs = 2500) {
@@ -2020,6 +2064,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let cycleTimer = null;
+    let startBackgroundClip = () => {};      // replaced below when there is a clip
 
     function showStill() {
         background.classList.add('show');
@@ -2059,7 +2104,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (clipSrc) {
         clip.loop = !(cycle.enabled && stillSrc);       // looping is the fallback
-        clip.src = clipSrc;                             // clipSrc is already an asset path
+        // conversion starts now, while the entry screen is still up
+        playableSource(clipSrc).then(src => { clip.src = src; clip.load(); });
         showClip();
 
         // if the clip cannot load, decode or keep running, the still takes over
@@ -2075,6 +2121,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const clipStallWatch = watchForStall(clip, failToStill);
         clip.addEventListener('error', failToStill);
 
+        // the entry tap calls this; a start that never moves falls back
+        startBackgroundClip = () => startVideo(clip, failToStill);
+
         if (cycle.enabled && stillSrc) {
             clip.addEventListener('ended', () => {
                 showNextStill();                         // next photo fades up over the last frame
@@ -2085,7 +2134,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // restart the clip underneath first, so the photo fades
                     // away onto moving footage rather than a frozen frame
                     clip.currentTime = 0;
-                    clip.play().catch(failToStill);
+                    startVideo(clip, failToStill);
                     showClip();
                 }, cycle.fade + cycle.photoHold);
             });
@@ -2110,7 +2159,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (clipSrc && cycle.enabled) {
                 cycleTimer = setTimeout(() => {
                     clip.currentTime = 0;
-                    clip.play().catch(() => {});
+                    startBackgroundClip();
                     showClip();
                 }, cycle.fade + cycle.photoHold);
             }
@@ -2135,7 +2184,10 @@ document.addEventListener('DOMContentLoaded', () => {
         profileContainer.style.setProperty('--pfp-fade', pfpCycle.fade + 'ms');
         profileClip.muted = true;                    // never competes with the music
         profileClip.loop = false;
-        profileClip.src = CONFIG.profileVideo;       // already an asset path from build
+        playableSource(CONFIG.profileVideo).then(src => {
+            profileClip.src = src;
+            profileClip.load();
+        });
 
         let failures = 0;
 
@@ -2164,8 +2216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         function playClip() {
             if (!profileClip.src) { pfpTimer = setTimeout(playClip, 1500); return; }
             profileClip.currentTime = 0;
-            const p = profileClip.play();
-            if (p && p.catch) p.catch(giveUp);
+            startVideo(profileClip, giveUp);
             profileClip.classList.add('show');
             profilePicture.classList.remove('show');
         }
@@ -3164,7 +3215,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         background.classList.add('animate');
         clip.classList.add('animate');
-        if (clipSrc) clip.play().catch(() => {});        // the entry tap satisfies autoplay
+        if (clipSrc) startBackgroundClip();              // the entry tap satisfies autoplay
         document.getElementById('background-wrap').classList.add('animate');
         $('ambient').classList.add('revealed');
         reveal.classList.add('revealed');
