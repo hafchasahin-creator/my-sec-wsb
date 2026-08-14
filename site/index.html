@@ -136,9 +136,12 @@ body {
     animation: bg-zoom 42s ease-in-out infinite alternate;
 }
 
+/* Ken Burns: the end point is randomised per photo, so each one drifts its
+   own way instead of every backdrop making the same move. */
 @keyframes bg-zoom {
-    from { transform: scale(1.06); }
-    to   { transform: scale(1.16); }
+    from { transform: scale(1.06) translate3d(0, 0, 0); }
+    to   { transform: scale(var(--kb-scale, 1.16))
+                     translate3d(var(--kb-x, 0px), var(--kb-y, 0px), 0); }
 }
 
 /* the artwork lifts a touch out of black as the page opens */
@@ -340,6 +343,10 @@ body {
    PROFILE CARD
    ============================================================ */
 #profile-block {
+    /* the glow pseudo-element anchors here; backdrop-filter happens to create
+       a containing block too, but that disappears when the eye slider zeroes
+       the blur, so pin it explicitly */
+    position: relative;
     width: 820px;
     min-height: 332px;
     max-height: min(400px, calc(100vh - 220px));
@@ -1209,6 +1216,30 @@ body {
     50%      { opacity: 1;    text-shadow: 0 0 22px rgba(255, 255, 255, 0.45); }
 }
 
+/* readiness of the audio and clip — mostly instant when they are inlined,
+   but honest feedback when the page is served over a slow connection */
+#start-progress {
+    width: 118px;
+    height: 2px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.14);
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+#start-progress.visible { opacity: 1; }
+
+#start-progress span {
+    display: block;
+    width: 0%;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    transition: width 0.3s ease;
+}
+
 #start-screen.fading #start-inner {
     animation: none;
     transform: scale(1.18);
@@ -1324,6 +1355,7 @@ body {
     <div id="start-inner">
         <div id="start-text"></div>
         <div id="start-subtitle"></div>
+        <div id="start-progress" aria-hidden="true"><span></span></div>
     </div>
 </div>
 
@@ -1543,8 +1575,11 @@ const CONFIG = {
     backgroundCycle: {
         enabled: true,
         photoHold: 5200,                // ms the still holds once faded in
-        fade: 1600                      // cross-fade duration
+        fade: 1600,                     // cross-fade duration
+        kenBurns: true                  // each photo drifts its own way
     },
+
+    showLoadProgress: true,             // thin readiness bar on the entry screen
 
     /* ---------- counter ----------
        viewCountAPI: optional endpoint that is POSTed on load and returns
@@ -1904,13 +1939,29 @@ document.addEventListener('DOMContentLoaded', () => {
                                 CONFIG.backgroundCycle);
     root.style.setProperty('--bg-fade', cycle.fade + 'ms');
 
-    if (stillSrc) background.src = stillSrc;
+    if (stillSrc) {
+        background.src = stillSrc;
+        reframeStill();                              // the first photo drifts too
+    }
 
     let cycleTimer = null;
 
     function showStill() {
         background.classList.add('show');
         clip.classList.remove('show');
+    }
+
+    /* Give this photo its own Ken Burns end point and restart the drift. The
+       layer is hidden at this moment, so the restart is invisible. */
+    function reframeStill() {
+        if (!cycle.kenBurns || prefersReducedMotion) return;
+        background.style.setProperty('--kb-scale', (1.10 + Math.random() * 0.10).toFixed(3));
+        background.style.setProperty('--kb-x', rand(-2.5, 2.5).toFixed(2) + 'vw');
+        background.style.setProperty('--kb-y', rand(-2.5, 2.5).toFixed(2) + 'vh');
+
+        background.classList.remove('animate');
+        void background.offsetWidth;                 // restart the animation
+        background.classList.add('animate');
     }
 
     /* Swap to the next photo while the layer is still hidden, waiting for the
@@ -1921,6 +1972,7 @@ document.addEventListener('DOMContentLoaded', () => {
             background.src = stills[stillIndex];
             try { await background.decode(); } catch { /* fall through and show it */ }
         }
+        reframeStill();
         showStill();
     }
 
@@ -2340,6 +2392,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const touchDevice = window.matchMedia('(hover: none)').matches;
     const enterText = CONFIG.enterText || (touchDevice ? 'tap to enter' : 'click to enter');
     typewriter(startText, enterText, { loop: false, glitch: false, typeDelay: 100 }).start();
+
+    /* ---------- entry readiness ----------
+       Fills as the audio and clip buffer. Never gates the tap: entering early
+       is fine, playback just starts when the media is ready. */
+    if (CONFIG.showLoadProgress) {
+        const bar = $('start-progress');
+        const fill = bar.querySelector('span');
+
+        const readiness = (el) => {
+            if (!el || !el.src) return 1;                       // nothing to wait for
+            if (el.readyState >= 3) return 1;                   // HAVE_FUTURE_DATA
+            if (el.duration && isFinite(el.duration) && el.buffered.length) {
+                return clamp(el.buffered.end(el.buffered.length - 1) / el.duration, 0, 1);
+            }
+            return el.readyState / 4;
+        };
+
+        let progressTimer = null;
+
+        function paintProgress() {
+            const parts = [readiness(audio), clipSrc ? readiness(clip) : 1];
+            const pct = parts.reduce((a, b) => a + b, 0) / parts.length;
+
+            bar.classList.add('visible');
+            fill.style.width = (pct * 100).toFixed(1) + '%';
+
+            if (pct >= 0.999) {
+                clearInterval(progressTimer);
+                setTimeout(() => bar.classList.remove('visible'), 420);
+            }
+        }
+
+        progressTimer = setInterval(paintProgress, 250);
+        ['progress', 'canplay', 'loadedmetadata', 'canplaythrough']
+            .forEach(ev => { audio.addEventListener(ev, paintProgress); clip.addEventListener(ev, paintProgress); });
+        paintProgress();
+    }
 
     /* optional second line — glitch-revealed once the prompt has typed out */
     if (CONFIG.enterSubtitle) {
