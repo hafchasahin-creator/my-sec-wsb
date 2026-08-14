@@ -1514,9 +1514,18 @@ const CONFIG = {
     discordUserId: "1327961337757831219",
     bio: [                              // string, or list of strings to cycle through
         "\"Hello, World!\"",
-        "always online, never here",
-        "built in the dark",
-        "less noise, more signal"
+        "Stay locked in. Let them yap.",
+        "Zero aura lost. Lesson learned.",
+        "Built different, moving silent.",
+        "Don't chase. Upgrade.",
+        "Too focused to care.",
+        "Respect earned. Aura maintained.",
+        "Pressure creates final bosses.",
+        "Silent grind, loud results.",
+        "Mindset maxed. Distractions deleted.",
+        "Be the plot twist.",
+        "Stay mysterious. Move calculated.",
+        "Skibidi world, sigma mindset."
     ],
 
     /* ---------- media ----------
@@ -1875,12 +1884,19 @@ document.addEventListener('DOMContentLoaded', () => {
        ============================================================ */
     const background = $('background');                 // the still
     const clip = $('background-clip');
-    const backgroundSrc = pick(CONFIG.backgroundImage);
+
+    // every still in CONFIG.backgroundImage takes its turn, in order —
+    // clip, photo 1, clip, photo 2, and around again
+    const stills = [].concat(CONFIG.backgroundImage || []).filter(s => s && !isVideo(s));
+    let stillIndex = 0;
 
     // a video passed as backgroundImage still works — treat it as the clip
-    const clipSrc = CONFIG.backgroundVideo ||
-                    (isVideo(backgroundSrc) ? backgroundSrc : '');
-    const stillSrc = isVideo(backgroundSrc) ? '' : backgroundSrc;
+    const videoInList = [].concat(CONFIG.backgroundImage || []).find(isVideo);
+    const clipSrc = CONFIG.backgroundVideo || videoInList || '';
+    const stillSrc = stills[0] || '';
+
+    // the later photos are fetched up front so a swap never shows a blank frame
+    stills.slice(1).forEach(src => { const img = new Image(); img.src = src; });
 
     const cycle = Object.assign({ enabled: true, photoHold: 5200, fade: 1600 },
                                 CONFIG.backgroundCycle);
@@ -1893,6 +1909,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function showStill() {
         background.classList.add('show');
         clip.classList.remove('show');
+    }
+
+    /* Swap to the next photo while the layer is still hidden, waiting for the
+       decode so the fade never starts on an undecoded image. */
+    async function showNextStill() {
+        if (stills.length > 1) {
+            stillIndex = (stillIndex + 1) % stills.length;
+            background.src = stills[stillIndex];
+            try { await background.decode(); } catch { /* fall through and show it */ }
+        }
+        showStill();
     }
 
     function showClip() {
@@ -1916,7 +1943,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (cycle.enabled && stillSrc) {
             clip.addEventListener('ended', () => {
-                showStill();                             // photo fades up over the last frame
+                showNextStill();                         // next photo fades up over the last frame
 
                 clearTimeout(cycleTimer);
                 cycleTimer = setTimeout(() => {
@@ -2701,7 +2728,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setMeta('meta[name="theme-color"]', 'content', theme.accent);
 
     // a data URI works for local previews; scrapers need a hosted URL
-    const ogImage = CONFIG.ogImage || backgroundSrc;
+    const ogImage = CONFIG.ogImage || stillSrc;
     if (!isVideo(ogImage)) {
         setMeta('meta[property="og:image"]', 'content', ogImage);
         setMeta('meta[name="twitter:image"]', 'content', ogImage);

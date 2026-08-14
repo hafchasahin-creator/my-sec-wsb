@@ -144,14 +144,23 @@ Two constraints shaped this, both worth keeping if you edit it:
   animation off the compositor onto the main thread — doing it the obvious way
   cost more than half the frame rate.
 
-## Background: clip and still
+## Background: clip and stills
 
-With `backgroundVideo` set, the two backdrops alternate:
+With `backgroundVideo` set, the backdrops alternate:
 
 ```
-clip plays ─▶ ends ─▶ still fades up over it ─▶ holds ─▶
-clip restarts underneath ─▶ still fades away ─▶ repeat
+clip plays ─▶ ends ─▶ next photo fades up over it ─▶ holds ─▶
+clip restarts underneath ─▶ photo fades away ─▶ repeat
 ```
+
+`backgroundImage` is a list, and each pass shows the **next** photo in it, so
+the clip and your photos interleave one by one and loop around. The build fills
+that list automatically: `background.*` leads, then every `still-*` file in
+`assets/` in name order. To add more photos, drop them in as `still-1.jpg`,
+`still-2.jpg` … and rebuild — nothing else to edit.
+
+Photos after the first are preloaded, and each swap waits on `img.decode()`
+before the fade starts, so a change never flashes an undecoded frame.
 
 `backgroundCycle` controls it: `photoHold` (ms the still stays) and `fade`
 (cross-fade duration). Set `enabled: false` and the clip simply loops; clear

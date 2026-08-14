@@ -49,6 +49,22 @@ def resolve_background() -> str:
     raise SystemExit(f"no background found in {ASSETS} (looked for: "
                      + ", ".join(BACKGROUND_CANDIDATES) + ")")
 
+
+def background_stills() -> list:
+    """The still artwork, in the order the page rotates through it.
+
+    `background.*` leads, then every `still-*` file in name order — so extra
+    photos join the rotation just by being dropped into assets/ as
+    still-1.jpg, still-2.jpg and so on.
+    """
+    stills = []
+    primary = resolve_background()
+    if not primary.lower().endswith((".mp4", ".webm", ".ogv")):
+        stills.append(primary)
+    stills += sorted(p.name for p in ASSETS.glob("still-*")
+                     if p.suffix.lower() in {".jpg", ".jpeg", ".png", ".gif", ".webp"})
+    return stills
+
 EXTRA_TYPES = {".ttf": "font/ttf", ".gif": "image/gif", ".mp3": "audio/mpeg",
                ".woff2": "font/woff2", ".mp4": "video/mp4", ".webm": "video/webm"}
 
@@ -68,10 +84,25 @@ def data_uri(path: Path) -> str:
     return f"data:{mime_for(path)};base64,{payload}"
 
 
+def asset_value(filename: str, inline: bool) -> str:
+    """A data URI when inlining, otherwise a path under assets/."""
+    path = ASSETS / filename
+    video = path.suffix.lower() in {".mp4", ".webm", ".ogv"}
+    embed = inline and (not video or path.stat().st_size <= INLINE_VIDEO_LIMIT)
+    return data_uri(path) if embed else f"assets/{filename}"
+
+
 def render(template: str, inline: bool) -> str:
-    out = template
+    # the still rotation is emitted as a JS array literal
+    stills = background_stills()
+    out = template.replace(
+        "{{BG_URI}}",
+        "[\n" + "".join(f'        "{asset_value(n, inline)}",\n' for n in stills) + "    ]"
+    )
+
     for token, filename in FILES.items():
-        filename = filename or resolve_background()
+        if token == "BG_URI":
+            continue                      # handled above
         path = ASSETS / filename
 
         if not path.exists():
@@ -80,9 +111,7 @@ def render(template: str, inline: bool) -> str:
                 continue
             raise SystemExit(f"missing asset: {path}")
 
-        video = path.suffix.lower() in {".mp4", ".webm", ".ogv"}
-        embed = inline and (not video or path.stat().st_size <= INLINE_VIDEO_LIMIT)
-        value = data_uri(path) if embed else f"assets/{filename}"
+        value = asset_value(filename, inline)
         # tokens are always substituted where a quoted string is expected
         out = out.replace("{{" + token + "}}", '"' + value + '"')
     return out
