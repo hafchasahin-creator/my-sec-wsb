@@ -44,6 +44,16 @@ top of the `<script>` in `template.html`:
 
 ```js
 const CONFIG = {
+    theme: { accent, glow, beat, accentStatus },   // whole palette, see below
+    badges: [ { icon, label, color } ],            // emblems beside the name
+    ambient: { enabled, particles, bloom },        // drifting layer behind the card
+    magneticIcons: true,                           // icons lean toward the cursor
+    clickSpark: true,                              // burst when an icon is hit
+    keyboard: true,                                // space / arrows / M
+    ogImage: "", ogDescription: "",                // link embed
+    favicon: "auto",                               // "auto" | "avatar"
+    faviconPulse: false,                           // redraw the icon on the beat
+    enterSubtitle: "",                             // second entry line
     username: "imran",
     pageTitle: "",              // browser tab; "" uses the username
     status: "dnd",              // any STATUS_MODES key, or a list to cycle
@@ -78,6 +88,61 @@ Notes:
   cover into `assets/`, point `playlist[0].cover` at it and rebuild.
 - Add more objects to `playlist` and the previous / next buttons cycle through
   them. With a single track those buttons restart it.
+
+## Palette
+
+Three colours in `CONFIG.theme` re-theme the page. They are published as CSS
+custom properties at boot, so every tinted rule resolves back to them:
+
+| Value | Drives |
+| --- | --- |
+| `accent` | slider fill tint, spark bursts, status ring, badges, ambient bloom, `theme-color` |
+| `glow` | card and avatar rim glow, slider fill and thumbs, mote colour |
+| `beat` | the audio-reactive pulse on the card and avatar ring |
+
+`accentStatus: true` makes the status dot use the accent instead of the status
+mode's own colour.
+
+## Badges
+
+`CONFIG.badges` renders inline-SVG emblems beside the name, each with a hover
+tooltip (a tap shows it on touch). Available `icon` keys: `verified`, `owner`,
+`star`, `bolt`, `dev`, `music`. `color` is optional and defaults to the accent.
+
+```js
+badges: [
+    { icon: "verified", label: "Verified" },
+    { icon: "owner",    label: "Owner", color: "#f0b232" }
+],
+```
+
+## Keyboard
+
+| Key | Action |
+| --- | --- |
+| `Space` | play / pause |
+| `←` `→` | seek 5 seconds |
+| `Shift` + `←` `→` | previous / next track |
+| `M` | mute |
+
+Keys are ignored while a slider or link has focus, so tabbing through the page
+still behaves normally. Set `keyboard: false` to disable.
+
+## Ambient layer
+
+Drifting motes and two slow colour blooms sit between the artwork and the card,
+fading up faintly with the beat. Everything animates transform and opacity only,
+and the phone count is thinned to 60% of `particles`.
+
+Two constraints shaped this, both worth keeping if you edit it:
+
+- The blooms use a soft radial gradient with **no blur filter and no scaling**.
+  A blurred layer that scales re-rasterises every frame; translation alone stays
+  on the GPU.
+- The beat is applied to the `#ambient` wrapper, **not inside the mote
+  keyframes**. A custom property referenced inside a keyframe drops that
+  animation off the compositor onto the main thread — doing it the obvious way
+  cost more than half the frame rate.
 
 ## Status modes
 

@@ -10,7 +10,11 @@
 <meta property="og:type" content="profile">
 <meta property="og:title" content="imran">
 <meta property="og:description" content="Do Not Disturb">
+<meta property="og:image" content="">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="imran">
+<meta name="twitter:description" content="Do Not Disturb">
+<meta name="twitter:image" content="">
 <title>imran</title>
 <style>
 /* ============================================================
@@ -33,6 +37,17 @@
     font-weight: normal;
     font-style: normal;
     font-display: swap;
+}
+
+/* ============================================================
+   THEME — published from CONFIG.theme at boot, so every accent
+   in the page resolves back to those few values
+   ============================================================ */
+:root {
+    --accent: #ed4245;
+    --glow: #ffffff;
+    --beat-color: #ffffff;
+    --beat: 0;                  /* 0-1, driven by the audio analyser */
 }
 
 /* ============================================================
@@ -125,6 +140,84 @@ body {
 }
 
 #background-wrap.animate::after { opacity: 1; }
+
+/* ============================================================
+   AMBIENT LAYER — sits between the artwork and the card.
+   Everything here animates transform/opacity only, so it stays
+   on the compositor and never repaints.
+   ============================================================ */
+/* The beat is applied to this one wrapper rather than to each child: a custom
+   property inside a keyframe would drop those animations off the compositor
+   and back onto the main thread. */
+#ambient {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+}
+
+#ambient.revealed { opacity: calc(0.72 + 0.28 * var(--beat, 0)); }
+
+/* Two slow colour blooms. The radial gradient is already soft, so no blur
+   filter is needed — and no scaling, which would force the layer to
+   re-rasterise on every frame. Translation alone stays on the GPU. */
+.bloom {
+    position: absolute;
+    width: 86vmax;
+    height: 86vmax;
+    border-radius: 50%;
+    opacity: 0.07;
+    will-change: transform;
+}
+
+.bloom-a {
+    left: -30vmax;
+    top: -24vmax;
+    background: radial-gradient(circle closest-side, var(--accent) 0%, transparent 70%);
+    animation: bloom-drift-a 38s ease-in-out infinite alternate;
+}
+
+.bloom-b {
+    right: -32vmax;
+    bottom: -28vmax;
+    background: radial-gradient(circle closest-side, var(--glow) 0%, transparent 66%);
+    animation: bloom-drift-b 46s ease-in-out infinite alternate;
+}
+
+@keyframes bloom-drift-a {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(14vw, 10vh, 0); }
+}
+
+@keyframes bloom-drift-b {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-12vw, -12vh, 0); }
+}
+
+/* drifting motes — position and timing are randomised per element at boot */
+.mote {
+    position: absolute;
+    top: 100%;
+    width: var(--size, 3px);
+    height: var(--size, 3px);
+    border-radius: 50%;
+    background: var(--glow);
+    opacity: 0;
+    will-change: transform, opacity;
+    animation: mote-rise var(--dur, 20s) linear var(--delay, 0s) infinite;
+}
+
+/* opacity here is a static per-mote value — the beat is applied once on
+   #ambient so these keyframes stay compositor-only */
+@keyframes mote-rise {
+    0%   { transform: translate3d(0, 0, 0); opacity: 0; }
+    12%  { opacity: var(--peak, 0.5); }
+    88%  { opacity: var(--peak, 0.5); }
+    100% { transform: translate3d(var(--drift, 20px), calc(-100vh - 12vh), 0); opacity: 0; }
+}
 
 /* ============================================================
    LAYOUT — centered stack: profile card / music player / controls
@@ -260,8 +353,8 @@ body {
     position: absolute;
     inset: 0;
     border-radius: 15px;
-    box-shadow: 0 0 34px rgba(255, 255, 255, 0.14);
-    opacity: var(--beat, 0);
+    box-shadow: 0 0 34px var(--beat-color);
+    opacity: calc(0.14 * var(--beat, 0));
     pointer-events: none;
     will-change: opacity;
 }
@@ -355,13 +448,13 @@ body {
     position: absolute;
     inset: -3px;
     border-radius: 50%;
-    box-shadow: 0 0 22px rgba(255, 255, 255, 0.42);
+    box-shadow: 0 0 22px var(--beat-color);
     opacity: 0;
     pointer-events: none;
     will-change: opacity;
 }
 
-.playing .profile-container::before { opacity: var(--beat, 0); }
+.playing .profile-container::before { opacity: calc(0.42 * var(--beat, 0)); }
 
 .profile-info {
     flex: 1;
@@ -376,6 +469,72 @@ body {
     gap: 10px;
     margin-bottom: 10px;
 }
+
+/* name and emblems stay on one line at every width */
+.name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.badges {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.badge {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    color: var(--badge-color, var(--accent));
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--badge-color, var(--accent)) 55%, transparent));
+    cursor: help;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.badge:hover,
+.badge.show { transform: translateY(-2px) scale(1.15); }
+
+.badge svg { width: 100%; height: 100%; display: block; }
+
+.badge .tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 100;
+}
+
+.badge:hover .tooltip,
+.badge.show .tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* entrance, in step with the rest of the card */
+.revealed .badge {
+    animation: icon-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.revealed .badge:nth-child(1) { animation-delay: 0.44s; }
+.revealed .badge:nth-child(2) { animation-delay: 0.50s; }
+.revealed .badge:nth-child(3) { animation-delay: 0.56s; }
+.revealed .badge:nth-child(4) { animation-delay: 0.62s; }
 
 #profile-name {
     font-family: 'Angel Wish', 'Courier New', monospace;
@@ -475,23 +634,62 @@ body {
     pointer-events: auto;
 }
 
+/* Three nested layers keep the transforms from fighting each other:
+   the <a> carries the entrance animation, .magnet carries the cursor lean,
+   and the icon itself carries the float and hover scale. */
 .social-links a {
     display: block;
     line-height: 0;
     text-decoration: none;
+    position: relative;
+}
+
+.magnet {
+    display: block;
+    line-height: 0;
+    transform: translate3d(var(--mx, 0px), var(--my, 0px), 0);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+}
+
+.magnet.pulling { transition: transform 0.12s ease-out; }
+
+/* click spark burst */
+.spark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    margin: -2px 0 0 -2px;
+    border-radius: 50%;
+    background: var(--spark-color, var(--accent));
+    pointer-events: none;
+    opacity: 0;
+    animation: spark-fly var(--spark-dur, 520ms) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes spark-fly {
+    0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+    100% { opacity: 0; transform: translate3d(var(--sx), var(--sy), 0) scale(0.3); }
 }
 
 .social-icon {
     width: 36px;
     height: 36px;
     display: block;
-    transition: transform 0.3s ease;
+    transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
     filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.7));
     pointer-events: auto;
 }
 
-.social-icon:hover { transform: scale(1.4) rotateY(15deg); }
-.social-links a:active .social-icon { transform: scale(1.25) translateY(-2px); }
+.social-icon:hover {
+    transform: translateY(-3px) scale(1.34) rotateY(12deg);
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.85))
+            drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+}
+
+.social-links a:active .social-icon { transform: translateY(-1px) scale(1.2); }
 
 /* idle float, offset per icon so the row breathes rather than bobs in unison */
 .revealed .social-links a { animation-fill-mode: both; }
@@ -749,7 +947,8 @@ body {
     left: 0;
     height: 100%;
     width: 0%;
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--glow);
+    opacity: 0.9;
     border-radius: 5px;
 }
 
@@ -761,7 +960,7 @@ body {
     height: 12px;
     margin-left: -6px;
     border-radius: 50%;
-    background: #fff;
+    background: var(--glow);
     transform: translateY(-50%);
     pointer-events: none;
     transition: box-shadow 0.2s ease;
@@ -800,10 +999,42 @@ body {
     transition: opacity 0.6s ease;
 }
 
+/* tighter exit: the veil lifts faster than it blurs away */
 #start-screen.fading {
     opacity: 0;
     backdrop-filter: blur(0px);
     -webkit-backdrop-filter: blur(0px);
+    transition: opacity 0.42s cubic-bezier(0.4, 0, 1, 1),
+                backdrop-filter 0.5s ease;
+}
+
+#start-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 0 24px;
+    text-align: center;
+}
+
+/* optional second line, revealed with a short glitch */
+#start-subtitle {
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+    opacity: 0;
+    white-space: pre;
+}
+
+#start-subtitle.in {
+    animation: subtitle-in 0.5s steps(2, end) 0.35s forwards,
+               glitch 0.2s ease-in-out 0.5s 2;
+}
+
+@keyframes subtitle-in {
+    from { opacity: 0; letter-spacing: 6px; }
+    to   { opacity: 1; letter-spacing: 2px; }
 }
 
 #start-text {
@@ -820,10 +1051,11 @@ body {
     50%      { opacity: 1;    text-shadow: 0 0 22px rgba(255, 255, 255, 0.45); }
 }
 
-#start-screen.fading #start-text {
+#start-screen.fading #start-inner {
     animation: none;
-    transform: scale(1.25);
+    transform: scale(1.18);
     opacity: 0;
+    transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
 }
 
 /* glitch nudge used by the typewriters */
@@ -865,6 +1097,11 @@ body {
     }
 
     #profile-name { font-size: 20px; letter-spacing: 1px; }
+
+    /* scaled to sit with the 20px name rather than crowd it */
+    .name-row { gap: 6px; }
+    .badges { gap: 4px; }
+    .badge { width: 17px; height: 17px; }
     #profile-bio { font-size: 12px; line-height: 1.3; }
     .bio-separator { margin: 6px 0; }
 
@@ -907,11 +1144,18 @@ body {
     .revealed #music-player,
     .social-links a .social-icon,
     #start-text,
+    #start-subtitle,
+    .status-dot::after,
+    .bloom,
+    .mote,
     .playing .eq span { animation: none; }
 
     .profile-container::after { animation: none; opacity: 0; }
     #background-wrap { transition: none; }
     .player-art { transform: none; }
+    .magnet { transition: none; transform: none; }
+    .mote { display: none; }              /* motes only exist to move */
+    .bloom { opacity: 0.05; }
 }
 </style>
 </head>
@@ -919,7 +1163,10 @@ body {
 
 <!-- ================= ENTRY SCREEN ================= -->
 <div id="start-screen">
-    <div id="start-text"></div>
+    <div id="start-inner">
+        <div id="start-text"></div>
+        <div id="start-subtitle"></div>
+    </div>
 </div>
 
 <div class="container">
@@ -928,6 +1175,9 @@ body {
     <div id="background-wrap">
         <img id="background" alt="">
     </div>
+
+    <!-- ============ AMBIENT LAYER (built from CONFIG.ambient) ============ -->
+    <div id="ambient" aria-hidden="true"></div>
 
     <!-- ================= CONTENT ================= -->
     <div id="content-wrapper">
@@ -946,7 +1196,10 @@ body {
                 </div>
                 <div class="profile-info">
                     <div class="name-and-badges">
-                        <div id="profile-name"></div>
+                        <div class="name-row">
+                            <div id="profile-name"></div>
+                            <div class="badges" id="badges"><!-- built from CONFIG.badges --></div>
+                        </div>
                     </div>
                     <div id="discord-status" class="discord-status">
                         <span id="status-dot" class="status-dot dnd"></span>
@@ -1046,9 +1299,29 @@ body {
    CONFIGURATION — everything you would normally want to change
    ================================================================ */
 const CONFIG = {
+    /* ---------- palette ----------
+       Three colours re-theme the whole page. They are published as CSS custom
+       properties, so the card glow, status ring, slider fills, spark bursts,
+       ambient particles and the beat glow all follow from here. */
+    theme: {
+        accent: "#ed4245",              // sliders, sparks, status ring, badges
+        glow:   "#ffffff",              // card / avatar rim glow
+        beat:   "#ffffff",              // audio-reactive pulse
+        accentStatus: false             // true = status dot always uses accent
+                                        // instead of the status mode's colour
+    },
+
     /* ---------- identity ---------- */
     username: "imran",
     pageTitle: "",                      // browser tab; "" uses the username
+
+    /* Emblems shown beside the name. `icon` is a key of BADGE_ICONS
+       (verified, owner, star, bolt, dev, music); `label` is its tooltip and
+       `color` is optional — it defaults to the accent. Empty list = no row. */
+    badges: [
+        { icon: "verified", label: "Verified" },
+        { icon: "owner",    label: "Owner", color: "#f0b232" }
+    ],
     /* Any key from STATUS_MODES below the CONFIG block — online, idle, dnd,
        offline, invisible, busy, focus, working, gaming, streaming, away,
        sleeping, touchGrass, doNotPerceiveMe. Each brings its own dot colour
@@ -1107,8 +1380,33 @@ const CONFIG = {
         }
     ],
 
+    /* ---------- embed / tab ----------
+       ogImage takes a URL or a data URI; "" reuses the background artwork.
+       Note that link scrapers cannot read a data URI — host the image and put
+       its URL here if you want previews to render on other sites. */
+    ogImage: "",
+    ogDescription: "",                  // "" builds one from status + bio
+    favicon: "auto",                    // "auto" draws a themed icon,
+                                        // "avatar" uses the profile picture
+    faviconPulse: false,                // redraw the icon on the beat
+
+    /* ---------- ambient layer ----------
+       Drifting motes and two slow colour blooms behind the card. Compositor
+       only (transform / opacity), and it fades up faintly with the beat. */
+    ambient: {
+        enabled: true,
+        particles: 18,                  // 0 disables the motes
+        bloom: true                     // the two drifting colour blooms
+    },
+
+    /* ---------- interaction ---------- */
+    magneticIcons: true,                // social icons lean toward the cursor
+    clickSpark: true,                   // burst when a social icon is hit
+    keyboard: true,                     // space / arrows / M — see the map below
+
     /* ---------- behaviour ---------- */
     enterText: "",                      // entry prompt; "" picks tap/click to suit the device
+    enterSubtitle: "",                  // optional second line, glitch-revealed
     volume: 0.3,                        // 0 - 1
     cardOpacity: 0.4,                   // 0 - 1, the "eye" slider default
     loop: true,                         // loop the playlist
@@ -1149,6 +1447,35 @@ const SOCIAL_ICONS = {
         <path fill="#FE2C55" d="M19.32 7.1V5.5a4.94 4.94 0 0 1-2.7-.8 4.97 4.97 0 0 0 2.7 2.4Z"/>
         <path fill="#FE2C55" d="M16.62 4.7a4.96 4.96 0 0 1-1.23-3.4h-.96a4.98 4.98 0 0 0 2.19 3.4ZM8.98 11.15a3.02 3.02 0 0 0-1.42 5.68 3.01 3.01 0 0 1 2.42-4.8c.31 0 .61.05.9.14V8.5a6.6 6.6 0 0 0-.9-.06h-.16v2.78a3 3 0 0 0-.84-.07Z"/>
         <path fill="#fff" d="M19.32 7.1a4.97 4.97 0 0 1-2.7-2.4 4.98 4.98 0 0 1-2.19-3.4h-2.65v12.9a3.02 3.02 0 0 1-5.46 1.63 3.02 3.02 0 0 1 2.82-5.54V7.5A6.62 6.62 0 0 0 4.4 19.6 6.62 6.62 0 0 0 15.6 14.9V8.6a7.9 7.9 0 0 0 4.62 1.48V7.13a5 5 0 0 1-.9-.03Z"/>
+    </svg>`
+};
+
+/* ---- profile badges, drawn in currentColor so CONFIG.badges[].color wins ---- */
+const BADGE_ICONS = {
+    verified: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 1.6 14.6 4l3.5-.3.9 3.4 3 1.8-1.4 3.2 1.4 3.2-3 1.8-.9 3.4-3.5-.3L12 22.4 9.4 20l-3.5.3-.9-3.4-3-1.8L3.4 12 2 8.8l3-1.8.9-3.4L9.4 4 12 1.6Z"/>
+        <path fill="#000" fill-opacity=".8" d="m10.9 15.4-3.3-3.3 1.3-1.3 2 2 4.8-4.8 1.3 1.3-6.1 6.1Z"/>
+    </svg>`,
+
+    owner: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M3 18h18l1.4-9.6-5.1 3.2L12 4.2 6.7 11.6 1.6 8.4 3 18Zm0 1.6V21h18v-1.4H3Z"/>
+    </svg>`,
+
+    star: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="m12 2.6 2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.5l-5.9 3.1 1.2-6.5L2.5 9.5l6.6-.9 2.9-6Z"/>
+    </svg>`,
+
+    bolt: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M13.2 2 4.5 13.4h5.6L9.9 22l8.8-11.5h-5.7L13.2 2Z"/>
+    </svg>`,
+
+    dev: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m8 6-6 6 6 6M16 6l6 6-6 6"/>
+    </svg>`,
+
+    music: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M20 3 9 5.4v10.2a3.6 3.6 0 1 0 2 3.2V8.1l7-1.5v6.7a3.6 3.6 0 1 0 2 3.2V3Z"/>
     </svg>`
 };
 
@@ -1194,6 +1521,10 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const pick = (v) => Array.isArray(v) ? v[Math.floor(Math.random() * v.length)] : v;
 
 const isVideo = (src) => typeof src === 'string' && /\.(mp4|webm|ogv)(\?|#|$)/i.test(src);
+
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 
 function formatTime(s) {
     if (!isFinite(s) || s < 0) s = 0;
@@ -1306,6 +1637,7 @@ function createSlider(el, { min = 0, max = 1, value = 0, onInput, onChange, onDo
 document.addEventListener('DOMContentLoaded', () => {
 
     /* ---------- element refs ---------- */
+    const root           = document.documentElement;
     const startScreen    = $('start-screen');
     const startText      = $('start-text');
     const profileName    = $('profile-name');
@@ -1334,6 +1666,15 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ============================================================
        STATIC CONTENT FROM CONFIG
        ============================================================ */
+    /* ============================================================
+       THEME — publish CONFIG.theme as custom properties. Everything
+       tinted in the stylesheet reads from these three values.
+       ============================================================ */
+    const theme = Object.assign({ accent: '#ed4245', glow: '#ffffff', beat: '#ffffff' }, CONFIG.theme);
+    root.style.setProperty('--accent', theme.accent);
+    root.style.setProperty('--glow', theme.glow);
+    root.style.setProperty('--beat-color', theme.beat);
+
     document.title = CONFIG.pageTitle || CONFIG.username;
     profilePicture.src = pick(CONFIG.profilePicture);
     profilePicture.alt = CONFIG.username;
@@ -1358,11 +1699,7 @@ document.addEventListener('DOMContentLoaded', () => {
         background.src = backgroundSrc;
     }
 
-    /* ---------- the browser tab gets the avatar as its icon ---------- */
-    const favicon = document.createElement('link');
-    favicon.rel = 'icon';
-    favicon.href = pick(CONFIG.profilePicture);
-    document.head.appendChild(favicon);
+    /* the tab icon is set further down, alongside the embed metadata */
 
     /* ---------- status modes ---------- */
     function setStatus(mode, textOverride) {
@@ -1441,6 +1778,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fetchViewCount();
 
+    /* ---------- badges ---------- */
+    (CONFIG.badges || []).forEach(({ icon, label, color }) => {
+        const art = BADGE_ICONS[icon];
+        if (!art) return;                                   // unknown key: skip quietly
+
+        const el = document.createElement('span');
+        el.className = 'badge';
+        el.tabIndex = 0;
+        if (color) el.style.setProperty('--badge-color', color);
+        el.innerHTML = art + `<span class="tooltip"></span>`;
+        el.querySelector('.tooltip').textContent = label || icon;
+        el.setAttribute('aria-label', label || icon);
+
+        // touch has no hover, so a tap shows the tooltip briefly
+        el.addEventListener('click', () => {
+            el.classList.add('show');
+            clearTimeout(el._t);
+            el._t = setTimeout(() => el.classList.remove('show'), 1600);
+        });
+
+        $('badges').appendChild(el);
+    });
+
+    /* ============================================================
+       AMBIENT LAYER — blooms and motes behind the card.
+       Positions and timings are randomised once, then CSS drives
+       the motion, so this costs nothing per frame.
+       ============================================================ */
+    function buildAmbient() {
+        const cfg = Object.assign({ enabled: true, particles: 18, bloom: true }, CONFIG.ambient);
+        if (!cfg.enabled || prefersReducedMotion) return;
+
+        const layer = $('ambient');
+        const frag = document.createDocumentFragment();
+
+        if (cfg.bloom) {
+            ['bloom bloom-a', 'bloom bloom-b'].forEach(cls => {
+                const b = document.createElement('div');
+                b.className = cls;
+                frag.appendChild(b);
+            });
+        }
+
+        // phones carry the tightest frame budget and the smallest canvas to
+        // scatter across, so thin the field there
+        const count = window.innerWidth <= 430
+            ? Math.round(cfg.particles * 0.6)
+            : cfg.particles;
+
+        for (let i = 0; i < count; i++) {
+            const mote = document.createElement('div');
+            mote.className = 'mote';
+            mote.style.left = rand(0, 100).toFixed(2) + '%';
+            mote.style.setProperty('--size', rand(1.5, 3.6).toFixed(1) + 'px');
+            mote.style.setProperty('--dur', rand(16, 34).toFixed(1) + 's');
+            mote.style.setProperty('--delay', (-rand(0, 34)).toFixed(1) + 's');  // pre-scattered
+            mote.style.setProperty('--drift', rand(-40, 40).toFixed(0) + 'px');
+            mote.style.setProperty('--peak', rand(0.25, 0.65).toFixed(2));
+            frag.appendChild(mote);
+        }
+
+        layer.appendChild(frag);
+    }
+
+    buildAmbient();
+
     /* ---------- social icons ---------- */
     [
         ['discord',  CONFIG.discordURL,  'Discord'],
@@ -1457,8 +1860,36 @@ document.addEventListener('DOMContentLoaded', () => {
         a.rel = 'noopener noreferrer';
         a.title = label;
         a.setAttribute('aria-label', label);
-        a.innerHTML = SOCIAL_ICONS[key];
+        // .magnet is the layer the cursor pulls, keeping it clear of the
+        // entrance animation on the anchor and the float on the icon
+        a.innerHTML = `<span class="magnet">${SOCIAL_ICONS[key]}</span>`;
         socialLinks.appendChild(a);
+    });
+
+    const magnets = [...socialLinks.querySelectorAll('.magnet')];
+
+    /* ---------- click spark burst ---------- */
+    function spark(anchor) {
+        if (!CONFIG.clickSpark || prefersReducedMotion) return;
+
+        const COUNT = 9;
+        for (let i = 0; i < COUNT; i++) {
+            const dot = document.createElement('span');
+            dot.className = 'spark';
+            // even fan-out with a little jitter so it never looks mechanical
+            const angle = (i / COUNT) * Math.PI * 2 + rand(-0.25, 0.25);
+            const dist = rand(16, 30);
+            dot.style.setProperty('--sx', (Math.cos(angle) * dist).toFixed(1) + 'px');
+            dot.style.setProperty('--sy', (Math.sin(angle) * dist).toFixed(1) + 'px');
+            dot.style.setProperty('--spark-dur', rand(420, 640).toFixed(0) + 'ms');
+            anchor.appendChild(dot);
+            dot.addEventListener('animationend', () => dot.remove(), { once: true });
+        }
+    }
+
+    socialLinks.addEventListener('pointerdown', (e) => {
+        const anchor = e.target.closest('a');
+        if (anchor) spark(anchor);
     });
 
     /* ============================================================
@@ -1515,6 +1946,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const enterText = CONFIG.enterText || (touchDevice ? 'tap to enter' : 'click to enter');
     typewriter(startText, enterText, { loop: false, glitch: false, typeDelay: 100 }).start();
 
+    /* optional second line — glitch-revealed once the prompt has typed out */
+    if (CONFIG.enterSubtitle) {
+        const subtitle = $('start-subtitle');
+        subtitle.textContent = CONFIG.enterSubtitle;
+        setTimeout(() => subtitle.classList.add('in'), enterText.length * 100 + 200);
+    }
+
     const nameTyper = typewriter(profileName, CONFIG.username, {
         typeDelay: 300, deleteDelay: 150, holdDelay: 10000,
         loop: Array.isArray(CONFIG.username)
@@ -1545,7 +1983,6 @@ document.addEventListener('DOMContentLoaded', () => {
        Chrome silences a MediaElementSource fed by an opaque resource (which is
        what a plain file:// mp3 is), and that routing cannot be undone — so when
        in doubt we skip it and use a gentle time-based pulse instead. */
-    const root = document.documentElement;
     let analyser = null, freqData = null, beat = 0;
 
     function canAnalyse(src) {
@@ -1575,7 +2012,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    let beatWritten = -1, beatClock = 0;
+    let beatWritten = -1, beatClock = 0, faviconClock = 0;
 
     function updateBeat(now) {
         if (now - beatClock < 32) return;                          // ~30 writes a second is plenty
@@ -1596,6 +2033,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rounded === beatWritten) return;                       // skip no-op style writes
         beatWritten = rounded;
         root.style.setProperty('--beat', rounded);
+
+        // repainting the tab icon is expensive — cap it hard when enabled
+        if (CONFIG.faviconPulse && CONFIG.favicon !== 'avatar' && now - faviconClock > 400) {
+            faviconClock = now;
+            drawFavicon(rounded);
+        }
     }
 
     /* ============================================================
@@ -1757,10 +2200,144 @@ document.addEventListener('DOMContentLoaded', () => {
     bindTap(prevBtn, () => skip(-1));
     bindTap(nextBtn, () => skip(1));
 
-    bindTap(volumeIcon, () => {
+    function toggleMute() {
         audio.muted = !audio.muted;
         volumeIcon.innerHTML = audio.muted ? VOLUME_ICON_OFF : VOLUME_ICON_ON;
+        volumeIcon.setAttribute('aria-label', audio.muted ? 'Unmute' : 'Mute');
+    }
+
+    bindTap(volumeIcon, toggleMute);
+
+    /* ============================================================
+       KEYBOARD
+         space        play / pause
+         left/right   seek 5s
+         shift+arrow  previous / next track
+         m            mute
+       Keys are ignored while a slider or link has focus, so tabbing
+       through the page still behaves normally.
+       ============================================================ */
+    const SEEK_STEP = 5;
+
+    function keyboardBusy() {
+        const el = document.activeElement;
+        if (!el || el === document.body) return false;
+        return el.classList.contains('range') ||
+               el.getAttribute('role') === 'slider' ||
+               el.tagName === 'A' || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (!CONFIG.keyboard || !unlocked || e.metaKey || e.ctrlKey || e.altKey) return;
+        if (keyboardBusy()) return;
+
+        switch (e.key) {
+            case ' ':
+            case 'Spacebar':
+                e.preventDefault();
+                togglePlay();
+                break;
+
+            case 'ArrowRight':
+                e.preventDefault();
+                if (e.shiftKey) skip(1);
+                else seekBy(SEEK_STEP);
+                break;
+
+            case 'ArrowLeft':
+                e.preventDefault();
+                if (e.shiftKey) skip(-1);
+                else seekBy(-SEEK_STEP);
+                break;
+
+            case 'm':
+            case 'M':
+                e.preventDefault();
+                toggleMute();
+                break;
+        }
     });
+
+    function seekBy(delta) {
+        if (!isFinite(audio.duration)) return;
+        const to = clamp(audio.currentTime + delta, 0, audio.duration);
+        audio.currentTime = to;
+        progress.set(to, true);
+        currentTimeEl.textContent = formatTime(to);
+    }
+
+    /* ============================================================
+       TAB IDENTITY — themed favicon + embed metadata
+       ============================================================ */
+    const faviconLink = document.createElement('link');
+    faviconLink.rel = 'icon';
+    document.head.appendChild(faviconLink);
+
+    function drawFavicon(pulse) {
+        const size = 64;
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return false;
+
+        // rounded dark tile
+        const r = 14;
+        ctx.beginPath();
+        ctx.moveTo(r, 0);
+        ctx.arcTo(size, 0, size, size, r);
+        ctx.arcTo(size, size, 0, size, r);
+        ctx.arcTo(0, size, 0, 0, r);
+        ctx.arcTo(0, 0, size, 0, r);
+        ctx.closePath();
+        ctx.fillStyle = '#0b0b0d';
+        ctx.fill();
+
+        // accent ring, widening slightly with the beat when pulsing
+        ctx.strokeStyle = theme.accent;
+        ctx.lineWidth = 4 + (pulse || 0) * 2.5;
+        ctx.stroke();
+
+        // first letter of the name
+        ctx.fillStyle = theme.glow;
+        ctx.font = 'bold 34px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText((CONFIG.username || '?').trim().charAt(0).toUpperCase(), size / 2, size / 2 + 2);
+
+        faviconLink.href = canvas.toDataURL('image/png');
+        return true;
+    }
+
+    // "auto" draws the themed tile; "avatar" (or a canvas failure) uses the picture
+    if (CONFIG.favicon !== 'avatar') {
+        if (!drawFavicon(0)) faviconLink.href = pick(CONFIG.profilePicture);
+    } else {
+        faviconLink.href = pick(CONFIG.profilePicture);
+    }
+
+    /* ---------- link embed ---------- */
+    function setMeta(selector, attr, value) {
+        const el = document.head.querySelector(selector);
+        if (el && value) el.setAttribute(attr, value);
+    }
+
+    const firstBio = Array.isArray(CONFIG.bio) ? CONFIG.bio[0] : CONFIG.bio;
+    const embedDescription = CONFIG.ogDescription ||
+        [statusText.textContent, firstBio].filter(Boolean).join(' · ');
+
+    setMeta('meta[name="description"]', 'content', embedDescription);
+    setMeta('meta[property="og:description"]', 'content', embedDescription);
+    setMeta('meta[name="twitter:description"]', 'content', embedDescription);
+    setMeta('meta[property="og:title"]', 'content', CONFIG.username);
+    setMeta('meta[name="twitter:title"]', 'content', CONFIG.username);
+    setMeta('meta[name="theme-color"]', 'content', theme.accent);
+
+    // a data URI works for local previews; scrapers need a hosted URL
+    const ogImage = CONFIG.ogImage || backgroundSrc;
+    if (!isVideo(ogImage)) {
+        setMeta('meta[property="og:image"]', 'content', ogImage);
+        setMeta('meta[name="twitter:image"]', 'content', ogImage);
+    }
 
     /* ============================================================
        CARD OUTLINE — a light segment that travels around the card
@@ -1812,10 +2389,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let pointerX = 0, pointerY = 0, pointerLive = false, frameQueued = false;
 
+    /* Magnetic icons: the centres are measured once and on resize rather than
+       every frame — reading getBoundingClientRect in the frame loop would
+       force a layout on each move. */
+    const MAGNET_RADIUS = 90;         // px of influence around each icon
+    const MAGNET_PULL = 7;            // px it can travel toward the cursor
+    let magnetCentres = [];
+
+    function measureMagnets() {
+        magnetCentres = magnets.map(el => {
+            const b = el.getBoundingClientRect();
+            return { el, x: b.left + b.width / 2, y: b.top + b.height / 2 };
+        });
+    }
+
+    function applyMagnets() {
+        for (const m of magnetCentres) {
+            const dx = pointerX - m.x;
+            const dy = pointerY - m.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (!pointerLive || dist > MAGNET_RADIUS) {
+                m.el.classList.remove('pulling');
+                m.el.style.setProperty('--mx', '0px');
+                m.el.style.setProperty('--my', '0px');
+                continue;
+            }
+
+            const strength = (1 - dist / MAGNET_RADIUS) * MAGNET_PULL;
+            const scale = dist ? strength / dist : 0;
+            m.el.classList.add('pulling');
+            m.el.style.setProperty('--mx', (dx * scale).toFixed(2) + 'px');
+            m.el.style.setProperty('--my', (dy * scale).toFixed(2) + 'px');
+        }
+    }
+
     function applyPointer() {
         frameQueued = false;
         const nx = (pointerX - window.innerWidth / 2) / (window.innerWidth / 2);
         const ny = (pointerY - window.innerHeight / 2) / (window.innerHeight / 2);
+
+        if (CONFIG.magneticIcons && !touchDevice && !prefersReducedMotion) applyMagnets();
 
         backgroundWrap.style.setProperty('--bg-x', (pointerLive ? -nx * MAX_PARALLAX : 0).toFixed(1) + 'px');
         backgroundWrap.style.setProperty('--bg-y', (pointerLive ? -ny * MAX_PARALLAX : 0).toFixed(1) + 'px');
@@ -1851,6 +2465,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('pointercancel', onPointerRest);
     window.addEventListener('pointerleave', onPointerRest);
     window.addEventListener('blur', onPointerRest);
+    window.addEventListener('resize', measureMagnets);
 
     /* ============================================================
        AVATAR INTERACTION
@@ -1882,7 +2497,11 @@ document.addEventListener('DOMContentLoaded', () => {
         background.classList.add('animate');
         if (background.tagName === 'VIDEO') background.play().catch(() => {});
         document.getElementById('background-wrap').classList.add('animate');
+        $('ambient').classList.add('revealed');
         reveal.classList.add('revealed');
+
+        // icon centres are only meaningful once the card has settled
+        setTimeout(measureMagnets, 1200);
 
         // the view counter rolls up to its value as the card settles
         if (views > 0) {
