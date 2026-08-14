@@ -1792,20 +1792,6 @@ const isVideo = (src) => typeof src === 'string' && /\.(mp4|webm|ogv)(\?|#|$)/i.
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* A <video> fed a large data: URI frequently refuses to play on Android
-   Chrome — a data URI serves no range requests, which the media stack wants
-   for seeking. Handing it a blob URL instead gives it real bytes to work
-   with. Images are unaffected, so only video goes through this. */
-async function playableSource(src) {
-    if (!src || !src.startsWith('data:')) return src;
-    try {
-        const blob = await (await fetch(src)).blob();
-        return URL.createObjectURL(blob);
-    } catch {
-        return src;                       // conversion failed: use it as-is
-    }
-}
-
 /* Watches a playing video and calls back if its clock stops advancing, so a
    stalled decoder shows the fallback instead of freezing on one frame. */
 function watchForStall(video, onStall, checkMs = 2500) {
@@ -2081,7 +2067,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (clipSrc) {
         clip.loop = !(cycle.enabled && stillSrc);       // looping is the fallback
-        playableSource(clipSrc).then(src => { clip.src = src; });
+        clip.src = clipSrc;                             // clipSrc is already an asset path
         showClip();
 
         // if the clip cannot load, decode or keep running, the still takes over
@@ -2157,7 +2143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         profileContainer.style.setProperty('--pfp-fade', pfpCycle.fade + 'ms');
         profileClip.muted = true;                    // never competes with the music
         profileClip.loop = false;
-        playableSource(CONFIG.profileVideo).then(src => { profileClip.src = src; });
+        profileClip.src = CONFIG.profileVideo;       // already an asset path from build
 
         let failures = 0;
 
