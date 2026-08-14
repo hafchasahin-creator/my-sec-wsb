@@ -461,6 +461,56 @@ body {
 
 .profile-picture:active { transform: scale(0.94); }
 
+/* ============================================================
+   WING FRAME — a feathered pair either side of the avatar.
+   Absolutely positioned so they never take part in layout, and
+   painted beneath the picture.
+   ============================================================ */
+/* The wings precede the picture in the markup, so the avatar paints over
+   their shoulders and they appear to emerge from behind it. The right wing is
+   mirrored inside its own SVG rather than with scaleX, which would swing the
+   element's box back across to the left. */
+.wing {
+    position: absolute;
+    top: 50%;
+    width: calc(100% * var(--wing-size, 1));
+    height: auto;
+    opacity: var(--wing-opacity, 0.7);
+    pointer-events: none;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
+    will-change: transform;
+}
+
+/* each wing pivots at its shoulder — the edge nearest the avatar */
+.wing-left {
+    right: 56%;
+    transform-origin: right center;
+    transform: translateY(-50%) rotate(-8deg);
+}
+
+.wing-right {
+    left: 56%;
+    transform-origin: left center;
+    transform: translateY(-50%) rotate(8deg);
+}
+
+.wings-flap .wing-left  { animation: wing-flap-left 4.2s ease-in-out infinite; }
+.wings-flap .wing-right { animation: wing-flap-right 4.2s ease-in-out infinite; }
+
+/* the pair sweeps symmetrically, so the rotations mirror each other */
+@keyframes wing-flap-left {
+    0%, 100% { transform: translateY(-50%) rotate(-9deg) scale(1); }
+    50%      { transform: translateY(-50%) rotate(1deg) scale(1.06); }
+}
+
+@keyframes wing-flap-right {
+    0%, 100% { transform: translateY(-50%) rotate(9deg) scale(1); }
+    50%      { transform: translateY(-50%) rotate(-1deg) scale(1.06); }
+}
+
+/* the feathers brighten with the low end, like the rest of the card */
+.playing .wing { opacity: calc(var(--wing-opacity, 0.85) * (0.82 + 0.18 * var(--beat, 0))); }
+
 /* the avatar breathes with the low end of the track */
 .profile-container::before {
     content: '';
@@ -1383,7 +1433,52 @@ body {
         <!-- ---------- profile card ---------- -->
         <div id="profile-block">
             <div class="profile-header">
-                <div class="profile-container">
+                <div class="profile-container" id="profile-container">
+                    <!-- wings: one drawing, mirrored for the other side -->
+                    <svg class="wing wing-left" viewBox="12 0 118 100" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="feather" x1="1" y1="0" x2="0.1" y2="0.6">
+                                <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.98"/>
+                                <stop offset="45%"  stop-color="#e8e8e8" stop-opacity="0.88"/>
+                                <stop offset="100%" stop-color="#9a9a9a" stop-opacity="0.55"/>
+                            </linearGradient>
+                        </defs>
+                        <g class="feathers" fill="url(#feather)" stroke="rgba(0,0,0,0.6)"
+                           stroke-width="1.2" stroke-linejoin="round">
+                            <path d="M124 50 Q113.5 35.4 94.6 33 Q109.3 46.3 124 50 Z" opacity="0.97"/>
+                            <path d="M119.9 47.2 Q104.9 31.7 81.6 29.9 Q101.5 43.9 119.9 47.2 Z" opacity="0.94"/>
+                            <path d="M117.1 45.3 Q98.1 29.9 71.1 29.7 Q95.5 43.3 117.1 45.3 Z" opacity="0.92"/>
+                            <path d="M114.6 43.7 Q91.9 29 61.5 31.3 Q90.1 43.6 114.6 43.7 Z" opacity="0.9"/>
+                            <path d="M112.4 42.1 Q86.1 28.8 52.6 34.3 Q85.2 44.6 112.4 42.1 Z" opacity="0.87"/>
+                            <path d="M110.2 40.7 Q80.8 29.3 44.5 38.6 Q80.6 46.2 110.2 40.7 Z" opacity="0.84"/>
+                            <path d="M108.2 39.4 Q76 30.4 37.3 44.1 Q76.5 48.4 108.2 39.4 Z" opacity="0.82"/>
+                            <path d="M106.3 38 Q71.7 31.9 31.1 50.6 Q72.8 51.1 106.3 38 Z" opacity="0.79"/>
+                            <path d="M104.4 36.8 Q68 33.9 25.9 58 Q69.6 54.3 104.4 36.8 Z" opacity="0.77"/>
+                            <path d="M102.6 35.6 Q64.9 36.3 21.9 66.1 Q67 57.8 102.6 35.6 Z" opacity="0.74"/>
+                            <path d="M100.8 34.4 Q62.4 38.9 19.2 74.9 Q64.9 61.7 100.8 34.4 Z" opacity="0.72"/>
+                            <path d="M99.1 33.2 Q60.5 41.7 17.7 84.1 Q63.5 65.7 99.1 33.2 Z" opacity="0.69"/>
+                        </g>
+                    </svg>
+
+                    <svg class="wing wing-right" viewBox="12 0 118 100" aria-hidden="true">
+                        <g class="feathers" fill="url(#feather)" stroke="rgba(0,0,0,0.6)"
+                           stroke-width="1.2" stroke-linejoin="round"
+                           transform="translate(142,0) scale(-1,1)">
+                            <path d="M124 50 Q113.5 35.4 94.6 33 Q109.3 46.3 124 50 Z" opacity="0.97"/>
+                            <path d="M119.9 47.2 Q104.9 31.7 81.6 29.9 Q101.5 43.9 119.9 47.2 Z" opacity="0.94"/>
+                            <path d="M117.1 45.3 Q98.1 29.9 71.1 29.7 Q95.5 43.3 117.1 45.3 Z" opacity="0.92"/>
+                            <path d="M114.6 43.7 Q91.9 29 61.5 31.3 Q90.1 43.6 114.6 43.7 Z" opacity="0.9"/>
+                            <path d="M112.4 42.1 Q86.1 28.8 52.6 34.3 Q85.2 44.6 112.4 42.1 Z" opacity="0.87"/>
+                            <path d="M110.2 40.7 Q80.8 29.3 44.5 38.6 Q80.6 46.2 110.2 40.7 Z" opacity="0.84"/>
+                            <path d="M108.2 39.4 Q76 30.4 37.3 44.1 Q76.5 48.4 108.2 39.4 Z" opacity="0.82"/>
+                            <path d="M106.3 38 Q71.7 31.9 31.1 50.6 Q72.8 51.1 106.3 38 Z" opacity="0.79"/>
+                            <path d="M104.4 36.8 Q68 33.9 25.9 58 Q69.6 54.3 104.4 36.8 Z" opacity="0.77"/>
+                            <path d="M102.6 35.6 Q64.9 36.3 21.9 66.1 Q67 57.8 102.6 35.6 Z" opacity="0.74"/>
+                            <path d="M100.8 34.4 Q62.4 38.9 19.2 74.9 Q64.9 61.7 100.8 34.4 Z" opacity="0.72"/>
+                            <path d="M99.1 33.2 Q60.5 41.7 17.7 84.1 Q63.5 65.7 99.1 33.2 Z" opacity="0.69"/>
+                        </g>
+                    </svg>
+
                     <img src="" alt="Profile" class="profile-picture" id="profile-picture">
                 </div>
                 <div class="profile-info">
@@ -1630,6 +1725,16 @@ const CONFIG = {
         enabled: true,
         particles: 18,                  // 0 disables the motes
         bloom: true                     // the two drifting colour blooms
+    },
+
+    /* ---------- avatar frame ----------
+       A pair of feathered wings flanking the profile picture. They sit behind
+       it and never affect layout, so the card keeps its proportions. */
+    avatarFrame: {
+        wings: true,
+        size: 1.12,                     // wing span as a multiple of the avatar
+        opacity: 0.8,
+        flap: true                      // slow beat-synced flap
     },
 
     /* ---------- interaction ---------- */
@@ -2082,7 +2187,20 @@ document.addEventListener('DOMContentLoaded', () => {
         currentStatus = mode;
 
         // `anim-*` selects the dot's behaviour: ping, dim or swell
-        statusDot.className = 'status-dot ' + mode +
+        /* ---------- avatar wings ---------- */
+    const frame = Object.assign({ wings: true, size: 1.25, opacity: 0.85, flap: true },
+                                CONFIG.avatarFrame);
+    const profileContainer2 = $('profile-container');
+
+    if (frame.wings) {
+        profileContainer2.style.setProperty('--wing-size', frame.size);
+        profileContainer2.style.setProperty('--wing-opacity', frame.opacity);
+        if (frame.flap && !prefersReducedMotion) profileContainer2.classList.add('wings-flap');
+    } else {
+        profileContainer2.querySelectorAll('.wing').forEach(w => w.remove());
+    }
+
+    statusDot.className = 'status-dot ' + mode +
                               (preset.anim ? ' anim-' + preset.anim : '');
         const dotColor = (CONFIG.theme && CONFIG.theme.accentStatus) ? theme.accent : preset.color;
         statusDot.style.color = dotColor;
