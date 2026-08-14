@@ -29,13 +29,14 @@ FILES = {
     "MONO_URI": "mono.woff2",
     "BG_URI": None,
     "BGVIDEO_URI": "background-clip.mp4",   # optional; "" when absent
+    "PFPVIDEO_URI": "profile-clip.mp4",     # optional; "" when absent
     "AVATAR_URI": "avatar.png",
     "COVER_URI": "cover-placeholder.jpg",
     "SONG_URI": "song.mp3",
 }
 
 # tokens the page can live without — a missing file becomes an empty string
-OPTIONAL = {"BGVIDEO_URI"}
+OPTIONAL = {"BGVIDEO_URI", "PFPVIDEO_URI"}
 
 # first match wins; video before image so a dropped-in clip takes over
 BACKGROUND_CANDIDATES = ["background.mp4", "background.webm", "background.jpg",

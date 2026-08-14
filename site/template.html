@@ -446,17 +446,27 @@ body {
     to   { transform: rotate(360deg); }
 }
 
-.profile-picture {
-    width: 150px;
-    height: 150px;
+/* The photo and the optional clip are stacked layers that cross-fade, so the
+   avatar can hand over to video and back without the circle ever collapsing. */
+.pfp-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     border-radius: 50%;
     object-fit: cover;
-    cursor: pointer;
-    pointer-events: auto;
     display: block;
     /* a hairline rim keeps a light avatar from bleeding into the card */
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 2px 12px rgba(0, 0, 0, 0.5);
-    transition: transform 0.3s ease;
+    opacity: 0;
+    transition: opacity var(--pfp-fade, 900ms) ease-in-out, transform 0.3s ease;
+}
+
+.pfp-layer.show { opacity: 1; }
+
+.profile-picture {
+    cursor: pointer;
+    pointer-events: auto;
 }
 
 .profile-picture:active { transform: scale(0.94); }
@@ -1279,8 +1289,8 @@ body {
 
     .profile-header { gap: 10px; }
 
-    .profile-container,
-    .profile-picture { width: 70px; height: 70px; }
+    /* the layers inside fill the container, so only it needs sizing */
+    .profile-container { width: 70px; height: 70px; }
 
     .profile-info { align-items: flex-start; text-align: left; }
 
@@ -1389,7 +1399,10 @@ body {
         <div id="profile-block">
             <div class="profile-header">
                 <div class="profile-container" id="profile-container">
-                    <img src="" alt="Profile" class="profile-picture" id="profile-picture">
+                    <!-- optional avatar clip; the photo sits above it -->
+                    <video id="profile-clip" class="pfp-layer" muted playsinline
+                           webkit-playsinline preload="auto" aria-hidden="true"></video>
+                    <img src="" alt="Profile" class="pfp-layer profile-picture show" id="profile-picture">
                 </div>
                 <div class="profile-info">
                     <div class="name-and-badges">
@@ -1572,6 +1585,17 @@ const CONFIG = {
        fades away as the clip starts again. With no clip the still simply
        stays. */
     profilePicture: {{AVATAR_URI}},
+
+    /* An optional clip that takes the avatar's place now and then: the photo
+       holds, the clip plays through once, then the photo fades back in. It is
+       always muted so it never competes with the music. */
+    profileVideo: {{PFPVIDEO_URI}},     // "" = photo only
+    profileCycle: {
+        enabled: true,
+        photoHold: 9000,                // ms the photo shows between plays
+        fade: 900                       // cross-fade duration
+    },
+
     backgroundImage: {{BG_URI}},
     backgroundVideo: {{BGVIDEO_URI}},   // "" = still artwork only
 
@@ -2067,6 +2091,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, cycle.fade + cycle.photoHold);
             }
         });
+    }
+
+    /* ============================================================
+       AVATAR CLIP — the photo holds, the clip plays once, then the
+       photo fades back in and the wait starts over.
+
+       Always muted: the page already has a soundtrack, and a second
+       audio source would fight it.
+       ============================================================ */
+    const profileClip = $('profile-clip');
+    const pfpCycle = Object.assign({ enabled: true, photoHold: 9000, fade: 900 },
+                                   CONFIG.profileCycle);
+    let pfpTimer = null;
+
+    function startProfileCycle() {
+        if (!CONFIG.profileVideo || !pfpCycle.enabled) return;
+
+        profileContainer.style.setProperty('--pfp-fade', pfpCycle.fade + 'ms');
+        profileClip.muted = true;                    // never competes with the music
+        profileClip.loop = false;
+        profileClip.src = CONFIG.profileVideo;
+
+        const backToPhoto = () => {
+            profileClip.classList.remove('show');
+            profilePicture.classList.add('show');    // the photo returns slowly
+            clearTimeout(pfpTimer);
+            pfpTimer = setTimeout(playClip, pfpCycle.photoHold);
+        };
+
+        // if the clip cannot load or play, the photo simply stays
+        const giveUp = () => { clearTimeout(pfpTimer); backToPhoto(); };
+
+        function playClip() {
+            profileClip.currentTime = 0;
+            const p = profileClip.play();
+            if (p && p.catch) p.catch(giveUp);
+            profileClip.classList.add('show');
+            profilePicture.classList.remove('show');
+        }
+
+        profileClip.addEventListener('ended', backToPhoto);
+        profileClip.addEventListener('error', giveUp);
+
+        pfpTimer = setTimeout(playClip, pfpCycle.photoHold);
     }
 
     /* the tab icon is set further down, alongside the embed metadata */
@@ -3061,6 +3129,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // icon centres are only meaningful once the card has settled
         setTimeout(measureMagnets, 1200);
+
+        startProfileCycle();
 
         // the view counter rolls up to its value as the card settles
         if (views > 0) {
