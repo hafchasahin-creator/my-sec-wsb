@@ -1,0 +1,3264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="description" content="imran">
+<meta name="color-scheme" content="dark">
+<!-- link embeds, for when the page is shared -->
+<meta property="og:type" content="profile">
+<meta property="og:title" content="imran">
+<meta property="og:description" content="Do Not Disturb">
+<meta property="og:image" content="">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="imran">
+<meta name="twitter:description" content="Do Not Disturb">
+<meta name="twitter:image" content="">
+<title>imran</title>
+<style>
+/* ============================================================
+   FONTS
+   ============================================================ */
+@font-face {
+    font-family: 'Angel Wish';
+    src: url({{FONT_URI}}) format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
+}
+
+/* Liberation Mono, subset to the glyphs this page uses (SIL OFL 1.1).
+   It is metric-compatible with Courier New, so the text occupies exactly the
+   same widths everywhere instead of whatever mono a phone substitutes. */
+@font-face {
+    font-family: 'Mono';
+    src: url({{MONO_URI}}) format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* ============================================================
+   THEME — published from CONFIG.theme at boot, so every accent
+   in the page resolves back to those few values
+   ============================================================ */
+:root {
+    --accent: #ed4245;
+    --glow: #ffffff;
+    --beat-color: #ffffff;
+    --beat: 0;                  /* 0-1, driven by the audio analyser */
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Mono', 'Courier New', Courier, monospace;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* the page is a UI, not a document — stop long-press selection and the
+   image save sheet from firing mid-drag */
+body, #stack, #start-screen {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+body {
+    background-color: #000;
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
+}
+
+.container {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    position: relative;
+    perspective: 1000px;
+}
+
+.hidden { display: none !important; }
+
+/* ============================================================
+   BACKGROUND — full screen artwork with a very slow zoom
+   ============================================================ */
+/* wrapper carries the parallax drift, the image itself carries the slow zoom */
+#background-wrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+    pointer-events: none;
+    transform: translate3d(var(--bg-x, 0px), var(--bg-y, 0px), 0);
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+}
+
+/* Two stacked backdrops — the clip and the still — cross-faded by the cycle.
+   With no clip configured the still simply stays visible. */
+.bg-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    transform: scale(1.06);
+    opacity: 0;
+    transition: opacity var(--bg-fade, 1600ms) ease-in-out;
+}
+
+/* only the visible layer gets a compositor layer and the zoom — animating the
+   hidden one costs a second full-screen layer for nothing */
+.bg-layer.show {
+    opacity: 1;
+    will-change: transform, opacity;
+}
+
+.bg-layer.show.animate {
+    animation: bg-zoom 42s ease-in-out infinite alternate;
+}
+
+/* Ken Burns: the end point is randomised per photo, so each one drifts its
+   own way instead of every backdrop making the same move. */
+@keyframes bg-zoom {
+    from { transform: scale(1.06) translate3d(0, 0, 0); }
+    to   { transform: scale(var(--kb-scale, 1.16))
+                     translate3d(var(--kb-x, 0px), var(--kb-y, 0px), 0); }
+}
+
+/* the artwork lifts a touch out of black as the page opens */
+#background-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+    opacity: 0;
+    transition: opacity 1.6s ease;
+}
+
+#background-wrap.animate::after { opacity: 1; }
+
+/* ============================================================
+   AMBIENT LAYER — sits between the artwork and the card.
+   Everything here animates transform/opacity only, so it stays
+   on the compositor and never repaints.
+   ============================================================ */
+/* The beat is applied to this one wrapper rather than to each child: a custom
+   property inside a keyframe would drop those animations off the compositor
+   and back onto the main thread. */
+#ambient {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+}
+
+#ambient.revealed { opacity: calc(0.72 + 0.28 * var(--beat, 0)); }
+
+/* Two slow colour blooms. The radial gradient is already soft, so no blur
+   filter is needed — and no scaling, which would force the layer to
+   re-rasterise on every frame. Translation alone stays on the GPU. */
+.bloom {
+    position: absolute;
+    width: 86vmax;
+    height: 86vmax;
+    border-radius: 50%;
+    opacity: 0.07;
+    will-change: transform;
+}
+
+.bloom-a {
+    left: -30vmax;
+    top: -24vmax;
+    background: radial-gradient(circle closest-side, var(--accent) 0%, transparent 70%);
+    animation: bloom-drift-a 38s ease-in-out infinite alternate;
+}
+
+.bloom-b {
+    right: -32vmax;
+    bottom: -28vmax;
+    background: radial-gradient(circle closest-side, var(--glow) 0%, transparent 66%);
+    animation: bloom-drift-b 46s ease-in-out infinite alternate;
+}
+
+@keyframes bloom-drift-a {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(14vw, 10vh, 0); }
+}
+
+@keyframes bloom-drift-b {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-12vw, -12vh, 0); }
+}
+
+/* drifting motes — position and timing are randomised per element at boot */
+.mote {
+    position: absolute;
+    top: 100%;
+    width: var(--size, 3px);
+    height: var(--size, 3px);
+    border-radius: 50%;
+    background: var(--glow);
+    opacity: 0;
+    will-change: transform, opacity;
+    animation: mote-rise var(--dur, 20s) linear var(--delay, 0s) infinite;
+}
+
+/* opacity here is a static per-mote value — the beat is applied once on
+   #ambient so these keyframes stay compositor-only */
+@keyframes mote-rise {
+    0%   { transform: translate3d(0, 0, 0); opacity: 0; }
+    12%  { opacity: var(--peak, 0.5); }
+    88%  { opacity: var(--peak, 0.5); }
+    100% { transform: translate3d(var(--drift, 20px), calc(-100vh - 12vh), 0); opacity: 0; }
+}
+
+/* ============================================================
+   LAYOUT — centered stack: profile card / music player / controls
+   ============================================================ */
+#content-wrapper {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    perspective: 1000px;
+}
+
+#reveal {
+    opacity: 0;
+    transform: translateY(-50px);
+}
+
+#reveal.revealed {
+    animation: reveal-in 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes reveal-in {
+    from { opacity: 0; transform: translateY(-50px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- staggered entrance: panels first, then the pieces inside the card ---- */
+.revealed .top-controls {
+    animation: panel-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
+}
+
+@keyframes panel-in {
+    from { opacity: 0; transform: translateY(18px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.revealed .profile-container,
+.revealed .name-and-badges,
+.revealed .discord-status,
+.revealed #profile-bio,
+.revealed .visitor-counter {
+    animation: piece-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.revealed .profile-container { animation-delay: 0.30s; }
+.revealed .name-and-badges   { animation-delay: 0.38s; }
+.revealed .discord-status    { animation-delay: 0.46s; }
+.revealed #profile-bio       { animation-delay: 0.54s; }
+.revealed .visitor-counter   { animation-delay: 0.86s; }
+
+@keyframes piece-in {
+    from { opacity: 0; transform: translateX(-10px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* the divider draws itself outward from the centre */
+.revealed .bio-separator {
+    animation: divider-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.58s both;
+    transform-origin: center;
+}
+
+@keyframes divider-in {
+    from { opacity: 0; transform: scaleX(0); }
+    to   { opacity: 1; transform: scaleX(1); }
+}
+
+/* social icons drop in one after another */
+.revealed .social-links a {
+    animation: icon-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.revealed .social-links a:nth-child(1) { animation-delay: 0.62s; }
+.revealed .social-links a:nth-child(2) { animation-delay: 0.68s; }
+.revealed .social-links a:nth-child(3) { animation-delay: 0.74s; }
+.revealed .social-links a:nth-child(4) { animation-delay: 0.80s; }
+.revealed .social-links a:nth-child(5) { animation-delay: 0.86s; }
+.revealed .social-links a:nth-child(6) { animation-delay: 0.92s; }
+
+@keyframes icon-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.5); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+#stack {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+    transform-style: preserve-3d;
+    transition: transform 0.3s ease-out;
+}
+
+/* animated marching outline that traces the profile card */
+#profile-outline {
+    position: absolute;
+    overflow: visible;
+    mix-blend-mode: difference;
+    pointer-events: none;
+    z-index: 4;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+}
+
+/* ============================================================
+   PROFILE CARD
+   ============================================================ */
+#profile-block {
+    /* the glow pseudo-element anchors here; backdrop-filter happens to create
+       a containing block too, but that disappears when the eye slider zeroes
+       the blur, so pin it explicitly */
+    position: relative;
+    width: 820px;
+    min-height: 332px;
+    max-height: min(400px, calc(100vh - 220px));
+    overflow: visible;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: none;
+    padding: 20px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.04);
+    transition: background-color 0.25s ease;
+    pointer-events: auto;
+}
+
+/* beat glow rides on opacity of a static shadow — changing the shadow itself
+   every frame would repaint the whole card */
+#profile-block::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 15px;
+    box-shadow: 0 0 34px var(--beat-color);
+    opacity: calc(0.14 * var(--beat, 0));
+    pointer-events: none;
+    will-change: opacity;
+}
+
+/* a slow reflection travelling across the glass — the gradient is clipped by
+   the card's own radius, so no extra element is needed */
+#profile-block,
+#music-player {
+    background-image: linear-gradient(105deg,
+        transparent 38%,
+        rgba(255, 255, 255, 0.06) 47%,
+        rgba(255, 255, 255, 0.09) 50%,
+        rgba(255, 255, 255, 0.06) 53%,
+        transparent 62%);
+    background-size: 260% 100%;
+    background-repeat: no-repeat;
+    background-position: 210% 0;
+}
+
+/* entrance and reflection run together on the two big panels */
+.revealed #profile-block {
+    animation: panel-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both,
+               card-shine 11s ease-in-out 2.2s infinite;
+}
+
+.revealed #music-player {
+    animation: panel-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both,
+               card-shine 11s ease-in-out 2.6s infinite;
+}
+
+@keyframes card-shine {
+    0%        { background-position: 210% 0; }
+    20%, 100% { background-position: -110% 0; }
+}
+
+.profile-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.profile-container {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    flex-shrink: 0;
+}
+
+/* orbiting light dot around the avatar */
+.profile-container::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 10px 10px, white 10%, transparent 15%);
+    animation: orbit 3s linear infinite;
+    z-index: -1;
+    filter: blur(1px);
+}
+
+.profile-container.fast-orbit::after {
+    animation: orbit 0.5s linear forwards;
+}
+
+@keyframes orbit {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* The photo and the optional clip are stacked layers that cross-fade, so the
+   avatar can hand over to video and back without the circle ever collapsing. */
+.pfp-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    /* a hairline rim keeps a light avatar from bleeding into the card */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 2px 12px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity var(--pfp-fade, 900ms) ease-in-out, transform 0.3s ease;
+}
+
+.pfp-layer.show { opacity: 1; }
+
+.profile-picture {
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.profile-picture:active { transform: scale(0.94); }
+
+/* ============================================================
+   WING FRAME — a feathered pair either side of the avatar.
+   Absolutely positioned so they never take part in layout, and
+   painted beneath the picture.
+   ============================================================ */
+/* the avatar breathes with the low end of the track */
+.profile-container::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    box-shadow: 0 0 22px var(--beat-color);
+    opacity: 0;
+    pointer-events: none;
+    will-change: opacity;
+}
+
+.playing .profile-container::before { opacity: calc(0.42 * var(--beat, 0)); }
+
+.profile-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.name-and-badges {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+/* name and emblems stay on one line at every width */
+.name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.badges {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.badge {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    color: var(--badge-color, var(--accent));
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--badge-color, var(--accent)) 55%, transparent));
+    cursor: help;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.badge:hover,
+.badge.show { transform: translateY(-2px) scale(1.15); }
+
+.badge svg { width: 100%; height: 100%; display: block; }
+
+.badge .tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 100;
+}
+
+.badge:hover .tooltip,
+.badge.show .tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* entrance, in step with the rest of the card */
+.revealed .badge {
+    animation: icon-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.revealed .badge:nth-child(1) { animation-delay: 0.44s; }
+.revealed .badge:nth-child(2) { animation-delay: 0.50s; }
+.revealed .badge:nth-child(3) { animation-delay: 0.56s; }
+.revealed .badge:nth-child(4) { animation-delay: 0.62s; }
+
+#profile-name {
+    font-family: 'Angel Wish', 'Courier New', monospace;
+    font-size: 32px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    color: #fff;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.7));
+    white-space: pre;
+}
+
+.discord-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.72);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+    min-width: 0;
+}
+
+/* a long presence string (Listening to X by Y) trims instead of wrapping */
+#status-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
+    position: relative;
+}
+
+#status-text { transition: opacity 0.22s ease; }
+
+/* ---- each mode gets its own dot behaviour ---- */
+.status-dot::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    opacity: 0;
+    will-change: transform, opacity;    /* own layer, keeps the text out of the repaint */
+}
+
+.status-dot { transition: background 0.3s ease, box-shadow 0.3s ease; }
+
+/* do not disturb — a sharp outward ping */
+.status-dot.anim-ping::after { animation: status-ping 2.6s ease-out infinite; }
+
+@keyframes status-ping {
+    0%   { opacity: 0.55; transform: scale(0.75); }
+    70%  { opacity: 0;    transform: scale(1.6); }
+    100% { opacity: 0;    transform: scale(1.6); }
+}
+
+/* silent — no ring at all, the dot itself dims and lifts like a slow breath */
+.status-dot.anim-silent {
+    animation: status-dim 2.9s ease-in-out infinite;
+}
+
+@keyframes status-dim {
+    0%, 100% { opacity: 1;    box-shadow: 0 0 6px currentColor; }
+    50%      { opacity: 0.32; box-shadow: 0 0 1px currentColor; }
+}
+
+/* normal — a calm swell, slower and softer than the ping */
+.status-dot.anim-normal {
+    animation: status-swell 3.4s ease-in-out infinite;
+}
+
+.status-dot.anim-normal::after {
+    animation: status-halo 3.4s ease-in-out infinite;
+}
+
+@keyframes status-swell {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.22); }
+}
+
+@keyframes status-halo {
+    0%, 100% { opacity: 0;    transform: scale(1); }
+    50%      { opacity: 0.42; transform: scale(1.75); }
+}
+
+.status-dot.offline::after,
+.status-dot.invisible::after { animation: none; }
+
+/* ============================================================
+   STATUS PICKER
+   ============================================================ */
+.discord-status.interactive {
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 2px 6px;
+    margin-left: -6px;
+    width: fit-content;
+    transition: background 0.2s ease;
+}
+
+.discord-status.interactive:hover,
+.discord-status.interactive:focus-visible { background: rgba(255, 255, 255, 0.07); }
+
+.status-caret {
+    width: 9px;
+    height: 9px;
+    flex-shrink: 0;
+    opacity: 0.45;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+
+.discord-status.open .status-caret { transform: rotate(180deg); opacity: 0.9; }
+
+.status-wrap { position: relative; }
+
+.status-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 60;
+    min-width: 168px;
+    padding: 5px;
+    border-radius: 11px;
+    background: rgba(12, 12, 14, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transform-origin: top left;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px) scale(0.94);
+    transition: opacity 0.2s ease, transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1),
+                visibility 0.2s;
+}
+
+.status-menu.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.status-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+    /* each option slides in behind the one before it */
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: background 0.18s ease, color 0.18s ease,
+                opacity 0.26s ease, transform 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.status-menu.open .status-option { opacity: 1; transform: translateX(0); }
+.status-menu.open .status-option:nth-child(1) { transition-delay: 0.04s, 0.04s, 0.04s, 0.04s; }
+.status-menu.open .status-option:nth-child(2) { transition-delay: 0.09s, 0.09s, 0.09s, 0.09s; }
+.status-menu.open .status-option:nth-child(3) { transition-delay: 0.14s, 0.14s, 0.14s, 0.14s; }
+.status-menu.open .status-option:nth-child(4) { transition-delay: 0.19s, 0.19s, 0.19s, 0.19s; }
+
+.status-option:hover,
+.status-option:focus-visible {
+    background: rgba(255, 255, 255, 0.09);
+    color: #fff;
+    outline: none;
+}
+
+.status-option[aria-checked="true"] { background: rgba(255, 255, 255, 0.06); }
+
+.status-option .opt-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--opt-color, #fff);
+    box-shadow: 0 0 6px var(--opt-color, #fff);
+}
+
+.status-option .opt-check {
+    margin-left: auto;
+    width: 12px;
+    height: 12px;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.status-option[aria-checked="true"] .opt-check { opacity: 0.9; transform: scale(1); }
+
+.status-dot.online  { background: #3ba55d; color: #3ba55d; }
+.status-dot.idle    { background: #faa81a; color: #faa81a; }
+.status-dot.dnd     { background: #ed4245; color: #ed4245; }
+.status-dot.offline { background: #747f8d; color: #747f8d; box-shadow: none; }
+
+#profile-bio {
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 18px;
+    line-height: 1.5;
+    margin-bottom: 10px;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+}
+
+.bio-separator {
+    width: 100%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 20px 0;
+}
+
+.profile-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+    margin-top: auto;
+}
+
+/* ---- social icons ---- */
+.social-links {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    pointer-events: auto;
+}
+
+/* Three nested layers keep the transforms from fighting each other:
+   the <a> carries the entrance animation, .magnet carries the cursor lean,
+   and the icon itself carries the float and hover scale. */
+.social-links a {
+    display: block;
+    line-height: 0;
+    text-decoration: none;
+    position: relative;
+}
+
+.magnet {
+    display: block;
+    line-height: 0;
+    transform: translate3d(var(--mx, 0px), var(--my, 0px), 0);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+}
+
+.magnet.pulling { transition: transform 0.12s ease-out; }
+
+/* click spark burst */
+.spark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    margin: -2px 0 0 -2px;
+    border-radius: 50%;
+    background: var(--spark-color, var(--accent));
+    pointer-events: none;
+    opacity: 0;
+    animation: spark-fly var(--spark-dur, 520ms) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes spark-fly {
+    0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+    100% { opacity: 0; transform: translate3d(var(--sx), var(--sy), 0) scale(0.3); }
+}
+
+.social-icon {
+    width: 36px;
+    height: 36px;
+    display: block;
+    transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.7));
+    pointer-events: auto;
+}
+
+.social-icon:hover {
+    transform: translateY(-3px) scale(1.34) rotateY(12deg);
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.85))
+            drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+}
+
+.social-links a:active .social-icon { transform: translateY(-1px) scale(1.2); }
+
+/* idle float, offset per icon so the row breathes rather than bobs in unison */
+.revealed .social-links a { animation-fill-mode: both; }
+.social-links a .social-icon { animation: icon-float 4.5s ease-in-out infinite; }
+.social-links a:nth-child(2) .social-icon { animation-delay: -0.6s; }
+.social-links a:nth-child(3) .social-icon { animation-delay: -1.2s; }
+.social-links a:nth-child(4) .social-icon { animation-delay: -1.8s; }
+.social-links a:nth-child(5) .social-icon { animation-delay: -2.4s; }
+.social-links a:nth-child(6) .social-icon { animation-delay: -3.0s; }
+
+@keyframes icon-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-2.5px); }
+}
+
+/* hover cancels the float so the scale reads cleanly */
+.social-links a:hover .social-icon { animation: none; }
+
+/* ---- visitor counter ---- */
+.visitor-counter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    align-self: flex-start;
+    position: relative;
+    pointer-events: auto;
+}
+
+.visitor-icon {
+    width: 18px;
+    height: 18px;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.visitor-counter .tooltip {
+    visibility: hidden;
+    width: 120px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    font-size: 12px;
+    position: absolute;
+    z-index: 100;
+    top: -35px;
+    left: 50%;
+    margin-left: -60px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.visitor-counter:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* ============================================================
+   MUSIC PLAYER
+   ============================================================ */
+#music-player {
+    width: 820px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border-radius: 15px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: #fff;
+    box-shadow: 0 0 24px rgba(255, 255, 255, 0.03);
+    transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.player-art {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    overflow: hidden;
+    transform: scale(calc(1 + 0.045 * var(--beat, 0)));
+    transition: transform 0.12s ease-out;
+}
+
+.player-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+    display: block;
+    transition: opacity 0.35s ease;
+}
+
+/* little equaliser that only runs while the track plays */
+.eq {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 42%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    padding-bottom: 3px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+}
+
+.playing .eq { opacity: 1; }
+
+.eq span {
+    width: 2px;
+    height: 20%;
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 1px;
+    transform-origin: bottom;
+}
+
+.playing .eq span { animation: eq-bar 0.9s ease-in-out infinite; }
+.playing .eq span:nth-child(2) { animation-duration: 0.7s; animation-delay: 0.15s; }
+.playing .eq span:nth-child(3) { animation-duration: 1.1s; animation-delay: 0.3s; }
+
+@keyframes eq-bar {
+    0%, 100% { transform: scaleY(1); }
+    50%      { transform: scaleY(3.2); }
+}
+
+#current-time, #total-time {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    min-width: 28px;
+}
+
+#progress-container {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.player-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* padding grows the touch target, the negative margin keeps the drawn icon
+   and the spacing between controls exactly where the design puts them */
+.ctrl-btn {
+    width: 20px;
+    height: 20px;
+    padding: 7px;
+    margin: -7px;
+    box-sizing: content-box;
+    cursor: pointer;
+    color: #fff;
+    flex-shrink: 0;
+    overflow: visible;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.ctrl-play { width: 26px; height: 26px; }
+.ctrl-btn:hover { opacity: 0.6; }
+.ctrl-btn:active { transform: scale(0.85); }
+
+/* play/pause icon swap animation */
+.ctrl-play.pulse { animation: play-pulse 0.35s ease-out; }
+
+@keyframes play-pulse {
+    0%   { transform: scale(0.7); opacity: 0.5; }
+    60%  { transform: scale(1.12); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* ============================================================
+   FLOATING VOLUME / EFFECTS PANEL
+   ============================================================ */
+.top-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 8px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: background 0.25s ease;
+}
+
+.volume-control,
+.transparency-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.volume-icon,
+.transparency-icon {
+    width: 20px;
+    height: 20px;
+    color: #fff;
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+}
+
+.volume-icon {
+    padding: 7px;
+    margin: -7px;
+    box-sizing: content-box;
+    overflow: visible;
+}
+
+.volume-icon { cursor: pointer; }
+.volume-icon:active { transform: scale(0.85); }
+
+/* ============================================================
+   CUSTOM RANGE SLIDERS (pointer driven — work with touch drags)
+   ============================================================ */
+.range {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 22px;
+    cursor: pointer;
+    touch-action: none;
+    flex-shrink: 0;
+}
+
+.range-track {
+    position: relative;
+    width: 100%;
+    height: 5px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.3);
+    overflow: hidden;
+}
+
+.range-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    background: var(--glow);
+    opacity: 0.9;
+    border-radius: 5px;
+}
+
+.range-thumb {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 12px;
+    height: 12px;
+    margin-left: -6px;
+    border-radius: 50%;
+    background: var(--glow);
+    transform: translateY(-50%);
+    pointer-events: none;
+    transition: box-shadow 0.2s ease;
+}
+
+.range.dragging .range-thumb { box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.18); }
+
+/* volume + effects sliders keep the flat unfilled track of the original */
+.slider { width: 80px; }
+.slider .range-fill { display: none; }
+
+/* music progress bar */
+#music-progress { width: 100%; }
+#music-progress .range-track { height: 3px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); }
+#music-progress .range-thumb { width: 11px; height: 11px; margin-left: -5.5px; }
+
+/* ============================================================
+   ENTRY SCREEN
+   ============================================================ */
+#start-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+    cursor: pointer;
+    opacity: 1;
+    transition: opacity 0.6s ease;
+}
+
+/* tighter exit: the veil lifts faster than it blurs away */
+#start-screen.fading {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    transition: opacity 0.42s cubic-bezier(0.4, 0, 1, 1),
+                backdrop-filter 0.5s ease;
+}
+
+#start-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 0 24px;
+    text-align: center;
+}
+
+/* optional second line, revealed with a short glitch */
+#start-subtitle {
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+    opacity: 0;
+    white-space: pre;
+}
+
+#start-subtitle.in {
+    animation: subtitle-in 0.5s steps(2, end) 0.35s forwards,
+               glitch 0.2s ease-in-out 0.5s 2;
+}
+
+@keyframes subtitle-in {
+    from { opacity: 0; letter-spacing: 6px; }
+    to   { opacity: 1; letter-spacing: 2px; }
+}
+
+#start-text {
+    font-size: 24px;
+    color: #fff;
+    text-align: center;
+    white-space: pre;
+    animation: start-breathe 3.2s ease-in-out infinite;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+}
+
+@keyframes start-breathe {
+    0%, 100% { opacity: 0.72; text-shadow: 0 0 12px rgba(255, 255, 255, 0.18); }
+    50%      { opacity: 1;    text-shadow: 0 0 22px rgba(255, 255, 255, 0.45); }
+}
+
+/* readiness of the audio and clip — mostly instant when they are inlined,
+   but honest feedback when the page is served over a slow connection */
+#start-progress {
+    width: 118px;
+    height: 2px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.14);
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+#start-progress.visible { opacity: 1; }
+
+#start-progress span {
+    display: block;
+    width: 0%;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    transition: width 0.3s ease;
+}
+
+#start-screen.fading #start-inner {
+    animation: none;
+    transform: scale(1.18);
+    opacity: 0;
+    transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+/* glitch nudge used by the typewriters */
+.glitch { animation: glitch 0.2s ease-in-out; }
+
+@keyframes glitch {
+    0%   { transform: translate(0); }
+    20%  { transform: translate(-2px, 2px); }
+    40%  { transform: translate(-2px, -2px); }
+    60%  { transform: translate(2px, 2px); }
+    80%  { transform: translate(2px, -2px); }
+    100% { transform: translate(0); }
+}
+
+/* ============================================================
+   MOBILE (the layout the reference screenshots were taken in)
+   ============================================================ */
+@media (max-width: 430px) {
+    #profile-block {
+        width: 90vw;
+        max-width: 350px;
+        min-height: unset;
+        max-height: none;
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .profile-header { gap: 10px; }
+
+    /* the layers inside fill the container, so only it needs sizing */
+    .profile-container { width: 70px; height: 70px; }
+
+    .profile-info { align-items: flex-start; text-align: left; }
+
+    .name-and-badges {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    #profile-name { font-size: 20px; letter-spacing: 1px; }
+
+    /* scaled to sit with the 20px name rather than crowd it */
+    .name-row { gap: 6px; }
+    .badges { gap: 4px; }
+    .badge { width: 17px; height: 17px; }
+    #profile-bio { font-size: 12px; line-height: 1.3; }
+    .bio-separator { margin: 6px 0; }
+
+    .social-links { gap: 10px; }
+    .social-icon { width: 32px; height: 32px; }
+
+    .visitor-counter { font-size: 12px; padding: 6px 12px; align-self: center; }
+    .visitor-icon { width: 16px; height: 16px; }
+    .visitor-counter .tooltip { width: 100px; font-size: 12px; margin-left: -50px; top: -30px; }
+
+    #music-player {
+        width: 90vw;
+        max-width: 350px;
+        padding: 8px 12px;
+        gap: 8px;
+    }
+
+    .player-art { width: 32px; height: 32px; }
+
+    .top-controls { gap: 10px; padding: 6px 10px; }
+    .volume-control, .transparency-control { gap: 6px; }
+    .volume-icon, .transparency-icon { width: 18px; height: 18px; }
+
+    .slider { width: 60px; }
+    .slider .range-track { height: 4px; }
+    .slider .range-thumb { width: 10px; height: 10px; margin-left: -5px; }
+
+    #start-text { font-size: 18px; padding: 0 20px; }
+}
+
+/* very short viewports — keep everything on screen */
+@media (max-height: 620px) {
+    #stack { gap: 8px; }
+    #profile-block { padding: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #background.animate,
+    .revealed #profile-block,
+    .revealed #music-player,
+    .social-links a .social-icon,
+    #start-text,
+    #start-subtitle,
+    .status-dot::after,
+    .bloom,
+    .mote,
+    .playing .eq span { animation: none; }
+
+    .profile-container::after { animation: none; opacity: 0; }
+    #background-wrap { transition: none; }
+    .player-art { transform: none; }
+    .magnet { transition: none; transform: none; }
+    .mote { display: none; }              /* motes only exist to move */
+    .bloom { opacity: 0.05; }
+}
+</style>
+</head>
+<body>
+
+<!-- ================= ENTRY SCREEN ================= -->
+<div id="start-screen">
+    <div id="start-inner">
+        <div id="start-text"></div>
+        <div id="start-subtitle"></div>
+        <div id="start-progress" aria-hidden="true"><span></span></div>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- ================= BACKGROUND ================= -->
+    <div id="background-wrap">
+        <video id="background-clip" class="bg-layer" muted playsinline
+               webkit-playsinline preload="auto" aria-hidden="true"></video>
+        <img id="background" class="bg-layer" alt="">
+    </div>
+
+    <!-- ============ AMBIENT LAYER (built from CONFIG.ambient) ============ -->
+    <div id="ambient" aria-hidden="true"></div>
+
+    <!-- ================= CONTENT ================= -->
+    <div id="content-wrapper">
+    <div id="reveal">
+    <div id="stack">
+
+        <svg id="profile-outline" aria-hidden="true">
+            <rect fill="none" stroke="white" stroke-width="1.5" rx="15" ry="15"/>
+        </svg>
+
+        <!-- ---------- profile card ---------- -->
+        <div id="profile-block">
+            <div class="profile-header">
+                <div class="profile-container" id="profile-container">
+                    <!-- optional avatar clip; the photo sits above it -->
+                    <video id="profile-clip" class="pfp-layer" muted playsinline
+                           webkit-playsinline preload="auto" aria-hidden="true"></video>
+                    <img src="" alt="Profile" class="pfp-layer profile-picture show" id="profile-picture">
+                </div>
+                <div class="profile-info">
+                    <div class="name-and-badges">
+                        <div class="name-row">
+                            <div id="profile-name"></div>
+                            <div class="badges" id="badges"><!-- built from CONFIG.badges --></div>
+                        </div>
+                    </div>
+                    <div class="status-wrap">
+                        <div id="discord-status" class="discord-status">
+                            <span id="status-dot" class="status-dot dnd"></span>
+                            <span id="status-text">Do Not Disturb</span>
+                        </div>
+                        <div class="status-menu" id="status-menu" role="menu"
+                             aria-label="Select status"><!-- built from CONFIG.statusPicker --></div>
+                    </div>
+                    <div id="profile-bio"></div>
+                </div>
+            </div>
+
+            <div class="bio-separator"></div>
+
+            <div class="profile-footer">
+                <div class="social-links" id="social-links"><!-- built from CONFIG --></div>
+
+                <div class="visitor-counter">
+                    <svg class="visitor-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    <span id="visitor-count">0</span>
+                    <span class="tooltip">Profile Views</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---------- music player ---------- -->
+        <div id="music-player">
+            <div class="player-art">
+                <img id="player-art-img" src="" alt="Album art">
+                <div class="eq" aria-hidden="true"><span></span><span></span><span></span></div>
+            </div>
+
+            <span id="current-time">0:00</span>
+
+            <div id="progress-container">
+                <div class="range" id="music-progress" role="slider"
+                     aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+                    <div class="range-track"><div class="range-fill"></div></div>
+                    <div class="range-thumb"></div>
+                </div>
+            </div>
+
+            <span id="total-time">0:00</span>
+
+            <div class="player-controls">
+                <svg id="prev-btn" viewBox="0 0 24 24" fill="currentColor" class="ctrl-btn"
+                     role="button" aria-label="Previous track" tabindex="0">
+                    <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>
+                </svg>
+                <svg id="play-pause-btn" viewBox="0 0 24 24" fill="currentColor" class="ctrl-btn ctrl-play"
+                     role="button" aria-label="Play" tabindex="0">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+                <svg id="next-btn" viewBox="0 0 24 24" fill="currentColor" class="ctrl-btn"
+                     role="button" aria-label="Next track" tabindex="0">
+                    <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- ---------- floating volume / effects panel ---------- -->
+        <div class="top-controls">
+            <div class="volume-control">
+                <svg id="volume-icon" class="volume-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     role="button" aria-label="Mute" tabindex="0">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                </svg>
+                <div class="range slider" id="volume-slider" role="slider"
+                     aria-label="Volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="30" tabindex="0">
+                    <div class="range-track"><div class="range-fill"></div></div>
+                    <div class="range-thumb"></div>
+                </div>
+            </div>
+
+            <div class="transparency-control">
+                <svg class="transparency-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <div class="range slider" id="transparency-slider" role="slider"
+                     aria-label="Card transparency" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40" tabindex="0">
+                    <div class="range-track"><div class="range-fill"></div></div>
+                    <div class="range-thumb"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    </div>
+    </div>
+</div>
+
+<audio id="background-music" preload="metadata" playsinline></audio>
+
+<script>
+/* ================================================================
+   CONFIGURATION — everything you would normally want to change
+   ================================================================ */
+const CONFIG = {
+    /* ---------- palette ----------
+       Three colours re-theme the whole page. They are published as CSS custom
+       properties, so the card glow, status ring, slider fills, spark bursts,
+       ambient particles and the beat glow all follow from here. */
+    theme: {
+        accent: "#ed4245",              // sliders, sparks, status ring, badges
+        glow:   "#ffffff",              // card / avatar rim glow
+        beat:   "#ffffff",              // audio-reactive pulse
+        accentStatus: false             // true = status dot always uses accent
+                                        // instead of the status mode's colour
+    },
+
+    /* ---------- identity ---------- */
+    username: "imran",
+    pageTitle: "",                      // browser tab; "" uses the username
+
+    /* Emblems shown beside the name. `icon` is a key of BADGE_ICONS
+       (verified, owner, star, bolt, dev, music); `label` is its tooltip and
+       `color` is optional — it defaults to the accent. Empty list = no row. */
+    badges: [
+        { icon: "verified", label: "Verified" },
+        { icon: "owner",    label: "Owner", color: "#f0b232" }
+    ],
+    /* Any key from STATUS_MODES below the CONFIG block — online, idle, dnd,
+       offline, invisible, busy, focus, working, gaming, streaming, away,
+       sleeping, touchGrass, doNotPerceiveMe. Each brings its own dot colour
+       and wording, so changing your status is one word here.
+
+       Pass a list instead and the status cycles through them:
+           status: ["dnd", "gaming", "sleeping"]
+       statusText overrides the wording for a single mode; leave "" to use the
+       mode's own label. */
+    status: "dnd",
+    statusText: "",
+    statusInterval: 5000,               // ms per mode when status is a list
+
+    /* Tapping the status opens a small picker. Each mode animates its dot
+       differently — dnd pings, silent dims, normal breathes. */
+    statusPicker: {
+        enabled: true,
+        options: ["dnd", "silent", "normal"],
+        silentMutes: true               // choosing Silent Mode also mutes the player
+    },
+
+    /* Live Discord presence via lanyard.rest — the dot and label then follow
+       your real status, including what you are playing or listening to.
+       Requires you to have joined discord.gg/lanyard. Set to "" for a page
+       that makes no network requests at all; the status above is then used. */
+    discordUserId: "1327961337757831219",
+    bio: [                              // string, or list of strings to cycle through
+        "\"Hello, World!\"",
+        "Stay locked in. Let them yap.",
+        "Zero aura lost. Lesson learned.",
+        "Built different, moving silent.",
+        "Don't chase. Upgrade.",
+        "Too focused to care.",
+        "Respect earned. Aura maintained.",
+        "Pressure creates final bosses.",
+        "Silent grind, loud results.",
+        "Mindset maxed. Distractions deleted.",
+        "Be the plot twist.",
+        "Stay mysterious. Move calculated.",
+        "Skibidi world, sigma mindset."
+    ],
+
+    /* ---------- media ----------
+       profilePicture accepts a single source or a list (a list picks one at
+       random per load). When backgroundVideo is set the two backdrops
+       alternate: the clip plays, the still fades up over it, holds, then
+       fades away as the clip starts again. With no clip the still simply
+       stays. */
+    profilePicture: {{AVATAR_URI}},
+
+    /* An optional clip that takes the avatar's place now and then: the photo
+       holds, the clip plays through once, then the photo fades back in. It is
+       always muted so it never competes with the music. */
+    profileVideo: {{PFPVIDEO_URI}},     // "" = photo only
+    profileCycle: {
+        enabled: true,
+        photoHold: 9000,                // ms the photo shows between plays
+        fade: 900                       // cross-fade duration
+    },
+
+    backgroundImage: {{BG_URI}},
+    backgroundVideo: {{BGVIDEO_URI}},   // "" = still artwork only
+
+    backgroundCycle: {
+        enabled: true,
+        photoHold: 5200,                // ms the still holds once faded in
+        fade: 1600,                     // cross-fade duration
+        kenBurns: true                  // each photo drifts its own way
+    },
+
+    showLoadProgress: true,             // thin readiness bar on the entry screen
+
+    /* ---------- counter ----------
+       viewCountAPI: optional endpoint that is POSTed on load and returns
+       { count: n }. Falls back to the fixed number below when it is "" or
+       unreachable, so the page still reads correctly offline. */
+    viewCount: 1073,
+    viewCountAPI: "",
+
+    /* ---------- social links (set to "" to hide an icon) ---------- */
+    discordURL:  "https://discord.com/users/1327961337757831219",
+    githubURL:   "https://github.com/mynamescrax",
+    telegramURL: "https://t.me/craxlarps",
+    robloxURL:   "https://roblox.com/users/4224871582",
+    youtubeURL:  "https://www.youtube.com/@imcrax",
+    tiktokURL:   "https://www.tiktok.com/@crax.ae",
+
+    /* ---------- music ----------
+       Add more objects to `playlist` and prev / next will cycle through them. */
+    /* Filled in by the build from assets/: song.mp3 leads, then every
+       track-*.mp3 in name order, each titled from its own ID3 tag. Drop a new
+       mp3 in as track-4.mp3 and rebuild — nothing here needs editing. */
+    playlist: {{PLAYLIST}},
+
+    /* ---------- embed / tab ----------
+       ogImage takes a URL or a data URI; "" reuses the background artwork.
+       Note that link scrapers cannot read a data URI — host the image and put
+       its URL here if you want previews to render on other sites. */
+    ogImage: "",
+    ogDescription: "",                  // "" builds one from status + bio
+    favicon: "auto",                    // "auto" draws a themed icon,
+                                        // "avatar" uses the profile picture
+    faviconPulse: false,                // redraw the icon on the beat
+
+    /* ---------- ambient layer ----------
+       Drifting motes and two slow colour blooms behind the card. Compositor
+       only (transform / opacity), and it fades up faintly with the beat. */
+    ambient: {
+        enabled: true,
+        particles: 18,                  // 0 disables the motes
+        bloom: true                     // the two drifting colour blooms
+    },
+
+    /* ---------- interaction ---------- */
+    magneticIcons: true,                // social icons lean toward the cursor
+    clickSpark: true,                   // burst when a social icon is hit
+    keyboard: true,                     // space / arrows / M — see the map below
+    tapBackdropToAdvance: true,         // tapping the backdrop jumps to the next photo
+    remember: true,                     // keep volume, glass and status across visits
+
+    /* ---------- behaviour ---------- */
+    enterText: "sigma imran - tap to enter",   // "" instead picks tap/click per device
+    enterSubtitle: "",                  // optional second line, glitch-revealed
+    volume: 0.3,                        // 0 - 1
+    cardOpacity: 0.4,                   // 0 - 1, the "eye" slider default
+    loop: true,                         // loop the playlist
+    shuffle: false,                     // start on a random track
+    tilt: true                          // subtle 3D tilt following pointer / touch
+};
+
+/* ================================================================
+   ICONS — inline SVG, no external requests
+   ================================================================ */
+const SOCIAL_ICONS = {
+    discord: `<svg class="social-icon" viewBox="0 0 127.14 96.36" aria-hidden="true">
+        <path fill="#5865F2" d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/>
+    </svg>`,
+
+    github: `<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="12" fill="#0d0d0d"/>
+        <path fill="#fff" d="M12 3.2a8.9 8.9 0 0 0-2.81 17.35c.44.08.6-.19.6-.43v-1.5c-2.47.54-3-1.19-3-1.19a2.36 2.36 0 0 0-.99-1.3c-.81-.55.06-.54.06-.54a1.87 1.87 0 0 1 1.36.92 1.9 1.9 0 0 0 2.59.74 1.9 1.9 0 0 1 .56-1.19c-1.97-.22-4.05-.99-4.05-4.4a3.45 3.45 0 0 1 .92-2.39 3.2 3.2 0 0 1 .09-2.36s.75-.24 2.46.91a8.47 8.47 0 0 1 4.48 0c1.71-1.15 2.46-.91 2.46-.91a3.2 3.2 0 0 1 .09 2.36 3.44 3.44 0 0 1 .92 2.39c0 3.42-2.09 4.18-4.07 4.4a2.13 2.13 0 0 1 .6 1.65v2.45c0 .24.16.52.61.43A8.9 8.9 0 0 0 12 3.2Z"/>
+    </svg>`,
+
+    telegram: `<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="12" fill="#29A0DA"/>
+        <path fill="#fff" d="M5.3 11.8c3.7-1.6 6.2-2.7 7.4-3.2 3.5-1.5 4.3-1.7 4.8-1.8.1 0 .35 0 .5.15a.55.55 0 0 1 .18.35 2.3 2.3 0 0 1 .02.5c-.19 2-1.02 6.85-1.44 9.08-.18.95-.53 1.26-.87 1.3-.74.06-1.3-.5-2.01-.96-1.12-.73-1.75-1.19-2.84-1.9-1.25-.83-.44-1.28.27-2.02.19-.2 3.44-3.15 3.5-3.42.01-.03.01-.16-.06-.22-.08-.06-.19-.04-.27-.02-.12.03-1.9 1.21-5.37 3.55-.5.35-.96.52-1.38.51-.46-.01-1.33-.25-1.98-.46-.8-.26-1.43-.4-1.38-.85.03-.23.35-.46.94-.7Z"/>
+    </svg>`,
+
+    roblox: `<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#fff" d="M4.94 0 0 19.06 19.06 24 24 4.94 4.94 0Zm5.3 9.03 4.73 1.23-1.23 4.72-4.73-1.23 1.23-4.72Z"/>
+    </svg>`,
+
+    youtube: `<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#FF0000" d="M23.5 6.2a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.51A3.02 3.02 0 0 0 .5 6.2C0 8.09 0 12 0 12s0 3.91.5 5.8a3.02 3.02 0 0 0 2.12 2.14c1.88.51 9.38.51 9.38.51s7.5 0 9.38-.51a3.02 3.02 0 0 0 2.12-2.14C24 15.91 24 12 24 12s0-3.91-.5-5.8Z"/>
+        <path fill="#fff" d="M9.6 15.6 15.82 12 9.6 8.4v7.2Z"/>
+    </svg>`,
+
+    tiktok: `<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#25F4EE" d="M8.9 9.4v-1.7a6.6 6.6 0 0 0-.9-.06A6.62 6.62 0 0 0 4.4 19.6a6.6 6.6 0 0 1 4.5-11.44c.31 0 .61.03.9.07v1.16Z"/>
+        <path fill="#25F4EE" d="M9.07 17.1a3.02 3.02 0 0 0 3.01-2.9V2.2h2.63a5 5 0 0 1-.08-.91h-3.6v12a3.02 3.02 0 0 1-4.47 2.64 3.01 3.01 0 0 0 2.51 1.17Z"/>
+        <path fill="#FE2C55" d="M19.32 7.1V5.5a4.94 4.94 0 0 1-2.7-.8 4.97 4.97 0 0 0 2.7 2.4Z"/>
+        <path fill="#FE2C55" d="M16.62 4.7a4.96 4.96 0 0 1-1.23-3.4h-.96a4.98 4.98 0 0 0 2.19 3.4ZM8.98 11.15a3.02 3.02 0 0 0-1.42 5.68 3.01 3.01 0 0 1 2.42-4.8c.31 0 .61.05.9.14V8.5a6.6 6.6 0 0 0-.9-.06h-.16v2.78a3 3 0 0 0-.84-.07Z"/>
+        <path fill="#fff" d="M19.32 7.1a4.97 4.97 0 0 1-2.7-2.4 4.98 4.98 0 0 1-2.19-3.4h-2.65v12.9a3.02 3.02 0 0 1-5.46 1.63 3.02 3.02 0 0 1 2.82-5.54V7.5A6.62 6.62 0 0 0 4.4 19.6 6.62 6.62 0 0 0 15.6 14.9V8.6a7.9 7.9 0 0 0 4.62 1.48V7.13a5 5 0 0 1-.9-.03Z"/>
+    </svg>`
+};
+
+/* ---- profile badges, drawn in currentColor so CONFIG.badges[].color wins ---- */
+const BADGE_ICONS = {
+    verified: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 1.6 14.6 4l3.5-.3.9 3.4 3 1.8-1.4 3.2 1.4 3.2-3 1.8-.9 3.4-3.5-.3L12 22.4 9.4 20l-3.5.3-.9-3.4-3-1.8L3.4 12 2 8.8l3-1.8.9-3.4L9.4 4 12 1.6Z"/>
+        <path fill="#000" fill-opacity=".8" d="m10.9 15.4-3.3-3.3 1.3-1.3 2 2 4.8-4.8 1.3 1.3-6.1 6.1Z"/>
+    </svg>`,
+
+    owner: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M3 18h18l1.4-9.6-5.1 3.2L12 4.2 6.7 11.6 1.6 8.4 3 18Zm0 1.6V21h18v-1.4H3Z"/>
+    </svg>`,
+
+    star: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="m12 2.6 2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.5l-5.9 3.1 1.2-6.5L2.5 9.5l6.6-.9 2.9-6Z"/>
+    </svg>`,
+
+    bolt: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M13.2 2 4.5 13.4h5.6L9.9 22l8.8-11.5h-5.7L13.2 2Z"/>
+    </svg>`,
+
+    dev: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m8 6-6 6 6 6M16 6l6 6-6 6"/>
+    </svg>`,
+
+    music: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M20 3 9 5.4v10.2a3.6 3.6 0 1 0 2 3.2V8.1l7-1.5v6.7a3.6 3.6 0 1 0 2 3.2V3Z"/>
+    </svg>`
+};
+
+const VOLUME_ICON_ON = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>`;
+const VOLUME_ICON_OFF = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>`;
+
+const PLAY_PATH  = '<path d="M8 5v14l11-7z"/>';
+const PAUSE_PATH = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+
+/* ================================================================
+   STATUS MODES — set CONFIG.status to any key below.
+   The first four match Discord and are what live presence reports;
+   the rest are yours to use. Add your own: give it a label and a colour.
+   ================================================================ */
+const STATUS_MODES = {
+    online:    { label: 'Online',         color: '#3ba55d' },
+    idle:      { label: 'Idle',           color: '#faa81a' },
+    dnd:       { label: 'Do Not Disturb', color: '#ed4245', anim: 'ping' },
+    offline:   { label: 'Offline',        color: '#747f8d', glow: false },
+
+    /* the picker's own two modes, each with its own dot behaviour */
+    silent:    { label: 'Silent Mode',    color: '#8a8f98', anim: 'silent' },
+    normal:    { label: 'Normal Mode',    color: '#3ba55d', anim: 'normal' },
+
+    invisible: { label: 'Invisible',      color: '#747f8d', glow: false },
+    busy:      { label: 'Busy',           color: '#f0483e' },
+    focus:     { label: 'Focus Mode',     color: '#5865f2' },
+    working:   { label: 'Working',        color: '#00b0f4' },
+    gaming:    { label: 'Gaming',         color: '#43b581' },
+    streaming: { label: 'Streaming',      color: '#9146ff' },
+    away:      { label: 'Away',           color: '#faa81a' },
+    sleeping:  { label: 'Sleeping',       color: '#7a6ff0' },
+    touchGrass: { label: 'Touching Grass', color: '#4ca64c' },
+    doNotPerceiveMe: { label: 'Do Not Perceive Me', color: '#b14aed' }
+};
+
+const STATUS_LABELS = { online: 'Online', idle: 'Idle', dnd: 'Do Not Disturb', offline: 'Offline' };
+const ACTIVITY_PREFIXES = ['Playing', 'Streaming', 'Listening to', 'Watching', '', 'Competing in'];
+
+/* ================================================================
+   SMALL HELPERS
+   ================================================================ */
+const $ = (id) => document.getElementById(id);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+/* a list picks one at random per load, a single value is used as-is */
+const pick = (v) => Array.isArray(v) ? v[Math.floor(Math.random() * v.length)] : v;
+
+const isVideo = (src) => typeof src === 'string' && /\.(mp4|webm|ogv)(\?|#|$)/i.test(src);
+
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* Chrome on Android will not reliably play a <video> fed a large data: URI —
+   it serves no range requests, so the media stack parks on the first frame.
+   A blob URL hands it real seekable bytes instead. Conversion is kicked off
+   at load, long before the entry tap, so a source is ready when play starts.
+   Images are unaffected; only video goes through this. */
+function playableSource(src) {
+    if (!src || !src.startsWith('data:')) return Promise.resolve(src);
+    return fetch(src)
+        .then(r => r.blob())
+        .then(b => URL.createObjectURL(b))
+        .catch(() => src);            // conversion failed: use it as-is
+}
+
+/* A muted clip is allowed to autoplay, but play() can still reject — or
+   resolve while the decoder never delivers a frame — and the element then
+   sits on frame one indefinitely. Every start is therefore verified: if the
+   clock has not moved shortly after, it is tried again, and after a few
+   rounds the caller's fallback takes over. */
+function startVideo(video, onGiveUp) {
+    let tries = 0, timer = null;
+
+    function attempt() {
+        clearTimeout(timer);
+        if (!video.src) { timer = setTimeout(attempt, 400); return; }
+        const p = video.play();
+        if (p && p.catch) p.catch(retry);
+        timer = setTimeout(verify, 900);
+    }
+
+    function verify() {
+        // moving is the only proof that playback actually began
+        if (!video.paused && video.currentTime > 0) { tries = 0; return; }
+        retry();
+    }
+
+    function retry() {
+        clearTimeout(timer);
+        if (++tries > 5) { if (onGiveUp) onGiveUp(); return; }
+        timer = setTimeout(attempt, 350 * tries);
+    }
+
+    attempt();
+}
+
+/* Watches a playing video and calls back if its clock stops advancing, so a
+   stalled decoder shows the fallback instead of freezing on one frame. */
+function watchForStall(video, onStall, checkMs = 2500) {
+    let last = -1, strikes = 0;
+    return setInterval(() => {
+        if (video.paused || video.ended || !video.classList.contains('show')) {
+            strikes = 0;
+            last = -1;
+            return;
+        }
+        if (video.currentTime === last) {
+            if (++strikes >= 2) { strikes = 0; onStall(); }
+        } else {
+            strikes = 0;
+            last = video.currentTime;
+        }
+    }, checkMs);
+}
+
+const rand = (lo, hi) => lo + Math.random() * (hi - lo);
+
+/* Preferences survive a reload. Wrapped because storage throws rather than
+   returning null in some file:// and private-mode configurations. */
+const STORE_KEY = 'profile-prefs';
+
+function loadPrefs() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
+    catch { return {}; }
+}
+
+function savePrefs(patch) {
+    try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(Object.assign(loadPrefs(), patch)));
+    } catch { /* storage unavailable — the session simply does not persist */ }
+}
+
+function formatTime(s) {
+    if (!isFinite(s) || s < 0) s = 0;
+    return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+}
+
+/* tiny tween used for smooth click-to-seek — replaces the GSAP call of the original */
+function tween(from, to, duration, onUpdate, onComplete) {
+    const start = performance.now();
+    const ease = (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;   // power2.inOut
+    function step(now) {
+        const t = clamp((now - start) / duration, 0, 1);
+        onUpdate(from + (to - from) * ease(t));
+        if (t < 1) requestAnimationFrame(step);
+        else if (onComplete) onComplete();
+    }
+    requestAnimationFrame(step);
+}
+
+/* ================================================================
+   CUSTOM SLIDER — pointer based so touch dragging works everywhere
+   ================================================================ */
+let slidersDragging = 0;          // pauses the 3D tilt while a slider is in use
+
+function createSlider(el, { min = 0, max = 1, value = 0, onInput, onChange, onDown } = {}) {
+    const fill = el.querySelector('.range-fill');
+    const thumb = el.querySelector('.range-thumb');
+    const state = { min, max, value, dragging: false };
+
+    function paint() {
+        const pct = state.max > state.min
+            ? clamp((state.value - state.min) / (state.max - state.min), 0, 1) * 100
+            : 0;
+        fill.style.width = pct + '%';
+        thumb.style.left = pct + '%';
+        el.setAttribute('aria-valuenow', Math.round(pct));
+    }
+
+    function valueFromEvent(e) {
+        const rect = el.getBoundingClientRect();
+        const pct = rect.width ? clamp((e.clientX - rect.left) / rect.width, 0, 1) : 0;
+        return state.min + pct * (state.max - state.min);
+    }
+
+    el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        state.dragging = true;
+        slidersDragging++;
+        el.classList.add('dragging');
+        el.setPointerCapture(e.pointerId);
+        if (onDown) onDown();
+        state.value = valueFromEvent(e);
+        paint();
+        if (onInput) onInput(state.value, false);
+    });
+
+    el.addEventListener('pointermove', (e) => {
+        if (!state.dragging) return;
+        e.preventDefault();
+        state.value = valueFromEvent(e);
+        paint();
+        if (onInput) onInput(state.value, true);
+    });
+
+    function release() {
+        if (!state.dragging) return;
+        state.dragging = false;
+        slidersDragging = Math.max(0, slidersDragging - 1);
+        el.classList.remove('dragging');
+        if (onChange) onChange(state.value);
+    }
+
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+
+    el.addEventListener('keydown', (e) => {
+        const step = (state.max - state.min) / 20;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowUp') state.value = clamp(state.value + step, state.min, state.max);
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') state.value = clamp(state.value - step, state.min, state.max);
+        else return;
+        e.preventDefault();
+        paint();
+        if (onInput) onInput(state.value, true);
+        if (onChange) onChange(state.value);
+    });
+
+    paint();                                    // draw the starting position
+
+    return {
+        el,
+        get value() { return state.value; },
+        get dragging() { return state.dragging; },
+        set(v, silent) {
+            state.value = clamp(v, state.min, state.max);
+            paint();
+            if (!silent && onInput) onInput(state.value, false);
+        },
+        setRange(newMin, newMax) {
+            state.min = newMin;
+            state.max = newMax;
+            paint();
+        }
+    };
+}
+
+/* ================================================================
+   BOOT
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+
+    /* ---------- element refs ---------- */
+    const root           = document.documentElement;
+    const startScreen    = $('start-screen');
+    const startText      = $('start-text');
+    const profileName    = $('profile-name');
+    const profileBio     = $('profile-bio');
+    const profilePicture = $('profile-picture');
+    const profileContainer = document.querySelector('.profile-container');
+    const profileBlock   = $('profile-block');
+    const profileOutline = $('profile-outline');
+    const statusDot      = $('status-dot');
+    const statusText     = $('status-text');
+    const visitorCount   = $('visitor-count');
+    const socialLinks    = $('social-links');
+    const stack          = $('stack');
+    const reveal         = $('reveal');
+    const musicPlayerEl  = $('music-player');
+    const topControlsEl  = document.querySelector('.top-controls');
+    const audio          = $('background-music');
+    const playerArt      = $('player-art-img');
+    const currentTimeEl  = $('current-time');
+    const totalTimeEl    = $('total-time');
+    const playPauseBtn   = $('play-pause-btn');
+    const prevBtn        = $('prev-btn');
+    const nextBtn        = $('next-btn');
+    const volumeIcon     = $('volume-icon');
+
+    /* ============================================================
+       STATIC CONTENT FROM CONFIG
+       ============================================================ */
+    /* ============================================================
+       THEME — publish CONFIG.theme as custom properties. Everything
+       tinted in the stylesheet reads from these three values.
+       ============================================================ */
+    /* stored preferences win over the CONFIG defaults on a return visit */
+    const prefs = CONFIG.remember ? loadPrefs() : {};
+
+    const theme = Object.assign({ accent: '#ed4245', glow: '#ffffff', beat: '#ffffff' }, CONFIG.theme);
+    root.style.setProperty('--accent', theme.accent);
+    root.style.setProperty('--glow', theme.glow);
+    root.style.setProperty('--beat-color', theme.beat);
+
+    document.title = CONFIG.pageTitle || CONFIG.username;
+    profilePicture.src = pick(CONFIG.profilePicture);
+    profilePicture.alt = CONFIG.username;
+
+    /* ============================================================
+       BACKGROUND — a still, a clip, or the two alternating.
+
+       clip plays ─▶ ends ─▶ still fades up ─▶ holds ─▶ clip restarts
+       underneath ─▶ still fades away ─▶ repeat.
+
+       Any failure to load or play the clip leaves the still on screen, so
+       the page still looks right when the video is missing.
+       ============================================================ */
+    const background = $('background');                 // the still
+    const clip = $('background-clip');
+
+    // every still in CONFIG.backgroundImage takes its turn, in order —
+    // clip, photo 1, clip, photo 2, and around again
+    const stills = [].concat(CONFIG.backgroundImage || []).filter(s => s && !isVideo(s));
+    let stillIndex = 0;
+
+    // a video passed as backgroundImage still works — treat it as the clip
+    const videoInList = [].concat(CONFIG.backgroundImage || []).find(isVideo);
+    const clipSrc = CONFIG.backgroundVideo || videoInList || '';
+    const stillSrc = stills[0] || '';
+
+    /* Only the photo that comes next is prefetched, and only once the browser
+       is idle. Fetching the whole set up front costs a burst of large JPEG
+       decodes exactly while the reveal is animating. */
+    function prefetchNextStill() {
+        if (stills.length < 2) return;
+        const next = stills[(stillIndex + 1) % stills.length];
+        const run = () => { const img = new Image(); img.src = next; };
+        if (window.requestIdleCallback) requestIdleCallback(run, { timeout: 3000 });
+        else setTimeout(run, 1200);
+    }
+
+    const cycle = Object.assign({ enabled: true, photoHold: 5200, fade: 1600 },
+                                CONFIG.backgroundCycle);
+    root.style.setProperty('--bg-fade', cycle.fade + 'ms');
+
+    if (stillSrc) {
+        background.src = stillSrc;
+        reframeStill();                              // the first photo drifts too
+        prefetchNextStill();
+    }
+
+    let cycleTimer = null;
+    let startBackgroundClip = () => {};      // replaced below when there is a clip
+
+    function showStill() {
+        background.classList.add('show');
+        clip.classList.remove('show');
+    }
+
+    /* Give this photo its own Ken Burns end point and restart the drift. The
+       layer is hidden at this moment, so the restart is invisible. */
+    function reframeStill() {
+        if (!cycle.kenBurns || prefersReducedMotion) return;
+        background.style.setProperty('--kb-scale', (1.10 + Math.random() * 0.10).toFixed(3));
+        background.style.setProperty('--kb-x', rand(-2.5, 2.5).toFixed(2) + 'vw');
+        background.style.setProperty('--kb-y', rand(-2.5, 2.5).toFixed(2) + 'vh');
+
+        background.classList.remove('animate');
+        void background.offsetWidth;                 // restart the animation
+        background.classList.add('animate');
+    }
+
+    /* Swap to the next photo while the layer is still hidden, waiting for the
+       decode so the fade never starts on an undecoded image. */
+    async function showNextStill() {
+        if (stills.length > 1) {
+            stillIndex = (stillIndex + 1) % stills.length;
+            background.src = stills[stillIndex];
+            try { await background.decode(); } catch { /* fall through and show it */ }
+        }
+        reframeStill();
+        showStill();
+        prefetchNextStill();                         // ready the one after this
+    }
+
+    function showClip() {
+        clip.classList.add('show');
+        background.classList.remove('show');
+    }
+
+    if (clipSrc) {
+        clip.loop = !(cycle.enabled && stillSrc);       // looping is the fallback
+        // conversion starts now, while the entry screen is still up
+        playableSource(clipSrc).then(src => { clip.src = src; clip.load(); });
+        showClip();
+
+        // if the clip cannot load, decode or keep running, the still takes over
+        let clipDead = false;
+        const failToStill = () => {
+            if (clipDead) return;
+            clipDead = true;
+            clearInterval(clipStallWatch);
+            clearTimeout(cycleTimer);
+            clip.loop = false;
+            showStill();
+        };
+        const clipStallWatch = watchForStall(clip, failToStill);
+        clip.addEventListener('error', failToStill);
+
+        // the entry tap calls this; a start that never moves falls back
+        startBackgroundClip = () => startVideo(clip, failToStill);
+
+        if (cycle.enabled && stillSrc) {
+            clip.addEventListener('ended', () => {
+                showNextStill();                         // next photo fades up over the last frame
+
+                clearTimeout(cycleTimer);
+                cycleTimer = setTimeout(() => {
+                    if (clipDead) return;
+                    // restart the clip underneath first, so the photo fades
+                    // away onto moving footage rather than a frozen frame
+                    clip.currentTime = 0;
+                    startVideo(clip, failToStill);
+                    showClip();
+                }, cycle.fade + cycle.photoHold);
+            });
+        }
+    } else {
+        showStill();
+    }
+
+    /* Tapping the backdrop — anywhere outside the cards — jumps straight to
+       the next photo instead of waiting for the clip to finish. */
+    if (CONFIG.tapBackdropToAdvance && stills.length > 1) {
+        document.addEventListener('click', (e) => {
+            if (!unlocked) return;
+            // guard: a synthetic event can target the document, which has no closest()
+            const target = e.target instanceof Element ? e.target : null;
+            if (!target || target.closest('#stack') || target.closest('#start-screen')) return;
+
+            clearTimeout(cycleTimer);
+            showNextStill();
+
+            // hold this photo, then hand the backdrop back to the clip
+            if (clipSrc && cycle.enabled) {
+                cycleTimer = setTimeout(() => {
+                    clip.currentTime = 0;
+                    startBackgroundClip();
+                    showClip();
+                }, cycle.fade + cycle.photoHold);
+            }
+        });
+    }
+
+    /* ============================================================
+       AVATAR CLIP — the photo holds, the clip plays once, then the
+       photo fades back in and the wait starts over.
+
+       Always muted: the page already has a soundtrack, and a second
+       audio source would fight it.
+       ============================================================ */
+    const profileClip = $('profile-clip');
+    const pfpCycle = Object.assign({ enabled: true, photoHold: 9000, fade: 900 },
+                                   CONFIG.profileCycle);
+    let pfpTimer = null;
+
+    function startProfileCycle() {
+        if (!CONFIG.profileVideo || !pfpCycle.enabled) return;
+
+        profileContainer.style.setProperty('--pfp-fade', pfpCycle.fade + 'ms');
+        profileClip.muted = true;                    // never competes with the music
+        profileClip.loop = false;
+        playableSource(CONFIG.profileVideo).then(src => {
+            profileClip.src = src;
+            profileClip.load();
+        });
+
+        let failures = 0;
+
+        const showPhoto = () => {
+            profileClip.classList.remove('show');
+            profilePicture.classList.add('show');    // the photo returns slowly
+        };
+
+        const backToPhoto = () => {
+            showPhoto();
+            clearTimeout(pfpTimer);
+            pfpTimer = setTimeout(playClip, pfpCycle.photoHold);
+        };
+
+        // after a couple of failures the clip is written off and the photo stays
+        const giveUp = () => {
+            clearTimeout(pfpTimer);
+            showPhoto();
+            if (++failures < 3) {
+                pfpTimer = setTimeout(playClip, pfpCycle.photoHold * 2);
+            } else {
+                clearInterval(pfpStallWatch);
+            }
+        };
+
+        function playClip() {
+            if (!profileClip.src) { pfpTimer = setTimeout(playClip, 1500); return; }
+            profileClip.currentTime = 0;
+            startVideo(profileClip, giveUp);
+            profileClip.classList.add('show');
+            profilePicture.classList.remove('show');
+        }
+
+        // a frozen decoder would otherwise leave the avatar stuck on one frame
+        const pfpStallWatch = watchForStall(profileClip, giveUp);
+
+        profileClip.addEventListener('ended', () => { failures = 0; backToPhoto(); });
+        profileClip.addEventListener('error', giveUp);
+
+        pfpTimer = setTimeout(playClip, pfpCycle.photoHold);
+    }
+
+    /* the tab icon is set further down, alongside the embed metadata */
+
+    /* ---------- status modes ---------- */
+    let currentStatus = null;
+
+    function setStatus(mode, textOverride) {
+        const preset = STATUS_MODES[mode] || STATUS_MODES.offline;
+        currentStatus = mode;
+
+        // `anim-*` selects the dot's behaviour: ping, dim or swell
+        statusDot.className = 'status-dot ' + mode +
+                              (preset.anim ? ' anim-' + preset.anim : '');
+        const dotColor = (CONFIG.theme && CONFIG.theme.accentStatus) ? theme.accent : preset.color;
+        statusDot.style.color = dotColor;
+        statusDot.style.background = dotColor;
+        statusDot.style.boxShadow = preset.glow === false ? 'none' : `0 0 6px ${dotColor}`;
+        statusText.textContent = textOverride || preset.label;
+
+        // keep the picker's checkmark in step
+        statusMenu.querySelectorAll('.status-option').forEach(opt => {
+            opt.setAttribute('aria-checked', String(opt.dataset.mode === mode));
+        });
+    }
+
+    /* ============================================================
+       STATUS PICKER — tapping the status opens a small menu.
+       A manual choice wins permanently: live presence stops
+       overwriting it, otherwise the next poll would undo the click.
+       ============================================================ */
+    const statusMenu = $('status-menu');
+    const statusRow = $('discord-status');
+    const picker = Object.assign({ enabled: true, options: ['dnd', 'silent', 'normal'],
+                                   silentMutes: true }, CONFIG.statusPicker);
+    let manualStatus = false;
+    let menuOpen = false;
+
+    const CHECK_SVG = `<svg class="opt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>`;
+
+    function buildPicker() {
+        picker.options.forEach(mode => {
+            const preset = STATUS_MODES[mode];
+            if (!preset) return;
+
+            const opt = document.createElement('button');
+            opt.type = 'button';
+            opt.className = 'status-option';
+            opt.dataset.mode = mode;
+            opt.setAttribute('role', 'menuitemradio');
+            opt.setAttribute('aria-checked', 'false');
+            opt.innerHTML = `<span class="opt-dot" style="--opt-color:${preset.color}"></span>
+                             <span class="opt-label"></span>${CHECK_SVG}`;
+            opt.querySelector('.opt-label').textContent = preset.label;
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                chooseStatus(mode);
+            });
+            statusMenu.appendChild(opt);
+        });
+
+        statusRow.classList.add('interactive');
+        statusRow.tabIndex = 0;
+        statusRow.setAttribute('role', 'button');
+        statusRow.setAttribute('aria-haspopup', 'menu');
+        statusRow.setAttribute('aria-expanded', 'false');
+        statusRow.insertAdjacentHTML('beforeend',
+            `<svg class="status-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+                  aria-hidden="true"><path d="m5 8 7 7 7-7"/></svg>`);
+    }
+
+    function openMenu() {
+        menuOpen = true;
+        statusMenu.classList.add('open');
+        statusRow.classList.add('open');
+        statusRow.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeMenu() {
+        menuOpen = false;
+        statusMenu.classList.remove('open');
+        statusRow.classList.remove('open');
+        statusRow.setAttribute('aria-expanded', 'false');
+    }
+
+    function chooseStatus(mode) {
+        manualStatus = true;                       // presence no longer overrides
+        setStatus(mode);
+        if (CONFIG.remember) savePrefs({ status: mode });
+        closeMenu();
+        statusRow.focus();
+
+        // silent mode does what it says
+        if (picker.silentMutes) {
+            const silent = mode === 'silent';
+            if (audio.muted !== silent) toggleMute();
+        }
+    }
+
+    if (picker.enabled && !cyclingStatusPlanned()) {
+        buildPicker();
+
+        statusRow.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menuOpen ? closeMenu() : openMenu();
+        });
+
+        statusRow.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                openMenu();
+                statusMenu.querySelector('.status-option')?.focus();
+            }
+        });
+
+        // arrow keys walk the menu, escape closes it
+        statusMenu.addEventListener('keydown', (e) => {
+            const opts = [...statusMenu.querySelectorAll('.status-option')];
+            const i = opts.indexOf(document.activeElement);
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                e.stopPropagation();
+                const next = e.key === 'ArrowDown'
+                    ? (i + 1) % opts.length
+                    : (i - 1 + opts.length) % opts.length;
+                opts[next].focus();
+            } else if (e.key === 'Escape') {
+                e.stopPropagation();
+                closeMenu();
+                statusRow.focus();
+            }
+        });
+
+        document.addEventListener('click', () => { if (menuOpen) closeMenu(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && menuOpen) closeMenu();
+        });
+    }
+
+    // the picker and a cycling status are mutually exclusive
+    function cyclingStatusPlanned() {
+        return Array.isArray(CONFIG.status) && CONFIG.status.length > 1;
+    }
+
+    const statusList = Array.isArray(CONFIG.status) ? CONFIG.status : [CONFIG.status];
+    const cyclingStatus = statusList.length > 1;
+
+    // a status chosen on a previous visit is restored and stays manual
+    const savedStatus = picker.enabled && !cyclingStatus && prefs.status &&
+                        STATUS_MODES[prefs.status] ? prefs.status : null;
+    if (savedStatus) {
+        manualStatus = true;
+        setStatus(savedStatus);
+    } else {
+        setStatus(statusList[0], CONFIG.statusText);
+    }
+
+    if (cyclingStatus) {
+        let statusIndex = 0;
+        setInterval(() => {
+            statusIndex = (statusIndex + 1) % statusList.length;
+            statusText.style.opacity = '0';
+            setTimeout(() => {
+                setStatus(statusList[statusIndex]);
+                statusText.style.opacity = '1';
+            }, 220);
+        }, Math.max(1200, CONFIG.statusInterval || 5000));
+    }
+
+    let views = Number(CONFIG.viewCount || 0);
+    visitorCount.textContent = views.toLocaleString('en-US');
+
+    /* ============================================================
+       LIVE PRESENCE + VIEW COUNT
+       Both are optional. Every failure path leaves the configured
+       values on screen, so the page is complete with no network.
+       ============================================================ */
+    async function fetchDiscordStatus() {
+        // a cycling status or a manual pick is an explicit choice — live
+        // presence would otherwise undo it on the next poll
+        if (!CONFIG.discordUserId || cyclingStatus || manualStatus) return;
+        try {
+            const res = await fetch(`https://api.lanyard.rest/v1/users/${CONFIG.discordUserId}`);
+            const { success, data } = await res.json();
+            if (!success || !data) return;
+
+            const { discord_status, activities = [], spotify } = data;
+            let label = STATUS_LABELS[discord_status] || 'Offline';
+            const activity = activities.find(a => a.type !== 4);   // 4 = custom status
+            if (spotify) {
+                label += ` · Listening to ${spotify.song} by ${spotify.artist}`;
+            } else if (activity) {
+                const prefix = ACTIVITY_PREFIXES[activity.type] || '';
+                label += ` · ${prefix ? prefix + ' ' : ''}${activity.name}`;
+            }
+            setStatus(discord_status, label);
+        } catch {
+            /* offline, blocked, or not registered with lanyard — keep CONFIG.status */
+        }
+    }
+
+    fetchDiscordStatus();
+    setInterval(fetchDiscordStatus, 30000);
+
+    async function fetchViewCount() {
+        if (!CONFIG.viewCountAPI) return;
+        try {
+            const res = await fetch(CONFIG.viewCountAPI, { method: 'POST' });
+            const data = await res.json();
+            const count = Number(data.count);
+            if (Number.isFinite(count)) {
+                views = count;
+                visitorCount.textContent = views.toLocaleString('en-US');
+            }
+        } catch {
+            /* keep CONFIG.viewCount */
+        }
+    }
+
+    fetchViewCount();
+
+    /* ---------- badges ---------- */
+    (CONFIG.badges || []).forEach(({ icon, label, color }) => {
+        const art = BADGE_ICONS[icon];
+        if (!art) return;                                   // unknown key: skip quietly
+
+        const el = document.createElement('span');
+        el.className = 'badge';
+        el.tabIndex = 0;
+        if (color) el.style.setProperty('--badge-color', color);
+        el.innerHTML = art + `<span class="tooltip"></span>`;
+        el.querySelector('.tooltip').textContent = label || icon;
+        el.setAttribute('aria-label', label || icon);
+
+        // touch has no hover, so a tap shows the tooltip briefly
+        el.addEventListener('click', () => {
+            el.classList.add('show');
+            clearTimeout(el._t);
+            el._t = setTimeout(() => el.classList.remove('show'), 1600);
+        });
+
+        $('badges').appendChild(el);
+    });
+
+    /* ============================================================
+       AMBIENT LAYER — blooms and motes behind the card.
+       Positions and timings are randomised once, then CSS drives
+       the motion, so this costs nothing per frame.
+       ============================================================ */
+    function buildAmbient() {
+        const cfg = Object.assign({ enabled: true, particles: 18, bloom: true }, CONFIG.ambient);
+        if (!cfg.enabled || prefersReducedMotion) return;
+
+        const layer = $('ambient');
+        const frag = document.createDocumentFragment();
+
+        if (cfg.bloom) {
+            ['bloom bloom-a', 'bloom bloom-b'].forEach(cls => {
+                const b = document.createElement('div');
+                b.className = cls;
+                frag.appendChild(b);
+            });
+        }
+
+        // phones carry the tightest frame budget and the smallest canvas to
+        // scatter across, so thin the field there
+        const count = window.innerWidth <= 430
+            ? Math.round(cfg.particles * 0.6)
+            : cfg.particles;
+
+        for (let i = 0; i < count; i++) {
+            const mote = document.createElement('div');
+            mote.className = 'mote';
+            mote.style.left = rand(0, 100).toFixed(2) + '%';
+            mote.style.setProperty('--size', rand(1.5, 3.6).toFixed(1) + 'px');
+            mote.style.setProperty('--dur', rand(16, 34).toFixed(1) + 's');
+            mote.style.setProperty('--delay', (-rand(0, 34)).toFixed(1) + 's');  // pre-scattered
+            mote.style.setProperty('--drift', rand(-40, 40).toFixed(0) + 'px');
+            mote.style.setProperty('--peak', rand(0.25, 0.65).toFixed(2));
+            frag.appendChild(mote);
+        }
+
+        layer.appendChild(frag);
+    }
+
+    buildAmbient();
+
+    /* ---------- social icons ---------- */
+    [
+        ['discord',  CONFIG.discordURL,  'Discord'],
+        ['github',   CONFIG.githubURL,   'GitHub'],
+        ['telegram', CONFIG.telegramURL, 'Telegram'],
+        ['roblox',   CONFIG.robloxURL,   'Roblox'],
+        ['youtube',  CONFIG.youtubeURL,  'YouTube'],
+        ['tiktok',   CONFIG.tiktokURL,   'TikTok']
+    ].forEach(([key, url, label]) => {
+        if (!url) return;
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.title = label;
+        a.setAttribute('aria-label', label);
+        // .magnet is the layer the cursor pulls, keeping it clear of the
+        // entrance animation on the anchor and the float on the icon
+        a.innerHTML = `<span class="magnet">${SOCIAL_ICONS[key]}</span>`;
+        socialLinks.appendChild(a);
+    });
+
+    const magnets = [...socialLinks.querySelectorAll('.magnet')];
+
+    /* ---------- click spark burst ---------- */
+    function spark(anchor) {
+        if (!CONFIG.clickSpark || prefersReducedMotion) return;
+
+        const COUNT = 9;
+        for (let i = 0; i < COUNT; i++) {
+            const dot = document.createElement('span');
+            dot.className = 'spark';
+            // even fan-out with a little jitter so it never looks mechanical
+            const angle = (i / COUNT) * Math.PI * 2 + rand(-0.25, 0.25);
+            const dist = rand(16, 30);
+            dot.style.setProperty('--sx', (Math.cos(angle) * dist).toFixed(1) + 'px');
+            dot.style.setProperty('--sy', (Math.sin(angle) * dist).toFixed(1) + 'px');
+            dot.style.setProperty('--spark-dur', rand(420, 640).toFixed(0) + 'ms');
+            anchor.appendChild(dot);
+            dot.addEventListener('animationend', () => dot.remove(), { once: true });
+        }
+    }
+
+    socialLinks.addEventListener('pointerdown', (e) => {
+        const anchor = e.target.closest('a');
+        if (anchor) spark(anchor);
+    });
+
+    /* ============================================================
+       TYPEWRITERS (entry text, username, bio)
+       ============================================================ */
+    function typewriter(el, messages, opts) {
+        const list = Array.isArray(messages) ? messages.filter(Boolean) : [messages];
+        if (!list.length) return { start() {} };
+
+        const o = Object.assign({
+            typeDelay: 150, deleteDelay: 75, holdDelay: 2000,
+            loop: true, glitch: true, cursor: true
+        }, opts);
+
+        let text = '', index = 0, msg = 0, deleting = false, cursorOn = true, running = false;
+
+        function render() {
+            el.textContent = text + (o.cursor ? (cursorOn ? '|' : ' ') : '');
+        }
+
+        setInterval(() => { cursorOn = !cursorOn; render(); }, 500);
+
+        function tick() {
+            const full = list[msg];
+            if (!deleting && index < full.length) {
+                index++;
+                text = full.slice(0, index);
+            } else if (deleting && index > 0) {
+                index--;
+                text = full.slice(0, index);
+            } else if (!deleting && index === full.length) {
+                if (!o.loop) { render(); return; }
+                deleting = true;
+                setTimeout(tick, o.holdDelay);
+                return;
+            } else {
+                deleting = false;
+                msg = (msg + 1) % list.length;
+            }
+
+            render();
+
+            if (o.glitch && Math.random() < 0.1) {
+                el.classList.add('glitch');
+                setTimeout(() => el.classList.remove('glitch'), 200);
+            }
+            setTimeout(tick, deleting ? o.deleteDelay : o.typeDelay);
+        }
+
+        return { start() { if (!running) { running = true; tick(); } } };
+    }
+
+    const touchDevice = window.matchMedia('(hover: none)').matches;
+    const enterText = CONFIG.enterText || (touchDevice ? 'tap to enter' : 'click to enter');
+    typewriter(startText, enterText, { loop: false, glitch: false, typeDelay: 100 }).start();
+
+    /* ---------- entry readiness ----------
+       Fills as the audio and clip buffer. Never gates the tap: entering early
+       is fine, playback just starts when the media is ready. */
+    if (CONFIG.showLoadProgress) {
+        const bar = $('start-progress');
+        const fill = bar.querySelector('span');
+
+        const readiness = (el) => {
+            if (!el || !el.src) return 1;                       // nothing to wait for
+            if (el.readyState >= 3) return 1;                   // HAVE_FUTURE_DATA
+            if (el.duration && isFinite(el.duration) && el.buffered.length) {
+                return clamp(el.buffered.end(el.buffered.length - 1) / el.duration, 0, 1);
+            }
+            return el.readyState / 4;
+        };
+
+        let progressTimer = null;
+
+        function paintProgress() {
+            const parts = [readiness(audio), clipSrc ? readiness(clip) : 1];
+            const pct = parts.reduce((a, b) => a + b, 0) / parts.length;
+
+            bar.classList.add('visible');
+            fill.style.width = (pct * 100).toFixed(1) + '%';
+
+            if (pct >= 0.999) {
+                clearInterval(progressTimer);
+                setTimeout(() => bar.classList.remove('visible'), 420);
+            }
+        }
+
+        progressTimer = setInterval(paintProgress, 250);
+        ['progress', 'canplay', 'loadedmetadata', 'canplaythrough']
+            .forEach(ev => { audio.addEventListener(ev, paintProgress); clip.addEventListener(ev, paintProgress); });
+        paintProgress();
+    }
+
+    /* optional second line — glitch-revealed once the prompt has typed out */
+    if (CONFIG.enterSubtitle) {
+        const subtitle = $('start-subtitle');
+        subtitle.textContent = CONFIG.enterSubtitle;
+        setTimeout(() => subtitle.classList.add('in'), enterText.length * 100 + 200);
+    }
+
+    const nameTyper = typewriter(profileName, CONFIG.username, {
+        typeDelay: 300, deleteDelay: 150, holdDelay: 10000,
+        loop: Array.isArray(CONFIG.username)
+    });
+    const bioTyper = typewriter(profileBio, CONFIG.bio, { typeDelay: 150, deleteDelay: 75, holdDelay: 2000 });
+
+    /* ============================================================
+       GLASS / TRANSPARENCY CONTROL
+       ============================================================ */
+    function applyGlass(opacity) {
+        const blur = 10 * opacity;
+        const panels = [profileBlock, musicPlayerEl, topControlsEl];
+        panels.forEach(p => {
+            // backgroundColor, not background — the shine gradient lives in background-image
+            p.style.backgroundColor = `rgba(0, 0, 0, ${opacity})`;
+            p.style.backdropFilter = opacity ? `blur(${blur}px)` : 'none';
+            p.style.webkitBackdropFilter = opacity ? `blur(${blur}px)` : 'none';
+        });
+        musicPlayerEl.style.borderColor = opacity
+            ? `rgba(255, 255, 255, ${0.2 * opacity})`
+            : 'transparent';
+    }
+
+    /* ============================================================
+       AUDIO REACTIVITY — drives the --beat custom property
+       ============================================================
+       An analyser is only attached when the audio is guaranteed same-origin.
+       Chrome silences a MediaElementSource fed by an opaque resource (which is
+       what a plain file:// mp3 is), and that routing cannot be undone — so when
+       in doubt we skip it and use a gentle time-based pulse instead. */
+    let analyser = null, freqData = null, beat = 0;
+
+    function canAnalyse(src) {
+        if (!src) return false;
+        if (src.startsWith('data:')) return true;                 // inlined build
+        if (location.protocol === 'file:') return false;          // opaque origin
+        try { return new URL(src, location.href).origin === location.origin; }
+        catch { return false; }
+    }
+
+    function initAnalyser() {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (analyser || !Ctx || !canAnalyse(audio.currentSrc || audio.src)) return;
+        try {
+            const ctx = new Ctx();
+            const source = ctx.createMediaElementSource(audio);
+            const node = ctx.createAnalyser();
+            node.fftSize = 128;
+            node.smoothingTimeConstant = 0.75;
+            source.connect(node);
+            node.connect(ctx.destination);                        // audio keeps flowing
+            analyser = node;
+            freqData = new Uint8Array(node.frequencyBinCount);
+            if (ctx.state === 'suspended') ctx.resume();
+        } catch {
+            analyser = null;                                      // fall back to the pulse
+        }
+    }
+
+    let beatWritten = -1, beatClock = 0, faviconClock = 0;
+
+    function updateBeat(now) {
+        if (now - beatClock < 32) return;                          // ~30 writes a second is plenty
+        beatClock = now;
+
+        let target;
+        if (analyser) {
+            analyser.getByteFrequencyData(freqData);
+            let sum = 0;
+            for (let i = 1; i < 9; i++) sum += freqData[i];        // low end
+            target = clamp((sum / 8 / 255 - 0.32) / 0.45, 0, 1);
+        } else {
+            target = 0.32 + 0.28 * Math.sin(now / 380);
+        }
+
+        beat += (target - beat) * 0.3;                             // smooth the jitter
+        const rounded = Math.round(beat * 50) / 50;
+        if (rounded === beatWritten) return;                       // skip no-op style writes
+        beatWritten = rounded;
+        root.style.setProperty('--beat', rounded);
+
+        // repainting the tab icon is expensive — cap it hard when enabled
+        if (CONFIG.faviconPulse && CONFIG.favicon !== 'avatar' && now - faviconClock > 400) {
+            faviconClock = now;
+            drawFavicon(rounded);
+        }
+    }
+
+    /* ============================================================
+       MUSIC PLAYER
+       ============================================================ */
+    let trackIndex = 0;
+    let seekTweening = false;
+    let rafId = null;
+
+    let seekToken = 0;               // invalidates a running glide when the user grabs the bar
+
+    const progress = createSlider($('music-progress'), {
+        min: 0, max: 100, value: 0,
+        onDown: () => { seekToken++; seekTweening = false; },
+        onInput: (value) => { currentTimeEl.textContent = formatTime(value); },
+        onChange: (value) => {
+            const from = audio.currentTime;
+            const to = clamp(value, 0, audio.duration || 0);
+            audio.currentTime = to;                      // the audio jumps straight away
+
+            // a short hop lands instantly, a jump glides the bar over to the new spot
+            if (Math.abs(to - from) <= 1.5) return;
+
+            const token = ++seekToken;
+            seekTweening = true;
+            tween(from, to, 350, (v) => {
+                if (token !== seekToken) return;
+                progress.set(v, true);
+                currentTimeEl.textContent = formatTime(v);
+            }, () => {
+                if (token !== seekToken) return;
+                seekTweening = false;
+                progress.set(to, true);
+            });
+        }
+    });
+
+    const volume = createSlider($('volume-slider'), {
+        min: 0, max: 1,
+        value: typeof prefs.volume === 'number' ? prefs.volume : CONFIG.volume,
+        onInput: (v) => {
+            audio.volume = clamp(v, 0, 1);
+            if (audio.muted) { audio.muted = false; }
+            volumeIcon.innerHTML = v > 0 ? VOLUME_ICON_ON : VOLUME_ICON_OFF;
+        },
+        onChange: (v) => { if (CONFIG.remember) savePrefs({ volume: +v.toFixed(3), muted: false }); }
+    });
+
+    const transparency = createSlider($('transparency-slider'), {
+        min: 0, max: 1,
+        value: typeof prefs.cardOpacity === 'number' ? prefs.cardOpacity : CONFIG.cardOpacity,
+        onInput: (v) => applyGlass(v),
+        onChange: (v) => { if (CONFIG.remember) savePrefs({ cardOpacity: +v.toFixed(3) }); }
+    });
+
+    function loadTrack(index, autoPlay) {
+        const track = CONFIG.playlist[index];
+        if (!track) return;
+        audio.src = track.file;
+        audio.load();
+        playerArt.style.opacity = '0';                             // cross-fade the artwork
+        playerArt.addEventListener('load', () => { playerArt.style.opacity = '1'; }, { once: true });
+        playerArt.src = track.cover || '';
+        playerArt.alt = track.title ? track.title + ' cover' : 'Album art';
+        document.querySelector('.player-art').title =
+            [track.title, track.artist].filter(Boolean).join(' — ');
+        currentTimeEl.textContent = '0:00';
+        totalTimeEl.textContent = '0:00';
+        progress.set(0, true);
+
+        if ('mediaSession' in navigator && typeof MediaMetadata !== 'undefined' && track.title) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: track.title,
+                artist: track.artist || '',
+                artwork: track.cover ? [{ src: track.cover }] : []
+            });
+        }
+        if (autoPlay) play();
+    }
+
+    function play() {
+        const p = audio.play();
+        if (p && p.catch) p.catch(() => setPlayIcon(false));   // autoplay blocked → stay paused
+    }
+
+    function setPlayIcon(playing) {
+        playPauseBtn.innerHTML = playing ? PAUSE_PATH : PLAY_PATH;
+        playPauseBtn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+        playPauseBtn.classList.remove('pulse');
+        void playPauseBtn.offsetWidth;                          // restart the animation
+        playPauseBtn.classList.add('pulse');
+    }
+
+    function step(now) {
+        if (!progress.dragging && !seekTweening) {
+            progress.set(audio.currentTime, true);
+            currentTimeEl.textContent = formatTime(audio.currentTime);
+        }
+        updateBeat(now || performance.now());
+        rafId = requestAnimationFrame(step);
+    }
+
+    audio.addEventListener('loadedmetadata', () => {
+        totalTimeEl.textContent = formatTime(audio.duration);
+        progress.setRange(0, audio.duration || 0);
+    });
+
+    audio.addEventListener('timeupdate', () => {
+        if (progress.dragging || seekTweening) return;
+        progress.set(audio.currentTime, true);
+        currentTimeEl.textContent = formatTime(audio.currentTime);
+    });
+
+    audio.addEventListener('play', () => {
+        setPlayIcon(true);
+        document.body.classList.add('playing');
+        initAnalyser();
+        if (!rafId) rafId = requestAnimationFrame(step);
+    });
+
+    audio.addEventListener('pause', () => {
+        setPlayIcon(false);
+        document.body.classList.remove('playing');
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        root.style.setProperty('--beat', '0');                     // glow settles back down
+        beat = 0;
+        beatWritten = 0;
+    });
+
+    audio.addEventListener('ended', () => {
+        if (CONFIG.playlist.length > 1 || CONFIG.loop) {
+            trackIndex = (trackIndex + 1) % CONFIG.playlist.length;
+            loadTrack(trackIndex, true);
+        }
+    });
+
+    function togglePlay() {
+        if (audio.paused) { audio.muted = false; play(); }
+        else audio.pause();
+    }
+
+    function skip(direction) {
+        // with a single track, prev/next restarts it rather than doing nothing
+        if (CONFIG.playlist.length < 2) {
+            audio.currentTime = 0;
+            progress.set(0, true);
+            if (audio.paused) play();
+            return;
+        }
+        trackIndex = (trackIndex + direction + CONFIG.playlist.length) % CONFIG.playlist.length;
+        loadTrack(trackIndex, !audio.paused);
+    }
+
+    /* buttons — pointerup keeps the tap responsive on Android */
+    function bindTap(el, fn) {
+        el.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); fn(); });
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); }
+        });
+    }
+
+    bindTap(playPauseBtn, togglePlay);
+    bindTap(prevBtn, () => skip(-1));
+    bindTap(nextBtn, () => skip(1));
+
+    function toggleMute() {
+        audio.muted = !audio.muted;
+        volumeIcon.innerHTML = audio.muted ? VOLUME_ICON_OFF : VOLUME_ICON_ON;
+        volumeIcon.setAttribute('aria-label', audio.muted ? 'Unmute' : 'Mute');
+        if (CONFIG.remember) savePrefs({ muted: audio.muted });
+    }
+
+    bindTap(volumeIcon, toggleMute);
+
+    /* ============================================================
+       KEYBOARD
+         space        play / pause
+         left/right   seek 5s
+         shift+arrow  previous / next track
+         m            mute
+       Keys are ignored while a slider or link has focus, so tabbing
+       through the page still behaves normally.
+       ============================================================ */
+    const SEEK_STEP = 5;
+
+    function keyboardBusy() {
+        const el = document.activeElement;
+        if (!el || el === document.body) return false;
+        return el.classList.contains('range') ||
+               el.getAttribute('role') === 'slider' ||
+               el.tagName === 'A' || el.tagName === 'BUTTON' ||
+               el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ||
+               menuOpen;                          // the picker owns the keys while open
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (!CONFIG.keyboard || !unlocked || e.metaKey || e.ctrlKey || e.altKey) return;
+        if (keyboardBusy()) return;
+
+        switch (e.key) {
+            case ' ':
+            case 'Spacebar':
+                e.preventDefault();
+                togglePlay();
+                break;
+
+            case 'ArrowRight':
+                e.preventDefault();
+                if (e.shiftKey) skip(1);
+                else seekBy(SEEK_STEP);
+                break;
+
+            case 'ArrowLeft':
+                e.preventDefault();
+                if (e.shiftKey) skip(-1);
+                else seekBy(-SEEK_STEP);
+                break;
+
+            case 'm':
+            case 'M':
+                e.preventDefault();
+                toggleMute();
+                break;
+        }
+    });
+
+    function seekBy(delta) {
+        if (!isFinite(audio.duration)) return;
+        const to = clamp(audio.currentTime + delta, 0, audio.duration);
+        audio.currentTime = to;
+        progress.set(to, true);
+        currentTimeEl.textContent = formatTime(to);
+    }
+
+    /* ============================================================
+       TAB IDENTITY — themed favicon + embed metadata
+       ============================================================ */
+    const faviconLink = document.createElement('link');
+    faviconLink.rel = 'icon';
+    document.head.appendChild(faviconLink);
+
+    function drawFavicon(pulse) {
+        const size = 64;
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return false;
+
+        // rounded dark tile
+        const r = 14;
+        ctx.beginPath();
+        ctx.moveTo(r, 0);
+        ctx.arcTo(size, 0, size, size, r);
+        ctx.arcTo(size, size, 0, size, r);
+        ctx.arcTo(0, size, 0, 0, r);
+        ctx.arcTo(0, 0, size, 0, r);
+        ctx.closePath();
+        ctx.fillStyle = '#0b0b0d';
+        ctx.fill();
+
+        // accent ring, widening slightly with the beat when pulsing
+        ctx.strokeStyle = theme.accent;
+        ctx.lineWidth = 4 + (pulse || 0) * 2.5;
+        ctx.stroke();
+
+        // first letter of the name
+        ctx.fillStyle = theme.glow;
+        ctx.font = 'bold 34px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText((CONFIG.username || '?').trim().charAt(0).toUpperCase(), size / 2, size / 2 + 2);
+
+        faviconLink.href = canvas.toDataURL('image/png');
+        return true;
+    }
+
+    // "auto" draws the themed tile; "avatar" (or a canvas failure) uses the picture
+    if (CONFIG.favicon !== 'avatar') {
+        if (!drawFavicon(0)) faviconLink.href = pick(CONFIG.profilePicture);
+    } else {
+        faviconLink.href = pick(CONFIG.profilePicture);
+    }
+
+    /* ---------- link embed ---------- */
+    function setMeta(selector, attr, value) {
+        const el = document.head.querySelector(selector);
+        if (el && value) el.setAttribute(attr, value);
+    }
+
+    const firstBio = Array.isArray(CONFIG.bio) ? CONFIG.bio[0] : CONFIG.bio;
+    const embedDescription = CONFIG.ogDescription ||
+        [statusText.textContent, firstBio].filter(Boolean).join(' · ');
+
+    setMeta('meta[name="description"]', 'content', embedDescription);
+    setMeta('meta[property="og:description"]', 'content', embedDescription);
+    setMeta('meta[name="twitter:description"]', 'content', embedDescription);
+    setMeta('meta[property="og:title"]', 'content', CONFIG.username);
+    setMeta('meta[name="twitter:title"]', 'content', CONFIG.username);
+    setMeta('meta[name="theme-color"]', 'content', theme.accent);
+
+    // a data URI works for local previews; scrapers need a hosted URL
+    const ogImage = CONFIG.ogImage || stillSrc;
+    if (!isVideo(ogImage)) {
+        setMeta('meta[property="og:image"]', 'content', ogImage);
+        setMeta('meta[name="twitter:image"]', 'content', ogImage);
+    }
+
+    /* ============================================================
+       CARD OUTLINE — a light segment that travels around the card
+       ============================================================ */
+    function startOutline() {
+        profileOutline.style.opacity = '1';
+        const rect = profileOutline.querySelector('rect');
+        const bw = 1.5;
+
+        function position() {
+            const w = profileBlock.offsetWidth + bw * 2;
+            const h = profileBlock.offsetHeight + bw * 2;
+            profileOutline.style.top = (profileBlock.offsetTop - bw) + 'px';
+            profileOutline.style.left = (profileBlock.offsetLeft - bw) + 'px';
+            profileOutline.setAttribute('width', w);
+            profileOutline.setAttribute('height', h);
+            rect.setAttribute('x', bw);
+            rect.setAttribute('y', bw);
+            rect.setAttribute('width', w - bw * 2);
+            rect.setAttribute('height', h - bw * 2);
+        }
+
+        position();
+        window.addEventListener('resize', position);
+
+        const segment = 80;
+        let offset = 0;
+        (function frame() {
+            const perimeter = rect.getTotalLength();
+            if (perimeter) {
+                rect.style.strokeDasharray = segment + ' ' + (perimeter - segment);
+                offset -= 1.5;
+                if (offset < -perimeter) offset += perimeter;
+                rect.style.strokeDashoffset = offset;
+            }
+            requestAnimationFrame(frame);
+        })();
+    }
+
+    /* ============================================================
+       SUBTLE 3D TILT
+       ============================================================ */
+    /* Pointer movement drives two things — the card tilt and the background
+       parallax. Both are applied once per frame from the latest coordinates,
+       so a high-rate touch stream costs one style update, not dozens. */
+    const backgroundWrap = $('background-wrap');
+    const MAX_PARALLAX = 14;                 // px the artwork drifts behind the card
+    const MAX_TILT = 15;
+
+    let pointerX = 0, pointerY = 0, pointerLive = false, frameQueued = false;
+
+    /* Magnetic icons: the centres are measured once and on resize rather than
+       every frame — reading getBoundingClientRect in the frame loop would
+       force a layout on each move. */
+    const MAGNET_RADIUS = 90;         // px of influence around each icon
+    const MAGNET_PULL = 7;            // px it can travel toward the cursor
+    let magnetCentres = [];
+
+    function measureMagnets() {
+        magnetCentres = magnets.map(el => {
+            const b = el.getBoundingClientRect();
+            return { el, x: b.left + b.width / 2, y: b.top + b.height / 2 };
+        });
+    }
+
+    function applyMagnets() {
+        for (const m of magnetCentres) {
+            const dx = pointerX - m.x;
+            const dy = pointerY - m.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (!pointerLive || dist > MAGNET_RADIUS) {
+                m.el.classList.remove('pulling');
+                m.el.style.setProperty('--mx', '0px');
+                m.el.style.setProperty('--my', '0px');
+                continue;
+            }
+
+            const strength = (1 - dist / MAGNET_RADIUS) * MAGNET_PULL;
+            const scale = dist ? strength / dist : 0;
+            m.el.classList.add('pulling');
+            m.el.style.setProperty('--mx', (dx * scale).toFixed(2) + 'px');
+            m.el.style.setProperty('--my', (dy * scale).toFixed(2) + 'px');
+        }
+    }
+
+    function applyPointer() {
+        frameQueued = false;
+        const nx = (pointerX - window.innerWidth / 2) / (window.innerWidth / 2);
+        const ny = (pointerY - window.innerHeight / 2) / (window.innerHeight / 2);
+
+        if (CONFIG.magneticIcons && !touchDevice && !prefersReducedMotion) applyMagnets();
+
+        backgroundWrap.style.setProperty('--bg-x', (pointerLive ? -nx * MAX_PARALLAX : 0).toFixed(1) + 'px');
+        backgroundWrap.style.setProperty('--bg-y', (pointerLive ? -ny * MAX_PARALLAX : 0).toFixed(1) + 'px');
+
+        if (CONFIG.tilt) {
+            // never tilt while a slider is being dragged — the control would slide away
+            const live = pointerLive && !slidersDragging;
+            stack.style.setProperty('--tilt-x', (live ? ny * MAX_TILT : 0).toFixed(2) + 'deg');
+            stack.style.setProperty('--tilt-y', (live ? -nx * MAX_TILT : 0).toFixed(2) + 'deg');
+        }
+    }
+
+    function schedulePointer() {
+        if (frameQueued) return;
+        frameQueued = true;
+        requestAnimationFrame(applyPointer);
+    }
+
+    function onPointerMove(e) {
+        pointerX = e.clientX;
+        pointerY = e.clientY;
+        pointerLive = true;
+        schedulePointer();
+    }
+
+    function onPointerRest() {
+        pointerLive = false;
+        schedulePointer();
+    }
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerup', onPointerRest);
+    window.addEventListener('pointercancel', onPointerRest);
+    window.addEventListener('pointerleave', onPointerRest);
+    window.addEventListener('blur', onPointerRest);
+    window.addEventListener('resize', measureMagnets);
+
+    /* ============================================================
+       AVATAR INTERACTION
+       ============================================================ */
+    function spinAvatar() {
+        profileContainer.classList.remove('fast-orbit');
+        void profileContainer.offsetWidth;
+        profileContainer.classList.add('fast-orbit');
+        setTimeout(() => profileContainer.classList.remove('fast-orbit'), 500);
+    }
+    profilePicture.addEventListener('click', spinAvatar);
+
+    /* ============================================================
+       ENTRY SCREEN → reveal + playback (needs the user gesture)
+       ============================================================ */
+    let unlocked = false;
+
+    function unlockPage() {
+        if (unlocked) return;
+        unlocked = true;
+
+        // respect a mute carried over from a previous visit
+        if (!prefs.muted) audio.muted = false;
+        audio.volume = clamp(volume.value, 0, 1);
+        play();
+
+        startScreen.classList.add('fading');
+        setTimeout(() => startScreen.classList.add('hidden'), 600);
+
+        background.classList.add('animate');
+        clip.classList.add('animate');
+        if (clipSrc) startBackgroundClip();              // the entry tap satisfies autoplay
+        document.getElementById('background-wrap').classList.add('animate');
+        $('ambient').classList.add('revealed');
+        reveal.classList.add('revealed');
+
+        // icon centres are only meaningful once the card has settled
+        setTimeout(measureMagnets, 1200);
+
+        startProfileCycle();
+
+        // the view counter rolls up to its value as the card settles
+        if (views > 0) {
+            tween(0, views, 1400, (v) => {
+                visitorCount.textContent = Math.round(v).toLocaleString('en-US');
+            }, () => { visitorCount.textContent = views.toLocaleString('en-US'); });
+        }
+
+        applyGlass(transparency.value);
+        nameTyper.start();
+        bioTyper.start();
+
+        // the outline needs the card at its final size
+        setTimeout(startOutline, 300);
+    }
+
+    startScreen.addEventListener('click', unlockPage);
+    startScreen.addEventListener('touchstart', (e) => { e.preventDefault(); unlockPage(); }, { passive: false });
+    startScreen.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') unlockPage();
+    });
+    startScreen.tabIndex = 0;
+
+    /* ---------- initial state ---------- */
+    if (CONFIG.shuffle && CONFIG.playlist.length > 1) {
+        trackIndex = Math.floor(Math.random() * CONFIG.playlist.length);
+    }
+    applyGlass(transparency.value);
+    audio.volume = clamp(volume.value, 0, 1);
+    if (prefs.muted) {
+        audio.muted = true;
+        volumeIcon.innerHTML = VOLUME_ICON_OFF;
+    }
+    audio.loop = CONFIG.loop && CONFIG.playlist.length === 1;
+    volumeIcon.innerHTML = VOLUME_ICON_ON;
+    setPlayIcon(false);
+    playPauseBtn.classList.remove('pulse');
+    loadTrack(trackIndex, false);
+});
+</script>
+</body>
+</html>
