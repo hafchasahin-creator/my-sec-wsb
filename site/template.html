@@ -1625,14 +1625,10 @@ const CONFIG = {
 
     /* ---------- music ----------
        Add more objects to `playlist` and prev / next will cycle through them. */
-    playlist: [
-        {
-            file:   {{SONG_URI}},
-            title:  "Starboy",
-            artist: "The Weeknd",
-            cover:  {{COVER_URI}}       // <- swap for real cover art when you have it
-        }
-    ],
+    /* Filled in by the build from assets/: song.mp3 leads, then every
+       track-*.mp3 in name order, each titled from its own ID3 tag. Drop a new
+       mp3 in as track-4.mp3 and rebuild — nothing here needs editing. */
+    playlist: {{PLAYLIST}},
 
     /* ---------- embed / tab ----------
        ogImage takes a URL or a data URI; "" reuses the background artwork.

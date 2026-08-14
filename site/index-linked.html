@@ -1633,13 +1633,14 @@ const CONFIG = {
 
     /* ---------- music ----------
        Add more objects to `playlist` and prev / next will cycle through them. */
+    /* Filled in by the build from assets/: song.mp3 leads, then every
+       track-*.mp3 in name order, each titled from its own ID3 tag. Drop a new
+       mp3 in as track-4.mp3 and rebuild — nothing here needs editing. */
     playlist: [
-        {
-            file:   "assets/song.mp3",
-            title:  "Starboy",
-            artist: "The Weeknd",
-            cover:  "assets/cover-placeholder.jpg"       // <- swap for real cover art when you have it
-        }
+        { file: "assets/song.mp3", title: "Starboy", artist: "The Weeknd", cover: "assets/cover-placeholder.jpg" },
+        { file: "assets/track-1.mp3", title: "Montagem Miau (Meow Meow Song)", artist: "MusicFinder", cover: "assets/cover-placeholder.jpg" },
+        { file: "assets/track-2.mp3", title: "MONTAGEM PERIGOSA (Super Slowed)", artist: "KVRXD", cover: "assets/cover-placeholder.jpg" },
+        { file: "assets/track-3.mp3", title: "Mingle Song (Round and Round)", artist: "Squid Game", cover: "assets/cover-placeholder.jpg" },
     ],
 
     /* ---------- embed / tab ----------
