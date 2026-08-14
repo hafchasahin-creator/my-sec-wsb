@@ -1569,6 +1569,12 @@ const CONFIG = {
     profilePicture: "assets/avatar.png",
     backgroundImage: [
         "assets/background.jpg",
+        "assets/still-1.jpg",
+        "assets/still-2.jpg",
+        "assets/still-3.jpg",
+        "assets/still-4.jpg",
+        "assets/still-5.jpg",
+        "assets/still-6.jpg",
     ],
     backgroundVideo: "assets/background-clip.mp4",   // "" = still artwork only
 
@@ -1630,9 +1636,11 @@ const CONFIG = {
     magneticIcons: true,                // social icons lean toward the cursor
     clickSpark: true,                   // burst when a social icon is hit
     keyboard: true,                     // space / arrows / M — see the map below
+    tapBackdropToAdvance: true,         // tapping the backdrop jumps to the next photo
+    remember: true,                     // keep volume, glass and status across visits
 
     /* ---------- behaviour ---------- */
-    enterText: "",                      // entry prompt; "" picks tap/click to suit the device
+    enterText: "sigma imran - tap to enter",   // "" instead picks tap/click per device
     enterSubtitle: "",                  // optional second line, glitch-revealed
     volume: 0.3,                        // 0 - 1
     cardOpacity: 0.4,                   // 0 - 1, the "eye" slider default
@@ -1756,6 +1764,21 @@ const isVideo = (src) => typeof src === 'string' && /\.(mp4|webm|ogv)(\?|#|$)/i.
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const rand = (lo, hi) => lo + Math.random() * (hi - lo);
+
+/* Preferences survive a reload. Wrapped because storage throws rather than
+   returning null in some file:// and private-mode configurations. */
+const STORE_KEY = 'profile-prefs';
+
+function loadPrefs() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
+    catch { return {}; }
+}
+
+function savePrefs(patch) {
+    try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(Object.assign(loadPrefs(), patch)));
+    } catch { /* storage unavailable — the session simply does not persist */ }
+}
 
 function formatTime(s) {
     if (!isFinite(s) || s < 0) s = 0;
@@ -1901,6 +1924,9 @@ document.addEventListener('DOMContentLoaded', () => {
        THEME — publish CONFIG.theme as custom properties. Everything
        tinted in the stylesheet reads from these three values.
        ============================================================ */
+    /* stored preferences win over the CONFIG defaults on a return visit */
+    const prefs = CONFIG.remember ? loadPrefs() : {};
+
     const theme = Object.assign({ accent: '#ed4245', glow: '#ffffff', beat: '#ffffff' }, CONFIG.theme);
     root.style.setProperty('--accent', theme.accent);
     root.style.setProperty('--glow', theme.glow);
@@ -1932,8 +1958,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const clipSrc = CONFIG.backgroundVideo || videoInList || '';
     const stillSrc = stills[0] || '';
 
-    // the later photos are fetched up front so a swap never shows a blank frame
-    stills.slice(1).forEach(src => { const img = new Image(); img.src = src; });
+    /* Only the photo that comes next is prefetched, and only once the browser
+       is idle. Fetching the whole set up front costs a burst of large JPEG
+       decodes exactly while the reveal is animating. */
+    function prefetchNextStill() {
+        if (stills.length < 2) return;
+        const next = stills[(stillIndex + 1) % stills.length];
+        const run = () => { const img = new Image(); img.src = next; };
+        if (window.requestIdleCallback) requestIdleCallback(run, { timeout: 3000 });
+        else setTimeout(run, 1200);
+    }
 
     const cycle = Object.assign({ enabled: true, photoHold: 5200, fade: 1600 },
                                 CONFIG.backgroundCycle);
@@ -1942,6 +1976,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (stillSrc) {
         background.src = stillSrc;
         reframeStill();                              // the first photo drifts too
+        prefetchNextStill();
     }
 
     let cycleTimer = null;
@@ -1974,6 +2009,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         reframeStill();
         showStill();
+        prefetchNextStill();                         // ready the one after this
     }
 
     function showClip() {
@@ -2011,6 +2047,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } else {
         showStill();
+    }
+
+    /* Tapping the backdrop — anywhere outside the cards — jumps straight to
+       the next photo instead of waiting for the clip to finish. */
+    if (CONFIG.tapBackdropToAdvance && stills.length > 1) {
+        document.addEventListener('click', (e) => {
+            if (!unlocked) return;
+            // guard: a synthetic event can target the document, which has no closest()
+            const target = e.target instanceof Element ? e.target : null;
+            if (!target || target.closest('#stack') || target.closest('#start-screen')) return;
+
+            clearTimeout(cycleTimer);
+            showNextStill();
+
+            // hold this photo, then hand the backdrop back to the clip
+            if (clipSrc && cycle.enabled) {
+                cycleTimer = setTimeout(() => {
+                    clip.currentTime = 0;
+                    clip.play().catch(() => {});
+                    showClip();
+                }, cycle.fade + cycle.photoHold);
+            }
+        });
     }
 
     /* the tab icon is set further down, alongside the embed metadata */
@@ -2101,6 +2160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function chooseStatus(mode) {
         manualStatus = true;                       // presence no longer overrides
         setStatus(mode);
+        if (CONFIG.remember) savePrefs({ status: mode });
         closeMenu();
         statusRow.focus();
 
@@ -2159,7 +2219,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const statusList = Array.isArray(CONFIG.status) ? CONFIG.status : [CONFIG.status];
     const cyclingStatus = statusList.length > 1;
-    setStatus(statusList[0], CONFIG.statusText);
+
+    // a status chosen on a previous visit is restored and stays manual
+    const savedStatus = picker.enabled && !cyclingStatus && prefs.status &&
+                        STATUS_MODES[prefs.status] ? prefs.status : null;
+    if (savedStatus) {
+        manualStatus = true;
+        setStatus(savedStatus);
+    } else {
+        setStatus(statusList[0], CONFIG.statusText);
+    }
 
     if (cyclingStatus) {
         let statusIndex = 0;
@@ -2561,17 +2630,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const volume = createSlider($('volume-slider'), {
-        min: 0, max: 1, value: CONFIG.volume,
+        min: 0, max: 1,
+        value: typeof prefs.volume === 'number' ? prefs.volume : CONFIG.volume,
         onInput: (v) => {
             audio.volume = clamp(v, 0, 1);
             if (audio.muted) { audio.muted = false; }
             volumeIcon.innerHTML = v > 0 ? VOLUME_ICON_ON : VOLUME_ICON_OFF;
-        }
+        },
+        onChange: (v) => { if (CONFIG.remember) savePrefs({ volume: +v.toFixed(3), muted: false }); }
     });
 
     const transparency = createSlider($('transparency-slider'), {
-        min: 0, max: 1, value: CONFIG.cardOpacity,
-        onInput: (v) => applyGlass(v)
+        min: 0, max: 1,
+        value: typeof prefs.cardOpacity === 'number' ? prefs.cardOpacity : CONFIG.cardOpacity,
+        onInput: (v) => applyGlass(v),
+        onChange: (v) => { if (CONFIG.remember) savePrefs({ cardOpacity: +v.toFixed(3) }); }
     });
 
     function loadTrack(index, autoPlay) {
@@ -2688,6 +2761,7 @@ document.addEventListener('DOMContentLoaded', () => {
         audio.muted = !audio.muted;
         volumeIcon.innerHTML = audio.muted ? VOLUME_ICON_OFF : VOLUME_ICON_ON;
         volumeIcon.setAttribute('aria-label', audio.muted ? 'Unmute' : 'Mute');
+        if (CONFIG.remember) savePrefs({ muted: audio.muted });
     }
 
     bindTap(volumeIcon, toggleMute);
@@ -2973,8 +3047,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (unlocked) return;
         unlocked = true;
 
-        audio.muted = false;
-        audio.volume = clamp(CONFIG.volume, 0, 1);
+        // respect a mute carried over from a previous visit
+        if (!prefs.muted) audio.muted = false;
+        audio.volume = clamp(volume.value, 0, 1);
         play();
 
         startScreen.classList.add('fading');
@@ -3016,8 +3091,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (CONFIG.shuffle && CONFIG.playlist.length > 1) {
         trackIndex = Math.floor(Math.random() * CONFIG.playlist.length);
     }
-    applyGlass(CONFIG.cardOpacity);
-    audio.volume = clamp(CONFIG.volume, 0, 1);
+    applyGlass(transparency.value);
+    audio.volume = clamp(volume.value, 0, 1);
+    if (prefs.muted) {
+        audio.muted = true;
+        volumeIcon.innerHTML = VOLUME_ICON_OFF;
+    }
     audio.loop = CONFIG.loop && CONFIG.playlist.length === 1;
     volumeIcon.innerHTML = VOLUME_ICON_ON;
     setPlayIcon(false);
