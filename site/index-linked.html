@@ -1792,6 +1792,39 @@ const isVideo = (src) => typeof src === 'string' && /\.(mp4|webm|ogv)(\?|#|$)/i.
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/* A <video> fed a large data: URI frequently refuses to play on Android
+   Chrome — a data URI serves no range requests, which the media stack wants
+   for seeking. Handing it a blob URL instead gives it real bytes to work
+   with. Images are unaffected, so only video goes through this. */
+async function playableSource(src) {
+    if (!src || !src.startsWith('data:')) return src;
+    try {
+        const blob = await (await fetch(src)).blob();
+        return URL.createObjectURL(blob);
+    } catch {
+        return src;                       // conversion failed: use it as-is
+    }
+}
+
+/* Watches a playing video and calls back if its clock stops advancing, so a
+   stalled decoder shows the fallback instead of freezing on one frame. */
+function watchForStall(video, onStall, checkMs = 2500) {
+    let last = -1, strikes = 0;
+    return setInterval(() => {
+        if (video.paused || video.ended || !video.classList.contains('show')) {
+            strikes = 0;
+            last = -1;
+            return;
+        }
+        if (video.currentTime === last) {
+            if (++strikes >= 2) { strikes = 0; onStall(); }
+        } else {
+            strikes = 0;
+            last = video.currentTime;
+        }
+    }, checkMs);
+}
+
 const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 
 /* Preferences survive a reload. Wrapped because storage throws rather than
@@ -2047,18 +2080,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (clipSrc) {
-        clip.src = clipSrc;
         clip.loop = !(cycle.enabled && stillSrc);       // looping is the fallback
+        playableSource(clipSrc).then(src => { clip.src = src; });
         showClip();
 
-        // if the clip cannot load or decode, fall back to the still for good
+        // if the clip cannot load, decode or keep running, the still takes over
+        let clipDead = false;
         const failToStill = () => {
+            if (clipDead) return;
+            clipDead = true;
+            clearInterval(clipStallWatch);
             clearTimeout(cycleTimer);
             clip.loop = false;
             showStill();
         };
+        const clipStallWatch = watchForStall(clip, failToStill);
         clip.addEventListener('error', failToStill);
-        clip.addEventListener('stalled', () => { if (!clip.readyState) failToStill(); });
 
         if (cycle.enabled && stillSrc) {
             clip.addEventListener('ended', () => {
@@ -2066,6 +2103,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 clearTimeout(cycleTimer);
                 cycleTimer = setTimeout(() => {
+                    if (clipDead) return;
                     // restart the clip underneath first, so the photo fades
                     // away onto moving footage rather than a frozen frame
                     clip.currentTime = 0;
@@ -2119,19 +2157,34 @@ document.addEventListener('DOMContentLoaded', () => {
         profileContainer.style.setProperty('--pfp-fade', pfpCycle.fade + 'ms');
         profileClip.muted = true;                    // never competes with the music
         profileClip.loop = false;
-        profileClip.src = CONFIG.profileVideo;
+        playableSource(CONFIG.profileVideo).then(src => { profileClip.src = src; });
 
-        const backToPhoto = () => {
+        let failures = 0;
+
+        const showPhoto = () => {
             profileClip.classList.remove('show');
             profilePicture.classList.add('show');    // the photo returns slowly
+        };
+
+        const backToPhoto = () => {
+            showPhoto();
             clearTimeout(pfpTimer);
             pfpTimer = setTimeout(playClip, pfpCycle.photoHold);
         };
 
-        // if the clip cannot load or play, the photo simply stays
-        const giveUp = () => { clearTimeout(pfpTimer); backToPhoto(); };
+        // after a couple of failures the clip is written off and the photo stays
+        const giveUp = () => {
+            clearTimeout(pfpTimer);
+            showPhoto();
+            if (++failures < 3) {
+                pfpTimer = setTimeout(playClip, pfpCycle.photoHold * 2);
+            } else {
+                clearInterval(pfpStallWatch);
+            }
+        };
 
         function playClip() {
+            if (!profileClip.src) { pfpTimer = setTimeout(playClip, 1500); return; }
             profileClip.currentTime = 0;
             const p = profileClip.play();
             if (p && p.catch) p.catch(giveUp);
@@ -2139,7 +2192,10 @@ document.addEventListener('DOMContentLoaded', () => {
             profilePicture.classList.remove('show');
         }
 
-        profileClip.addEventListener('ended', backToPhoto);
+        // a frozen decoder would otherwise leave the avatar stuck on one frame
+        const pfpStallWatch = watchForStall(profileClip, giveUp);
+
+        profileClip.addEventListener('ended', () => { failures = 0; backToPhoto(); });
         profileClip.addEventListener('error', giveUp);
 
         pfpTimer = setTimeout(playClip, pfpCycle.photoHold);
