@@ -144,6 +144,51 @@ Two constraints shaped this, both worth keeping if you edit it:
   animation off the compositor onto the main thread — doing it the obvious way
   cost more than half the frame rate.
 
+## Background: clip and still
+
+With `backgroundVideo` set, the two backdrops alternate:
+
+```
+clip plays ─▶ ends ─▶ still fades up over it ─▶ holds ─▶
+clip restarts underneath ─▶ still fades away ─▶ repeat
+```
+
+`backgroundCycle` controls it: `photoHold` (ms the still stays) and `fade`
+(cross-fade duration). Set `enabled: false` and the clip simply loops; clear
+`backgroundVideo` and the still stays put.
+
+The clip restarts *before* the still fades out, so the photo dissolves onto
+moving footage rather than a frozen last frame.
+
+If the clip fails to load or decode, the still is shown permanently — so the
+page still looks right wherever the video can't play.
+
+**Size note.** Video is inlined into the standalone build only while it stays
+under 8 MB; past that it streams from `assets/` and the single file falls back
+to the still. The bundled clip is 5.5 MB, so `index.html` is ~19.7 MB and fully
+self-contained (measured at ~0.8s to first paint). Drop the clip to get back to
+~12.6 MB.
+
+## Status picker
+
+Tapping the status opens a menu of `statusPicker.options`. Each mode animates
+its dot differently:
+
+| Mode | Dot |
+| --- | --- |
+| Do Not Disturb | sharp outward ping, red |
+| Silent Mode | no ring; the dot dims and lifts in a slow breath, grey |
+| Normal Mode | a calm swell with a soft halo, green |
+
+Choosing Silent Mode also mutes the player and Normal Mode unmutes it
+(`silentMutes: false` turns that off). A manual pick is final — live Discord
+presence stops overwriting the status, which it would otherwise do on its next
+poll. The picker is disabled automatically when `status` is a cycling list,
+since the two would fight.
+
+Keyboard: `Enter`/`Space` opens it, `↑`/`↓` walk the options, `Escape` closes.
+While the menu is open the playback shortcuts stand down.
+
 ## Status modes
 
 `status` takes any key from the `STATUS_MODES` table, each carrying its own dot

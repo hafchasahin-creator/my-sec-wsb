@@ -110,17 +110,29 @@ body {
     will-change: transform;
 }
 
-#background {
+/* Two stacked backdrops — the clip and the still — cross-faded by the cycle.
+   With no clip configured the still simply stays visible. */
+.bg-layer {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
     object-position: center;
     display: block;
     transform: scale(1.06);
-    will-change: transform;
+    opacity: 0;
+    transition: opacity var(--bg-fade, 1600ms) ease-in-out;
 }
 
-#background.animate {
+/* only the visible layer gets a compositor layer and the zoom — animating the
+   hidden one costs a second full-screen layer for nothing */
+.bg-layer.show {
+    opacity: 1;
+    will-change: transform, opacity;
+}
+
+.bg-layer.show.animate {
     animation: bg-zoom 42s ease-in-out infinite alternate;
 }
 
@@ -575,7 +587,7 @@ body {
 
 #status-text { transition: opacity 0.22s ease; }
 
-/* a slow halo so the status reads as live rather than painted on */
+/* ---- each mode gets its own dot behaviour ---- */
 .status-dot::after {
     content: '';
     position: absolute;
@@ -583,17 +595,163 @@ body {
     border-radius: 50%;
     border: 1px solid currentColor;
     opacity: 0;
-    animation: status-ping 2.6s ease-out infinite;
     will-change: transform, opacity;    /* own layer, keeps the text out of the repaint */
 }
 
-.status-dot.offline::after { animation: none; }
+.status-dot { transition: background 0.3s ease, box-shadow 0.3s ease; }
+
+/* do not disturb — a sharp outward ping */
+.status-dot.anim-ping::after { animation: status-ping 2.6s ease-out infinite; }
 
 @keyframes status-ping {
     0%   { opacity: 0.55; transform: scale(0.75); }
     70%  { opacity: 0;    transform: scale(1.6); }
     100% { opacity: 0;    transform: scale(1.6); }
 }
+
+/* silent — no ring at all, the dot itself dims and lifts like a slow breath */
+.status-dot.anim-silent {
+    animation: status-dim 2.9s ease-in-out infinite;
+}
+
+@keyframes status-dim {
+    0%, 100% { opacity: 1;    box-shadow: 0 0 6px currentColor; }
+    50%      { opacity: 0.32; box-shadow: 0 0 1px currentColor; }
+}
+
+/* normal — a calm swell, slower and softer than the ping */
+.status-dot.anim-normal {
+    animation: status-swell 3.4s ease-in-out infinite;
+}
+
+.status-dot.anim-normal::after {
+    animation: status-halo 3.4s ease-in-out infinite;
+}
+
+@keyframes status-swell {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.22); }
+}
+
+@keyframes status-halo {
+    0%, 100% { opacity: 0;    transform: scale(1); }
+    50%      { opacity: 0.42; transform: scale(1.75); }
+}
+
+.status-dot.offline::after,
+.status-dot.invisible::after { animation: none; }
+
+/* ============================================================
+   STATUS PICKER
+   ============================================================ */
+.discord-status.interactive {
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 2px 6px;
+    margin-left: -6px;
+    width: fit-content;
+    transition: background 0.2s ease;
+}
+
+.discord-status.interactive:hover,
+.discord-status.interactive:focus-visible { background: rgba(255, 255, 255, 0.07); }
+
+.status-caret {
+    width: 9px;
+    height: 9px;
+    flex-shrink: 0;
+    opacity: 0.45;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+
+.discord-status.open .status-caret { transform: rotate(180deg); opacity: 0.9; }
+
+.status-wrap { position: relative; }
+
+.status-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 60;
+    min-width: 168px;
+    padding: 5px;
+    border-radius: 11px;
+    background: rgba(12, 12, 14, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transform-origin: top left;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px) scale(0.94);
+    transition: opacity 0.2s ease, transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1),
+                visibility 0.2s;
+}
+
+.status-menu.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.status-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+    /* each option slides in behind the one before it */
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: background 0.18s ease, color 0.18s ease,
+                opacity 0.26s ease, transform 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.status-menu.open .status-option { opacity: 1; transform: translateX(0); }
+.status-menu.open .status-option:nth-child(1) { transition-delay: 0.04s, 0.04s, 0.04s, 0.04s; }
+.status-menu.open .status-option:nth-child(2) { transition-delay: 0.09s, 0.09s, 0.09s, 0.09s; }
+.status-menu.open .status-option:nth-child(3) { transition-delay: 0.14s, 0.14s, 0.14s, 0.14s; }
+.status-menu.open .status-option:nth-child(4) { transition-delay: 0.19s, 0.19s, 0.19s, 0.19s; }
+
+.status-option:hover,
+.status-option:focus-visible {
+    background: rgba(255, 255, 255, 0.09);
+    color: #fff;
+    outline: none;
+}
+
+.status-option[aria-checked="true"] { background: rgba(255, 255, 255, 0.06); }
+
+.status-option .opt-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--opt-color, #fff);
+    box-shadow: 0 0 6px var(--opt-color, #fff);
+}
+
+.status-option .opt-check {
+    margin-left: auto;
+    width: 12px;
+    height: 12px;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.status-option[aria-checked="true"] .opt-check { opacity: 0.9; transform: scale(1); }
 
 .status-dot.online  { background: #3ba55d; color: #3ba55d; }
 .status-dot.idle    { background: #faa81a; color: #faa81a; }
@@ -1173,7 +1331,9 @@ body {
 
     <!-- ================= BACKGROUND ================= -->
     <div id="background-wrap">
-        <img id="background" alt="">
+        <video id="background-clip" class="bg-layer" muted playsinline
+               webkit-playsinline preload="auto" aria-hidden="true"></video>
+        <img id="background" class="bg-layer" alt="">
     </div>
 
     <!-- ============ AMBIENT LAYER (built from CONFIG.ambient) ============ -->
@@ -1201,9 +1361,13 @@ body {
                             <div class="badges" id="badges"><!-- built from CONFIG.badges --></div>
                         </div>
                     </div>
-                    <div id="discord-status" class="discord-status">
-                        <span id="status-dot" class="status-dot dnd"></span>
-                        <span id="status-text">Do Not Disturb</span>
+                    <div class="status-wrap">
+                        <div id="discord-status" class="discord-status">
+                            <span id="status-dot" class="status-dot dnd"></span>
+                            <span id="status-text">Do Not Disturb</span>
+                        </div>
+                        <div class="status-menu" id="status-menu" role="menu"
+                             aria-label="Select status"><!-- built from CONFIG.statusPicker --></div>
                     </div>
                     <div id="profile-bio"></div>
                 </div>
@@ -1335,6 +1499,14 @@ const CONFIG = {
     statusText: "",
     statusInterval: 5000,               // ms per mode when status is a list
 
+    /* Tapping the status opens a small picker. Each mode animates its dot
+       differently — dnd pings, silent dims, normal breathes. */
+    statusPicker: {
+        enabled: true,
+        options: ["dnd", "silent", "normal"],
+        silentMutes: true               // choosing Silent Mode also mutes the player
+    },
+
     /* Live Discord presence via lanyard.rest — the dot and label then follow
        your real status, including what you are playing or listening to.
        Requires you to have joined discord.gg/lanyard. Set to "" for a page
@@ -1348,11 +1520,20 @@ const CONFIG = {
     ],
 
     /* ---------- media ----------
-       Both accept a single source or a list — a list picks one at random on
-       each load, the way the live site rotates its artwork. The background
-       also takes .mp4 / .webm and is rendered as a muted looping video. */
+       profilePicture accepts a single source or a list (a list picks one at
+       random per load). When backgroundVideo is set the two backdrops
+       alternate: the clip plays, the still fades up over it, holds, then
+       fades away as the clip starts again. With no clip the still simply
+       stays. */
     profilePicture: "assets/avatar.png",
     backgroundImage: "assets/background.jpg",
+    backgroundVideo: "assets/background-clip.mp4",   // "" = still artwork only
+
+    backgroundCycle: {
+        enabled: true,
+        photoHold: 5200,                // ms the still holds once faded in
+        fade: 1600                      // cross-fade duration
+    },
 
     /* ---------- counter ----------
        viewCountAPI: optional endpoint that is POSTed on load and returns
@@ -1493,8 +1674,12 @@ const PAUSE_PATH = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
 const STATUS_MODES = {
     online:    { label: 'Online',         color: '#3ba55d' },
     idle:      { label: 'Idle',           color: '#faa81a' },
-    dnd:       { label: 'Do Not Disturb', color: '#ed4245' },
+    dnd:       { label: 'Do Not Disturb', color: '#ed4245', anim: 'ping' },
     offline:   { label: 'Offline',        color: '#747f8d', glow: false },
+
+    /* the picker's own two modes, each with its own dot behaviour */
+    silent:    { label: 'Silent Mode',    color: '#8a8f98', anim: 'silent' },
+    normal:    { label: 'Normal Mode',    color: '#3ba55d', anim: 'normal' },
 
     invisible: { label: 'Invisible',      color: '#747f8d', glow: false },
     busy:      { label: 'Busy',           color: '#f0483e' },
@@ -1679,36 +1864,216 @@ document.addEventListener('DOMContentLoaded', () => {
     profilePicture.src = pick(CONFIG.profilePicture);
     profilePicture.alt = CONFIG.username;
 
-    /* ---------- background: still image or looping video ---------- */
-    let background = $('background');
+    /* ============================================================
+       BACKGROUND — a still, a clip, or the two alternating.
+
+       clip plays ─▶ ends ─▶ still fades up ─▶ holds ─▶ clip restarts
+       underneath ─▶ still fades away ─▶ repeat.
+
+       Any failure to load or play the clip leaves the still on screen, so
+       the page still looks right when the video is missing.
+       ============================================================ */
+    const background = $('background');                 // the still
+    const clip = $('background-clip');
     const backgroundSrc = pick(CONFIG.backgroundImage);
 
-    if (isVideo(backgroundSrc)) {
-        const video = document.createElement('video');
-        video.id = 'background';
-        video.autoplay = true;
-        video.loop = true;
-        video.muted = true;
-        video.playsInline = true;
-        video.setAttribute('webkit-playsinline', '');
-        video.src = backgroundSrc;
-        background.replaceWith(video);
-        background = video;
-        video.play().catch(() => {});        // resumes on the entry tap if blocked
+    // a video passed as backgroundImage still works — treat it as the clip
+    const clipSrc = CONFIG.backgroundVideo ||
+                    (isVideo(backgroundSrc) ? backgroundSrc : '');
+    const stillSrc = isVideo(backgroundSrc) ? '' : backgroundSrc;
+
+    const cycle = Object.assign({ enabled: true, photoHold: 5200, fade: 1600 },
+                                CONFIG.backgroundCycle);
+    root.style.setProperty('--bg-fade', cycle.fade + 'ms');
+
+    if (stillSrc) background.src = stillSrc;
+
+    let cycleTimer = null;
+
+    function showStill() {
+        background.classList.add('show');
+        clip.classList.remove('show');
+    }
+
+    function showClip() {
+        clip.classList.add('show');
+        background.classList.remove('show');
+    }
+
+    if (clipSrc) {
+        clip.src = clipSrc;
+        clip.loop = !(cycle.enabled && stillSrc);       // looping is the fallback
+        showClip();
+
+        // if the clip cannot load or decode, fall back to the still for good
+        const failToStill = () => {
+            clearTimeout(cycleTimer);
+            clip.loop = false;
+            showStill();
+        };
+        clip.addEventListener('error', failToStill);
+        clip.addEventListener('stalled', () => { if (!clip.readyState) failToStill(); });
+
+        if (cycle.enabled && stillSrc) {
+            clip.addEventListener('ended', () => {
+                showStill();                             // photo fades up over the last frame
+
+                clearTimeout(cycleTimer);
+                cycleTimer = setTimeout(() => {
+                    // restart the clip underneath first, so the photo fades
+                    // away onto moving footage rather than a frozen frame
+                    clip.currentTime = 0;
+                    clip.play().catch(failToStill);
+                    showClip();
+                }, cycle.fade + cycle.photoHold);
+            });
+        }
     } else {
-        background.src = backgroundSrc;
+        showStill();
     }
 
     /* the tab icon is set further down, alongside the embed metadata */
 
     /* ---------- status modes ---------- */
+    let currentStatus = null;
+
     function setStatus(mode, textOverride) {
         const preset = STATUS_MODES[mode] || STATUS_MODES.offline;
-        statusDot.className = 'status-dot ' + mode;
-        statusDot.style.color = preset.color;
-        statusDot.style.background = preset.color;
-        statusDot.style.boxShadow = preset.glow === false ? 'none' : `0 0 6px ${preset.color}`;
+        currentStatus = mode;
+
+        // `anim-*` selects the dot's behaviour: ping, dim or swell
+        statusDot.className = 'status-dot ' + mode +
+                              (preset.anim ? ' anim-' + preset.anim : '');
+        const dotColor = (CONFIG.theme && CONFIG.theme.accentStatus) ? theme.accent : preset.color;
+        statusDot.style.color = dotColor;
+        statusDot.style.background = dotColor;
+        statusDot.style.boxShadow = preset.glow === false ? 'none' : `0 0 6px ${dotColor}`;
         statusText.textContent = textOverride || preset.label;
+
+        // keep the picker's checkmark in step
+        statusMenu.querySelectorAll('.status-option').forEach(opt => {
+            opt.setAttribute('aria-checked', String(opt.dataset.mode === mode));
+        });
+    }
+
+    /* ============================================================
+       STATUS PICKER — tapping the status opens a small menu.
+       A manual choice wins permanently: live presence stops
+       overwriting it, otherwise the next poll would undo the click.
+       ============================================================ */
+    const statusMenu = $('status-menu');
+    const statusRow = $('discord-status');
+    const picker = Object.assign({ enabled: true, options: ['dnd', 'silent', 'normal'],
+                                   silentMutes: true }, CONFIG.statusPicker);
+    let manualStatus = false;
+    let menuOpen = false;
+
+    const CHECK_SVG = `<svg class="opt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>`;
+
+    function buildPicker() {
+        picker.options.forEach(mode => {
+            const preset = STATUS_MODES[mode];
+            if (!preset) return;
+
+            const opt = document.createElement('button');
+            opt.type = 'button';
+            opt.className = 'status-option';
+            opt.dataset.mode = mode;
+            opt.setAttribute('role', 'menuitemradio');
+            opt.setAttribute('aria-checked', 'false');
+            opt.innerHTML = `<span class="opt-dot" style="--opt-color:${preset.color}"></span>
+                             <span class="opt-label"></span>${CHECK_SVG}`;
+            opt.querySelector('.opt-label').textContent = preset.label;
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                chooseStatus(mode);
+            });
+            statusMenu.appendChild(opt);
+        });
+
+        statusRow.classList.add('interactive');
+        statusRow.tabIndex = 0;
+        statusRow.setAttribute('role', 'button');
+        statusRow.setAttribute('aria-haspopup', 'menu');
+        statusRow.setAttribute('aria-expanded', 'false');
+        statusRow.insertAdjacentHTML('beforeend',
+            `<svg class="status-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+                  aria-hidden="true"><path d="m5 8 7 7 7-7"/></svg>`);
+    }
+
+    function openMenu() {
+        menuOpen = true;
+        statusMenu.classList.add('open');
+        statusRow.classList.add('open');
+        statusRow.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeMenu() {
+        menuOpen = false;
+        statusMenu.classList.remove('open');
+        statusRow.classList.remove('open');
+        statusRow.setAttribute('aria-expanded', 'false');
+    }
+
+    function chooseStatus(mode) {
+        manualStatus = true;                       // presence no longer overrides
+        setStatus(mode);
+        closeMenu();
+        statusRow.focus();
+
+        // silent mode does what it says
+        if (picker.silentMutes) {
+            const silent = mode === 'silent';
+            if (audio.muted !== silent) toggleMute();
+        }
+    }
+
+    if (picker.enabled && !cyclingStatusPlanned()) {
+        buildPicker();
+
+        statusRow.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menuOpen ? closeMenu() : openMenu();
+        });
+
+        statusRow.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                openMenu();
+                statusMenu.querySelector('.status-option')?.focus();
+            }
+        });
+
+        // arrow keys walk the menu, escape closes it
+        statusMenu.addEventListener('keydown', (e) => {
+            const opts = [...statusMenu.querySelectorAll('.status-option')];
+            const i = opts.indexOf(document.activeElement);
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                e.stopPropagation();
+                const next = e.key === 'ArrowDown'
+                    ? (i + 1) % opts.length
+                    : (i - 1 + opts.length) % opts.length;
+                opts[next].focus();
+            } else if (e.key === 'Escape') {
+                e.stopPropagation();
+                closeMenu();
+                statusRow.focus();
+            }
+        });
+
+        document.addEventListener('click', () => { if (menuOpen) closeMenu(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && menuOpen) closeMenu();
+        });
+    }
+
+    // the picker and a cycling status are mutually exclusive
+    function cyclingStatusPlanned() {
+        return Array.isArray(CONFIG.status) && CONFIG.status.length > 1;
     }
 
     const statusList = Array.isArray(CONFIG.status) ? CONFIG.status : [CONFIG.status];
@@ -1736,8 +2101,9 @@ document.addEventListener('DOMContentLoaded', () => {
        values on screen, so the page is complete with no network.
        ============================================================ */
     async function fetchDiscordStatus() {
-        // a cycling status is an explicit choice — live presence would fight it
-        if (!CONFIG.discordUserId || cyclingStatus) return;
+        // a cycling status or a manual pick is an explicit choice — live
+        // presence would otherwise undo it on the next poll
+        if (!CONFIG.discordUserId || cyclingStatus || manualStatus) return;
         try {
             const res = await fetch(`https://api.lanyard.rest/v1/users/${CONFIG.discordUserId}`);
             const { success, data } = await res.json();
@@ -2224,7 +2590,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!el || el === document.body) return false;
         return el.classList.contains('range') ||
                el.getAttribute('role') === 'slider' ||
-               el.tagName === 'A' || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
+               el.tagName === 'A' || el.tagName === 'BUTTON' ||
+               el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ||
+               menuOpen;                          // the picker owns the keys while open
     }
 
     window.addEventListener('keydown', (e) => {
@@ -2495,7 +2863,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => startScreen.classList.add('hidden'), 600);
 
         background.classList.add('animate');
-        if (background.tagName === 'VIDEO') background.play().catch(() => {});
+        clip.classList.add('animate');
+        if (clipSrc) clip.play().catch(() => {});        // the entry tap satisfies autoplay
         document.getElementById('background-wrap').classList.add('animate');
         $('ambient').classList.add('revealed');
         reveal.classList.add('revealed');

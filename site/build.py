@@ -28,10 +28,14 @@ FILES = {
     "FONT_URI": "Angel_wish.ttf",
     "MONO_URI": "mono.woff2",
     "BG_URI": None,
+    "BGVIDEO_URI": "background-clip.mp4",   # optional; "" when absent
     "AVATAR_URI": "avatar.png",
     "COVER_URI": "cover-placeholder.jpg",
     "SONG_URI": "song.mp3",
 }
+
+# tokens the page can live without — a missing file becomes an empty string
+OPTIONAL = {"BGVIDEO_URI"}
 
 # first match wins; video before image so a dropped-in clip takes over
 BACKGROUND_CANDIDATES = ["background.mp4", "background.webm", "background.jpg",
@@ -48,9 +52,9 @@ def resolve_background() -> str:
 EXTRA_TYPES = {".ttf": "font/ttf", ".gif": "image/gif", ".mp3": "audio/mpeg",
                ".woff2": "font/woff2", ".mp4": "video/mp4", ".webm": "video/webm"}
 
-# a video background is streamed from assets/ even in the inlined build —
-# base64-ing tens of megabytes of video would make the file unusable
-NEVER_INLINE = {".mp4", ".webm"}
+# Video is inlined only while it stays small enough for the single file to
+# remain openable on a phone; past this it streams from assets/ instead.
+INLINE_VIDEO_LIMIT = 8 * 1024 * 1024
 
 
 def mime_for(path: Path) -> str:
@@ -69,9 +73,15 @@ def render(template: str, inline: bool) -> str:
     for token, filename in FILES.items():
         filename = filename or resolve_background()
         path = ASSETS / filename
+
         if not path.exists():
+            if token in OPTIONAL:
+                out = out.replace("{{" + token + "}}", '""')
+                continue
             raise SystemExit(f"missing asset: {path}")
-        embed = inline and path.suffix.lower() not in NEVER_INLINE
+
+        video = path.suffix.lower() in {".mp4", ".webm", ".ogv"}
+        embed = inline and (not video or path.stat().st_size <= INLINE_VIDEO_LIMIT)
         value = data_uri(path) if embed else f"assets/{filename}"
         # tokens are always substituted where a quoted string is expected
         out = out.replace("{{" + token + "}}", '"' + value + '"')
