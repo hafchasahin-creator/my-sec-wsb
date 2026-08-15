@@ -36,6 +36,12 @@ BP = os.path.join("behavior_packs", "god_eye_bp")
 RP = os.path.join("resource_packs", "god_eye_rp")
 DIST = "dist"
 ADDON = os.path.join(DIST, "God_Eye_Guardian.mcaddon")
+# Single-pack alternatives. A .mcpack holds one pack with manifest.json at the
+# archive root; a .mcaddon holds several, each in its own folder.
+MCPACKS = (
+    (BP, os.path.join(DIST, "God_Eye_Guardian_BP.mcpack")),
+    (RP, os.path.join(DIST, "God_Eye_Guardian_RP.mcpack")),
+)
 NAMESPACE = "god_eye"
 MIN_ENGINE = [1, 21, 0]
 
@@ -566,6 +572,24 @@ def package():
                 fail(f"{ADDON}: unsafe archive path {name}")
 
     print(f"Packaged {ADDON} ({os.path.getsize(ADDON):,} bytes, {len(names)} files)")
+
+    for source_dir, target in MCPACKS:
+        if os.path.exists(target):
+            os.remove(target)
+        with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as archive:
+            for base, _dirs, files in os.walk(source_dir):
+                for name in sorted(files):
+                    path = os.path.join(base, name)
+                    archive.write(path, os.path.relpath(path, source_dir).replace(os.sep, "/"))
+
+        with zipfile.ZipFile(target) as archive:
+            if archive.testzip():
+                fail(f"{target}: corrupt archive")
+            # Minecraft only accepts a .mcpack whose manifest sits at the root.
+            if "manifest.json" not in archive.namelist():
+                fail(f"{target}: manifest.json must be at the archive root")
+            count = len(archive.namelist())
+        print(f"Packaged {target} ({os.path.getsize(target):,} bytes, {count} files)")
 
 
 def main():
