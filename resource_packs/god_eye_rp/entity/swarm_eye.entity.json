@@ -1,0 +1,33 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "god_eye:swarm_eye",
+      "min_engine_version": "1.21.0",
+      "materials": {
+        "default": "entity_alphatest",
+        "aura": "entity_alphablend",
+        "glow": "entity_emissive_alpha"
+      },
+      "textures": {
+        "default": "textures/entity/god_eye"
+      },
+      "geometry": {
+        "default": "geometry.god_eye"
+      },
+      "particle_effects": {
+        "aura": "god_eye:aura",
+        "blink": "god_eye:blink"
+      },
+      "animations": {
+        "spawn": "animation.god_eye.spawn",
+        "swarm_float": "animation.god_eye.swarm_float",
+        "aura_emit": "animation.god_eye.aura_emit"
+      },
+      "scripts": {
+        "animate": ["controller.animation.god_eye.swarm"]
+      },
+      "render_controllers": ["controller.render.god_eye"]
+    }
+  }
+}

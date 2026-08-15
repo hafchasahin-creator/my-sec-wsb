@@ -1,0 +1,44 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "god_eye:god_eye",
+      "min_engine_version": "1.21.0",
+      "materials": {
+        "default": "entity_alphatest",
+        "aura": "entity_alphablend",
+        "glow": "entity_emissive_alpha"
+      },
+      "textures": {
+        "default": "textures/entity/god_eye"
+      },
+      "geometry": {
+        "default": "geometry.god_eye"
+      },
+      "particle_effects": {
+        "aura": "god_eye:aura",
+        "blink": "god_eye:blink",
+        "wisp": "god_eye:wisp"
+      },
+      "animations": {
+        "float": "animation.god_eye.float",
+        "float_fast": "animation.god_eye.float_fast",
+        "look": "animation.god_eye.look",
+        "shy": "animation.god_eye.shy",
+        "alert": "animation.god_eye.alert",
+        "execute": "animation.god_eye.execute",
+        "spawn": "animation.god_eye.spawn",
+        "aura_emit": "animation.god_eye.aura_emit",
+        "aura_emit_heavy": "animation.god_eye.aura_emit_heavy"
+      },
+      "scripts": {
+        "animate": ["controller.animation.god_eye.state"]
+      },
+      "render_controllers": ["controller.render.god_eye"],
+      "spawn_egg": {
+        "texture": "god_eye_spawn_egg",
+        "texture_index": 0
+      }
+    }
+  }
+}

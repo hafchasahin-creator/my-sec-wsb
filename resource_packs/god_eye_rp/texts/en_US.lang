@@ -1,0 +1,7 @@
+pack.name=God Eye Guardian RP
+pack.description=Model, textures, animations, particles and fog for the God Eye.
+
+entity.god_eye:god_eye.name=God Eye
+entity.god_eye:swarm_eye.name=Spectral Eye
+
+item.spawn_egg.entity.god_eye:god_eye.name=Spawn God Eye

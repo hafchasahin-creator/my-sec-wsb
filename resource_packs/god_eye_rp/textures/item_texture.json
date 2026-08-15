@@ -1,0 +1,9 @@
+{
+  "resource_pack_name": "god_eye_rp",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "god_eye_spawn_egg": {
+      "textures": "textures/items/god_eye_spawn_egg"
+    }
+  }
+}

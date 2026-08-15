@@ -1,0 +1,14 @@
+{
+  "format_version": "1.10.0",
+  "render_controllers": {
+    "controller.render.god_eye": {
+      "geometry": "Geometry.default",
+      "materials": [
+        { "*": "Material.default" },
+        { "aura": "Material.aura" },
+        { "glow": "Material.glow" }
+      ],
+      "textures": ["Texture.default"]
+    }
+  }
+}

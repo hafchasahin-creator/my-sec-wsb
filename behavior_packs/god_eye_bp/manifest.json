@@ -1,0 +1,61 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "God Eye Guardian BP",
+    "description": "A supernatural floating eye that bonds with you and executes whatever attacks you. Behavior Pack.",
+    "uuid": "b5981261-fb86-4b94-9d4d-4cd89e2798ee",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "3f645551-f21c-4b6d-95a8-02caf8e437ea",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "2ab470c5-9622-4303-91d7-4cf555ed1749",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "10845f72-e107-433e-a8a6-4536bf8bc54e",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "God Eye Guardian"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

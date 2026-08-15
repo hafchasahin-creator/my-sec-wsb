@@ -1,3 +1,7 @@
+> This repository holds two independent Bedrock add-ons. For the floating guardian eye,
+> see **[God Eye Guardian](README_GOD_EYE_GUARDIAN.md)**
+> (`dist/God_Eye_Guardian.mcaddon`). Everything below is about Arcane Arsenal.
+
 # Arcane Arsenal
 
 A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six
