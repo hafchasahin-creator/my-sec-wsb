@@ -1,0 +1,12 @@
+{
+  "resource_pack_name": "world_eater",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "world_core": {
+      "textures": "textures/items/world_core"
+    },
+    "world_eater_spawn_egg": {
+      "textures": "textures/items/world_eater_spawn_egg"
+    }
+  }
+}

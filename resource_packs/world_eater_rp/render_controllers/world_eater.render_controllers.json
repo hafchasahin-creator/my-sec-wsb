@@ -1,0 +1,21 @@
+{
+  "format_version": "1.10.0",
+  "render_controllers": {
+    "controller.render.world_eater": {
+      "arrays": {
+        "textures": {
+          "Array.stages": [
+            "Texture.stage1",
+            "Texture.stage1",
+            "Texture.stage2",
+            "Texture.stage3",
+            "Texture.stage4"
+          ]
+        }
+      },
+      "geometry": "Geometry.default",
+      "materials": [ { "*": "Material.default" } ],
+      "textures": [ "Array.stages[query.variant]" ]
+    }
+  }
+}

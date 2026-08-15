@@ -1,3 +1,7 @@
+> This repo holds two independent Bedrock add-ons:
+> **Arcane Arsenal** (below) and **[World Eater](WORLD_EATER.md)** — a giant boss that
+> progressively destroys the world. Each builds to its own `.mcaddon` in `dist/`.
+
 # Arcane Arsenal
 
 A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six

@@ -1,0 +1,9 @@
+pack.name=World Eater RP
+pack.description=Model, textures, animations and particles for the World Eater.
+
+entity.we:world_eater.name=World Eater
+item.spawn_egg.entity.we:world_eater.name=World Eater Spawn Egg
+item.spawnegg.entity.we:world_eater.name=World Eater Spawn Egg
+
+item.we:world_core=World Core
+item.we:world_core.name=World Core

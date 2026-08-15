@@ -1,0 +1,85 @@
+{
+  "format_version": "1.14.0",
+  "sound_definitions": {
+    "we.growl": {
+      "category": "hostile",
+      "min_distance": 8.0,
+      "max_distance": 64.0,
+      "sounds": [
+        { "name": "sounds/mob/wither/idle1", "volume": 0.9, "pitch": [ 0.55, 0.7 ] },
+        { "name": "sounds/mob/wither/idle2", "volume": 0.9, "pitch": [ 0.55, 0.7 ] },
+        { "name": "sounds/mob/wither/idle3", "volume": 0.9, "pitch": [ 0.55, 0.7 ] }
+      ]
+    },
+    "we.roar": {
+      "category": "hostile",
+      "min_distance": 12.0,
+      "max_distance": 96.0,
+      "sounds": [
+        { "name": "sounds/mob/wither/spawn", "volume": 1.0, "pitch": [ 0.5, 0.62 ] },
+        { "name": "sounds/mob/wither/hurt1", "volume": 1.0, "pitch": [ 0.45, 0.55 ] },
+        { "name": "sounds/mob/wither/hurt2", "volume": 1.0, "pitch": [ 0.45, 0.55 ] }
+      ]
+    },
+    "we.death": {
+      "category": "hostile",
+      "min_distance": 12.0,
+      "max_distance": 96.0,
+      "sounds": [
+        { "name": "sounds/mob/wither/death", "volume": 1.0, "pitch": [ 0.5, 0.6 ] },
+        { "name": "sounds/mob/wither/spawn", "volume": 1.0, "pitch": 0.5 }
+      ]
+    },
+    "we.step": {
+      "category": "hostile",
+      "min_distance": 6.0,
+      "max_distance": 48.0,
+      "sounds": [
+        { "name": "sounds/dig/stone1", "volume": 1.0, "pitch": [ 0.4, 0.55 ] },
+        { "name": "sounds/dig/stone2", "volume": 1.0, "pitch": [ 0.4, 0.55 ] },
+        { "name": "sounds/dig/stone3", "volume": 1.0, "pitch": [ 0.4, 0.55 ] },
+        { "name": "sounds/dig/stone4", "volume": 1.0, "pitch": [ 0.4, 0.55 ] }
+      ]
+    },
+    "we.devour": {
+      "category": "hostile",
+      "min_distance": 6.0,
+      "max_distance": 48.0,
+      "sounds": [
+        { "name": "sounds/dig/stone1", "volume": 0.8, "pitch": [ 0.6, 0.9 ] },
+        { "name": "sounds/dig/gravel1", "volume": 0.8, "pitch": [ 0.6, 0.9 ] },
+        { "name": "sounds/dig/stone3", "volume": 0.8, "pitch": [ 0.6, 0.9 ] }
+      ]
+    },
+    "we.quake": {
+      "category": "hostile",
+      "min_distance": 10.0,
+      "max_distance": 80.0,
+      "sounds": [
+        { "name": "sounds/random/explode1", "volume": 1.0, "pitch": [ 0.4, 0.55 ] },
+        { "name": "sounds/random/explode2", "volume": 1.0, "pitch": [ 0.4, 0.55 ] },
+        { "name": "sounds/random/explode3", "volume": 1.0, "pitch": [ 0.4, 0.55 ] },
+        { "name": "sounds/random/explode4", "volume": 1.0, "pitch": [ 0.4, 0.55 ] }
+      ]
+    },
+    "we.beam": {
+      "category": "hostile",
+      "min_distance": 10.0,
+      "max_distance": 72.0,
+      "sounds": [
+        { "name": "sounds/mob/blaze/breathe1", "volume": 1.0, "pitch": [ 0.5, 0.65 ] },
+        { "name": "sounds/mob/blaze/breathe2", "volume": 1.0, "pitch": [ 0.5, 0.65 ] },
+        { "name": "sounds/random/fuse", "volume": 0.8, "pitch": 0.5 }
+      ]
+    },
+    "we.grow": {
+      "category": "hostile",
+      "min_distance": 12.0,
+      "max_distance": 96.0,
+      "sounds": [
+        { "name": "sounds/mob/wither/spawn", "volume": 1.0, "pitch": [ 0.7, 0.85 ] },
+        { "name": "sounds/random/glass1", "volume": 0.7, "pitch": 0.6 }
+      ]
+    }
+  }
+}

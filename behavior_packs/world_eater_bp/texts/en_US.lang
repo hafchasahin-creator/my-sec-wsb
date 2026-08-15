@@ -1,0 +1,5 @@
+pack.name=World Eater BP
+pack.description=The World Eater - a growing boss that devours terrain.
+
+entity.we:world_eater.name=World Eater
+item.we:world_core=World Core

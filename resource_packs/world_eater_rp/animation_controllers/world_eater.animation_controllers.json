@@ -1,0 +1,58 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+
+    "controller.animation.world_eater.general": {
+      "initial_state": "alive",
+      "states": {
+        "alive": {
+          "animations": [ "idle" ],
+          "transitions": [
+            { "dying": "query.mark_variant == 1" }
+          ]
+        },
+        "dying": {
+          "blend_transition": 0.35,
+          "animations": [ "death" ],
+          "transitions": [
+            { "alive": "query.mark_variant != 1" }
+          ]
+        }
+      }
+    },
+
+    "controller.animation.world_eater.move": {
+      "initial_state": "stand",
+      "states": {
+        "stand": {
+          "blend_transition": 0.3,
+          "animations": [
+            { "hover": "variable.big" }
+          ],
+          "transitions": [
+            { "collapsed": "query.mark_variant == 1" },
+            { "walking": "variable.move_amount > 0.05" }
+          ]
+        },
+        "walking": {
+          "blend_transition": 0.3,
+          "animations": [
+            { "walk": "variable.move_amount * (1.0 - variable.big * 0.7)" },
+            { "hover": "variable.big" }
+          ],
+          "transitions": [
+            { "collapsed": "query.mark_variant == 1" },
+            { "stand": "variable.move_amount <= 0.05" }
+          ]
+        },
+        "collapsed": {
+          "blend_transition": 0.35,
+          "animations": [],
+          "transitions": [
+            { "stand": "query.mark_variant != 1" }
+          ]
+        }
+      }
+    }
+  }
+}

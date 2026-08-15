@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "World Eater RP",
+    "description": "Model, textures, animations and particles for the World Eater. Resource Pack.",
+    "uuid": "60e79df7-a667-4f00-a08f-51da0df10b2a",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "4e69b586-01bc-4755-b0f9-e65d27f424e2",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "World Eater"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

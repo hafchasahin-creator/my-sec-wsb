@@ -1,0 +1,63 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "we:world_eater",
+
+      "materials": {
+        "default": "entity_emissive_alpha"
+      },
+
+      "textures": {
+        "stage1": "textures/entity/world_eater/world_eater_stage1",
+        "stage2": "textures/entity/world_eater/world_eater_stage2",
+        "stage3": "textures/entity/world_eater/world_eater_stage3",
+        "stage4": "textures/entity/world_eater/world_eater_stage4"
+      },
+
+      "geometry": {
+        "default": "geometry.world_eater"
+      },
+
+      "animations": {
+        "idle": "animation.world_eater.idle",
+        "walk": "animation.world_eater.walk",
+        "hover": "animation.world_eater.hover",
+        "roar": "animation.world_eater.roar",
+        "death": "animation.world_eater.death",
+        "ctrl_general": "controller.animation.world_eater.general",
+        "ctrl_move": "controller.animation.world_eater.move"
+      },
+
+      "scripts": {
+        "animate": [ "ctrl_general", "ctrl_move" ],
+        "pre_animation": [
+          "variable.stage = query.variant;",
+          "variable.big = query.variant >= 3 ? 1.0 : 0.0;",
+          "variable.move_amount = math.clamp(query.modified_move_speed, 0.0, 1.0);"
+        ]
+      },
+
+      "particle_effects": {
+        "corruption": "we:corruption",
+        "maw_ember": "we:maw_ember",
+        "quake_dust": "we:quake_dust",
+        "death_burst": "we:death_burst"
+      },
+
+      "sound_effects": {
+        "growl": "we.growl",
+        "roar": "we.roar",
+        "step": "we.step",
+        "death": "we.death"
+      },
+
+      "render_controllers": [ "controller.render.world_eater" ],
+
+      "spawn_egg": {
+        "texture": "world_eater_spawn_egg",
+        "texture_index": 0
+      }
+    }
+  }
+}
