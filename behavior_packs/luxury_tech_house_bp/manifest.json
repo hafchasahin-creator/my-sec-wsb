@@ -1,0 +1,65 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Luxury Tech House BP",
+    "description": "Builds and runs a functional futuristic smart mansion. Behavior Pack.",
+    "uuid": "11f30cf1-391b-4324-b256-10be0c9fa665",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "8e6cee0e-544d-4d72-8db0-82799e4b2b2b",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "b99fb3e9-5530-4252-942c-4cd47230cf70",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "35b41e40-3982-44b7-87cd-3772bd15af1e",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "1.2.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Luxury Tech House"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

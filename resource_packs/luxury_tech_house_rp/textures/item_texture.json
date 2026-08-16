@@ -1,0 +1,12 @@
+{
+  "resource_pack_name": "luxury_tech_house",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "lux_house_builder": {
+      "textures": "textures/items/house_builder"
+    },
+    "lux_tech_remote": {
+      "textures": "textures/items/tech_remote"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Luxury Tech House RP",
+    "description": "Icons and names for the Luxury Tech House tools. Resource Pack.",
+    "uuid": "35b41e40-3982-44b7-87cd-3772bd15af1e",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "dfac50a4-7f83-4979-9c43-d1298a99756c",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Luxury Tech House"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

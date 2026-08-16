@@ -1,0 +1,9 @@
+## Luxury Tech House - English (US)
+
+pack.name=Luxury Tech House RP
+pack.description=Icons and names for the Luxury Tech House tools.
+
+item.lux:house_builder=Luxury Tech House Builder
+item.lux:house_builder.name=Luxury Tech House Builder
+item.lux:tech_remote=Mansion Tech Remote
+item.lux:tech_remote.name=Mansion Tech Remote
