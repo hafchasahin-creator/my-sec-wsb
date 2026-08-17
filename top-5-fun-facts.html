@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Five Fun Facts, Animated</title>
+<style>
+/* ---------------------------------------------------------------- base */
+:root{
+  --bg:#0c0f16;
+  --bg-soft:#131826;
+  --ink:#eef2ff;
+  --ink-dim:#9aa6c4;
+  --line:rgba(255,255,255,.10);
+  --accent:#7dd3fc;
+  --radius:20px;
+  --maxw:1120px;
+  --font:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:
+    radial-gradient(1200px 700px at 80% -10%,rgba(125,211,252,.10),transparent 60%),
+    radial-gradient(900px 600px at 0% 40%,rgba(244,114,182,.07),transparent 60%),
+    var(--bg);
+  color:var(--ink);font-family:var(--font);line-height:1.6;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+/* ---------------------------------------------------------------- hero */
+header.hero{min-height:82vh;display:grid;place-items:center;text-align:center;position:relative;padding:80px 0 40px}
+.kicker{
+  font-size:.72rem;letter-spacing:.34em;text-transform:uppercase;color:var(--ink-dim);
+  border:1px solid var(--line);border-radius:999px;padding:8px 18px;display:inline-block;margin-bottom:28px;
+  background:rgba(255,255,255,.03)
+}
+h1{
+  font-size:clamp(2.6rem,8vw,5.4rem);line-height:1.02;margin:0 0 20px;font-weight:800;letter-spacing:-.03em;
+  background:linear-gradient(120deg,#fff 10%,#7dd3fc 45%,#f0abfc 80%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero p{max-width:56ch;margin:0 auto;color:var(--ink-dim);font-size:clamp(1rem,2.2vw,1.2rem)}
+.scroll-cue{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);color:var(--ink-dim);font-size:.78rem;letter-spacing:.2em;text-transform:uppercase}
+.scroll-cue span{display:block;width:1px;height:38px;margin:12px auto 0;background:linear-gradient(var(--ink-dim),transparent);animation:cue 1.9s ease-in-out infinite}
+@keyframes cue{0%,100%{opacity:.25;transform:scaleY(.6)}50%{opacity:1;transform:scaleY(1)}}
+
+/* orbiting dots behind the title */
+.hero-orbits{position:absolute;inset:0;pointer-events:none;overflow:hidden;opacity:.5}
+.hero-orbits i{
+  position:absolute;top:50%;left:50%;width:2px;height:2px;border-radius:50%;background:var(--ink);
+  box-shadow:0 0 12px 2px rgba(125,211,252,.6);
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------------------------------------------------------------- rail */
+nav.rail{position:fixed;left:22px;top:50%;transform:translateY(-50%);z-index:20;display:grid;gap:16px}
+nav.rail a{
+  width:11px;height:11px;border-radius:50%;border:1px solid var(--ink-dim);display:block;position:relative;
+  transition:.3s;text-decoration:none
+}
+nav.rail a::after{
+  content:attr(data-label);position:absolute;left:22px;top:50%;transform:translateY(-50%);
+  white-space:nowrap;font-size:.72rem;color:var(--ink-dim);opacity:0;transition:.25s;pointer-events:none
+}
+nav.rail a:hover::after{opacity:1}
+nav.rail a.on{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 5px rgba(125,211,252,.16)}
+@media(max-width:900px){nav.rail{display:none}}
+
+/* ---------------------------------------------------------------- fact */
+section.fact{padding:clamp(60px,10vh,120px) 0;position:relative}
+.card{
+  display:grid;grid-template-columns:1.05fr 1fr;gap:clamp(24px,4vw,60px);align-items:center;
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
+  border:1px solid var(--line);border-radius:var(--radius);padding:clamp(22px,3.4vw,46px);
+  opacity:0;transform:translateY(38px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.7,.3,1);
+  box-shadow:0 30px 80px -50px rgba(0,0,0,.9)
+}
+.fact.in .card{opacity:1;transform:none}
+@media(max-width:860px){.card{grid-template-columns:1fr}}
+
+.num{
+  font-size:.72rem;letter-spacing:.3em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;
+  display:flex;align-items:center;gap:12px
+}
+.num::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,currentColor,transparent);opacity:.5}
+h2{font-size:clamp(1.5rem,3.3vw,2.3rem);line-height:1.15;margin:0 0 14px;letter-spacing:-.02em}
+.lede{color:var(--ink);font-size:1.05rem;margin:0 0 18px}
+.why{color:var(--ink-dim);font-size:.96rem;margin:0 0 18px}
+.why b{color:var(--ink);font-weight:600}
+ul.points{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:10px}
+ul.points li{position:relative;padding-left:26px;color:var(--ink-dim);font-size:.93rem}
+ul.points li::before{
+  content:"";position:absolute;left:6px;top:.62em;width:7px;height:7px;border-radius:2px;
+  background:var(--accent);transform:rotate(45deg);opacity:.85
+}
+.twist{
+  margin-top:20px;border-left:2px solid var(--accent);padding:10px 0 10px 16px;
+  font-size:.9rem;color:var(--ink-dim);background:linear-gradient(90deg,rgba(125,211,252,.07),transparent)
+}
+.twist b{color:var(--accent);font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.74rem;display:block;margin-bottom:3px}
+
+.stage{
+  position:relative;background:radial-gradient(120% 120% at 50% 0%,rgba(255,255,255,.05),rgba(0,0,0,.25));
+  border:1px solid var(--line);border-radius:16px;padding:14px;min-height:300px;
+  display:flex;flex-direction:column;justify-content:center;overflow:hidden
+}
+.stage svg{width:100%;height:auto;display:block}
+.readout{
+  display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px;
+  font-variant-numeric:tabular-nums;font-size:.78rem;color:var(--ink-dim)
+}
+.chip{border:1px solid var(--line);border-radius:999px;padding:5px 12px;background:rgba(0,0,0,.28)}
+.chip b{color:var(--ink);font-weight:600}
+button.toggle{
+  align-self:center;margin-top:12px;background:rgba(255,255,255,.06);color:var(--ink);border:1px solid var(--line);
+  border-radius:999px;padding:9px 20px;font:inherit;font-size:.82rem;cursor:pointer;transition:.25s
+}
+button.toggle:hover,button.toggle:focus-visible{background:var(--accent);color:#06121b;border-color:var(--accent);outline:none}
+
+/* ---------------------------------------------------------- 1 · venus */
+.orbit-path{fill:none;stroke:rgba(255,255,255,.16);stroke-dasharray:3 7}
+.sun-core{fill:#ffd36e}
+.sun-glow{fill:url(#sunGrad)}
+#venusGroup{transform-box:fill-box;transform-origin:center}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.12);stroke-width:7}
+.ring-fg{fill:none;stroke-width:7;stroke-linecap:round;transform:rotate(-90deg);transform-box:fill-box;transform-origin:center}
+.ring-lab{font:600 11px var(--font);fill:var(--ink-dim);letter-spacing:.12em}
+.ring-val{font:700 15px var(--font);fill:var(--ink)}
+.flash{opacity:0}
+.flash.go{animation:flash 1.3s ease-out}
+@keyframes flash{0%{opacity:0;transform:translateY(6px)}20%{opacity:1;transform:none}100%{opacity:0}}
+
+/* -------------------------------------------------------- 2 · octopus */
+.tent{fill:none;stroke:#c084fc;stroke-width:9;stroke-linecap:round;opacity:.92}
+.fact.in .tent{animation:wave 3.4s ease-in-out infinite}
+.tent:nth-of-type(2n){animation-delay:-.7s}
+.tent:nth-of-type(3n){animation-delay:-1.4s}
+@keyframes wave{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(1.5deg)}}
+.heart{fill:#60a5fa;transform-box:fill-box;transform-origin:center}
+.fact.in .heart{animation:beat 1.05s ease-in-out infinite}
+.heart.systemic{fill:#93c5fd}
+@keyframes beat{0%,100%{transform:scale(1)}12%{transform:scale(1.3)}26%{transform:scale(.96)}44%{transform:scale(1.12)}}
+.swim .heart.systemic{animation:none!important;transform:scale(.92);fill:#3b4a6b}
+.cell{fill:#7dd3fc;offset-rotate:0deg}
+.fact.in .cell{animation:flow 3.2s linear infinite}
+@keyframes flow{from{offset-distance:0%}to{offset-distance:100%}}
+.swim .cell{animation-duration:7.5s!important;opacity:.45}
+.ecg{fill:none;stroke:#93c5fd;stroke-width:2;stroke-linecap:round;
+  stroke-dasharray:38 200;stroke-dashoffset:200}
+.fact.in .ecg.beat{animation:trace 2.2s linear infinite}
+@keyframes trace{from{stroke-dashoffset:200}to{stroke-dashoffset:-42}}
+.ecg.flat{display:none;stroke:#64748b;stroke-dasharray:none;stroke-dashoffset:0;animation:none!important}
+.swim .ecg.beat{display:none}
+.swim .ecg.flat{display:block}
+
+/* ---------------------------------------------------------- 3 · honey */
+.jar-glass{fill:rgba(255,255,255,.05);stroke:rgba(255,255,255,.25);stroke-width:2}
+.honey-fill{fill:url(#honeyGrad)}
+.drip{fill:#f7b733}
+.fact.in .drip{animation:drip 2.6s cubic-bezier(.4,0,.9,.4) infinite}
+@keyframes drip{0%{transform:translateY(0) scaleY(.7);opacity:0}12%{opacity:1}70%{transform:translateY(52px) scaleY(1.25);opacity:1}85%,100%{transform:translateY(66px) scaleY(.4);opacity:0}}
+.microbe{transform-box:fill-box;transform-origin:center}
+.fact.in .microbe{animation:shrivel 4.4s ease-in-out infinite}
+@keyframes shrivel{0%{transform:scale(1);opacity:.95}45%{transform:scale(1);opacity:.95}75%{transform:scale(.32);opacity:.35}100%{transform:scale(.18);opacity:0}}
+.water-arrow{stroke:#7dd3fc;stroke-width:1.6;fill:none;marker-end:url(#arrowHead)}
+.fact.in .water-arrow{animation:pull 4.4s ease-in-out infinite;opacity:0}
+@keyframes pull{0%,45%{opacity:0}62%{opacity:1}100%{opacity:0}}
+
+/* --------------------------------------------------------- 4 · sharks */
+.tl{position:relative;padding:74px 62px 6px}
+.tl-axis{position:relative;height:3px;background:linear-gradient(90deg,rgba(255,255,255,.25),rgba(255,255,255,.08));border-radius:2px}
+.tl-head{position:absolute;top:-66px;bottom:-66px;width:2px;background:linear-gradient(180deg,transparent,var(--accent),transparent);left:0;box-shadow:0 0 14px var(--accent)}
+.fact.in .tl-head{animation:scrub 9s cubic-bezier(.5,0,.5,1) infinite}
+@keyframes scrub{0%{left:0}88%,100%{left:100%}}
+.ev{position:absolute;top:50%;transform:translate(-50%,-50%);text-align:center;width:128px}
+.ev i{display:block;width:13px;height:13px;border-radius:50%;background:#1b2233;border:2px solid var(--ink-dim);margin:0 auto;transition:.4s}
+.ev span{position:absolute;left:0;right:0;font-size:.72rem;color:var(--ink-dim);opacity:0;transform:translateY(-6px);transition:.5s}
+.ev.down span{top:20px}
+.ev.up span{bottom:20px}
+.ev b{display:block;font-size:.68rem;color:var(--ink);letter-spacing:.05em}
+.fact.in .ev i{animation:pop .5s ease-out forwards;animation-delay:var(--d)}
+.fact.in .ev span{animation:rise .6s ease-out forwards;animation-delay:var(--d)}
+@keyframes pop{to{background:var(--c,#7dd3fc);border-color:var(--c,#7dd3fc);box-shadow:0 0 0 6px rgba(125,211,252,.14)}}
+@keyframes rise{to{opacity:1;transform:none}}
+.tl-scale{display:flex;justify-content:space-between;gap:12px;font-size:.68rem;color:var(--ink-dim);margin-top:62px;letter-spacing:.1em}
+@media(max-width:560px){
+  .tl{padding:66px 30px 6px}
+  .ev{width:94px}
+  .ev span{font-size:.64rem}
+  .tl-scale{font-size:.6rem;letter-spacing:.06em}
+}
+.shark{fill:#94a3b8}
+.fact.in .shark{animation:cruise 11s ease-in-out infinite}
+@keyframes cruise{0%,100%{transform:translateX(-6px)}50%{transform:translateX(10px)}}
+.fin{fill:#cbd5e1}
+
+/* --------------------------------------------------------- 5 · berry */
+.berry-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center}
+.seedcap{font:600 10px var(--font);fill:var(--ink-dim);letter-spacing:.1em;text-anchor:middle}
+.pericarp{fill:none;stroke:#fde68a;stroke-width:2.5;stroke-dasharray:4 4}
+.fact.in .pericarp{animation:rotate-dash 18s linear infinite}
+@keyframes rotate-dash{to{stroke-dashoffset:-160}}
+.bseed{fill:#3f3f46}
+.fact.in .bseed{animation:twinkle 3s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.5}50%{opacity:1}}
+.achene{fill:#facc15;transform-box:fill-box;transform-origin:center}
+.fact.in .achene{animation:eject 5s ease-in-out infinite}
+@keyframes eject{0%,35%{transform:translate(0,0) scale(1)}60%,80%{transform:translate(var(--dx),var(--dy)) scale(2.1)}100%{transform:translate(0,0) scale(1)}}
+.straw-body{fill:#ef4444}
+.recept{fill:none;stroke:#fca5a5;stroke-width:2;stroke-dasharray:3 5;opacity:0}
+.fact.in .recept{animation:showrecept 5s ease-in-out infinite}
+@keyframes showrecept{0%,35%{opacity:0}60%,80%{opacity:1}100%{opacity:0}}
+
+/* -------------------------------------------------------------- footer */
+footer{padding:70px 0 90px;text-align:center;color:var(--ink-dim);font-size:.85rem;border-top:1px solid var(--line);margin-top:40px}
+footer a{color:var(--accent);text-decoration:none}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  html{scroll-behavior:auto}
+  .card{opacity:1;transform:none}
+  .ev span{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<nav class="rail" aria-label="Fact navigation">
+  <a href="#f1" data-label="Venus" class="on"></a>
+  <a href="#f2" data-label="Octopus hearts"></a>
+  <a href="#f3" data-label="Honey"></a>
+  <a href="#f4" data-label="Sharks &amp; trees"></a>
+  <a href="#f5" data-label="Bananas"></a>
+</nav>
+
+<header class="hero">
+  <div class="hero-orbits" aria-hidden="true" id="orbits"></div>
+  <div class="wrap">
+    <div class="kicker">Animated explainers</div>
+    <h1>Five fun facts<br>that actually check out</h1>
+    <p>Everyone has heard these. Almost nobody has seen <em>why</em> they're true.
+       Each one below comes with a little machine that shows the mechanism.</p>
+  </div>
+  <div class="scroll-cue">Scroll<span></span></div>
+</header>
+
+<main>
+
+<!-- ============================================================ FACT 1 -->
+<section class="fact" id="f1" style="--accent:#f0abfc">
+  <div class="wrap">
+   <div class="card">
+    <div class="stage">
+      <svg viewBox="0 0 420 300" role="img" aria-label="Venus orbiting the Sun while two rings compare the length of its day and its year">
+        <defs>
+          <radialGradient id="sunGrad"><stop offset="0%" stop-color="#ffd36e" stop-opacity=".85"/><stop offset="100%" stop-color="#ffd36e" stop-opacity="0"/></radialGradient>
+          <radialGradient id="venusGrad" cx="35%" cy="32%"><stop offset="0%" stop-color="#ffe9c2"/><stop offset="100%" stop-color="#d9a441"/></radialGradient>
+        </defs>
+
+        <!-- orbit system -->
+        <g transform="translate(118,150)">
+          <circle class="sun-glow" r="62"/>
+          <circle class="sun-core" r="17"/>
+          <ellipse class="orbit-path" rx="88" ry="88"/>
+          <g id="venusOrbit">
+            <g id="venusGroup" transform="translate(88,0)">
+              <circle r="15" fill="url(#venusGrad)"/>
+              <!-- surface marker: shows the (retrograde) spin -->
+              <g id="venusSpin">
+                <path d="M0,-15 L0,15" stroke="rgba(90,50,10,.45)" stroke-width="2"/>
+                <circle cx="0" cy="-9" r="3.2" fill="#8b5a1a"/>
+              </g>
+            </g>
+          </g>
+          <text x="0" y="46" text-anchor="middle" class="ring-lab">SUN</text>
+        </g>
+
+        <!-- comparison rings -->
+        <g transform="translate(320,96)">
+          <circle class="ring-bg" r="40"/>
+          <circle class="ring-fg" id="ringYear" r="40" stroke="#f0abfc" stroke-dasharray="251.3" stroke-dashoffset="251.3"/>
+          <text class="ring-lab" text-anchor="middle" y="-4" fill="#f0abfc">YEAR</text>
+          <text class="ring-val" text-anchor="middle" y="15" font-size="13">225 d</text>
+        </g>
+        <g transform="translate(320,222)">
+          <circle class="ring-bg" r="40"/>
+          <circle class="ring-fg" id="ringDay" r="40" stroke="#7dd3fc" stroke-dasharray="251.3" stroke-dashoffset="251.3"/>
+          <text class="ring-lab" text-anchor="middle" y="-4" fill="#7dd3fc">DAY</text>
+          <text class="ring-val" text-anchor="middle" y="15" font-size="13">243 d</text>
+        </g>
+        <g class="flash" id="yearFlash" transform="translate(320,44)">
+          <text text-anchor="middle" fill="#f0abfc" font-size="10" font-weight="700" font-family="inherit">YEAR OVER — STILL MID-DAY</text>
+        </g>
+      </svg>
+      <div class="readout">
+        <span class="chip">Earth days elapsed <b id="elapsed">0</b></span>
+        <span class="chip">Years done <b id="yearTxt">0</b></span>
+        <span class="chip">Spins done <b id="dayTxt">0</b></span>
+        <span class="chip">Spin <b>retrograde</b></span>
+      </div>
+    </div>
+
+    <div class="copy">
+      <div class="num">Fact 01</div>
+      <h2>On Venus, a day lasts longer than a year</h2>
+      <p class="lede">Venus takes <b>243 Earth days</b> to turn once on its axis, but only <b>225 Earth days</b> to loop all the way around the Sun. Its day outlives its year by about 18 days.</p>
+      <p class="why">A "day" and a "year" measure two unrelated motions: <b>spin</b> and <b>orbit</b>. On Earth they're wildly out of proportion — 365 spins per lap. Venus is a rare case where a planet's spin has been braked almost to a standstill while its orbit stayed brisk, so the two numbers collide.</p>
+      <ul class="points">
+        <li>Venus's crushing atmosphere is 90× Earth's pressure, and solar <b>atmospheric tides</b> in that thick air have been torquing the planet for billions of years.</li>
+        <li>It also spins <b>backwards</b> (retrograde) — the only large planet that does. On Venus the Sun rises in the west.</li>
+        <li>The result is the slowest rotation of any planet: a surface point crawls at about <b>6.5 km/h</b>, roughly walking pace.</li>
+      </ul>
+      <div class="twist"><b>The twist</b>Because Venus orbits one way and spins the other, a <em>solar</em> day — sunrise to sunrise — is only 117 Earth days. The 243-day figure is one spin against the fixed stars. Both are longer than a day has any business being.</div>
+    </div>
+   </div>
+  </div>
+</section>
+
+<!-- ============================================================ FACT 2 -->
+<section class="fact" id="f2" style="--accent:#c084fc">
+  <div class="wrap">
+   <div class="card">
+    <div class="stage" id="octoStage">
+      <svg viewBox="0 0 420 300" role="img" aria-label="An octopus with two gill hearts and one body heart; the body heart flatlines when it swims">
+        <!-- tentacles -->
+        <g>
+          <path class="tent" d="M162,184 C126,206 98,222 58,226"/>
+          <path class="tent" d="M174,196 C148,226 120,250 86,262"/>
+          <path class="tent" d="M194,203 C178,236 160,262 134,286"/>
+          <path class="tent" d="M212,206 C206,240 198,268 184,292"/>
+          <path class="tent" d="M228,206 C234,240 242,268 256,292"/>
+          <path class="tent" d="M246,203 C262,236 280,262 306,286"/>
+          <path class="tent" d="M266,196 C292,226 320,250 354,262"/>
+          <path class="tent" d="M278,184 C314,206 342,222 382,226"/>
+        </g>
+        <!-- mantle -->
+        <ellipse cx="220" cy="126" rx="88" ry="78" fill="#a855f7" opacity=".34"/>
+        <ellipse cx="220" cy="126" rx="88" ry="78" fill="none" stroke="#c084fc" stroke-width="2.5"/>
+
+        <!-- vessels: gill heart out, through the gill loop, back toward the body heart -->
+        <path d="M168,98 C138,98 136,146 166,146 C194,146 194,98 168,98" fill="none" stroke="rgba(96,165,250,.35)" stroke-width="2"/>
+        <path d="M272,98 C302,98 304,146 274,146 C246,146 246,98 272,98" fill="none" stroke="rgba(96,165,250,.35)" stroke-width="2"/>
+
+        <!-- three hearts: two at the gills, one for the body -->
+        <g>
+          <path class="heart" d="M168,90 c-4,-8 -16,-6 -16,3 c0,8 10,14 16,19 c6,-5 16,-11 16,-19 c0,-9 -12,-11 -16,-3z"/>
+          <path class="heart" style="animation-delay:-.5s" d="M272,90 c-4,-8 -16,-6 -16,3 c0,8 10,14 16,19 c6,-5 16,-11 16,-19 c0,-9 -12,-11 -16,-3z"/>
+          <path class="heart systemic" style="animation-delay:-.25s" d="M220,92 c-5,-11 -21,-8 -21,4 c0,11 13,19 21,25 c8,-6 21,-14 21,-25 c0,-12 -16,-15 -21,-4z"/>
+        </g>
+
+        <!-- eyes, well clear of the hearts -->
+        <circle cx="192" cy="170" r="12" fill="#fdf4ff"/><circle cx="195" cy="170" r="5" fill="#1b1035"/>
+        <circle cx="250" cy="170" r="12" fill="#fdf4ff"/><circle cx="247" cy="170" r="5" fill="#1b1035"/>
+
+        <!-- blue blood cells riding the loops -->
+        <circle class="cell" r="3.4" style="offset-path:path('M168,98 C138,98 136,146 166,146 C194,146 194,98 168,98')"/>
+        <circle class="cell" r="3.4" style="offset-path:path('M168,98 C138,98 136,146 166,146 C194,146 194,98 168,98');animation-delay:-1.6s"/>
+        <circle class="cell" r="3.4" style="offset-path:path('M272,98 C302,98 304,146 274,146 C246,146 246,98 272,98');animation-delay:-.8s"/>
+        <circle class="cell" r="3.4" style="offset-path:path('M272,98 C302,98 304,146 274,146 C246,146 246,98 272,98');animation-delay:-2.4s"/>
+
+        <!-- monitor for the body heart -->
+        <rect x="14" y="14" width="132" height="62" rx="11" fill="rgba(0,0,0,.35)" stroke="rgba(255,255,255,.12)"/>
+        <text x="80" y="30" text-anchor="middle" class="ring-lab" font-size="8">BODY HEART</text>
+        <path class="ecg beat" d="M22,54 h20 l5,-13 l6,26 l5,-13 h18 l5,-13 l6,26 l5,-13 h20"/>
+        <path class="ecg flat" d="M22,54 h116"/>
+      </svg>
+      <button class="toggle" id="octoBtn" aria-pressed="false">Make it swim →</button>
+      <div class="readout">
+        <span class="chip">Gill hearts <b>×2</b></span>
+        <span class="chip">Body heart <b>×1</b></span>
+        <span class="chip" id="octoState">Crawling · all three beating</span>
+      </div>
+    </div>
+
+    <div class="copy">
+      <div class="num">Fact 02</div>
+      <h2>An octopus has three hearts — and one of them quits when it swims</h2>
+      <p class="lede">Two <b>branchial hearts</b> push blood through the gills. A third <b>systemic heart</b> sends the freshly oxygenated blood around the body. That middle heart <b>stops beating</b> whenever the octopus swims.</p>
+      <p class="why">Octopus blood carries oxygen with <b>hemocyanin</b>, a copper-based protein dissolved in the plasma rather than packed into red cells. Copper turns it <b>blue</b>, and it's a far less efficient carrier than our iron-based hemoglobin — so the animal needs extra pumps just to keep up.</p>
+      <ul class="points">
+        <li>Hemocyanin works well in <b>cold, low-oxygen</b> deep water, where hemoglobin struggles. It's a trade: better at depth, worse in general.</li>
+        <li>Jet-propelled swimming squeezes the mantle, and the pressure spike <b>stalls the systemic heart</b>. That's why swimming exhausts an octopus so fast.</li>
+        <li>So they mostly <b>crawl</b>. Walking on eight arms is, for an octopus, the energy-efficient option.</li>
+      </ul>
+      <div class="twist"><b>The twist</b>Three hearts, blue blood, nine brain-like clusters of neurons — two thirds of an octopus's neurons sit in its arms, which can solve problems semi-independently of its head.</div>
+    </div>
+   </div>
+  </div>
+</section>
+
+<!-- ============================================================ FACT 3 -->
+<section class="fact" id="f3" style="--accent:#fbbf24">
+  <div class="wrap">
+   <div class="card">
+    <div class="stage">
+      <svg viewBox="0 0 420 300" role="img" aria-label="A honey jar with bacteria shrivelling as honey draws water out of them">
+        <defs>
+          <linearGradient id="honeyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#b45309"/>
+          </linearGradient>
+          <marker id="arrowHead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 z" fill="#7dd3fc"/>
+          </marker>
+        </defs>
+
+        <!-- honey dipper + drip -->
+        <g>
+          <rect x="206" y="4" width="8" height="20" rx="3" fill="#a16207"/>
+          <ellipse cx="210" cy="30" rx="13" ry="7" fill="#c2870c"/>
+          <ellipse cx="210" cy="38" rx="15" ry="7" fill="#a16207"/>
+          <ellipse cx="210" cy="46" rx="13" ry="7" fill="#c2870c"/>
+          <ellipse cx="210" cy="54" rx="9"  ry="6" fill="#a16207"/>
+        </g>
+        <ellipse class="drip" cx="210" cy="62" rx="7" ry="10"/>
+
+        <!-- jar -->
+        <path class="jar-glass" d="M132,96 h156 v18 a10,10 0 0 1 -10,10 h-136 a10,10 0 0 1 -10,-10z"/>
+        <path class="jar-glass" d="M144,124 h132 v124 a16,16 0 0 1 -16,16 h-100 a16,16 0 0 1 -16,-16z"/>
+        <path class="honey-fill" d="M148,150 h124 v98 a13,13 0 0 1 -13,13 h-98 a13,13 0 0 1 -13,-13z" opacity=".92"/>
+        <path d="M148,150 q31,10 62,0 t62,0 v8 q-31,10 -62,0 t-62,0z" fill="#fde68a" opacity=".55"/>
+
+        <!-- sugar lattice inside -->
+        <g fill="#fde68a" opacity=".35">
+          <circle cx="168" cy="184" r="3"/><circle cx="196" cy="200" r="3"/><circle cx="228" cy="180" r="3"/>
+          <circle cx="252" cy="206" r="3"/><circle cx="180" cy="222" r="3"/><circle cx="214" cy="236" r="3"/>
+          <circle cx="246" cy="228" r="3"/><circle cx="200" cy="170" r="3"/>
+        </g>
+
+        <!-- microbes losing their water -->
+        <g>
+          <ellipse class="microbe" cx="176" cy="206" rx="9" ry="6.5" fill="#4ade80" opacity=".9"/>
+          <ellipse class="microbe" style="animation-delay:-1.5s" cx="236" cy="196" rx="9" ry="6.5" fill="#4ade80" opacity=".9"/>
+          <ellipse class="microbe" style="animation-delay:-2.9s" cx="208" cy="226" rx="9" ry="6.5" fill="#4ade80" opacity=".9"/>
+        </g>
+        <g>
+          <path class="water-arrow" d="M176,206 L176,182"/>
+          <path class="water-arrow" style="animation-delay:-1.5s" d="M236,196 L236,172"/>
+          <path class="water-arrow" style="animation-delay:-2.9s" d="M208,226 L208,202"/>
+        </g>
+
+        <text x="330" y="176" class="ring-lab" font-size="9">WATER</text>
+        <text x="330" y="190" class="ring-lab" font-size="9">PULLED OUT</text>
+        <text x="66" y="176" class="ring-lab" font-size="9">MICROBE</text>
+        <text x="66" y="190" class="ring-lab" font-size="9">DEHYDRATES</text>
+      </svg>
+      <div class="readout">
+        <span class="chip">Age of edible tomb honey <b id="honeyYears">0</b> yrs</span>
+        <span class="chip">Water content <b>~17%</b></span>
+        <span class="chip">pH <b>3.9</b></span>
+      </div>
+    </div>
+
+    <div class="copy">
+      <div class="num">Fact 03</div>
+      <h2>Honey never spoils — 3,000-year-old jars are still edible</h2>
+      <p class="lede">Archaeologists digging Egyptian tombs have found sealed pots of honey thousands of years old and <b>perfectly preserved</b>. It's the only food that essentially does not go off.</p>
+      <p class="why">Spoilage is microbes eating your food. Honey is a chemical environment where microbes simply <b>cannot survive</b> — it attacks them in three ways at once.</p>
+      <ul class="points">
+        <li><b>Osmosis.</b> Honey is roughly 80% sugar and only 17% water. Any bacterium landing in it has water yanked straight out through its cell wall, and it desiccates.</li>
+        <li><b>Acidity.</b> Bees add glucose oxidase, which produces gluconic acid. Honey sits around <b>pH 3.9</b> — hostile to most spoilage organisms.</li>
+        <li><b>Hydrogen peroxide.</b> The same enzyme also makes a trickle of H₂O₂, a mild disinfectant regenerating continuously in the jar.</li>
+      </ul>
+      <div class="twist"><b>The caveat</b>Sealed is doing real work here. Honey is hygroscopic — leave the lid off and it absorbs enough atmospheric moisture to let yeasts ferment it. And raw honey can carry <em>C. botulinum</em> spores, which is why it's never given to infants under one.</div>
+    </div>
+   </div>
+  </div>
+</section>
+
+<!-- ============================================================ FACT 4 -->
+<section class="fact" id="f4" style="--accent:#38bdf8">
+  <div class="wrap">
+   <div class="card">
+    <div class="stage">
+      <svg viewBox="0 0 420 96" role="img" aria-label="A shark swimming">
+        <g class="shark">
+          <path d="M60,58 C110,30 240,30 300,52 C280,62 300,72 320,78 C286,80 260,74 246,66 C200,80 110,80 60,58z" />
+          <path class="fin" d="M186,38 C196,18 214,14 224,20 C210,26 202,34 198,42z"/>
+          <path class="fin" d="M170,66 C176,78 190,84 200,82 C190,76 184,70 182,64z"/>
+          <circle cx="86" cy="54" r="3.4" fill="#0c0f16"/>
+          <path d="M96,62 l6,6 M106,60 l6,6 M116,58 l6,6" stroke="#0c0f16" stroke-width="1.6" fill="none" opacity=".6"/>
+        </g>
+      </svg>
+      <div class="tl">
+        <div class="tl-axis">
+          <div class="tl-head"></div>
+          <div class="ev down" style="left:10%;  --d:.9s;  --c:#38bdf8"><i></i><span><b>SHARKS</b>~450 Mya</span></div>
+          <div class="ev up"   style="left:23%;  --d:2.1s; --c:#4ade80"><i></i><span><b>FIRST TREES</b>~385 Mya</span></div>
+          <div class="ev down" style="left:54%;  --d:4.9s; --c:#f59e0b"><i></i><span><b>DINOSAURS</b>~230 Mya</span></div>
+          <div class="ev up"   style="left:80%;  --d:7.2s; --c:#f0abfc"><i></i><span><b>SATURN'S RINGS</b>~10–100 Mya</span></div>
+          <div class="ev down" style="left:98%;  --d:8.6s; --c:#f87171"><i></i><span><b>HUMANS</b>~0.3 Mya</span></div>
+        </div>
+        <div class="tl-scale"><span>500 MILLION YEARS AGO</span><span>TODAY</span></div>
+      </div>
+    </div>
+
+    <div class="copy">
+      <div class="num">Fact 04</div>
+      <h2>Sharks are older than trees — and older than Saturn's rings</h2>
+      <p class="lede">Shark-like fish were already patrolling the oceans around <b>450 million years ago</b>. The first true trees didn't appear until roughly <b>385 million years ago</b>. Sharks beat wood by 65 million years.</p>
+      <p class="why">Land plants started small: mosses and knee-high stalks with no way to hold themselves up. "Tree" required inventing <b>lignin-reinforced wood</b> and a deep root system, and that took the plant lineage tens of millions of extra years. Meanwhile the shark body plan — cartilage skeleton, replaceable teeth, electroreceptors — arrived early and needed almost no revision.</p>
+      <ul class="points">
+        <li>The oldest shark-like scales date to about <b>450 Mya</b>; unambiguous shark fossils to roughly 420 Mya.</li>
+        <li><em>Archaeopteris</em>, the first thing genuinely tree-shaped, shows up around <b>385 Mya</b> and forms Earth's first forests.</li>
+        <li>Sharks have survived <b>all five</b> mass extinctions — including the one that killed 96% of marine species.</li>
+      </ul>
+      <div class="twist"><b>Bonus</b>Cassini's gravity measurements suggest Saturn's rings are only 10–100 million years old. If that holds, sharks predate the rings too — they were swimming here long before Saturn got its most famous feature.</div>
+    </div>
+   </div>
+  </div>
+</section>
+
+<!-- ============================================================ FACT 5 -->
+<section class="fact" id="f5" style="--accent:#4ade80">
+  <div class="wrap">
+   <div class="card">
+    <div class="stage">
+      <svg viewBox="0 0 420 300" role="img" aria-label="A banana cross-section labelled as a true berry beside a strawberry whose seeds are the real fruits">
+        <line x1="210" y1="40" x2="210" y2="286" stroke="rgba(255,255,255,.10)" stroke-width="1"/>
+
+        <!-- banana: a true berry -->
+        <g>
+          <text x="105" y="26" class="seedcap" font-size="11" fill="#facc15">BANANA = BERRY ✓</text>
+          <path transform="translate(0,-12)" d="M62,58 C38,98 42,158 86,186 C122,208 160,194 170,174 C142,184 112,176 96,156 C72,126 70,88 86,62z" fill="#facc15"/>
+          <path transform="translate(0,-12)" d="M62,58 C38,98 42,158 86,186 C122,208 160,194 170,174 C142,184 112,176 96,156 C72,126 70,88 86,62z" fill="none" stroke="#fde68a" stroke-width="1.5" opacity=".6"/>
+          <!-- cross-section -->
+          <circle cx="105" cy="228" r="36" fill="#fef3c7"/>
+          <circle class="pericarp" cx="105" cy="228" r="28"/>
+          <g class="bseed">
+            <circle cx="99" cy="220" r="2.6"/><circle cx="111" cy="226" r="2.6"/>
+            <circle cx="101" cy="236" r="2.6"/><circle cx="113" cy="238" r="2.6"/>
+            <circle cx="105" cy="228" r="2.6"/>
+          </g>
+          <text x="105" y="280" class="seedcap">FLESHY WALL, SEEDS INSIDE</text>
+          <text x="105" y="294" class="seedcap">ONE OVARY → ONE FRUIT</text>
+        </g>
+
+        <!-- strawberry: an aggregate accessory fruit -->
+        <g>
+          <text x="315" y="26" class="seedcap" font-size="11" fill="#f87171">STRAWBERRY = NOT A BERRY ✗</text>
+          <path d="M288,64 l10,-16 l16,9 l16,-9 l10,16z" fill="#4ade80"/>
+          <path class="straw-body" d="M315,64 C276,64 267,92 271,122 C275,154 297,184 315,196 C333,184 355,154 359,122 C363,92 354,64 315,64z"/>
+          <path class="recept" d="M315,78 C288,79 283,104 286,126 C290,152 304,175 315,184 C326,175 340,152 344,126 C347,104 342,79 315,78z"/>
+          <g>
+            <circle class="achene" style="--dx:-30px;--dy:-14px" cx="296" cy="94" r="3.2"/>
+            <circle class="achene" style="--dx:30px;--dy:-16px;animation-delay:.12s" cx="334" cy="96" r="3.2"/>
+            <circle class="achene" style="--dx:-36px;--dy:2px;animation-delay:.24s" cx="286" cy="124" r="3.2"/>
+            <circle class="achene" style="--dx:36px;--dy:4px;animation-delay:.36s" cx="344" cy="126" r="3.2"/>
+            <circle class="achene" style="--dx:0px;--dy:-26px;animation-delay:.48s" cx="315" cy="114" r="3.2"/>
+            <circle class="achene" style="--dx:-28px;--dy:20px;animation-delay:.6s" cx="300" cy="152" r="3.2"/>
+            <circle class="achene" style="--dx:28px;--dy:22px;animation-delay:.72s" cx="330" cy="154" r="3.2"/>
+            <circle class="achene" style="--dx:0px;--dy:32px;animation-delay:.84s" cx="315" cy="178" r="3.2"/>
+          </g>
+          <text x="315" y="232" class="seedcap">EACH DOT IS A WHOLE FRUIT</text>
+          <text x="315" y="248" class="seedcap">RED PART = SWOLLEN STEM TIP</text>
+          <text x="315" y="266" class="seedcap" fill="#f87171">~200 FRUITS, ZERO BERRIES</text>
+        </g>
+      </svg>
+      <div class="readout">
+        <span class="chip">Also berries: <b>tomato · grape · avocado · watermelon · chilli</b></span>
+      </div>
+    </div>
+
+    <div class="copy">
+      <div class="num">Fact 05</div>
+      <h2>Bananas are berries. Strawberries are not.</h2>
+      <p class="lede">Botany defines a <b>berry</b> as a fruit that develops from a single ovary of one flower, with a fleshy wall and seeds embedded inside. Bananas qualify. Strawberries fail on every count.</p>
+      <p class="why">A strawberry is an <b>aggregate accessory fruit</b>. The red flesh isn't fruit at all — it's the swollen <b>receptacle</b>, the tip of the flower stem. The little yellow specks people call seeds are <b>achenes</b>: each one is a complete, separate fruit with a single seed inside.</p>
+      <ul class="points">
+        <li>So a strawberry isn't one fruit. It's roughly <b>200 tiny fruits</b> riding on a piece of swollen stem.</li>
+        <li>Bananas keep their vestigial seeds — the tiny black flecks down the middle. Wild bananas are full of hard, bullet-sized seeds; the ones we eat are <b>sterile clones</b>.</li>
+        <li>Raspberries and blackberries aren't berries either: they're <b>aggregates of drupelets</b>, each a miniature version of a peach.</li>
+      </ul>
+      <div class="twist"><b>The twist</b>Everyday names and botanical names were built for different jobs. "Berry" in a kitchen means small, sweet and handheld; in botany it describes how the flower turned into fruit. Neither is wrong — they're just answering different questions.</div>
+    </div>
+   </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">Five facts, five mechanisms, one file. Built with hand-written SVG and CSS — no libraries, no network calls.</div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------------------------------------------- hero background dots */
+  var orbits = document.getElementById("orbits");
+  for (var i = 0; i < 26; i++){
+    var d = document.createElement("i");
+    var r = 90 + Math.random() * 420;
+    var dur = 14 + Math.random() * 34;
+    d.style.transform = "rotate(" + (Math.random()*360) + "deg) translateX(" + r + "px)";
+    d.style.animation = "spin " + dur + "s linear infinite";
+    d.style.transformOrigin = "-" + r + "px 0";
+    d.style.opacity = 0.2 + Math.random() * 0.7;
+    orbits.appendChild(d);
+  }
+
+  /* -------------------------------------------- reveal + rail tracking */
+  var facts = [].slice.call(document.querySelectorAll(".fact"));
+  var links = [].slice.call(document.querySelectorAll("nav.rail a"));
+
+  var reveal = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if (e.isIntersecting) e.target.classList.add("in"); });
+  }, { threshold: 0.18 });
+  facts.forEach(function(f){ reveal.observe(f); });
+
+  var track = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      var idx = facts.indexOf(e.target);
+      links.forEach(function(a, j){ a.classList.toggle("on", j === idx); });
+    });
+  }, { threshold: 0.5 });
+  facts.forEach(function(f){ track.observe(f); });
+
+  /* ------------------------------------------------ fact 1 · venus sim */
+  var YEAR = 224.7, DAY = 243.0, C = 2 * Math.PI * 40; // ring circumference
+  var ringYear  = document.getElementById("ringYear"),
+      ringDay   = document.getElementById("ringDay"),
+      yearTxt   = document.getElementById("yearTxt"),
+      dayTxt    = document.getElementById("dayTxt"),
+      elapsedEl = document.getElementById("elapsed"),
+      orbitG    = document.getElementById("venusOrbit"),
+      spinG     = document.getElementById("venusSpin"),
+      flash     = document.getElementById("yearFlash");
+
+  var t = 0, last = null, lastYearCount = 0, running = false;
+  var SPEED = 62; // simulated Earth days per real second
+
+  function paint(){
+    var yFrac = (t % YEAR) / YEAR, dFrac = (t % DAY) / DAY;
+    ringYear.setAttribute("stroke-dashoffset", C * (1 - yFrac));
+    ringDay.setAttribute("stroke-dashoffset",  C * (1 - dFrac));
+    yearTxt.textContent = Math.floor(t / YEAR);
+    dayTxt.textContent  = Math.floor(t / DAY);
+    elapsedEl.textContent = Math.floor(t).toLocaleString();
+    // orbit counter-clockwise, spin the other way (retrograde)
+    orbitG.setAttribute("transform", "rotate(" + (-360 * t / YEAR) + ")");
+    spinG.setAttribute("transform",  "rotate(" + ( 360 * t / DAY)  + ")");
+  }
+
+  function frame(now){
+    if (last !== null) t += (now - last) / 1000 * SPEED;
+    last = now;
+    var yc = Math.floor(t / YEAR);
+    if (yc > lastYearCount){                       // a year just ended...
+      lastYearCount = yc;
+      if ((t % DAY) / DAY < 0.98){                 // ...mid-day, as always
+        flash.classList.remove("go");
+        void flash.offsetWidth;
+        flash.classList.add("go");
+      }
+    }
+    paint();
+    requestAnimationFrame(frame);
+  }
+
+  if (reduce){
+    t = 225; paint();                              // one static year in
+  } else {
+    new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting && !running){
+          running = true;
+          requestAnimationFrame(frame);
+        }
+      });
+    }, { threshold: 0.25 }).observe(document.getElementById("f1"));
+    paint();
+  }
+
+  /* ------------------------------------------------- fact 2 · octo mode */
+  var stage = document.getElementById("octoStage"),
+      btn   = document.getElementById("octoBtn"),
+      state = document.getElementById("octoState");
+
+  btn.addEventListener("click", function(){
+    var swimming = stage.classList.toggle("swim");
+    btn.setAttribute("aria-pressed", String(swimming));
+    btn.textContent = swimming ? "← Let it crawl" : "Make it swim →";
+    state.textContent = swimming
+      ? "Swimming · body heart stopped, oxygen debt building"
+      : "Crawling · all three hearts beating";
+  });
+
+  /* ------------------------------------------------ fact 3 · year count */
+  var honeyEl = document.getElementById("honeyYears"), counted = false;
+  new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting || counted) return;
+      counted = true;
+      if (reduce){ honeyEl.textContent = "3,000"; return; }
+      var start = null, TARGET = 3000, DUR = 1800;
+      (function tick(now){
+        if (start === null) start = now;
+        var p = Math.min(1, (now - start) / DUR);
+        var eased = 1 - Math.pow(1 - p, 3);
+        honeyEl.textContent = Math.round(TARGET * eased).toLocaleString();
+        if (p < 1) requestAnimationFrame(tick);
+      })(performance.now());
+    });
+  }, { threshold: 0.35 }).observe(document.getElementById("f3"));
+})();
+</script>
+</body>
+</html>
