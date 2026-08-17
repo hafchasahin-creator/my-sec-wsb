@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Crossy Road</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: linear-gradient(180deg, #1a2634 0%, #0d1520 100%);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #wrap {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    display: block;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  }
+  #hud {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(96vw, 540px);
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .score {
+    color: #fff;
+    font-size: 34px;
+    font-weight: 800;
+    text-shadow: 0 3px 0 rgba(0,0,0,.45);
+    letter-spacing: 1px;
+  }
+  .best {
+    color: #ffd75e;
+    font-size: 16px;
+    font-weight: 700;
+    text-shadow: 0 2px 0 rgba(0,0,0,.45);
+    align-self: center;
+  }
+  #overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: rgba(8, 14, 22, .55);
+    backdrop-filter: blur(3px);
+    z-index: 10;
+    transition: opacity .25s;
+  }
+  #overlay.hidden { opacity: 0; pointer-events: none; }
+  #overlay h1 {
+    color: #fff;
+    font-size: clamp(38px, 9vw, 64px);
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-shadow: 0 5px 0 rgba(0,0,0,.5);
+  }
+  #overlay .sub {
+    color: #cfe3ff;
+    font-size: 17px;
+    text-align: center;
+    line-height: 1.6;
+    text-shadow: 0 2px 0 rgba(0,0,0,.5);
+  }
+  #overlay .finalScore {
+    color: #ffd75e;
+    font-size: 26px;
+    font-weight: 800;
+    text-shadow: 0 3px 0 rgba(0,0,0,.5);
+  }
+  #overlay button {
+    margin-top: 6px;
+    padding: 14px 44px;
+    font-size: 20px;
+    font-weight: 800;
+    color: #163015;
+    background: linear-gradient(180deg, #9be15d, #58b636);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #3a7d22, 0 10px 24px rgba(0,0,0,.4);
+    transition: transform .08s;
+  }
+  #overlay button:active { transform: translateY(4px); box-shadow: 0 1px 0 #3a7d22; }
+  .newBest { color: #7dffb0 !important; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game"></canvas></div>
+<div id="hud">
+  <div class="score" id="scoreEl">0</div>
+  <div class="best" id="bestEl"></div>
+</div>
+<div id="overlay">
+  <h1 id="ovTitle">CROSSY ROAD</h1>
+  <div class="finalScore" id="ovScore" style="display:none"></div>
+  <div class="sub" id="ovSub">Arrow keys / WASD to hop &middot; swipe on mobile<br>Cross roads, rivers and rails. Don't stop for long!</div>
+  <button id="playBtn">PLAY</button>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+// ---------- constants ----------
+const COLS = 9;              // playfield width in cells
+const CELL = 60;             // logical pixel size of a cell
+const W = COLS * CELL;       // 540
+const H = 720;               // logical canvas height
+const HOP_TIME = 0.14;       // seconds per hop
+const HOP_HEIGHT = 16;
+
+const ROW = { GRASS: 0, ROAD: 1, WATER: 2, RAIL: 3 };
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('scoreEl');
+const bestEl = document.getElementById('bestEl');
+const overlay = document.getElementById('overlay');
+const ovTitle = document.getElementById('ovTitle');
+const ovScore = document.getElementById('ovScore');
+const ovSub = document.getElementById('ovSub');
+const playBtn = document.getElementById('playBtn');
+
+// ---------- responsive sizing ----------
+let dpr = 1, viewScale = 1;
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const maxW = window.innerWidth * 0.98;
+  const maxH = window.innerHeight * 0.98;
+  viewScale = Math.min(maxW / W, maxH / H);
+  canvas.style.width = (W * viewScale) + 'px';
+  canvas.style.height = (H * viewScale) + 'px';
+  canvas.width = Math.round(W * viewScale * dpr);
+  canvas.height = Math.round(H * viewScale * dpr);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ---------- tiny audio ----------
+let audioCtx = null;
+function beep(freq, dur, type, vol) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type || 'square';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || .06, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, audioCtx.currentTime + dur);
+    o.connect(g).connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + dur);
+  } catch (e) { /* audio unavailable, ignore */ }
+}
+const sndHop   = () => beep(660, .09, 'square', .05);
+const sndSplash= () => beep(180, .3, 'sine', .1);
+const sndCrash = () => beep(110, .35, 'sawtooth', .1);
+const sndPoint = () => beep(880, .07, 'triangle', .05);
+
+// ---------- world state ----------
+let rows = new Map();        // rowIndex -> row object
+let pathCol = 4;             // guaranteed open column for tree placement
+let topGenerated = -1;
+let rng = Math.random;
+
+let player, camY, camVel, score, best, state, deathAnim, queue;
+best = +(localStorage.getItem('crossy_best') || 0);
+bestEl.textContent = best ? 'BEST ' + best : '';
+
+function makeRow(i) {
+  // first rows are always safe grass
+  if (i < 4) {
+    return { type: ROW.GRASS, trees: new Set() };
+  }
+  const prev = rows.get(i - 1);
+  const r = rng();
+  let type;
+  if (r < 0.36) type = ROW.ROAD;
+  else if (r < 0.60) type = ROW.WATER;
+  else if (r < 0.72 && prev && prev.type !== ROW.RAIL) type = ROW.RAIL;
+  else type = ROW.GRASS;
+
+  // cap water runs at 3 so it stays crossable
+  if (type === ROW.WATER) {
+    let run = 0;
+    for (let k = i - 1; rows.get(k) && rows.get(k).type === ROW.WATER; k--) run++;
+    if (run >= 3) type = ROW.GRASS;
+  }
+
+  if (type === ROW.GRASS) {
+    pathCol = Math.max(0, Math.min(COLS - 1, pathCol + Math.floor(rng() * 3) - 1));
+    const trees = new Set();
+    for (let c = 0; c < COLS; c++) {
+      if (c !== pathCol && rng() < 0.28) trees.add(c);
+    }
+    return { type, trees };
+  }
+
+  if (type === ROW.ROAD) {
+    const dir = rng() < .5 ? 1 : -1;
+    const speed = (70 + rng() * 90) * (1 + Math.min(i / 400, .8));
+    const cars = [];
+    const span = W + CELL * 6;
+    let x = rng() * CELL * 3;
+    while (x < span - CELL * 2) {
+      const len = rng() < .25 ? CELL * 2.1 : CELL * 1.35; // trucks & cars
+      cars.push({ x, len, hue: Math.floor(rng() * 360) });
+      x += len + CELL * (1.8 + rng() * 2.6);
+    }
+    return { type, dir, speed, span, cars };
+  }
+
+  if (type === ROW.WATER) {
+    const dir = rng() < .5 ? 1 : -1;
+    const speed = 45 + rng() * 55;
+    const logs = [];
+    const span = W + CELL * 6;
+    let x = rng() * CELL * 2;
+    while (x < span - CELL * 2) {
+      const len = CELL * (2 + Math.floor(rng() * 2)); // 2-3 cells
+      logs.push({ x, len });
+      x += len + CELL * (1.3 + rng() * 1.6);
+    }
+    return { type, dir, speed, span, logs };
+  }
+
+  // RAIL
+  return {
+    type: ROW.RAIL,
+    phase: 'idle',
+    timer: 2 + rng() * 5,
+    trainX: 0,
+    trainDir: rng() < .5 ? 1 : -1
+  };
+}
+
+function ensureRows(upTo) {
+  while (topGenerated < upTo) {
+    topGenerated++;
+    rows.set(topGenerated, makeRow(topGenerated));
+  }
+}
+
+function reset() {
+  rows = new Map();
+  topGenerated = -1;
+  pathCol = 4;
+  ensureRows(30);
+  player = {
+    x: (Math.floor(COLS / 2) + 0.5) * CELL,  // center px
+    row: 1,
+    hopping: false,
+    hopT: 0,
+    fromX: 0, fromRow: 0, toX: 0, toRow: 0,
+    onLog: null, logOffset: 0,
+    facing: 0,   // 0 up, 1 right, 2 down, 3 left
+    alive: true
+  };
+  camY = -CELL * 2;          // world-space y of the bottom edge of the view
+  camVel = 0;
+  score = 0;
+  deathAnim = null;
+  queue = [];
+  scoreEl.textContent = '0';
+}
+
+// ---------- input ----------
+const DIRS = { up: [0, 1], down: [0, -1], left: [-1, 0], right: [1, 0] };
+function pushMove(d) {
+  if (state !== 'play') return;
+  if (queue.length < 2) queue.push(d);
+}
+window.addEventListener('keydown', (e) => {
+  const k = e.key;
+  if (state === 'menu' || state === 'dead') {
+    if (k === ' ' || k === 'Enter' || k.startsWith('Arrow')) { startGame(); e.preventDefault(); }
+    return;
+  }
+  if (k === 'ArrowUp' || k === 'w' || k === 'W') { pushMove('up'); e.preventDefault(); }
+  else if (k === 'ArrowDown' || k === 's' || k === 'S') { pushMove('down'); e.preventDefault(); }
+  else if (k === 'ArrowLeft' || k === 'a' || k === 'A') { pushMove('left'); e.preventDefault(); }
+  else if (k === 'ArrowRight' || k === 'd' || k === 'D') { pushMove('right'); e.preventDefault(); }
+});
+
+let touchStart = null;
+window.addEventListener('touchstart', (e) => {
+  touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+}, { passive: true });
+window.addEventListener('touchend', (e) => {
+  if (!touchStart) return;
+  if (state !== 'play') { touchStart = null; return; }
+  const dx = e.changedTouches[0].clientX - touchStart.x;
+  const dy = e.changedTouches[0].clientY - touchStart.y;
+  touchStart = null;
+  if (Math.abs(dx) < 24 && Math.abs(dy) < 24) { pushMove('up'); return; }
+  if (Math.abs(dx) > Math.abs(dy)) pushMove(dx > 0 ? 'right' : 'left');
+  else pushMove(dy < 0 ? 'up' : 'down');
+});
+
+playBtn.addEventListener('click', startGame);
+
+function startGame() {
+  reset();
+  state = 'play';
+  overlay.classList.add('hidden');
+  if (!audioCtx) sndHop(); // unlock audio on first gesture
+}
+
+// ---------- game logic ----------
+function tryHop(d) {
+  const [dc, dr] = DIRS[d];
+  const targetRow = player.row + dr;
+  if (targetRow < 0) return;
+
+  let targetX;
+  if (dc !== 0) {
+    targetX = player.x + dc * CELL;
+    if (targetX < CELL * .5 || targetX > W - CELL * .5) return;
+  } else {
+    // hopping forward/back: snap toward nearest column for tidy landings on solid ground
+    const tr = rows.get(targetRow);
+    targetX = (tr && tr.type === ROW.WATER) ? player.x
+            : (Math.round(player.x / CELL - .5) + .5) * CELL;
+    targetX = Math.max(CELL * .5, Math.min(W - CELL * .5, targetX));
+  }
+
+  const target = rows.get(targetRow);
+  if (target && target.type === ROW.GRASS) {
+    const col = Math.floor(targetX / CELL);
+    if (target.trees.has(col)) return; // blocked by tree
+  }
+
+  player.facing = d === 'up' ? 0 : d === 'right' ? 1 : d === 'down' ? 2 : 3;
+  player.hopping = true;
+  player.hopT = 0;
+  player.fromX = player.x;
+  player.fromRow = player.row;
+  player.toX = targetX;
+  player.toRow = targetRow;
+  player.onLog = null;
+  sndHop();
+}
+
+function landPlayer() {
+  player.hopping = false;
+  player.row = player.toRow;
+  player.x = player.toX;
+
+  if (player.row > score) {
+    score = player.row - 1;
+    scoreEl.textContent = score;
+    sndPoint();
+  }
+
+  const row = rows.get(player.row);
+  if (!row) return;
+  if (row.type === ROW.WATER) {
+    const log = logUnder(row, player.x);
+    if (log) {
+      player.onLog = log;
+      player.logOffset = player.x - log.x;
+    } else {
+      die('splash');
+    }
+  }
+}
+
+function logUnder(row, x) {
+  for (const log of row.logs) {
+    const lx = wrapPos(log.x, row);
+    if (x > lx - 4 && x < lx + log.len + 4) return log;
+    // also test unwrapped neighbors around seam
+    const lx2 = lx - row.span, lx3 = lx + row.span;
+    if (x > lx2 - 4 && x < lx2 + log.len + 4) return log;
+    if (x > lx3 - 4 && x < lx3 + log.len + 4) return log;
+  }
+  return null;
+}
+
+function wrapPos(x, row) {
+  const off = CELL * 3;
+  let p = x % row.span;
+  if (p < 0) p += row.span;
+  return p - off;
+}
+
+function die(kind) {
+  if (!player.alive) return;
+  player.alive = false;
+  deathAnim = { kind, t: 0 };
+  if (kind === 'splash') sndSplash(); else sndCrash();
+}
+
+function gameOver() {
+  state = 'dead';
+  const isBest = score > best;
+  if (isBest) {
+    best = score;
+    localStorage.setItem('crossy_best', best);
+  }
+  bestEl.textContent = 'BEST ' + best;
+  ovTitle.textContent = 'GAME OVER';
+  ovScore.style.display = 'block';
+  ovScore.textContent = isBest ? 'NEW BEST ' + score + '!' : 'SCORE ' + score;
+  ovScore.classList.toggle('newBest', isBest);
+  ovSub.innerHTML = 'Press any arrow or tap PLAY to try again';
+  playBtn.textContent = 'PLAY AGAIN';
+  overlay.classList.remove('hidden');
+}
+
+function update(dt) {
+  ensureRows(Math.ceil((camY + H) / CELL) + 6);
+
+  // advance vehicles / logs / trains for visible-ish rows
+  const lo = Math.floor(camY / CELL) - 4;
+  const hi = Math.ceil((camY + H) / CELL) + 4;
+  for (let i = Math.max(0, lo); i <= hi; i++) {
+    const row = rows.get(i);
+    if (!row) continue;
+    if (row.type === ROW.ROAD) {
+      for (const c of row.cars) c.x += row.dir * row.speed * dt;
+    } else if (row.type === ROW.WATER) {
+      for (const l of row.logs) l.x += row.dir * row.speed * dt;
+    } else if (row.type === ROW.RAIL) {
+      row.timer -= dt;
+      if (row.phase === 'idle' && row.timer <= 0) { row.phase = 'warn'; row.timer = 1.1; }
+      else if (row.phase === 'warn' && row.timer <= 0) {
+        row.phase = 'train';
+        row.trainX = row.trainDir === 1 ? -CELL * 14 : W + CELL * 14;
+      } else if (row.phase === 'train') {
+        row.trainX += row.trainDir * 1300 * dt;
+        if ((row.trainDir === 1 && row.trainX > W + CELL * 14) ||
+            (row.trainDir === -1 && row.trainX < -CELL * 14)) {
+          row.phase = 'idle';
+          row.timer = 4 + rng() * 6;
+          row.trainDir = rng() < .5 ? 1 : -1;
+        }
+      }
+    }
+  }
+
+  if (player.alive) {
+    // hop animation
+    if (player.hopping) {
+      player.hopT += dt / HOP_TIME;
+      if (player.hopT >= 1) landPlayer();
+    } else if (queue.length) {
+      tryHop(queue.shift());
+    }
+
+    // ride log
+    if (!player.hopping && player.onLog) {
+      const row = rows.get(player.row);
+      player.x = wrapPos(player.onLog.x, row) + player.logOffset;
+      if (player.x < CELL * .2 || player.x > W - CELL * .2) die('splash');
+    }
+
+    // collisions (only when not mid-hop; hop = airborne)
+    if (!player.hopping) {
+      const row = rows.get(player.row);
+      if (row && row.type === ROW.ROAD) {
+        for (const c of row.cars) {
+          const cx = wrapPos(c.x, row);
+          if (player.x > cx - 14 && player.x < cx + c.len + 14) { die('squash'); break; }
+        }
+      } else if (row && row.type === ROW.RAIL && row.phase === 'train') {
+        const trainLen = CELL * 13;
+        const tx = row.trainDir === 1 ? row.trainX - trainLen : row.trainX;
+        if (player.x > tx - 10 && player.x < tx + trainLen + 10) die('squash');
+      }
+    }
+
+    // camera: follow player, plus relentless auto-scroll
+    const playerWorldY = (player.hopping
+      ? player.fromRow + (player.toRow - player.fromRow) * player.hopT
+      : player.row) * CELL;
+    const followTarget = playerWorldY - H * 0.45;
+    if (followTarget > camY) camY += (followTarget - camY) * Math.min(1, dt * 6);
+    if (score > 0 || player.row > 1) {
+      camVel = Math.min(38 + score * .35, 80);
+      camY += camVel * dt;
+    }
+
+    // swept off the bottom
+    if (playerWorldY < camY - CELL * .6) die('swept');
+  } else if (deathAnim) {
+    deathAnim.t += dt;
+    if (deathAnim.t > 0.9) { deathAnim = null; gameOver(); }
+  }
+}
+
+// ---------- rendering ----------
+function rowScreenY(i) {
+  // returns top-left y of row i on screen
+  return H - ((i * CELL) - camY) - CELL;
+}
+
+function draw(time) {
+  ctx.setTransform(viewScale * dpr, 0, 0, viewScale * dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const lo = Math.floor(camY / CELL) - 1;
+  const hi = Math.ceil((camY + H) / CELL) + 1;
+
+  for (let i = Math.max(0, lo); i <= hi; i++) {
+    const row = rows.get(i);
+    if (!row) continue;
+    const y = rowScreenY(i);
+    if (row.type === ROW.GRASS) drawGrass(row, i, y);
+    else if (row.type === ROW.ROAD) drawRoad(row, i, y);
+    else if (row.type === ROW.WATER) drawWater(row, i, y, time);
+    else drawRail(row, i, y, time);
+  }
+
+  // second pass: things that sit on top of tiles
+  for (let i = Math.max(0, lo); i <= hi; i++) {
+    const row = rows.get(i);
+    if (!row) continue;
+    const y = rowScreenY(i);
+    if (row.type === ROW.GRASS) drawTrees(row, y);
+    else if (row.type === ROW.ROAD) drawCars(row, y);
+    else if (row.type === ROW.RAIL) drawTrain(row, y, time);
+  }
+
+  drawPlayer(time);
+
+  // edge fade at top for depth
+  const grad = ctx.createLinearGradient(0, 0, 0, 70);
+  grad.addColorStop(0, 'rgba(13,21,32,.55)');
+  grad.addColorStop(1, 'rgba(13,21,32,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, 70);
+}
+
+function drawGrass(row, i, y) {
+  for (let c = 0; c < COLS; c++) {
+    ctx.fillStyle = (c + i) % 2 === 0 ? '#8fd94f' : '#82cf43';
+    ctx.fillRect(c * CELL, y, CELL, CELL);
+  }
+}
+
+function drawTrees(row, y) {
+  for (const c of row.trees) {
+    const x = c * CELL + CELL / 2;
+    // shadow
+    ctx.fillStyle = 'rgba(0,0,0,.18)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + CELL * .78, CELL * .34, CELL * .13, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // trunk
+    ctx.fillStyle = '#8a5a2b';
+    ctx.fillRect(x - 6, y + CELL * .5, 12, CELL * .3);
+    // canopy (two stacked blocks, voxel style)
+    ctx.fillStyle = '#2e8b3a';
+    roundRect(x - CELL * .34, y + CELL * .12, CELL * .68, CELL * .46, 8);
+    ctx.fillStyle = '#3aa348';
+    roundRect(x - CELL * .26, y - CELL * .06, CELL * .52, CELL * .34, 8);
+  }
+}
+
+function drawRoad(row, i, y) {
+  ctx.fillStyle = '#46484f';
+  ctx.fillRect(0, y, W, CELL);
+  // lane edges
+  ctx.fillStyle = 'rgba(255,255,255,.12)';
+  ctx.fillRect(0, y, W, 2);
+  ctx.fillRect(0, y + CELL - 2, W, 2);
+  // dashes
+  const above = rows.get(i + 1);
+  if (above && above.type === ROW.ROAD) {
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    for (let x = 8; x < W; x += 46) ctx.fillRect(x, y - 2, 22, 4);
+  }
+}
+
+function drawCars(row, y) {
+  for (const c of row.cars) {
+    const cx = wrapPos(c.x, row);
+    if (cx + c.len < -CELL * 3 || cx > W + CELL * 3) continue;
+    const h = CELL * .58;
+    const cy = y + (CELL - h) / 2;
+    // shadow
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    roundRect(cx + 3, cy + h - 6, c.len, 9, 4);
+    // body
+    ctx.fillStyle = `hsl(${c.hue}, 65%, 55%)`;
+    roundRect(cx, cy, c.len, h, 8);
+    // roof / windshield
+    ctx.fillStyle = 'rgba(20,30,45,.75)';
+    const wsW = c.len * .22;
+    const wsX = row.dir === 1 ? cx + c.len * .58 : cx + c.len * .2;
+    roundRect(wsX, cy + 6, wsW, h - 12, 4);
+    // headlights
+    ctx.fillStyle = '#ffe9a8';
+    const hlX = row.dir === 1 ? cx + c.len - 6 : cx + 2;
+    ctx.fillRect(hlX, cy + 5, 4, 7);
+    ctx.fillRect(hlX, cy + h - 12, 4, 7);
+  }
+}
+
+function drawWater(row, i, y, time) {
+  ctx.fillStyle = '#3d9bd6';
+  ctx.fillRect(0, y, W, CELL);
+  // ripples
+  ctx.strokeStyle = 'rgba(255,255,255,.22)';
+  ctx.lineWidth = 2;
+  const t = time / 900 + i;
+  for (let k = 0; k < 4; k++) {
+    const rx = ((Math.sin(t + k * 2.1) * .5 + .5) * W + k * 137) % W;
+    ctx.beginPath();
+    ctx.moveTo(rx, y + 14 + k * 11);
+    ctx.lineTo(rx + 26, y + 14 + k * 11);
+    ctx.stroke();
+  }
+  // logs (drawn here so player sits above them)
+  for (const l of row.logs) {
+    const lx = wrapPos(l.x, row);
+    if (lx + l.len < -CELL * 3 || lx > W + CELL * 3) continue;
+    ctx.fillStyle = '#7a4f28';
+    roundRect(lx, y + 9, l.len, CELL - 18, 12);
+    ctx.fillStyle = '#8f6134';
+    roundRect(lx + 5, y + 13, l.len - 10, CELL - 30, 9);
+    ctx.fillStyle = 'rgba(0,0,0,.15)';
+    for (let g = lx + 16; g < lx + l.len - 12; g += 22) {
+      ctx.fillRect(g, y + 16, 3, CELL - 32);
+    }
+  }
+}
+
+function drawRail(row, i, y, time) {
+  ctx.fillStyle = '#6b6257';
+  ctx.fillRect(0, y, W, CELL);
+  // sleepers
+  ctx.fillStyle = '#4d453c';
+  for (let x = 6; x < W; x += 34) ctx.fillRect(x, y + 8, 16, CELL - 16);
+  // rails
+  ctx.fillStyle = '#b8b2a8';
+  ctx.fillRect(0, y + 15, W, 5);
+  ctx.fillRect(0, y + CELL - 20, W, 5);
+  // warning light
+  const lampX = W - 22, lampY = y + CELL / 2;
+  ctx.fillStyle = '#33302c';
+  ctx.fillRect(lampX - 4, lampY - 14, 8, 28);
+  const blink = row.phase === 'warn' && Math.floor(time / 130) % 2 === 0;
+  ctx.fillStyle = blink ? '#ff3b30' : '#5a1512';
+  ctx.beginPath();
+  ctx.arc(lampX, lampY - 16, 8, 0, Math.PI * 2);
+  ctx.fill();
+  if (blink) {
+    ctx.fillStyle = 'rgba(255,59,48,.25)';
+    ctx.beginPath();
+    ctx.arc(lampX, lampY - 16, 16, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawTrain(row, y, time) {
+  if (row.phase !== 'train') return;
+  const trainLen = CELL * 13;
+  const tx = row.trainDir === 1 ? row.trainX - trainLen : row.trainX;
+  const h = CELL * .72;
+  const ty = y + (CELL - h) / 2;
+  ctx.fillStyle = 'rgba(0,0,0,.3)';
+  roundRect(tx + 4, ty + h - 6, trainLen, 10, 4);
+  // carriages
+  const carW = trainLen / 4;
+  for (let k = 0; k < 4; k++) {
+    ctx.fillStyle = k % 2 === 0 ? '#b3382f' : '#a02f27';
+    roundRect(tx + k * carW + 2, ty, carW - 4, h, 6);
+    ctx.fillStyle = 'rgba(255,238,170,.85)';
+    for (let wx = tx + k * carW + 12; wx < tx + (k + 1) * carW - 16; wx += 24) {
+      ctx.fillRect(wx, ty + 8, 14, 12);
+    }
+  }
+}
+
+function drawPlayer(time) {
+  if (state === 'menu') return;
+  let px = player.x, prow = player.row, z = 0;
+  if (player.hopping) {
+    const t = player.hopT;
+    px = player.fromX + (player.toX - player.fromX) * t;
+    prow = player.fromRow + (player.toRow - player.fromRow) * t;
+    z = Math.sin(Math.PI * t) * HOP_HEIGHT;
+  }
+  const py = H - ((prow * CELL) - camY) - CELL / 2;
+
+  if (deathAnim) {
+    const t = deathAnim.t;
+    if (deathAnim.kind === 'splash') {
+      // expanding ripple rings
+      ctx.strokeStyle = `rgba(255,255,255,${Math.max(0, .8 - t)})`;
+      ctx.lineWidth = 3;
+      for (let k = 0; k < 3; k++) {
+        ctx.beginPath();
+        ctx.arc(px, py, 8 + t * 60 + k * 10, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      return;
+    }
+    // squash / swept: flatten & fade
+    ctx.globalAlpha = Math.max(0, 1 - t);
+    drawChick(px, py, 0, 1 + t * .8, Math.max(.15, 1 - t * 1.2));
+    ctx.globalAlpha = 1;
+    return;
+  }
+
+  // idle bob
+  if (!player.hopping) z = Math.abs(Math.sin(time / 260)) * 2;
+  drawChick(px, py, z, 1, 1);
+}
+
+function drawChick(x, y, z, sx, sy) {
+  const s = CELL * .42;
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,.25)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + s * .55, s * .55 * sx, s * .2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const by = y - z;
+  const bw = s * sx, bh = s * sy;
+  // body
+  ctx.fillStyle = '#fffdf5';
+  roundRect(x - bw / 2, by - bh / 2, bw, bh, 8);
+  // wing shade
+  ctx.fillStyle = 'rgba(0,0,0,.07)';
+  roundRect(x - bw / 2, by, bw, bh / 2, 8);
+  // comb
+  ctx.fillStyle = '#e8402f';
+  roundRect(x - bw * .16, by - bh / 2 - 7 * sy, bw * .32, 9 * sy, 3);
+  // beak — points where the player faces
+  ctx.fillStyle = '#f5a623';
+  const bs = 7;
+  if (player.facing === 1)      roundRect(x + bw / 2 - 2, by - bs / 2, 9, bs, 2);
+  else if (player.facing === 3) roundRect(x - bw / 2 - 7, by - bs / 2, 9, bs, 2);
+  else if (player.facing === 2) roundRect(x - bs / 2, by + bh / 2 - 3, bs, 8, 2);
+  else                          roundRect(x - bs / 2, by - bh / 2 - 2, bs, 8, 2);
+  // eyes
+  ctx.fillStyle = '#222';
+  const eo = bw * .2;
+  ctx.fillRect(x - eo - 2, by - bh * .18, 4, 5 * sy);
+  ctx.fillRect(x + eo - 2, by - bh * .18, 4, 5 * sy);
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.fill();
+}
+
+// ---------- main loop ----------
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 1 / 20);
+  last = now;
+  if (state === 'play') update(dt);
+  draw(now);
+  requestAnimationFrame(frame);
+}
+
+state = 'menu';
+reset();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
