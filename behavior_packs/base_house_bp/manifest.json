@@ -1,0 +1,21 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Beautiful Base House",
+    "description": "Type /function base/house to instantly build a cozy starter base house. Works on Bedrock 1.21.0+, no experiments needed.",
+    "uuid": "82c049c1-1bbb-427f-b44b-ec3f3f24484f",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "d33091e0-a3ae-409c-9b4a-758489da584c",
+      "version": [1, 0, 0]
+    }
+  ],
+  "metadata": {
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beautiful Base House — .mcaddon Generator</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root{
+    --bg:#1b1f16; --panel:#262c1f; --panel2:#2e3527; --edge:#3d472f;
+    --text:#e8eadc; --dim:#aab39a; --green:#5fbb3a; --green-d:#3f8f22;
+    --gold:#f5c542; --sky:#7eb7f2;
+  }
+  body{
+    background:
+      radial-gradient(1100px 500px at 50% -10%, #33402a 0%, var(--bg) 60%);
+    color:var(--text);
+    font-family:"Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height:100vh; display:flex; justify-content:center; padding:24px 14px 60px;
+  }
+  .wrap{ width:100%; max-width:680px; }
+  .mc{ font-family:"Courier New", monospace; font-weight:bold; letter-spacing:1px; }
+  header{ text-align:center; margin-bottom:22px; }
+  .logo{ image-rendering:pixelated; width:96px; height:96px; border-radius:12px;
+    border:3px solid var(--edge); box-shadow:0 6px 24px rgba(0,0,0,.5); }
+  h1{ font-size:1.9rem; margin:12px 0 4px; text-shadow:2px 2px 0 #000; }
+  h1 .beta{ color:var(--gold); font-size:.9rem; vertical-align:super; }
+  .sub{ color:var(--dim); font-size:.95rem; }
+  .badge{ display:inline-block; background:var(--panel2); border:1px solid var(--edge);
+    border-radius:999px; padding:3px 12px; margin:10px 3px 0; font-size:.8rem; color:var(--sky); }
+  .card{ background:var(--panel); border:2px solid var(--edge); border-radius:12px;
+    padding:20px; margin:16px 0; box-shadow:0 4px 18px rgba(0,0,0,.35); }
+  .card h2{ font-size:1.05rem; color:var(--gold); margin-bottom:12px; text-transform:uppercase;
+    letter-spacing:1.5px; }
+  .dl{ display:block; width:100%; padding:18px; font-size:1.25rem; cursor:pointer;
+    background:linear-gradient(180deg, var(--green) 0%, var(--green-d) 100%);
+    color:#fff; border:0; border-bottom:5px solid #2c6317; border-radius:10px;
+    text-shadow:1px 1px 0 rgba(0,0,0,.45); transition:transform .06s, filter .15s; }
+  .dl:hover{ filter:brightness(1.1); }
+  .dl:active{ transform:translateY(3px); border-bottom-width:2px; }
+  .hint{ text-align:center; color:var(--dim); font-size:.85rem; margin-top:10px; }
+  ol{ padding-left:22px; }
+  ol li{ margin:9px 0; line-height:1.5; }
+  code, .cmd{ background:#141711; border:1px solid var(--edge); border-radius:6px;
+    padding:2px 7px; color:#9fe27f; font-family:"Courier New", monospace; font-size:.95em;
+    overflow-wrap:anywhere; }
+  .cmd{ display:block; padding:12px; font-size:1.1rem; text-align:center; margin:10px 0; }
+  ul.feat{ list-style:none; }
+  ul.feat li{ margin:8px 0; padding-left:26px; position:relative; line-height:1.45; }
+  ul.feat li::before{ content:"◆"; position:absolute; left:4px; color:var(--green); }
+  .warn{ background:#3a2f18; border:1px solid #6b5426; border-radius:8px; padding:12px 14px;
+    margin-top:14px; font-size:.9rem; line-height:1.5; color:#f0dfae; }
+  footer{ text-align:center; color:var(--dim); font-size:.8rem; margin-top:26px; line-height:1.6; }
+  #ok{ display:none; text-align:center; color:var(--green); font-weight:bold; margin-top:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <img class="logo" id="iconImg" alt="Base House pack icon">
+    <h1 class="mc">Beautiful Base House <span class="beta">v1.0</span></h1>
+    <div class="sub">One-command cozy starter house for Minecraft Bedrock</div>
+    <div>
+      <span class="badge">Bedrock 1.21.0+</span>
+      <span class="badge">Behavior Pack</span>
+      <span class="badge">No experiments needed</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <button class="dl mc" id="dlBtn">⬇ &nbsp;Download BaseHouse.mcaddon</button>
+    <div class="hint">The add-on file is generated right here in your browser — nothing is uploaded.</div>
+    <div id="ok">✔ Downloaded! Now open the file with Minecraft.</div>
+  </div>
+
+  <div class="card">
+    <h2>How to install (phone / tablet)</h2>
+    <ol>
+      <li>Tap the <b>Download</b> button above.</li>
+      <li>Open the downloaded <code>BaseHouse.mcaddon</code> file — Minecraft will open and import the pack automatically.</li>
+      <li>Create or edit a world → <b>Behavior Packs</b> → activate <b>Beautiful Base House</b>.</li>
+      <li>In the same world settings, turn on <b>Activate Cheats</b> (needed for the build command).</li>
+      <li>Enter the world, open chat and type:</li>
+    </ol>
+    <span class="cmd">/function base/house</span>
+    <div>Your house appears instantly right next to you — the front door is on the sunny side two blocks ahead (+Z). 🏡</div>
+    <div class="warn">⚠ Stand in a flat, open spot: the command clears and builds an area of about
+      <b>13×13 blocks</b> extending east/south (+X/+Z) of where you stand. You can run the command
+      as many times as you like, anywhere, to build more houses.</div>
+  </div>
+
+  <div class="card">
+    <h2>What you get</h2>
+    <ul class="feat">
+      <li><b>11×9 cozy cottage</b> — oak walls, log corner pillars and a stepped spruce gable roof with overhang.</li>
+      <li><b>Eight big windows</b> so it's bright inside, plus a real working front door.</li>
+      <li><b>Workshop corner</b>: crafting table, furnace, smoker and a double chest.</li>
+      <li><b>Reading corner</b> with bookshelves and torches.</li>
+      <li><b>Hanging lantern</b> under the ridge beam and lantern posts framing the porch.</li>
+      <li><b>Stone porch &amp; path</b> leading up to the door — fully lit, so no mobs spawn inside.</li>
+    </ul>
+  </div>
+
+  <footer>
+    Made for Bedrock <b>1.21.0.26</b> (works on 1.21.0 and newer, phones included).<br>
+    Everything in this page is a single HTML file — share it freely!
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ---------- embedded pack files ---------- */
+const MANIFEST = {
+  "format_version": 2,
+  "header": {
+    "name": "Beautiful Base House",
+    "description": "Type /function base/house to instantly build a cozy starter base house. Works on Bedrock 1.21.0+, no experiments needed.",
+    "uuid": "82c049c1-1bbb-427f-b44b-ec3f3f24484f",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "d33091e0-a3ae-409c-9b4a-758489da584c",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "license": "MIT",
+    "product_type": "addon"
+  }
+};
+
+const FUNCTION_HOUSE = "# ============================================================\n#  Beautiful Base House  -  /function base/house\n#  Builds an 11x9 cozy cottage next to you.\n#  The house extends toward +X / +Z from where you stand,\n#  with the front door 2 blocks away on the +Z side.\n#  Needs cheats (Activate Cheats) enabled in world settings.\n# ============================================================\n\n# --- clear the building area (including roof space) ---\nfill ~-1 ~0 ~1 ~11 ~7 ~11 air\n\n# --- foundation and floor ---\nfill ~0 ~-1 ~2 ~10 ~-1 ~10 cobblestone\nfill ~1 ~-1 ~3 ~9 ~-1 ~9 spruce_planks\n\n# --- front porch and path ---\nfill ~2 ~-1 ~0 ~8 ~-1 ~1 cobblestone\n\n# --- walls ---\nfill ~0 ~0 ~2 ~10 ~3 ~2 oak_planks\nfill ~0 ~0 ~10 ~10 ~3 ~10 oak_planks\nfill ~0 ~0 ~3 ~0 ~3 ~9 oak_planks\nfill ~10 ~0 ~3 ~10 ~3 ~9 oak_planks\n\n# --- log corner pillars ---\nfill ~0 ~0 ~2 ~0 ~3 ~2 oak_log\nfill ~10 ~0 ~2 ~10 ~3 ~2 oak_log\nfill ~0 ~0 ~10 ~0 ~3 ~10 oak_log\nfill ~10 ~0 ~10 ~10 ~3 ~10 oak_log\n\n# --- windows ---\nfill ~2 ~1 ~2 ~3 ~2 ~2 glass_pane\nfill ~7 ~1 ~2 ~8 ~2 ~2 glass_pane\nfill ~2 ~1 ~10 ~3 ~2 ~10 glass_pane\nfill ~7 ~1 ~10 ~8 ~2 ~10 glass_pane\nfill ~0 ~1 ~4 ~0 ~2 ~5 glass_pane\nfill ~0 ~1 ~7 ~0 ~2 ~8 glass_pane\nfill ~10 ~1 ~4 ~10 ~2 ~5 glass_pane\nfill ~10 ~1 ~7 ~10 ~2 ~8 glass_pane\n\n# --- doorway and door ---\nfill ~5 ~0 ~2 ~5 ~1 ~2 air\nsetblock ~5 ~0 ~2 wooden_door [\"direction\"=1]\nsetblock ~5 ~1 ~2 wooden_door [\"direction\"=1,\"upper_block_bit\"=true]\n\n# --- stepped gable roof with 1-block overhang ---\nfill ~-1 ~4 ~1 ~11 ~4 ~2 spruce_planks\nfill ~-1 ~4 ~10 ~11 ~4 ~11 spruce_planks\nfill ~-1 ~5 ~3 ~11 ~5 ~4 spruce_planks\nfill ~-1 ~5 ~8 ~11 ~5 ~9 spruce_planks\nfill ~-1 ~6 ~5 ~11 ~6 ~7 spruce_planks\nfill ~-1 ~6 ~6 ~11 ~6 ~6 oak_log [\"pillar_axis\"=\"x\"]\n\n# --- gable end infill above the side walls ---\nfill ~0 ~4 ~3 ~0 ~4 ~9 oak_planks\nfill ~10 ~4 ~3 ~10 ~4 ~9 oak_planks\nfill ~0 ~5 ~5 ~0 ~5 ~7 oak_planks\nfill ~10 ~5 ~5 ~10 ~5 ~7 oak_planks\n\n# --- interior: workshop corner ---\nsetblock ~1 ~0 ~9 crafting_table\nsetblock ~2 ~0 ~9 furnace\nsetblock ~3 ~0 ~9 smoker\nsetblock ~8 ~0 ~9 chest\nsetblock ~9 ~0 ~9 chest\n\n# --- interior: reading corner ---\nsetblock ~1 ~0 ~3 bookshelf\nsetblock ~2 ~0 ~3 bookshelf\nsetblock ~9 ~0 ~3 bookshelf\nsetblock ~1 ~1 ~3 torch\nsetblock ~9 ~1 ~3 torch\n\n# --- lighting ---\nsetblock ~5 ~5 ~6 lantern [\"hanging\"=true]\nsetblock ~2 ~1 ~9 torch\nsetblock ~8 ~1 ~9 torch\n\n# --- exterior lantern posts by the door ---\nsetblock ~3 ~0 ~1 cobblestone_wall\nsetblock ~7 ~0 ~1 cobblestone_wall\nsetblock ~3 ~1 ~1 lantern\nsetblock ~7 ~1 ~1 lantern\n\n# --- done! ---\ntellraw @s {\"rawtext\":[{\"text\":\"\u00a7a\u2714 Your base house is ready! \u00a7eWalk around to the +Z side to find the front door.\"}]}\n";
+
+const ICON_B64 = "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAIAAABMXPacAAABYElEQVR42u3ZoQ0CMRiGYea4ARBgUSfYAEeCI2EAPArBCHjmQGIZggWwLHAscCVpQtP+uad59eXSR33p7Hz/qGIzVwAAgAAAEAAAApCsX3RZAQAAAAAAAAAAAAAAIA7Adj0vGgAAAAAAAAAAAAAAAOoB5A6r0gEAAAAAAAAAAAAAACDOsIo+3AAAAAAAAAAAAAAAiAzQ2rCKMtwAAAAAAAAAAAAAAIgAEH1YtTbcAAAAAAAAAAAAAABoCWBqw6rWcAMAAAAAAAAAAAAAoCWAVMfNcrTH9TCpUvdQfAkDAAAAAAAAAAAAABAA4Pkeskp9Z9d3WZX+HwAAAAAAAAAAAAAAANQDGF6n0QAAAAAAAAAAAAAAABD/QeZfQ8yLGAAAAAAAAAAAAAAA+QAX5+cBAAAAAAAAAAAAACACwP62UsUAAAAgAAAEAIAAABAAAAIAQAAACAAAAQAgAAAEAIAK9AVtaCYhnd9XCgAAAABJRU5ErkJggg==";
+
+/* ---------- tiny ZIP writer (store method) ---------- */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(data) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < data.length; i++) c = CRC_TABLE[(c ^ data[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function makeZip(entries) {
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  let offset = 0;
+  for (const [name, data] of entries) {
+    const nameBytes = enc.encode(name);
+    const crc = crc32(data), size = data.length;
+    const local = new DataView(new ArrayBuffer(30));
+    local.setUint32(0, 0x04034b50, true);      // local file header
+    local.setUint16(4, 20, true);              // version needed
+    local.setUint16(6, 0x0800, true);          // UTF-8 names
+    local.setUint16(8, 0, true);               // store (no compression)
+    local.setUint16(10, 0, true); local.setUint16(12, 0, true); // time/date
+    local.setUint32(14, crc, true);
+    local.setUint32(18, size, true); local.setUint32(22, size, true);
+    local.setUint16(26, nameBytes.length, true);
+    local.setUint16(28, 0, true);
+    parts.push(new Uint8Array(local.buffer), nameBytes, data);
+
+    const cd = new DataView(new ArrayBuffer(46));
+    cd.setUint32(0, 0x02014b50, true);         // central dir header
+    cd.setUint16(4, 20, true); cd.setUint16(6, 20, true);
+    cd.setUint16(8, 0x0800, true); cd.setUint16(10, 0, true);
+    cd.setUint16(12, 0, true); cd.setUint16(14, 0, true);
+    cd.setUint32(16, crc, true);
+    cd.setUint32(20, size, true); cd.setUint32(24, size, true);
+    cd.setUint16(28, nameBytes.length, true);
+    cd.setUint32(42, offset, true);            // local header offset
+    central.push(new Uint8Array(cd.buffer), nameBytes);
+    offset += 30 + nameBytes.length + size;
+  }
+  let cdSize = 0;
+  for (const p of central) cdSize += p.length;
+  const eocd = new DataView(new ArrayBuffer(22));
+  eocd.setUint32(0, 0x06054b50, true);
+  eocd.setUint16(8, entries.length, true); eocd.setUint16(10, entries.length, true);
+  eocd.setUint32(12, cdSize, true);
+  eocd.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(eocd.buffer)],
+                  { type: "application/octet-stream" });
+}
+
+/* ---------- assemble & download ---------- */
+function b64ToBytes(b64) {
+  const bin = atob(b64), out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+const iconBytes = b64ToBytes(ICON_B64);
+document.getElementById("iconImg").src = "data:image/png;base64," + ICON_B64;
+
+document.getElementById("dlBtn").addEventListener("click", () => {
+  const enc = new TextEncoder();
+  const blob = makeZip([
+    ["base_house_bp/manifest.json", enc.encode(JSON.stringify(MANIFEST, null, 2))],
+    ["base_house_bp/pack_icon.png", iconBytes],
+    ["base_house_bp/functions/base/house.mcfunction", enc.encode(FUNCTION_HOUSE)]
+  ]);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "BaseHouse.mcaddon";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  document.getElementById("ok").style.display = "block";
+});
+</script>
+</body>
+</html>

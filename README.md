@@ -168,3 +168,24 @@ To stop the Cataclysm Hammer and Meteor Staff from destroying terrain, set
   single effect instead of breaking the add-on.
 - Mobs that pick up these weapons get the effects too — the script reads the attacker's
   main hand rather than assuming a player.
+
+---
+
+# Beautiful Base House
+
+A second, stand-alone add-on in this repo: a **behavior pack** that builds a cozy 11×9
+starter cottage with a single chat command. Works on **Bedrock 1.21.0+** (including the
+`1.21.0.26` beta), no experimental toggles needed.
+
+- **Install**: download **`dist/BaseHouse.mcaddon`** and tap it, or open
+  **`base_house_generator.html`** in any browser — the whole add-on is embedded in that
+  single HTML file and the download is generated locally, so the page can be shared as-is.
+- **Use**: activate *Beautiful Base House* under **Behavior Packs**, turn on
+  **Activate Cheats**, then type `/function base/house`. The house is built next to you,
+  extending toward +X/+Z, with the front door on the +Z side.
+- **What's inside**: oak walls with log corner pillars, stepped spruce gable roof with a
+  log ridge beam, eight windows, a working front door, crafting/furnace/smoker corner,
+  double chest, bookshelves, hanging lantern and a lit stone porch.
+- **Rebuild after edits**: `python3 tools/build_base_house.py` re-zips the pack into
+  `dist/BaseHouse.mcaddon` and re-embeds the pack files into the HTML generator so the
+  two never drift apart.
