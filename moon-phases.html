@@ -1,0 +1,4168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#05070f">
+<meta name="description" content="An interactive lesson that shows why the Moon has phases: watch the Moon orbit Earth, see which half the Sun lights up, and see the phase we get from Earth.">
+<title>Why the Moon Has Phases &mdash; An Interactive Sky Lab</title>
+<style>
+/* =====================================================================
+   WHY THE MOON HAS PHASES — STYLESHEET
+   Cascade order: (1) reset + tokens, (2) utilities, (3) layout,
+   (4) scene, (5) controls, (6) phase cards, (7) why / myth / eclipse,
+   (8) waxing vs waning, (9) timeline, (10) quiz, (11) footer,
+   (12) preference + print queries.
+
+   Sources: CONTRACT.md §3, visual.md (colour/type/art), uiux.md (box model,
+   breakpoints, touch — overrides O1..O4), a11y.md (contrast fixes §4.2/§4.3,
+   focus §5.1, preferences §6), motion.md §9 (reduced motion).
+   No @import, no url() to any external resource. Offline-safe.
+   ===================================================================== */
+
+
+/* =====================================================================
+   1. RESET, DESIGN TOKENS, TYPE SCALE, PAGE GROUND
+   ===================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;          /* P9 — no text inflation on rotate */
+          text-size-adjust: 100%;
+  color-scheme: dark;                      /* native select, caret, scrollbars go dark */
+  overflow-x: hidden;
+  max-width: 100%;
+  overscroll-behavior-y: contain;          /* P5 — no pull-to-refresh mid-drag */
+  scroll-behavior: smooth;
+  background: #05070f;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .22) rgba(5, 7, 15, .9);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;                       /* P1 fallback first */
+  min-height: 100svh;                      /* P1 real answer */
+  overflow-x: hidden;
+  max-width: 100%;
+  background: var(--bg-0);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, p, ul, ol, dl, dd, figure, fieldset, legend, blockquote {
+  margin: 0;
+  padding: 0;
+}
+ul, ol { list-style: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:where(button) { background: none; border: 0; }   /* zero specificity: later rules always win */
+button { min-height: var(--tap-min); }            /* touch-target floor for every button */
+a { color: var(--accent); text-underline-offset: .18em; }
+[hidden] { display: none !important; }
+:target { scroll-margin-top: 18px; }
+
+:root {
+  /* ---- contract tokens (verbatim, do not edit) ---- */
+  --bg-0: #05070f;
+  --bg-1: #0a0f1f;
+  --bg-2: #111a33;
+  --ink: #eef3ff;
+  --ink-dim: #a9b6d4;
+  --accent: #7cc4ff;
+  --accent-2: #c9a6ff;
+  --sun: #ffd479;
+  --warn: #ff8a8a;
+  --ok: #7ce8b0;
+  --glass: rgba(255, 255, 255, .06);
+  --glass-brd: rgba(255, 255, 255, .14);   /* decorative panel edges ONLY (a11y §4.3) */
+  --r-lg: 20px;
+  --r-md: 14px;
+  --r-sm: 10px;
+  --shadow: 0 10px 40px rgba(0, 0, 0, .45);
+
+  /* ---- visual.md: extended ground + ink ---- */
+  --bg-3: #18234a;
+  --ink-soft: #cdd8f0;
+  --ink-faint: #95a3c6;                    /* a11y §4.2 FIX: was #7f8db0 (3.87:1, failed AA) */
+  --hair: rgba(255, 255, 255, .09);
+  --hair-strong: rgba(255, 255, 255, .20);
+
+  /* ---- a11y §4.3 FIX: control boundaries need 3:1, --glass-brd gives 1.4:1 ---- */
+  --ui-brd: rgba(255, 255, 255, .36);
+  --ui-brd-strong: rgba(255, 255, 255, .56);
+
+  /* ---- visual.md: accents ---- */
+  --accent-3: #5ef2d6;
+  --accent-ink: #0a1224;
+  --accent-soft: rgba(124, 196, 255, .14);
+  --accent-line: rgba(124, 196, 255, .34);
+
+  /* ---- visual.md: Sun ramp ---- */
+  --sun-core: #fffaf0;
+  --sun-hot: #ffe6a8;
+  --sun-mid: #ffb44d;
+  --sun-deep: #ff7a2f;
+
+  /* ---- visual.md: Moon ramp ---- */
+  --moon-hi: #f4efe4;
+  --moon-lit: #ded7c8;
+  --moon-mid: #bdb5a4;
+  --moon-low: #8d8676;
+  --moon-maria: #6f6a5e;
+  --moon-night: #0c1223;
+  --earthshine: #5b7fb8;
+
+  /* ---- visual.md: Earth ramp ---- */
+  --earth-sea: #1f6bc0;
+  --earth-sea-2: #0a2c60;
+  --earth-abyss: #061a3c;
+  --earth-land: #37855a;
+  --earth-land-2: #26603f;
+  --earth-ice: #eaf3ff;
+  --earth-rim: #9ad3ff;
+  --earth-city: #ffd6a0;
+
+  /* ---- visual.md: orbit + canvas ---- */
+  --orbit-a: rgba(124, 196, 255, .85);
+  --orbit-b: rgba(201, 166, 255, .42);
+  --canvas-bg: #060a16;
+
+  /* ---- visual.md: radii + elevation ---- */
+  --r-xl: 28px;
+  --r-pill: 999px;
+  --e-1: 0 1px 2px rgba(0, 0, 0, .35), 0 2px 8px rgba(0, 0, 0, .22);
+  --e-2: 0 4px 14px rgba(0, 0, 0, .38), 0 1px 3px rgba(0, 0, 0, .30);
+  --e-3: var(--shadow);
+  --e-4: 0 24px 70px rgba(0, 0, 0, .55), 0 2px 10px rgba(0, 0, 0, .35);
+  --glow-accent: 0 0 0 1px rgba(124, 196, 255, .34), 0 10px 34px rgba(124, 196, 255, .16);
+  --glow-sun: 0 0 0 1px rgba(255, 212, 121, .32), 0 10px 34px rgba(255, 180, 77, .16);
+
+  /* ---- focus ---- */
+  --focus: #ffd479;
+  --focus-halo: rgba(255, 212, 121, .22);
+
+  /* ---- motion ---- */
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --dur-4: 520ms;
+  --ease-out: cubic-bezier(.22, .61, .36, 1);
+  --ease-in-out: cubic-bezier(.65, .05, .36, 1);
+  --ease-spring: cubic-bezier(.34, 1.42, .64, 1);
+
+  /* ---- uiux.md §1.1: layout tokens ---- */
+  --shell-max: 1180px;
+  --gutter: clamp(12px, 4vw, 32px);
+  --panel-pad: clamp(16px, 4.2vw, 28px);
+  --stack: clamp(16px, 4vw, 26px);
+  --gap-2: clamp(10px, 2.6vw, 16px);
+  --gap-3: clamp(14px, 3.5vw, 24px);
+  --tap: 48px;
+  --tap-min: 44px;
+
+  /* ---- typography (visual.md §9) ---- */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+               Helvetica, Arial, sans-serif;
+  --fs-xxs: clamp(0.72rem, 0.68rem + 0.20vw, 0.80rem);
+  --fs-xs: clamp(0.82rem, 0.78rem + 0.22vw, 0.92rem);
+  --fs-ui: clamp(0.95rem, 0.90rem + 0.28vw, 1.06rem);
+  --fs-body: clamp(1.02rem, 0.96rem + 0.42vw, 1.20rem);
+  --fs-lead: clamp(1.10rem, 1.00rem + 0.62vw, 1.34rem);
+  --fs-h3: clamp(1.18rem, 1.05rem + 0.75vw, 1.50rem);
+  --fs-h2: clamp(1.42rem, 1.18rem + 1.30vw, 2.10rem);
+  --fs-h1: clamp(2.00rem, 1.45rem + 2.90vw, 3.60rem);
+  --lh-tight: 1.14;
+  --lh-head: 1.22;
+  --lh-body: 1.62;
+  --measure: 66ch;
+}
+
+/* ---- page ground: two fixed layers, never repainted on scroll ---- */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 780px at 10% -6%, rgba(124, 196, 255, .15), transparent 62%),
+    radial-gradient(900px 720px at 92% 4%, rgba(201, 166, 255, .13), transparent 60%),
+    radial-gradient(1500px 900px at 48% 106%, rgba(24, 35, 74, .90), transparent 72%),
+    var(--bg-0);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .55;
+  background:
+    radial-gradient(760px 520px at 22% 34%, rgba(86, 140, 255, .10), transparent 66%),
+    radial-gradient(620px 900px at 78% 62%, rgba(168, 110, 255, .085), transparent 64%),
+    radial-gradient(420px 420px at 60% 12%, rgba(94, 242, 214, .05), transparent 70%);
+  mix-blend-mode: screen;
+}
+
+/* fine grain — inline SVG data URI, no network, tiled once at 180px */
+@supports (mix-blend-mode: overlay) {
+  body::after {
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='.5'/></svg>"),
+      radial-gradient(760px 520px at 22% 34%, rgba(86, 140, 255, .10), transparent 66%),
+      radial-gradient(620px 900px at 78% 62%, rgba(168, 110, 255, .085), transparent 64%),
+      radial-gradient(420px 420px at 60% 12%, rgba(94, 242, 214, .05), transparent 70%);
+    background-size: 180px 180px, auto, auto, auto;
+    background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+  }
+}
+
+/* ---- base typography ---- */
+p { max-width: var(--measure); }
+p + p { margin-top: .85em; }
+
+h1#siteTitle {
+  font-size: var(--fs-h1);
+  line-height: var(--lh-tight);
+  font-weight: 800;
+  letter-spacing: -0.022em;
+  margin: 0 0 .3em;
+  background: linear-gradient(105deg, #ffffff 0%, #dceaff 38%, var(--accent) 68%, var(--accent-2) 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+@supports not ((background-clip: text) or (-webkit-background-clip: text)) {
+  h1#siteTitle { color: var(--ink); -webkit-text-fill-color: currentColor; }
+}
+
+h2 {
+  font-size: var(--fs-h2);
+  line-height: var(--lh-head);
+  font-weight: 750;
+  letter-spacing: -0.016em;
+  margin: 0 0 .5em;
+  color: var(--ink);
+}
+h3 {
+  font-size: var(--fs-h3);
+  line-height: var(--lh-head);
+  font-weight: 700;
+  letter-spacing: -0.008em;
+  margin: 1.4em 0 .45em;
+  color: var(--ink);
+}
+h4 {
+  font-size: var(--fs-ui);
+  line-height: 1.3;
+  font-weight: 700;
+  margin: 1.1em 0 .4em;
+  color: var(--ink);
+}
+
+.tagline { font-size: var(--fs-lead); color: var(--ink-dim); max-width: 52ch; margin: 0 0 .6em; }
+.hook { margin: 0; color: var(--ink-dim); font-size: var(--fs-body); max-width: 60ch; }
+.panel-intro { font-size: var(--fs-lead); color: var(--ink-soft); margin: 0 0 1.1em; }
+figcaption { font-size: var(--fs-xs); color: var(--ink-dim); line-height: 1.5; margin-top: .7em; font-weight: 400; }
+.caption-note { display: block; margin-top: .4em; color: var(--ink-faint); font-size: var(--fs-xxs); }
+strong, b { font-weight: 700; color: #ffffff; }
+small { font-size: var(--fs-xs); }
+
+/* accent rule under every panel heading — cheap structure cue */
+.panel > h2::after {
+  content: "";
+  display: block;
+  width: 52px;
+  height: 3px;
+  margin-top: .45em;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+/* long words / numbers must never widen the page at 320px */
+h1, h2, h3, h4, p, li, dd, dt, figcaption, label, legend,
+.readout > span, .card-blurb, .tl-label, .opt-text { overflow-wrap: anywhere; }
+h1, h2, h3, h4 { hyphens: none; }
+
+/* media never widens the page */
+img, svg, canvas, video, iframe { max-width: 100%; }
+canvas { display: block; }
+svg { display: block; }
+
+::selection { background: rgba(124, 196, 255, .34); color: #ffffff; }
+::-moz-selection { background: rgba(124, 196, 255, .34); color: #ffffff; }
+
+::-webkit-scrollbar { width: 12px; height: 10px; }
+::-webkit-scrollbar-track { background: rgba(5, 7, 15, .9); }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .20);
+  border: 3px solid rgba(5, 7, 15, .9);
+  border-radius: var(--r-pill);
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .32); }
+
+
+/* =====================================================================
+   2. UTILITIES — sr-only, skip links, focus ring, glass panel, stacks
+   ===================================================================== */
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;                     /* load-bearing: VoiceOver reads it as a sentence */
+}
+.sr-only-focusable:focus,
+.sr-only-focusable:focus-within {
+  position: static !important;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip-path: none;
+  white-space: normal;
+}
+
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -100px;
+  z-index: 9999;
+  padding: 12px 18px;
+  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-2);
+  color: var(--ink);
+  border: 2px solid var(--focus);
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: var(--e-2);
+  transition: top var(--dur-2) var(--ease-out);
+}
+.skip-link:nth-of-type(2) { left: 200px; }
+.skip-link:focus { top: 8px; }
+
+/* ---- ONE focus ring for the whole page (a11y §5.1) ---- */
+:where(a, button, input, select, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px var(--focus-halo);
+  border-radius: inherit;
+}
+:where(a, button, input, select):focus:not(:focus-visible) { outline: none; }
+#main:focus { outline: none; }
+#main:focus-visible { outline: none; box-shadow: none; }
+
+/* rings must never be clipped by their container */
+.panel, .phase-cards, .timeline-track, .orbit-wrap, .earthview-wrap { overflow: visible; }
+.phase-cards { scroll-padding: 12px; }
+
+/* ---- glass panel ---- */
+.panel {
+  position: relative;
+  background: #0b1122;                     /* SOLID FALLBACK — always first */
+  border: 1px solid var(--glass-brd);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e-3);
+  padding: var(--panel-pad);
+  margin: 0 0 var(--stack);
+  contain: layout;                         /* isolate layout WITHOUT paint-clipping focus rings */
+}
+/* The blur lives on its own layer BEHIND the content, not on .panel itself.
+   Reason (measured, not theoretical): a scrolling descendant — `.timeline-scroll` —
+   inside a backdrop-filtered element gets promoted to its own composited layer and
+   stops sampling the blurred backdrop, which paints a visible unblurred band across
+   the panel. Filtering a z-index:-1 pseudo-element instead keeps the glass look and
+   removes the band, because the scroller is no longer inside the filtered box. */
+@supports ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  .panel { background: var(--glass); }
+  .panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
+            backdrop-filter: blur(14px) saturate(130%);
+  }
+}
+/* hairline top highlight — the one detail that sells "glass".
+   Inset from the corners so it cannot poke out of the border radius. */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 16px auto 16px;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent, rgba(255, 255, 255, .34) 14%, rgba(255, 255, 255, .34) 86%, transparent);
+}
+
+/* ---- stack helpers ---- */
+.stack > * + * { margin-top: var(--gap-2); }
+.stack-lg > * + * { margin-top: var(--gap-3); }
+.only-narrow { display: inline; }
+.only-wide { display: none; }
+
+.table-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+.table-scroll > table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+
+/* every grid/flex child gets a floor of 0 — the #1 cause of 320px sideways scroll */
+.scene-grid > *, .controls-grid > *, .ctl-row > *, .readout > *, .readout-visible > *,
+.phase-cards > *, #eclipseDemo > *, #wwDemo > *, .def-pair > *, .timeline-track > *,
+#quizForm > *, .q > *, .q-opts > *, .opt > *, .quiz-actions > *, .demo-toggle > *,
+.ww-controls > *, .section-nav li { min-width: 0; min-height: 0; }
+
+/* reveal-on-scroll (JS adds .is-in). Hidden state exists ONLY when scripting works. */
+.reveal { transition: opacity var(--dur-4) var(--ease-out), transform var(--dur-4) var(--ease-out); }
+@media (scripting: enabled) {
+  .reveal { opacity: 0; transform: translateY(14px); }
+}
+.reveal.is-in { opacity: 1; transform: none; }
+
+
+/* =====================================================================
+   3. LAYOUT — shell, header, nav, main, sections, footer
+   ===================================================================== */
+
+.wrap {
+  width: 100%;
+  max-width: var(--shell-max);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+@supports (padding: max(0px)) {
+  .wrap {
+    padding-left: max(var(--gutter), env(safe-area-inset-left));
+    padding-right: max(var(--gutter), env(safe-area-inset-right));
+  }
+}
+
+.site-header { padding-block: clamp(26px, 8vw, 64px) clamp(18px, 5vw, 34px); }
+.header-inner { max-width: min(70ch, 100%); }
+
+main#main { padding-bottom: clamp(24px, 7vw, 56px); }
+main#main > section { scroll-margin-top: 16px; }
+
+/* ---- section nav (header) ---- */
+.section-nav { margin-top: clamp(16px, 4vw, 24px); }
+.section-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 0;
+  padding: 0;
+}
+.section-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding: .45em .95em;
+  border: 1px solid var(--ui-brd);
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .04);
+  color: var(--ink-soft);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background var(--dur-2) var(--ease-out),
+              border-color var(--dur-2) var(--ease-out),
+              color var(--dur-2) var(--ease-out);
+}
+.section-nav a:active { transform: translateY(1px); }
+
+.site-footer {
+  padding-block: clamp(20px, 5vw, 36px);
+  padding-bottom: max(clamp(20px, 5vw, 36px), env(safe-area-inset-bottom));
+  border-top: 1px solid var(--hair);
+  color: var(--ink-dim);
+  font-size: var(--fs-xs);
+}
+
+
+/* =====================================================================
+   4. SCENE — canvases, captions, readout, drag mode
+   ===================================================================== */
+
+.scene-grid {
+  display: grid;
+  gap: var(--gap-3);
+  grid-template-columns: 1fr;              /* stacked: orbit (cause) then Earth-view (effect) */
+}
+
+.orbit-wrap, .earthview-wrap {
+  margin: 0;
+  min-width: 0;
+  position: relative;
+}
+
+#orbitCanvas, #earthCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  min-height: 170px;
+  border-radius: var(--r-md);
+  background: var(--canvas-bg);
+  border: 1px solid var(--hair);
+  touch-action: manipulation;               /* flips to none in drag mode, see below */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: box-shadow var(--dur-2) var(--ease-out);
+}
+@supports not (aspect-ratio: 4 / 3) {
+  #orbitCanvas, #earthCanvas { height: 70vw; max-height: 420px; }
+}
+
+/* focusable canvas gets its own visible ring (it is the keyboard scrub surface) */
+#orbitCanvas:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px var(--focus-halo);
+}
+
+/* ---- drag mode: supports both the body[data-drag] and the .drag-mode hooks ---- */
+body[data-drag="on"] #orbitCanvas,
+#orbitCanvas.drag-mode {
+  touch-action: none;                       /* the ONLY touch-action:none on the page */
+  cursor: grab;
+  box-shadow: 0 0 0 2px var(--accent-line), 0 0 26px rgba(124, 196, 255, .22);
+}
+body[data-drag="on"][data-dragging="on"] #orbitCanvas,
+#orbitCanvas.is-grabbing {
+  cursor: grabbing;
+  box-shadow: 0 0 0 2px var(--accent), 0 0 34px rgba(124, 196, 255, .34);
+}
+body[data-dragging="on"] {
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grabbing;
+}
+
+/* the drag chip — solid, never backdrop-filter: it sits over a repainting canvas */
+.drag-chip {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  gap: 7px;
+  padding: .32em .72em;
+  border-radius: var(--r-pill);
+  background: rgba(10, 18, 36, .88);
+  border: 1px solid var(--accent-line);
+  color: #dcefff;
+  font-size: var(--fs-xxs);
+  font-weight: 700;
+  letter-spacing: .02em;
+  pointer-events: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+.drag-chip i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-3);
+  box-shadow: 0 0 8px var(--accent-3);
+}
+body[data-drag="on"] .drag-chip,
+#orbitCanvas.drag-mode ~ .drag-chip { display: inline-flex; }
+body[data-drag="on"][data-dragging="on"] .drag-chip i,
+#orbitCanvas.is-grabbing ~ .drag-chip i {
+  background: var(--sun);
+  box-shadow: 0 0 10px var(--sun);
+}
+
+/* ---- the readout: four values, zero reflow jitter (uiux OVERRIDE O1) ---- */
+.readout {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    "phase phase"
+    "day   illum"
+    "trend trend";
+  margin-top: 14px;
+  padding: 12px;
+  background: rgba(4, 8, 18, .55);
+  border: 1px solid var(--hair);
+  border-radius: var(--r-md);
+  box-shadow: var(--e-1);
+  contain: layout;                          /* a re-layout inside can never touch the page */
+}
+/* motion.md §8.2 wraps the four spans in .readout-visible — display:contents lets
+   them stay direct participants of the grid above, whichever markup ships. */
+.readout-visible { display: contents; }
+
+#rdPhase { grid-area: phase; }
+#rdDay { grid-area: day; }
+#rdIllum { grid-area: illum; }
+#rdTrend { grid-area: trend; }
+
+:is(#rdPhase, #rdDay, #rdIllum, #rdTrend) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 40px;                         /* 2 lines fit: height never changes */
+  padding: .3em .6em;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid var(--hair);
+  font-variant-numeric: tabular-nums;        /* (1) equal-width digits */
+  font-size: var(--fs-ui);
+  line-height: 1.25;
+}
+#rdPhase {
+  min-height: 48px;
+  font-size: var(--fs-lead);
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+#rdDay { min-width: min(15ch, 100%); }       /* (2) "Day 29.5 of 29.5" reserved, never overflows */
+#rdIllum { min-width: min(9ch, 100%); color: var(--sun); }
+#rdTrend { color: var(--accent-3); }
+
+.readout > .sr-only { grid-area: trend; }    /* the announced twin, out of the visual flow */
+
+#scene noscript {
+  display: block;
+  margin: 1em 0 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--sun);
+  border-radius: var(--r-md);
+  background: rgba(255, 212, 121, .08);
+  color: var(--ink);
+  font-size: var(--fs-xs);
+}
+
+
+/* =====================================================================
+   5. CONTROLS — buttons, range, select, control bar
+   ===================================================================== */
+
+.controls-grid {
+  display: grid;
+  gap: var(--gap-2);
+  grid-template-columns: 1fr;
+}
+
+.ctl-row--slider {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "label out" "slider slider";
+  column-gap: 12px;
+  row-gap: 2px;
+  align-items: baseline;
+}
+.ctl-label {
+  grid-area: label;
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+#dayLabel, .ctl-out {
+  grid-area: out;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--ink);
+  min-width: min(8ch, 100%);
+  text-align: right;
+}
+#daySlider { grid-area: slider; width: 100%; min-width: 0; }
+
+.ctl-row--buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.ctl-row--buttons > .btn,
+.ctl-row--buttons > button { flex: 1 1 auto; min-width: 0; }
+#playPause { min-width: min(100%, 7.5rem); }
+#dragToggle { min-width: min(100%, 13.5rem); }
+
+.ctl-speed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  flex: 1 1 100%;
+}
+
+.drag-help { margin: .4em 0 .2em; font-size: var(--fs-xs); color: var(--ink-dim); max-width: var(--measure); }
+.drag-help-list {
+  margin: 0;
+  padding-left: 1.25em;
+  font-size: var(--fs-xs);
+  color: var(--ink-dim);
+  list-style: disc;
+  max-width: var(--measure);
+}
+.drag-help-list li { margin-bottom: .25em; }
+.rm-note { display: none; margin: .6em 0 0; font-size: var(--fs-xs); color: var(--sun); }
+
+/* ---- buttons ----
+   The class list is the contract, but the container selectors below are a safety net:
+   a11y.md's quiz/eclipse markup does not carry `.btn`, so any <button> living in a
+   known action container gets the same treatment. Specificity of the base rule tops out
+   at (0,1,1), so the modifier rules below are written doubled — `.btn--primary.btn--primary`
+   (0,2,0) — to stay on top of it. Do not "simplify" that away. */
+.btn,
+.ctl-row--buttons > button,
+.quiz-actions > button,
+.demo-toggle > button,
+.ww-controls > button {
+  --btn-bg: rgba(255, 255, 255, .07);
+  --btn-brd: var(--ui-brd);
+  --btn-ink: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .55em;
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: .72em 1.15em;
+  font: inherit;
+  font-weight: 600;
+  font-size: var(--fs-ui);
+  line-height: 1.2;
+  text-align: center;
+  color: var(--btn-ink);
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-brd);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: background var(--dur-2) var(--ease-out),
+              border-color var(--dur-2) var(--ease-out),
+              color var(--dur-2) var(--ease-out),
+              transform var(--dur-1) var(--ease-out),
+              box-shadow var(--dur-2) var(--ease-out);
+}
+.btn:active,
+.ctl-row--buttons > button:active,
+.quiz-actions > button:active,
+.demo-toggle > button:active,
+.ww-controls > button:active { transform: translateY(1px) scale(.985); }
+.btn-glyph { font-size: .9em; line-height: 1; }
+
+.btn--primary.btn--primary, .btn-primary.btn-primary {
+  --btn-ink: var(--accent-ink);
+  --btn-brd: transparent;
+  background: linear-gradient(135deg, #a9dcff 0%, var(--accent) 46%, #6aa9ff 100%);
+  box-shadow: var(--glow-accent);
+  font-weight: 700;
+}
+.btn--ghost.btn--ghost {
+  --btn-bg: transparent;
+  --btn-brd: var(--ui-brd);
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+/* toggle-on state: fill + border + a live dot (the text also swaps, so never colour-only) */
+.btn[aria-pressed="true"],
+.ctl-row--buttons > button[aria-pressed="true"],
+.demo-toggle > button[aria-pressed="true"],
+.ww-controls > button[aria-pressed="true"] {
+  --btn-bg: var(--accent-soft);
+  --btn-brd: var(--accent-line);
+  background: var(--accent-soft);
+  color: #dcefff;
+  box-shadow: inset 0 0 0 1px rgba(124, 196, 255, .20), var(--glow-accent);
+}
+.btn--primary.btn--primary[aria-pressed="true"],
+.btn-primary.btn-primary[aria-pressed="true"] {
+  color: var(--accent-ink);
+  background: linear-gradient(135deg, #a9dcff 0%, var(--accent) 46%, #6aa9ff 100%);
+}
+.btn[aria-pressed="true"]::after,
+.ctl-row--buttons > button[aria-pressed="true"]::after,
+.demo-toggle > button[aria-pressed="true"]::after,
+.ww-controls > button[aria-pressed="true"]::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-3);
+  box-shadow: 0 0 8px var(--accent-3);
+}
+.btn--primary.btn--primary[aria-pressed="true"]::after,
+.btn-primary.btn-primary[aria-pressed="true"]::after {
+  background: var(--accent-ink);
+  box-shadow: none;
+}
+
+/* Last-resort net at specificity ZERO: if a named control ships without any class at
+   all, it still looks and sizes like a button. Every class rule above outranks this. */
+:where(#playPause, #dragToggle, #resetBtn, #wwPlay, #quizSubmit, #quizReset) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .55em;
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: .72em 1.15em;
+  font-weight: 600;
+  font-size: var(--fs-ui);
+  line-height: 1.2;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid var(--ui-brd);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---- range inputs: #daySlider and #wwSlider, WebKit + Firefox ---- */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: var(--tap-min);                   /* full 44px hit area (WCAG 2.5.8) */
+  margin: 6px 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;                      /* P10: vertical swipe still scrolls the page */
+  -webkit-tap-highlight-color: transparent;
+}
+input[type="range"]:focus { outline: none; }
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, rgba(124, 196, 255, .55), rgba(201, 166, 255, .38));
+  border: 1px solid var(--ui-brd);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .5);
+}
+input[type="range"]::-moz-range-track {
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, rgba(124, 196, 255, .55), rgba(201, 166, 255, .38));
+  border: 1px solid var(--ui-brd);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .5);
+}
+input[type="range"]::-moz-range-progress {
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 30px;                              /* > the contract's 28px floor */
+  height: 30px;
+  border-radius: 50%;
+  margin-top: -11px;                        /* centres a 34px thumb on a 12px track box */
+  background: radial-gradient(circle at 34% 30%, #ffffff 0%, #dfe9ff 42%, #8fbcf0 100%);
+  border: 2px solid rgba(255, 255, 255, .85);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .55), 0 0 0 6px rgba(124, 196, 255, .14);
+  transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #ffffff 0%, #dfe9ff 42%, #8fbcf0 100%);
+  border: 2px solid rgba(255, 255, 255, .85);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .55), 0 0 0 6px rgba(124, 196, 255, .14);
+  transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+}
+input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
+input[type="range"]:active::-moz-range-thumb { transform: scale(1.12); }
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px var(--focus), 0 0 0 10px var(--focus-halo);
+}
+input[type="range"]:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px var(--focus), 0 0 0 10px var(--focus-halo);
+}
+
+/* ---- select ---- */
+#speedSelect, select {
+  min-height: var(--tap);
+  max-width: 100%;
+  min-width: 0;
+  padding: .55em 2.2em .55em .8em;
+  border-radius: var(--r-sm);
+  background-color: #0f1730;
+  color: var(--ink);
+  border: 1px solid var(--ui-brd);
+  font-family: inherit;
+  font-size: max(16px, var(--fs-ui));       /* P4: below 16px iOS zooms the page on focus */
+  cursor: pointer;
+  touch-action: manipulation;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-dim) 50%),
+    linear-gradient(135deg, var(--ink-dim) 50%, transparent 50%);
+  background-position: right 1.05em center, right .72em center;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+#speedSelect option, select option { background: #0f1730; color: var(--ink); }
+
+
+/* =====================================================================
+   6. PHASE CARDS
+   ===================================================================== */
+
+.phase-cards {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));   /* OVERRIDE O2: 2 up at 320px */
+}
+
+.phase-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .3rem;
+  padding: 14px 10px 16px;
+  min-height: var(--tap-min);
+  min-width: 0;
+  width: 100%;
+  text-align: center;
+  font: inherit;
+  color: var(--ink-soft);
+  cursor: pointer;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .018));
+  border: 1px solid var(--ui-brd);
+  border-radius: var(--r-md);
+  box-shadow: var(--e-1);
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;               /* P3: kills the 300ms double-tap wait */
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow-wrap: anywhere;
+  transition: transform var(--dur-2) var(--ease-out),
+              border-color var(--dur-2) var(--ease-out),
+              box-shadow var(--dur-3) var(--ease-out),
+              background var(--dur-2) var(--ease-out);
+}
+
+.card-moon {
+  width: clamp(56px, 16vw, 78px);
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 12px rgba(200, 220, 255, .22));
+}
+.card-name {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: var(--fs-ui);
+  line-height: 1.2;
+  min-height: 2.5em;                        /* reserve 2 lines: rows never jump */
+  display: flex;
+  align-items: center;
+}
+.card-alt { font-size: var(--fs-xxs); color: var(--ink-faint); margin-top: -.25em; }
+.card-day, .card-illum {
+  font-size: var(--fs-xs);
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+.card-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: .35em;
+  font-size: var(--fs-xs);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding-left: 8px;
+  color: var(--accent);
+}
+.trend-glyph { font-size: .85em; line-height: 1; }
+.trend-grow { color: var(--ok); border-left: 3px solid currentColor; }
+.trend-shrink { color: var(--accent-2); border-left: 3px dashed currentColor; }
+.trend-turn { color: var(--sun); border-left: 3px dotted currentColor; }
+.card-blurb {
+  margin-top: .25em;
+  font-size: var(--fs-xs);
+  color: var(--ink-dim);
+  line-height: 1.45;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* pressed (finger down) — instant, works where :hover never fires */
+.phase-card:active { transform: scale(.975); }
+
+.phase-card:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px var(--focus-halo);
+  z-index: 1;
+}
+
+/* SELECTED — both conventions supported: aria-pressed (visual/uiux) and aria-current (a11y) */
+.phase-card[aria-pressed="true"],
+.phase-card[aria-current="true"] {
+  color: var(--ink);
+  background: linear-gradient(180deg, rgba(124, 196, 255, .18), rgba(124, 196, 255, .05));
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent), var(--e-2);   /* shape, not just hue */
+  transform: translateY(-2px);
+}
+.phase-card[aria-pressed="true"] .card-moon,
+.phase-card[aria-current="true"] .card-moon {
+  filter: drop-shadow(0 0 18px rgba(124, 196, 255, .55));
+}
+/* non-colour cue 1: a solid tab at the bottom edge */
+.phase-card[aria-pressed="true"]::before,
+.phase-card[aria-current="true"]::before {
+  content: "";
+  position: absolute;
+  inset: auto auto 0 50%;
+  transform: translateX(-50%);
+  width: 34px;
+  height: 3px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+}
+/* non-colour cue 2: the words, with a glyph */
+.phase-card[aria-pressed="true"]::after,
+.phase-card[aria-current="true"]::after {
+  content: "\25CF\00A0Showing now";
+  font-size: var(--fs-xxs);
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--accent);
+}
+.phase-card .card-now,
+.phase-card .card-current { display: none; }
+.phase-card[aria-pressed="true"] .card-now,
+.phase-card[aria-current="true"] .card-current { display: inline; }
+
+
+/* =====================================================================
+   7. WHY IT HAPPENS — steps, punchlines, myth-buster, eclipse compare
+   ===================================================================== */
+
+#why p, #why li { max-width: var(--measure); }
+
+.steps, .why-steps {
+  margin: 0 0 1.2em;
+  padding-left: 1.35em;
+  list-style: decimal;
+}
+.steps li, .why-steps li { margin-bottom: .55em; padding-left: .15em; }
+.steps li::marker, .why-steps li::marker { color: var(--accent); font-weight: 700; }
+
+.why-punch, .myth-punch, .ww-punch {
+  margin: 1.1em 0 0;
+  padding: 14px 16px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  font-size: var(--fs-lead);
+  font-weight: 600;
+  color: var(--ink);
+  max-width: var(--measure);
+}
+
+/* ---- the myth-buster: distinct by BORDER STYLE + CHIP + GROUND, not colour ---- */
+.mythbuster, .myth-block {
+  margin-top: 1.6em;
+  padding: clamp(14px, 3.4vw, 20px);
+  border: 2px dashed rgba(255, 138, 138, .55);
+  border-left-width: 5px;
+  border-left-style: solid;
+  border-radius: var(--r-md);
+  background:
+    repeating-linear-gradient(135deg,
+      rgba(255, 138, 138, .045) 0 10px, transparent 10px 20px),
+    rgba(255, 138, 138, .06);
+}
+.mythbuster > h3, .myth-block > h3 { margin-top: 0; }
+.myth-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .45em;
+  margin: 0 0 .5em;
+  padding: .3em .8em;
+  border: 1px solid var(--warn);
+  border-radius: var(--r-pill);
+  background: rgba(255, 138, 138, .12);
+  color: var(--warn);
+  font-size: var(--fs-xxs);
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.myth-chip::before { content: "\0021"; font-size: 1.05em; line-height: 1; }
+.myth-punch {
+  border-left-color: var(--warn);
+  border-left-style: dashed;
+  background: rgba(255, 138, 138, .10);
+}
+
+/* ---- eclipse demo ---- */
+#eclipseDemo {
+  display: grid;
+  gap: var(--gap-2);
+  grid-template-columns: 1fr;
+  margin-top: 1.1em;
+}
+#eclipseDemo > figure {
+  margin: 0;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--hair);
+  border-radius: var(--r-md);
+  background: rgba(4, 8, 18, .45);
+}
+#eclipseDemo svg { width: 100%; height: auto; display: block; }
+#eclipseDemo figcaption { margin-top: .6em; }
+
+.demo-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  grid-column: 1 / -1;
+}
+.demo-toggle > .btn,
+.demo-toggle > button { flex: 1 1 auto; min-width: 0; }
+
+/* comparison: flat definition list on phones, a real table from 768px */
+.cmp-flat { display: block; margin-top: 1em; }
+.cmp-table { display: none; }
+.cmp-flat dt { font-weight: 700; color: var(--ink); margin-top: .9em; }
+.cmp-flat dd { margin: .25em 0 0; color: var(--ink-soft); max-width: var(--measure); }
+.cmp-table caption {
+  caption-side: top;
+  text-align: left;
+  padding-bottom: .6em;
+  color: var(--ink-dim);
+  font-size: var(--fs-xs);
+}
+
+
+/* =====================================================================
+   8. WAXING vs WANING
+   ===================================================================== */
+
+.def-pair {
+  display: grid;
+  gap: var(--gap-2);
+  grid-template-columns: 1fr;
+  margin-top: .8em;
+}
+.def-pair p {
+  margin: 0;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid var(--hair);
+  border-radius: var(--r-md);
+  max-width: none;
+}
+.def-pair p:first-child { border-left: 3px solid var(--ok); }
+.def-pair p:last-child { border-left: 3px dashed var(--accent-2); }
+
+.word-note { margin-top: .9em; color: var(--ink-dim); font-size: var(--fs-xs); }
+
+.trick {
+  margin-top: 1.2em;
+  padding: 14px 16px;
+  border: 1px dashed var(--accent-line);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+}
+.trick h3 { margin-top: 0; }
+.trick-flip { margin-bottom: 0; color: var(--sun); font-size: var(--fs-xs); }
+
+/* NEVER stacks — a side-by-side comparison that stacks stops being a comparison */
+#wwDemo {
+  display: grid;
+  gap: var(--gap-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  margin-top: 1.1em;
+}
+#wwDemo > figure { margin: 0; min-width: 0; text-align: center; }
+#wwDemo :is(h3, h4) {
+  margin: 0 0 .4em;
+  font-size: var(--fs-ui);
+  line-height: 1.25;
+  min-height: 2.6em;                         /* locks both Moons to the same baseline */
+}
+#wwDemo svg {
+  width: 100%;
+  max-width: 170px;
+  height: auto;
+  margin-inline: auto;
+  display: block;
+}
+#wwDemo .ww-sub {
+  margin: .5em 0 0;
+  font-size: var(--fs-xxs);
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+  min-height: 3.2em;                         /* reserves 2 lines: no jitter while playing */
+  max-width: none;
+}
+.ww-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+.ww-controls #wwSlider { flex: 1 1 200px; min-width: 0; }
+.ww-punch { margin-top: 1em; color: var(--ink-soft); }
+
+
+/* =====================================================================
+   9. TIMELINE — snap scroller below 1024px, 9 across above
+   ===================================================================== */
+
+.timeline-shell { position: relative; margin-top: .4em; }
+
+.timeline-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;            /* P5: no browser back-swipe */
+  touch-action: pan-x;
+  scroll-snap-type: x proximity;             /* proximity, never mandatory (uiux §9.4) */
+  scrollbar-width: thin;
+  scrollbar-color: var(--hair-strong) transparent;
+  margin-inline: calc(-1 * var(--panel-pad));
+  padding-inline: var(--panel-pad);
+  padding-bottom: 6px;
+}
+.timeline-scroll::-webkit-scrollbar { height: 6px; }
+.timeline-scroll::-webkit-scrollbar-track { background: transparent; border: 0; }
+.timeline-scroll::-webkit-scrollbar-thumb {
+  background: var(--hair-strong);
+  border: 0;
+  border-radius: 999px;
+}
+
+.timeline-track {
+  --tl-col: 76px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(9, var(--tl-col));
+  width: max-content;
+  min-width: 100%;
+  padding: 34px 0 10px;
+}
+/* The rail runs from the FIRST marker centre to the LAST marker centre, and sits in
+   the TICK band (y 65-75), not through the Moon glyphs (y 34-60) — so the thumb can
+   ride it without covering the very Moon it is pointing at. */
+.timeline-track::before {
+  content: "";
+  position: absolute;
+  top: 68px;
+  height: 3px;
+  border-radius: 2px;
+  left: calc(var(--tl-col) / 2);
+  right: calc(var(--tl-col) / 2);
+  background: linear-gradient(90deg,
+    rgba(124, 196, 255, .20), rgba(124, 196, 255, .80) 50%, rgba(124, 196, 255, .20));
+}
+
+/* OVERRIDE O3 — lands on marker centres and keeps --tl-pos = day / SYNODIC */
+#tlThumb {
+  position: absolute;
+  top: 62px;                                 /* 16px disc centred on the 68px rail */
+  left: calc(var(--tl-col) / 2 + var(--tl-pos, 0) * (100% - var(--tl-col)));
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  border-radius: 50%;
+  background: var(--sun);
+  box-shadow: 0 0 0 5px rgba(255, 212, 121, .20), 0 0 16px rgba(255, 180, 77, .7);
+  transition: left var(--dur-2) var(--ease-out);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tl-marker {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 2px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--ink-faint);
+  font: inherit;
+  font-size: var(--fs-xxs);
+  line-height: 1.15;
+  scroll-snap-align: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: color var(--dur-2) var(--ease-out);
+}
+.tl-moon { width: 26px; height: 26px; display: block; }
+.tl-tick { width: 2px; height: 10px; border-radius: 1px; background: currentColor; opacity: .55; }
+.tl-label { min-height: 2.4em; display: block; }
+.tl-label-wide { display: none; }
+
+.tl-marker[aria-current="true"] { color: var(--ink); font-weight: 700; }
+.tl-marker[aria-current="true"] .tl-tick { opacity: 1; background: var(--sun); }
+/* non-colour cue: a caret above the current marker */
+.tl-marker[aria-current="true"]::before {
+  content: "\25BE";
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--sun);
+  font-size: 1.1em;
+  line-height: 1;
+}
+.tl-marker:active { transform: scale(.96); }
+.tl-marker:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+  box-shadow: none;
+}
+
+/* edge fades + swipe hint appear only when the track really overflows (JS sets the flag) */
+.tl-hint { display: none; margin: .6em 0 0; font-size: var(--fs-xxs); color: var(--ink-faint); }
+.tl-note { margin: .8em 0 0; font-size: var(--fs-xs); color: var(--ink-dim); }
+.timeline-shell::before, .timeline-shell::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 6px;
+  width: 26px;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+.timeline-shell::before {
+  left: calc(-1 * var(--panel-pad));
+  background: linear-gradient(90deg, #0b1122, rgba(11, 17, 34, 0));
+}
+.timeline-shell::after {
+  right: calc(-1 * var(--panel-pad));
+  background: linear-gradient(270deg, #0b1122, rgba(11, 17, 34, 0));
+}
+.timeline-shell[data-scrollable="true"]::before,
+.timeline-shell[data-scrollable="true"]::after { opacity: 1; }
+.timeline-shell[data-scrollable="true"] ~ .tl-hint { display: block; }
+
+
+/* =====================================================================
+   10. QUIZ
+   ===================================================================== */
+
+#quizForm { display: grid; gap: var(--gap-3); }
+
+.q {
+  margin: 0;
+  padding: 0 0 var(--gap-2);
+  border: 0;
+  border-bottom: 1px solid var(--hair);
+  min-width: 0;                              /* UA default min-inline-size is a 320px trap */
+}
+.q:last-of-type { border-bottom: 0; }
+.q legend {
+  padding: 0;
+  margin: 0 0 .7em;
+  font-weight: 700;
+  color: var(--ink);
+  font-size: var(--fs-ui);
+  line-height: 1.35;
+}
+.q-opts { display: grid; gap: 8px; }
+
+.opt {
+  display: flex;
+  flex-wrap: wrap;                           /* lets .opt-badge drop to its own line */
+  align-items: flex-start;
+  gap: 12px;
+  min-height: var(--tap);
+  padding: 12px 14px;
+  border: 1px solid var(--ui-brd);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, .035);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background var(--dur-2) var(--ease-out),
+              border-color var(--dur-2) var(--ease-out);
+}
+.opt:active { background: rgba(255, 255, 255, .07); }
+/* flex-basis 15ch: the badge wraps to its own row rather than squeezing the answer text */
+.opt-text { font-size: var(--fs-ui); line-height: 1.4; flex: 1 1 15ch; min-width: 0; }
+
+/* the real radio IS the visible control (a11y §2.8 preferred path) */
+.opt input[type="radio"] {
+  flex: 0 0 auto;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  margin: .1em 0 0;
+  border: 2px solid var(--ui-brd-strong);
+  border-radius: 50%;
+  background: rgba(4, 8, 18, .65);
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  transition: border-color var(--dur-2) var(--ease-out);
+}
+.opt input[type="radio"]::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: scale(0);
+  transition: transform var(--dur-1) var(--ease-out);
+}
+.opt input[type="radio"]:checked { border-color: var(--accent); }
+.opt input[type="radio"]:checked::before { transform: scale(1); }
+
+/* if the HTML author instead sr-only's the input and draws `.opt-mark`, style that */
+.opt-mark { display: none; }
+.opt:has(> input.sr-only) .opt-mark {
+  display: grid;
+  place-content: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  margin-top: .1em;
+  border: 2px solid var(--ui-brd-strong);
+  border-radius: 50%;
+  background: rgba(4, 8, 18, .65);
+}
+.opt:has(> input.sr-only:checked) .opt-mark {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 5px var(--accent);
+}
+
+.opt:has(input:checked) { background: var(--accent-soft); border-color: var(--accent-line); }
+.opt.is-checked { background: var(--accent-soft); border-color: var(--accent-line); }
+.opt:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.opt-badge {
+  margin-left: auto;
+  align-self: center;
+  flex: 0 0 auto;
+  max-width: 100%;
+  padding: .18em .6em;
+  border: 1px dashed var(--ui-brd-strong);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xxs);
+  font-weight: 700;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* ---- per-question feedback: glyph + word + border STYLE, never colour alone ---- */
+.q-feedback {
+  margin: .7em 0 0;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid var(--hair);
+}
+.q-feedback:empty { display: none; }
+.q-feedback[data-ok="yes"] { background: rgba(124, 232, 176, .12); border-color: rgba(124, 232, 176, .34); }
+.q-feedback[data-ok="no"] { background: rgba(255, 138, 138, .12); border-color: rgba(255, 138, 138, .34); }
+.q-feedback > p { max-width: var(--measure); }
+.q-feedback > p + p { margin-top: .45em; }
+
+.fb-verdict { font-weight: 700; }
+.fb-ok { color: var(--ok); border-left: 4px solid currentColor; padding-left: 10px; }
+.fb-no { color: var(--warn); border-left: 4px dashed currentColor; padding-left: 10px; }
+.fb-warn { color: var(--warn); border-left: 4px dotted currentColor; padding-left: 10px; }
+.fb-why { color: var(--ink-soft); }
+.fb-answer { color: var(--ink); }
+.fb-takeaway { color: var(--ink-dim); font-style: italic; }
+
+/* unanswered question: dashed outline (shape) + the legend flag (text) */
+.q.is-blank { outline: 2px dashed var(--warn); outline-offset: 6px; }
+.blank-flag { display: none; }
+.q.is-blank .blank-flag { display: inline; color: var(--warn); font-weight: 700; }
+
+.quiz-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: .4em; }
+.quiz-actions > .btn,
+.quiz-actions > button { flex: 1 1 auto; min-width: 0; }
+.quiz-actions > button[type="submit"]:not([class*="btn-"]):not([class*="btn--"]) {
+  --btn-ink: var(--accent-ink);
+  --btn-brd: transparent;
+  background: linear-gradient(135deg, #a9dcff 0%, var(--accent) 46%, #6aa9ff 100%);
+  box-shadow: var(--glow-accent);
+  font-weight: 700;
+}
+
+#quizResultsHeading { margin-top: .4em; }
+#quizScore {
+  margin-top: 14px;
+  font-size: var(--fs-lead);
+  min-height: 1.6em;
+  padding: 14px 16px;
+  border: 1px solid var(--accent-line);
+  border-left: 4px solid var(--accent);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: var(--accent-soft);
+}
+#quizScore:empty { min-height: 0; padding: 0; border: 0; background: none; margin-top: 0; }
+.score-line { font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.score-msg { margin-top: .35em; font-size: var(--fs-body); color: var(--ink-soft); }
+
+
+/* =====================================================================
+   11. FOOTER
+   ===================================================================== */
+
+.site-footer p { max-width: var(--measure); }
+.site-footer p + p { margin-top: .7em; }
+.site-footer .disclaimer { color: var(--ink-faint); font-size: var(--fs-xxs); line-height: 1.55; }
+.site-footer a { color: var(--accent); }
+
+
+/* =====================================================================
+   12. BREAKPOINTS — 480 / 768 / 1024, then preference + print queries
+   ===================================================================== */
+
+/* ---------- >= 480px ---------- */
+@media (min-width: 480px) {
+  .orbit-wrap, .earthview-wrap { max-width: 560px; margin-inline: auto; width: 100%; }
+
+  .readout {
+    grid-template-columns: minmax(0, 1.7fr) repeat(3, minmax(0, 1fr));
+    grid-template-areas: "phase day illum trend";
+  }
+  :is(#rdDay, #rdIllum, #rdTrend) { min-height: var(--tap-min); }
+
+  .ctl-row--buttons > .btn,
+  .ctl-row--buttons > button { flex: 0 1 auto; }
+  .ctl-speed { flex: 0 1 auto; }
+  .demo-toggle > .btn,
+  .demo-toggle > button { flex: 0 1 auto; }
+  .quiz-actions > .btn,
+  .quiz-actions > button { flex: 0 1 auto; }
+
+  .phase-cards { gap: 12px; }
+  .def-pair { grid-template-columns: 1fr 1fr; }
+
+  .timeline-track { --tl-col: 92px; }
+  .tl-label-short, .tl-label-narrow { display: none; }
+  .tl-label-wide { display: block; }
+}
+
+/* ---------- >= 768px ---------- */
+@media (min-width: 768px) {
+  .site-header { text-align: left; }
+
+  .scene-grid { grid-template-columns: 1.15fr 1fr; align-items: start; }
+  .orbit-wrap, .earthview-wrap { max-width: none; }
+  #earthCanvas { aspect-ratio: 1 / 1; }
+
+  .controls-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: end; }
+  .ctl-row--slider { grid-column: 1; }
+  .ctl-row--buttons { grid-column: 2; justify-content: flex-end; }
+  .drag-help, .drag-help-list, .rm-note { grid-column: 1 / -1; }
+
+  .phase-cards { gap: 16px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  #eclipseDemo { grid-template-columns: 1fr 1fr; align-items: start; }
+
+  .cmp-flat { display: none; }
+  .cmp-table { display: table; width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 1em; }
+  .cmp-table th, .cmp-table td {
+    padding: 10px 12px;
+    border: 1px solid var(--hair);
+    vertical-align: top;
+    text-align: left;
+    font-size: var(--fs-xs);
+    color: var(--ink-soft);
+  }
+  .cmp-table th { color: var(--ink); font-weight: 700; background: rgba(255, 255, 255, .04); }
+
+  .only-narrow { display: none; }
+  .only-wide { display: inline; }
+}
+
+@supports not (aspect-ratio: 4 / 3) {
+  @media (min-width: 768px) {
+    #orbitCanvas, #earthCanvas { height: 34vw; max-height: 520px; }
+  }
+}
+
+/* ---------- >= 1024px ---------- */
+@media (min-width: 1024px) {
+  .scene-grid { gap: 24px; }
+  #scene { box-shadow: var(--e-4); }
+  .phase-cards { gap: 18px; }
+  .timeline-track { --tl-col: calc(100% / 9); width: 100%; min-width: 0; }
+}
+
+/* ---------- phone-height guards ---------- */
+@media (max-width: 767px) {
+  #orbitCanvas { max-height: 52svh; }
+  #earthCanvas { max-height: 46svh; }
+}
+@media (max-height: 640px) {
+  #earthCanvas { aspect-ratio: 3 / 2; }
+}
+
+/* below 480px the blurb shows on the selected card only — never clipped, never truncated */
+@media (max-width: 479px) {
+  .phase-card .card-blurb { display: none; }
+  .phase-card[aria-pressed="true"] .card-blurb,
+  .phase-card[aria-current="true"] .card-blurb { display: block; }
+}
+
+/* ---------- hover: pointer devices only (OVERRIDE O4 — no sticky hover on touch) ---------- */
+@media (hover: hover) and (pointer: fine) {
+  a:hover { text-decoration: underline; }
+  .section-nav a:hover { background: rgba(255, 255, 255, .10); border-color: var(--ui-brd-strong); color: var(--ink); }
+  .btn:hover,
+  .ctl-row--buttons > button:hover,
+  .quiz-actions > button:hover,
+  .demo-toggle > button:hover,
+  .ww-controls > button:hover { --btn-bg: rgba(255, 255, 255, .12); --btn-brd: var(--ui-brd-strong); }
+  .btn--primary.btn--primary:hover, .btn-primary.btn-primary:hover { filter: brightness(1.07); }
+  .btn--ghost.btn--ghost:hover { --btn-bg: rgba(255, 255, 255, .06); background: rgba(255, 255, 255, .06); color: var(--ink); }
+  .phase-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--ui-brd-strong);
+    box-shadow: var(--e-2);
+  }
+  .phase-card[aria-pressed="true"]:hover,
+  .phase-card[aria-current="true"]:hover {
+    box-shadow: inset 0 0 0 2px var(--accent), var(--e-2);
+  }
+  .tl-marker:hover { color: var(--ink); }
+  .opt:hover { background: rgba(255, 255, 255, .06); border-color: var(--ui-brd-strong); }
+  input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.06); }
+  input[type="range"]:hover::-moz-range-thumb { transform: scale(1.06); }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .32); }
+}
+
+/* ---------- landscape on a short screen (covers max-height:480px) ---------- */
+@media (orientation: landscape) and (max-height: 520px) {
+  .site-header { padding-block: 14px 10px; }
+  h1#siteTitle { font-size: clamp(1.5rem, 4vw, 2.1rem); }
+  .section-nav { margin-top: 10px; }
+  .panel { padding: 14px 16px; margin-bottom: 14px; }
+
+  /* vertical space is the scarce axis — go side-by-side early */
+  .scene-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  #orbitCanvas { aspect-ratio: 16 / 10; max-height: 66svh; }
+  #earthCanvas { aspect-ratio: 1 / 1; max-height: 66svh; }
+  .orbit-wrap, .earthview-wrap { max-width: none; margin-inline: 0; }
+
+  .controls-grid { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: end; }
+  .ctl-row--slider { grid-column: 1; }
+  .ctl-row--buttons { grid-column: 2; }
+
+  /* sr-only, NOT display:none — #dragToggle's aria-describedby points here */
+  .drag-help, .drag-help-list {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0; border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .btn,
+  .ctl-row--buttons > button,
+  .quiz-actions > button,
+  .demo-toggle > button,
+  .ww-controls > button { min-height: var(--tap-min); padding: .55em .9em; }
+  figcaption { font-size: var(--fs-xxs); }
+  #wwDemo :is(h3, h4) { min-height: 0; }
+}
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;      /* 1ms, not 0s: *end events still fire */
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1 !important; transform: none !important; }
+  .skip-link { transition: none; }
+  .rm-note { display: block; }
+  body::after { opacity: .30; }
+  /* doubles as the cheap-device escape hatch: no per-frame re-blur */
+  .panel {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: #0b1122;
+  }
+  .btn:active, .phase-card:active, .tl-marker:active { transform: none; }
+}
+
+/* ---------- more contrast ---------- */
+@media (prefers-contrast: more) {
+  :root {
+    --glass: rgba(10, 15, 31, .94);
+    --glass-brd: rgba(255, 255, 255, .46);
+    --ui-brd: rgba(255, 255, 255, .62);
+    --ui-brd-strong: rgba(255, 255, 255, .80);
+    --ink-dim: #d3ddf5;
+    --ink-faint: #c2cde8;
+    --hair: rgba(255, 255, 255, .32);
+    --accent-soft: rgba(124, 196, 255, .22);
+    --accent-line: rgba(124, 196, 255, .60);
+  }
+  body::after { display: none; }
+  .panel {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(10, 15, 31, .94);
+  }
+  a { text-decoration: underline; }
+  .btn, .phase-card, .tl-marker, .opt, #speedSelect, .section-nav a { border-width: 2px; }
+  .phase-card[aria-pressed="true"], .phase-card[aria-current="true"] {
+    box-shadow: inset 0 0 0 3px var(--accent);
+  }
+  .trend-grow, .trend-shrink, .trend-turn { border-left-width: 5px; }
+  .mythbuster, .myth-block { border-color: var(--warn); }
+  :where(a, button, input, select, summary, [tabindex]):focus-visible {
+    outline-width: 4px;
+    outline-offset: 4px;
+  }
+}
+
+/* ---------- Windows High Contrast ---------- */
+@media (forced-colors: active) {
+  :where(a, button, input, select, summary, [tabindex]):focus-visible {
+    outline: 3px solid Highlight;
+    box-shadow: none;
+  }
+  .btn, .phase-card, .tl-marker, .opt, .section-nav a { border: 1px solid ButtonText; }
+  .phase-card[aria-pressed="true"], .phase-card[aria-current="true"] {
+    outline: 2px dashed CanvasText;
+    outline-offset: -4px;
+  }
+  .panel { border: 1px solid CanvasText; }
+  .drag-chip { border: 1px solid CanvasText; }
+  #tlThumb { background: Highlight; box-shadow: none; }
+  .opt input[type="radio"]:checked::before { background: Highlight; }
+}
+
+/* ---------- print: simple, legible, ink-cheap ---------- */
+@media print {
+  html, body {
+    background: #ffffff !important;
+    color: #101010 !important;
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+  body::before, body::after { display: none !important; }
+  .skip-link, .section-nav, #controls, .demo-toggle, .ww-controls,
+  .drag-chip, .tl-hint, .quiz-actions, #tlThumb, .rm-note { display: none !important; }
+
+  .wrap { max-width: none; padding-inline: 0; }
+  .panel {
+    background: #ffffff !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    border: 1pt solid #999999;
+    border-radius: 0;
+    box-shadow: none;
+    margin-bottom: 10pt;
+    padding: 10pt;
+    break-inside: avoid;
+    contain: none;
+  }
+  .panel::before { display: none; }
+  .reveal { opacity: 1 !important; transform: none !important; }
+
+  h1#siteTitle {
+    color: #101010 !important;
+    -webkit-text-fill-color: #101010 !important;
+    background: none !important;
+    font-size: 22pt;
+  }
+  h2 { font-size: 15pt; break-after: avoid; }
+  h3, h4 { font-size: 12pt; break-after: avoid; }
+  .panel > h2::after { background: #101010; }
+  p, li, dd, dt, figcaption, .card-blurb, .tl-note, .disclaimer { color: #232323 !important; max-width: none; }
+
+  #orbitCanvas, #earthCanvas { border: 1pt solid #999999; max-height: none; break-inside: avoid; }
+
+  .readout { background: #f2f2f2 !important; border: 1pt solid #999999; }
+  :is(#rdPhase, #rdDay, #rdIllum, #rdTrend) {
+    background: #ffffff !important;
+    border: 1pt solid #bbbbbb;
+    color: #101010 !important;
+  }
+
+  .phase-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8pt; }
+  .phase-card {
+    background: #ffffff !important;
+    border: 1pt solid #999999;
+    box-shadow: none !important;
+    transform: none !important;
+    color: #232323 !important;
+    break-inside: avoid;
+  }
+  .phase-card .card-blurb { display: block; }
+  .card-name, .card-moon { filter: none !important; }
+
+  .timeline-scroll { overflow: visible; margin-inline: 0; padding-inline: 0; }
+  .timeline-track { --tl-col: calc(100% / 9); width: 100%; min-width: 0; }
+  .tl-marker { color: #232323 !important; }
+
+  .mythbuster, .myth-block, .trick, .why-punch, .myth-punch, .ww-punch, #quizScore {
+    background: #f6f6f6 !important;
+    border: 1pt solid #666666;
+    color: #101010 !important;
+  }
+  .opt { background: #ffffff !important; border: 1pt solid #999999; break-inside: avoid; }
+  .q { break-inside: avoid; }
+
+  a { color: #101010 !important; text-decoration: underline; }
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to the Moon</a>
+<a class="skip-link" href="#quiz">Skip to the quiz</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <h1 id="siteTitle">Why the Moon Changes Shape</h1>
+    <p class="tagline">The Moon is always half lit. What changes is where you're standing.</p>
+    <p class="hook">Sunlight lights up exactly one half of the Moon, all day, every day, forever. As the Moon travels around Earth, we look at that same lit half from a new angle each night — and that changing angle is the whole reason the Moon looks like a sliver, a half, or a full circle.</p>
+
+    <nav id="sectionNav" class="section-nav" aria-label="Page sections">
+      <ul>
+        <li><a href="#scene">Watch it happen</a></li>
+        <li><a href="#phases">The eight phases</a></li>
+        <li><a href="#why">Why phases happen</a></li>
+        <li><a href="#waxwane">Waxing and waning</a></li>
+        <li><a href="#timeline">One month</a></li>
+        <li><a href="#quiz">Quiz</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="wrap" tabindex="-1">
+
+  <noscript>
+    <div class="noscript-note" role="note">
+      <p><strong>This page needs JavaScript to run the Moon simulator.</strong> The explanations below still work.</p>
+      <ol class="steps">
+        <li>Half of the Moon is lit. That half never gets bigger or smaller.</li>
+        <li>The lit half always faces the Sun, wherever the Moon has travelled to.</li>
+        <li>In one month the Moon circles Earth, so we view that lit half from every angle.</li>
+        <li>The phase you see is just how much of the lit half is turned toward you.</li>
+      </ol>
+      <p>Same Moon. Same sunlight. Different angle. That's the whole trick.</p>
+    </div>
+  </noscript>
+
+  <!-- ============================= SCENE ============================= -->
+  <section id="scene" class="panel reveal" aria-labelledby="sceneHeading" tabindex="-1">
+    <h2 id="sceneHeading">Watch it happen</h2>
+
+    <p class="panel-intro">
+      <span class="only-wide">On the left is a map of the Moon's orbit, seen from high above Earth's North Pole. On the right is what your eyes would actually see, looking up from the ground.</span><span class="only-narrow">The first picture is a map of the Moon's orbit, seen from high above Earth's North Pole. The second is what your eyes would actually see, looking up from the ground.</span>
+      Move through the month and watch the two views change together.
+    </p>
+
+    <div class="scene-grid">
+
+      <figure class="orbit-wrap">
+        <canvas id="orbitCanvas" role="img" tabindex="0"
+                aria-label="Top-down map of the Moon's orbit. Sunlight comes from the left. Day 0.0: the Moon is directly left of Earth, between Earth and the Sun. New Moon."
+                aria-describedby="orbitKeys orbitDesc">Top-down map of the Moon's orbit. Sunlight arrives from the left in parallel rays and lights the left half of Earth and the left half of the Moon. Use the "Day of the month" slider below to move through the cycle; the written readout under the pictures describes every position in words.</canvas>
+        <span class="drag-chip" aria-hidden="true"><i></i>Drag the Moon</span>
+        <p id="orbitKeys" class="sr-only">Use the left and right arrow keys to move the Moon around its orbit. Hold Shift for bigger steps. Press the number keys 1 to 8 to jump to a phase. Press Home for New Moon, End for Full Moon, or the space bar to play and pause. If your screen reader is in browse mode, use the "Day of the month" slider below instead — it does exactly the same job.</p>
+        <p id="orbitDesc" class="sr-only">A map looking down from above Earth's North Pole. The Sun is far off to the left and its light travels rightward in parallel rays, lighting the left half of Earth and the left half of the Moon. The Moon travels once round Earth in about 29.5 days, moving counter-clockwise as seen from above the North Pole.</p>
+        <figcaption id="orbitCaption">Looking down from above Earth's North Pole. Sunlight arrives from the left in straight, parallel rays, so it always lights the left-hand half of both Earth and the Moon — no matter where the Moon has travelled to.
+          <span class="caption-note">Sizes and distances are not to scale. The Sun is really about 390 times further away than the Moon — its light arrives as parallel rays.</span>
+        </figcaption>
+      </figure>
+
+      <figure class="earthview-wrap">
+        <canvas id="earthCanvas" role="img"
+                aria-label="The Moon seen from Earth's Northern Hemisphere. Day 0.0: New Moon, 0 percent lit, no bright edge visible."
+                aria-describedby="earthDesc">The Moon as it appears from Earth's Northern Hemisphere. The Sun lights half the Moon, and from here we see part of that lit half. Use the "Day of the month" slider below to move through the cycle; the written readout under the pictures describes the current phase in words.</canvas>
+        <p id="earthDesc" class="sr-only">The Moon drawn as a single disc, the way it looks to someone standing on the ground in the Northern Hemisphere. The bright part is the sunlit half turned toward Earth; the dark part is the Moon's night side. While the Moon is growing the bright edge is on the right, and while it is shrinking the bright edge is on the left.</p>
+        <figcaption id="earthCaption"><span class="caption-title">View from Earth — Northern Hemisphere</span>
+          <span class="caption-body">This is the Moon as it appears to someone standing in the Northern Hemisphere, looking up. From here the growing side is on the right and the shrinking side is on the left; south of the equator the whole picture is flipped left-to-right.</span>
+          <span class="caption-note">That faint grey glow on the dark part of a thin crescent is real. It is called earthshine: sunlight bounces off Earth, travels to the Moon, and comes back to us.</span>
+        </figcaption>
+      </figure>
+
+    </div>
+
+    <p class="scene-note"><strong>This flat picture is a simplification.</strong> The Moon's real path is <strong>tilted by about 5°</strong>, so at New and Full it usually passes above or below the exact line-up — which is why we don't get an eclipse every month.</p>
+
+    <!-- Live region. The four visible spans are aria-hidden and update ~15x/s;
+         the .sr-only twin [data-live="readout"] carries one clean sentence at <=3 Hz. -->
+    <div id="readout" class="readout" aria-live="polite" aria-atomic="true" aria-busy="false">
+      <span id="rdPhase" aria-hidden="true"><span class="sr-only">Phase: </span><b>New Moon</b></span>
+      <span id="rdDay" aria-hidden="true"><span class="sr-only">Day: </span>Day 0.0 of 29.5</span>
+      <span id="rdIllum" aria-hidden="true"><span class="sr-only">Lit: </span>0% lit</span>
+      <span id="rdTrend" aria-hidden="true"><span class="sr-only">Trend: </span>lit half faces away</span>
+      <span class="sr-only readout-live" data-live="readout">Day 0.0 of 29.5. New Moon. 0 percent lit. The sunlit half faces away from Earth.</span>
+    </div>
+  </section>
+
+  <!-- ============================ CONTROLS =========================== -->
+  <section id="controls" class="panel reveal" aria-labelledby="controlsHeading" tabindex="-1">
+    <h2 id="controlsHeading">Controls</h2>
+
+    <div class="controls-grid">
+
+      <div class="ctl-row ctl-row--slider">
+        <label class="ctl-label" for="daySlider">Day of the month</label>
+        <output class="ctl-out" id="dayLabel" for="daySlider" aria-live="off">Day 0.0</output>
+        <input id="daySlider" type="range" min="0" max="29.5" step="0.1" value="0"
+               aria-valuetext="Day 0.0, New Moon, 0 percent lit, turning point"
+               aria-describedby="sliderHelp">
+        <p id="sliderHelp" class="sr-only">Arrow keys move one tenth of a day. Page Up and Page Down move one whole day. Home jumps to New Moon, End jumps to Full Moon.</p>
+      </div>
+
+      <div class="ctl-row ctl-row--buttons">
+        <button id="playPause" class="btn btn--primary" type="button"
+                aria-pressed="true" aria-label="Pause the month"><span class="btn-glyph" aria-hidden="true">❚❚</span><span class="btn-text">Pause</span></button>
+
+        <button id="dragToggle" class="btn" type="button"
+                aria-pressed="false" aria-label="Drag the Moon learning mode"
+                aria-describedby="dragHelp">Drag the Moon</button>
+
+        <button id="resetBtn" class="btn btn--ghost" type="button"
+                aria-label="Reset to day 0, New Moon">Reset</button>
+
+        <p class="ctl-speed">
+          <label class="ctl-label" for="speedSelect">Speed</label>
+          <select id="speedSelect">
+            <option value="0.5">Slow (0.5 days/sec)</option>
+            <option value="1" selected>Normal (1 day/sec)</option>
+            <option value="2">Fast (2 days/sec)</option>
+            <option value="4">Very fast (4 days/sec)</option>
+          </select>
+        </p>
+      </div>
+
+      <p id="dragHelp" class="drag-help">Grab the Moon and move it around its orbit yourself. Both views update as you go.</p>
+      <ul class="drag-help-list">
+        <li>Touch: press the Moon and slide your finger around the circle.</li>
+        <li>Mouse: click the Moon and drag it around the circle.</li>
+        <li>Keyboard: Tab to the Moon, then press the Left and Right arrow keys. Hold Shift for bigger steps.</li>
+      </ul>
+
+      <p class="rm-note">Motion is turned down on your device, so the month does not play on its own. Use the slider, the arrow keys, or the phase cards to move through the cycle.</p>
+    </div>
+  </section>
+
+  <!-- ============================= PHASES ============================ -->
+  <section id="phases" class="panel reveal" aria-labelledby="phasesHeading" tabindex="-1">
+    <h2 id="phasesHeading">The eight phases</h2>
+    <p class="panel-intro">These eight names are just handy labels for eight points on one smooth journey. Tap any card to jump the Moon there.</p>
+
+    <p id="phaseCardsHelp" class="sr-only">Eight buttons. Choose one to move the Moon to that phase. Left and right arrow keys move between the cards without choosing one.</p>
+
+    <!-- JS builds the 8 button.phase-card elements in here. Kept deliberately empty. -->
+    <div id="phaseCards" class="phase-cards" role="group"
+         aria-label="The eight Moon phases, in order" aria-describedby="phaseCardsHelp"></div>
+  </section>
+
+  <!-- =============================== WHY ============================= -->
+  <section id="why" class="panel reveal" aria-labelledby="whyHeading" tabindex="-1">
+    <h2 id="whyHeading">Why do we see phases?</h2>
+
+    <p>Start with the part that never changes. The Sun is so far away that its light reaches the Moon as a bundle of straight, parallel rays, and those rays can only ever hit one side of a ball. So exactly half of the Moon is lit up, right now and always — a permanent day side and a permanent night side. The line running around the Moon between the two is called the terminator, which just means the border between the sunlit part and the dark part.</p>
+
+    <p>Now add the movement. The Moon takes about 29.5 days to travel all the way around Earth, and it carries that lit half with it — the lit half always points at the Sun, like a sunflower that never looks away. Because we are riding along on Earth in the middle, we end up looking at that same lit half from a different angle every single night.</p>
+
+    <p>That angle is the phase. When the Moon is on the far side of Earth from the Sun, the lit half points straight at us and we see a full circle. When the Moon is between us and the Sun, the lit half points away and we see almost nothing. In between, we catch the lit half side-on and see a slice of it — a crescent, a half, or a fat gibbous shape. Nothing covers the Moon and nothing is switched off. We are simply looking at the same lit half from a new seat.</p>
+
+    <h3>How to think about it</h3>
+    <ol class="steps why-steps">
+      <li>Half of the Moon is lit. That half never gets bigger or smaller.</li>
+      <li>The lit half always faces the Sun, wherever the Moon has travelled to.</li>
+      <li>In one month the Moon circles Earth, so we view that lit half from every angle.</li>
+      <li>The phase you see is just how much of the lit half is turned toward you.</li>
+    </ol>
+
+    <p class="why-punch">Same Moon. Same sunlight. Different angle. That's the whole trick.</p>
+
+    <div class="mythbuster myth-block" role="group" aria-labelledby="mythHeading">
+      <p class="myth-chip">Common mix-up</p>
+      <h3 id="mythHeading">Phases are NOT Earth's shadow</h3>
+
+      <p>Lots of people are told that the Moon's phases happen because Earth's shadow falls across the Moon. It is a tidy idea, and it is wrong. Earth's shadow points straight away from the Sun, so it can only ever reach the Moon at one moment in the cycle — Full Moon — and even then it usually misses. Phases, meanwhile, keep changing smoothly all month long. A shadow cannot explain that.</p>
+
+      <p>Earth's shadow does hit the Moon sometimes, and when it does we call it a lunar eclipse. Earth blocks the sunlight, the Moon slides into the dark cone behind us, and for a couple of hours it dims and turns a deep coppery red. That red light is sunrise and sunset from all around Earth's edge, bent through our atmosphere and spilling onto the Moon.</p>
+
+      <p>So why isn't there an eclipse every single Full Moon? Because the Moon's orbit is tilted by about 5° compared with Earth's path around the Sun. Five degrees sounds tiny, but across that distance it is enough: at most Full Moons the Moon sails above or below Earth's shadow and sails right past it. The two only line up now and then. Somewhere on Earth there are usually two lunar eclipses a year, sometimes three — and from any one town, a total lunar eclipse is a treat you get roughly every two or three years.</p>
+
+      <h4>How to tell them apart</h4>
+
+      <dl class="cmp-flat">
+        <dt>When</dt>
+        <dd>A phase is on show every night of the month. An eclipse only happens at Full Moon, a couple of times a year.</dd>
+        <dt>How long</dt>
+        <dd>A phase changes too slowly to watch; you compare one night with the next. An eclipse runs its whole course in about two hours, and you can watch the edge move.</dd>
+        <dt>Edge and colour</dt>
+        <dd>In a phase the dark part is just unlit and disappears into the sky, behind a clean, smooth curve. In an eclipse the edge is a soft, fuzzy arc from a much larger circle, and the covered part glows dim orange-red.</dd>
+      </dl>
+
+      <table class="cmp-table">
+        <caption class="sr-only">Three ways to tell a Moon phase from a lunar eclipse.</caption>
+        <thead>
+          <tr>
+            <td></td>
+            <th scope="col">A phase</th>
+            <th scope="col">A lunar eclipse</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">When</th>
+            <td>Happens every night, all month. Any phase can be up in the daytime or the middle of the night.</td>
+            <td>Only ever at Full Moon, and only a couple of times a year. The Moon must be up and opposite the Sun.</td>
+          </tr>
+          <tr>
+            <th scope="row">How long</th>
+            <td>Changes far too slowly to watch. You have to compare one night with the next.</td>
+            <td>Plays out in one evening. The dark edge visibly creeps across in a couple of hours.</td>
+          </tr>
+          <tr>
+            <th scope="row">The edge and the colour</th>
+            <td>The dark part is simply unlit and vanishes into the black sky. The bright edge is a clean, smooth curve.</td>
+            <td>The shadow's edge is a soft, fuzzy arc from a much bigger circle, and the covered part glows dim orange-red instead of disappearing.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="myth-punch">Phase = which way the lit half is pointing. Eclipse = Earth's shadow actually landing on the Moon.</p>
+
+      <h3 id="eclipseDemoHeading" class="sr-only">Phase or eclipse?</h3>
+
+      <div id="eclipseDemo">
+        <div class="demo-toggle">
+          <button type="button" id="eclBtnPhase" class="btn" data-panel="phase"
+                  aria-pressed="true" aria-label="Show a Moon phase"
+                  aria-controls="eclPanelPhase">Show a phase</button>
+          <button type="button" id="eclBtnEclipse" class="btn" data-panel="eclipse"
+                  aria-pressed="false" aria-label="Show a lunar eclipse"
+                  aria-controls="eclPanelEclipse">Show a lunar eclipse</button>
+        </div>
+
+        <figure id="eclPanelPhase" class="ecl-panel" data-panel="phase">
+          <svg class="ecl-svg" viewBox="0 0 320 190" role="img" aria-labelledby="eclPhaseDesc" focusable="false">
+            <desc id="eclPhaseDesc">The Sun on the left sending straight parallel rays to the right. Earth is in the middle with its left half lit. The Moon is off to the upper right, also with its left half lit, so from Earth we look at that lit half from the side.</desc>
+            <defs>
+              <radialGradient id="eclSunA" cx="30%" cy="50%" r="70%">
+                <stop offset="0%" stop-color="#fff3cd"/>
+                <stop offset="60%" stop-color="#ffd479"/>
+                <stop offset="100%" stop-color="#f0a93c"/>
+              </radialGradient>
+            </defs>
+            <circle cx="0" cy="95" r="56" fill="url(#eclSunA)"/>
+            <text x="20" y="101" fill="#4a3400" font-size="15" font-weight="700">Sun</text>
+            <g stroke="#ffd479" stroke-width="2" stroke-linecap="round" opacity=".85">
+              <line x1="56" y1="46" x2="100" y2="46"/>
+              <line x1="56" y1="74" x2="100" y2="74"/>
+              <line x1="56" y1="116" x2="100" y2="116"/>
+              <line x1="56" y1="144" x2="100" y2="144"/>
+            </g>
+            <g fill="#ffd479" opacity=".85">
+              <polygon points="100,42 110,46 100,50"/>
+              <polygon points="100,70 110,74 100,78"/>
+              <polygon points="100,112 110,116 100,120"/>
+              <polygon points="100,140 110,144 100,148"/>
+            </g>
+            <line x1="147" y1="86" x2="236" y2="62" stroke="#7cc4ff" stroke-width="1.5"
+                  stroke-dasharray="5 5" opacity=".75"/>
+            <circle cx="132" cy="95" r="18" fill="#16203a"/>
+            <path d="M 132 77 A 18 18 0 0 0 132 113 Z" fill="#8fc7ff"/>
+            <circle cx="132" cy="95" r="18" fill="none" stroke="rgba(255,255,255,.38)" stroke-width="1"/>
+            <text x="128" y="62" fill="#cdd8f0" font-size="15" text-anchor="middle">Earth</text>
+            <circle cx="250" cy="52" r="15" fill="#232b3d"/>
+            <path d="M 250 37 A 15 15 0 0 0 250 67 Z" fill="#e8edf9"/>
+            <circle cx="250" cy="52" r="15" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="1"/>
+            <text x="250" y="90" fill="#cdd8f0" font-size="15" text-anchor="middle">Moon</text>
+          </svg>
+          <figcaption>A phase. Sunlight still hits half the Moon. We are just seeing that lit half from the side, so part of it is turned away from us.</figcaption>
+        </figure>
+
+        <figure id="eclPanelEclipse" class="ecl-panel" data-panel="eclipse" hidden>
+          <svg class="ecl-svg" viewBox="0 0 320 190" role="img" aria-labelledby="eclEclipseDesc" focusable="false">
+            <desc id="eclEclipseDesc">The Sun on the left, Earth in the middle, and Earth's shadow stretching away to the right as a narrowing cone. The Moon's tilted orbit is drawn crossing the shadow, showing that the Moon usually passes above or below it.</desc>
+            <defs>
+              <radialGradient id="eclSunB" cx="30%" cy="50%" r="70%">
+                <stop offset="0%" stop-color="#fff3cd"/>
+                <stop offset="60%" stop-color="#ffd479"/>
+                <stop offset="100%" stop-color="#f0a93c"/>
+              </radialGradient>
+            </defs>
+            <circle cx="0" cy="95" r="56" fill="url(#eclSunB)"/>
+            <text x="20" y="101" fill="#4a3400" font-size="15" font-weight="700">Sun</text>
+            <g stroke="#ffd479" stroke-width="2" stroke-linecap="round" opacity=".85">
+              <line x1="56" y1="46" x2="100" y2="46"/>
+              <line x1="56" y1="74" x2="100" y2="74"/>
+              <line x1="56" y1="116" x2="100" y2="116"/>
+              <line x1="56" y1="144" x2="100" y2="144"/>
+            </g>
+            <g fill="#ffd479" opacity=".85">
+              <polygon points="100,42 110,46 100,50"/>
+              <polygon points="100,70 110,74 100,78"/>
+              <polygon points="100,112 110,116 100,120"/>
+              <polygon points="100,140 110,144 100,148"/>
+            </g>
+            <polygon points="150,77 318,87 318,103 150,113" fill="#03060e" opacity=".85"/>
+            <polygon points="150,77 318,87 318,103 150,113" fill="none"
+                     stroke="#8b98bb" stroke-width="1" stroke-dasharray="4 5" opacity=".55"/>
+            <line x1="48" y1="118" x2="318" y2="44" stroke="#c9a6ff" stroke-width="1.5"
+                  stroke-dasharray="6 5" opacity=".75"/>
+            <text x="316" y="30" fill="#c9a6ff" font-size="15" text-anchor="end">Tilted orbit — about 5°</text>
+            <g opacity=".5">
+              <circle cx="280" cy="54" r="7" fill="#232b3d"/>
+              <path d="M 280 47 A 7 7 0 0 0 280 61 Z" fill="#e8edf9"/>
+              <circle cx="280" cy="54" r="7" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1"/>
+            </g>
+            <circle cx="132" cy="95" r="18" fill="#16203a"/>
+            <path d="M 132 77 A 18 18 0 0 0 132 113 Z" fill="#8fc7ff"/>
+            <circle cx="132" cy="95" r="18" fill="none" stroke="rgba(255,255,255,.38)" stroke-width="1"/>
+            <text x="128" y="62" fill="#cdd8f0" font-size="15" text-anchor="middle">Earth</text>
+            <circle cx="280" cy="95" r="7" fill="#7d3b31" stroke="rgba(255,190,170,.5)" stroke-width="1"/>
+            <g stroke="#8895b8" stroke-width="1" opacity=".6">
+              <line x1="281" y1="116" x2="280" y2="104"/>
+              <line x1="200" y1="138" x2="200" y2="112"/>
+            </g>
+            <text x="284" y="130" fill="#cdd8f0" font-size="15" text-anchor="middle">Moon</text>
+            <text x="200" y="152" fill="#a9b6d4" font-size="15" text-anchor="middle">Earth's shadow</text>
+          </svg>
+          <figcaption>A lunar eclipse. Earth is directly in the way, so its shadow lands on the Moon and cuts the sunlight off. This only lines up a couple of times a year.</figcaption>
+        </figure>
+
+        <p class="caption-note ecl-note">Sizes and distances are not to scale. The tilt is exaggerated.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= WAXING / WANING ======================= -->
+  <section id="waxwane" class="panel reveal" aria-labelledby="wwHeading" tabindex="-1">
+    <h2 id="wwHeading">Waxing and waning</h2>
+
+    <div class="def-pair">
+      <p>Waxing means the lit part we can see is growing bigger each night, from New Moon up to Full Moon.</p>
+      <p>Waning means the lit part we can see is shrinking each night, from Full Moon back down to New Moon.</p>
+    </div>
+
+    <p class="word-note">"Wax" is an old word for grow — the same idea as wax building up on a candle — and "wane" is an old word for shrink.</p>
+
+    <div class="trick" role="note">
+      <h3>The D-O-C trick (Northern Hemisphere)</h3>
+      <p>Watch the shape of the Moon and read it like a letter. If the Moon looks like a D, it is waxing and heading for Full. A round O is the Full Moon itself. If it looks like a C, it is waning and heading for New. D, then O, then C — in that order, right through the month.</p>
+      <p>It works because from the Northern Hemisphere the bright edge sits on the right while the Moon is growing, and on the left while it is shrinking.</p>
+      <p class="trick-flip">Heads up: south of the equator you are looking at the sky "upside down", so the whole thing flips. In the Southern Hemisphere a waxing Moon looks like a C and a waning Moon looks like a D.</p>
+    </div>
+
+    <h3 id="wwDemoHeading" class="sr-only">See both at once</h3>
+    <p class="ww-intro">Drag the slider to run both halves of the month at once. On the left the Moon is growing; on the right it is shrinking. Watch which side stays bright.</p>
+
+    <div id="wwDemo">
+      <figure data-ww="wax">
+        <h4 class="ww-title">Waxing — New Moon to Full</h4>
+        <svg id="wwMoonWax" class="ww-moon" viewBox="-50 -50 100 100" aria-hidden="true" focusable="false">
+          <circle class="ww-disc" cx="0" cy="0" r="44" fill="#232b3d"/>
+          <path id="wwLitWax" class="ww-lit" d="M 0 -44 A 44 44 0 0 1 0 44 A 31.05 44 0 0 0 0 -44 Z" fill="#e8edf9"/>
+          <circle cx="0" cy="0" r="44" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1"/>
+        </svg>
+        <p id="wwSubWax" class="ww-sub">Day 3.7 · 15% lit · bright edge on the right</p>
+      </figure>
+
+      <figure data-ww="wane">
+        <h4 class="ww-title">Waning — Full Moon back to New</h4>
+        <svg id="wwMoonWane" class="ww-moon" viewBox="-50 -50 100 100" aria-hidden="true" focusable="false">
+          <circle class="ww-disc" cx="0" cy="0" r="44" fill="#232b3d"/>
+          <path id="wwLitWane" class="ww-lit" d="M 0 -44 A 44 44 0 0 0 0 44 A 31.05 44 0 0 1 0 -44 Z" fill="#e8edf9"/>
+          <circle cx="0" cy="0" r="44" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1"/>
+        </svg>
+        <p id="wwSubWane" class="ww-sub">Day 25.8 · 15% lit · bright edge on the left</p>
+      </figure>
+    </div>
+
+    <div class="ww-controls">
+      <button id="wwPlay" class="btn" type="button" aria-pressed="false"
+              aria-label="Play both sides together">Play both</button>
+      <label class="ctl-label" for="wwSlider">Move through the half-month</label>
+      <input id="wwSlider" type="range" min="0" max="14.77" step="0.1" value="3.7"
+             aria-valuetext="Day 3.7 waxing, and day 25.8 waning. Both 15 percent lit.">
+    </div>
+
+    <p class="ww-punch">Both Moons are exactly half lit by the Sun. The only difference is which side of that lit half is turned toward us.</p>
+  </section>
+
+  <!-- ============================ TIMELINE =========================== -->
+  <section id="timeline" class="panel reveal" aria-labelledby="timelineHeading" tabindex="-1">
+    <h2 id="timelineHeading">One month, start to finish</h2>
+    <p class="panel-intro">One full cycle, from New Moon to the next New Moon, takes about 29.5 days. That is where our word "month" comes from — it is really a "moonth".</p>
+
+    <div class="timeline-shell">
+      <div class="timeline-scroll">
+        <!-- JS builds the 9 button.tl-marker elements in here.
+             APPEND them (or insertAdjacentHTML 'afterbegin') — do NOT replace the
+             track's innerHTML, or #tlThumb below is destroyed. -->
+        <div id="timelineTrack" class="timeline-track" role="group"
+             aria-label="Timeline of one Moon cycle, 29.5 days" style="--tl-pos:0">
+          <div id="tlThumb" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="tl-hint" aria-hidden="true">Swipe the timeline sideways to see the whole month.</p>
+    <p class="tl-note">The two ends are the same New Moon, one month apart. The cycle never stops and never starts — it just keeps going round.</p>
+  </section>
+
+  <!-- ============================== QUIZ ============================= -->
+  <section id="quiz" class="panel reveal" aria-labelledby="quizHeading" tabindex="-1">
+    <h2 id="quizHeading">Check what you know</h2>
+    <p class="panel-intro">Seven questions. Pick an answer for each, then press Check my answers. You will get an explanation for every choice, including the ones you got right.</p>
+
+    <form id="quizForm" class="quiz-form" novalidate>
+      <!-- JS builds the 7 fieldset.q elements inside #quizQuestions.
+           Do NOT replace #quizForm's innerHTML — the actions, hint, results heading
+           and #quizScore below must survive. -->
+      <div id="quizQuestions" class="quiz-questions"></div>
+
+      <div class="quiz-actions">
+        <button id="quizSubmit" class="btn btn--primary" type="submit"
+                aria-describedby="quizSubmitHint">Check my answers</button>
+        <button id="quizReset" class="btn btn--ghost" type="button"
+                aria-label="Clear all answers and try again">Try again</button>
+      </div>
+
+      <p id="quizSubmitHint" class="sr-only">Marks all seven questions and shows an explanation for each one.</p>
+
+      <h3 id="quizResultsHeading" tabindex="-1" hidden>Your results</h3>
+      <div id="quizScore" aria-live="polite" aria-atomic="true"></div>
+    </form>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p class="footer-line">Built for curious Grade 8 astronomers. Everything here runs in your browser — no internet needed. Now go and look up.</p>
+    <p class="disclaimer">Not to scale. The Moon is drawn far too big and far too close. In real life Earth is about four times wider than the Moon, and the Moon sits about thirty Earth-widths away — a gap that would not fit on this screen. The angles and the order of the phases, though, are exactly right.</p>
+  </div>
+</footer>
+<script>
+(function () {
+  'use strict';
+/* =====================================================================
+   CORE ENGINE — astronomy model, state, canvas rendering, animation loop
+   =====================================================================
+
+   THE MODEL (verified by derivation; do not "correct" the signs)
+   --------------------------------------------------------------
+   Top-down view from above Earth's NORTH pole. Sun far to the LEFT,
+   sending parallel light in the +x direction. Earth at the origin.
+   The Moon orbits counter-clockwise as seen from the north, which in a
+   y-up math frame means the orbital angle INCREASES with time.
+
+     phaseAngle(day) = TAU * day / SYNODIC        0 at New, PI at Full
+     orbitAngle(day) = PI + phaseAngle(day)
+     screen: sx = cx + R*cos(orbitAngle), sy = cy - R*sin(orbitAngle)
+
+   That puts New Moon at screen LEFT (between Earth and the Sun),
+   First Quarter at the BOTTOM, Full Moon at the RIGHT, Last Quarter at
+   the TOP. Counter-clockwise from the leftmost point moves DOWN first.
+   That is correct.
+
+   NAMING NOTE: what we call `phaseAngle` here is astronomically the
+   ELONGATION (the Sun-Earth-Moon angle), not the textbook "phase angle"
+   (Sun-Moon-Earth, which is 0 at Full). That is why the illuminated
+   fraction is (1 - cos)/2 here rather than the (1 + cos)/2 you may have
+   seen. Both are the same physics: phase_angle = 180 deg - elongation.
+   Do not "fix" the sign, and never print the words "phase angle" in the
+   UI -- the copy says "how far around its orbit the Moon has travelled".
+   ===================================================================== */
+
+var TAU = Math.PI * 2;
+var SYNODIC = 29.53;                 /* synodic (phase) month, days */
+
+/* ---------- small helpers ---------- */
+function wrapDay(d) {
+  if (!isFinite(d)) return 0;
+  d = d % SYNODIC;
+  return d < 0 ? d + SYNODIC : d;
+}
+function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function phaseAngle(day) { return TAU * (wrapDay(day) / SYNODIC); }
+function illumFraction(day) { return (1 - Math.cos(phaseAngle(day))) / 2; }
+function isWaxing(day) { return Math.sin(phaseAngle(day)) > 0; }
+function illumPct(day) { return Math.round(illumFraction(day) * 100); }
+function fmtDay(day) { return wrapDay(day).toFixed(1); }
+
+/* =====================================================================
+   THE LIT-REGION PATH
+   Returns an SVG path for the SUNLIT part of the Moon's visible disk,
+   radius r, centred on (0,0).  t = cos(elongation) is the signed
+   half-width of the terminator ellipse.
+   Checks: angle 0 -> zero area; PI -> full disk; PI/2 -> exact right
+   half; 3PI/2 -> exact left half; small angle -> thin sliver, right.
+   ===================================================================== */
+function litPath(r, angle) {
+  var t = Math.cos(angle);
+  var rx = Math.abs(t) * r;
+  var waxing = Math.sin(angle) > 0;
+  if (waxing) {
+    /* bright limb = RIGHT half-circle; terminator bulges +x when t>0 */
+    return 'M 0 ' + (-r) + ' A ' + r + ' ' + r + ' 0 0 1 0 ' + r +
+           ' A ' + rx + ' ' + r + ' 0 0 ' + (t > 0 ? 0 : 1) + ' 0 ' + (-r) + ' Z';
+  }
+  /* bright limb = LEFT half-circle; mirrored terminator */
+  return 'M 0 ' + (-r) + ' A ' + r + ' ' + r + ' 0 0 0 0 ' + r +
+         ' A ' + rx + ' ' + r + ' 0 0 ' + (t > 0 ? 1 : 0) + ' 0 ' + (-r) + ' Z';
+}
+
+/* Same geometry, drawn straight into a canvas context (already translated
+   to the Moon's centre). */
+function litPathCanvas(ctx, r, angle) {
+  var t = Math.cos(angle);
+  var rx = Math.abs(t) * r;
+  var waxing = Math.sin(angle) > 0;
+  ctx.beginPath();
+  if (waxing) {
+    ctx.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false);
+    ctx.ellipse(0, 0, rx, r, 0, Math.PI / 2, -Math.PI / 2, t > 0);
+  } else {
+    ctx.arc(0, 0, r, Math.PI / 2, -Math.PI / 2, false);
+    ctx.ellipse(0, 0, rx, r, 0, -Math.PI / 2, Math.PI / 2, t > 0);
+  }
+  ctx.closePath();
+}
+
+/* =====================================================================
+   THE 8 PHASES
+   Boundaries are +/- 22.5 degrees around each centre angle.
+   ===================================================================== */
+var PHASE_BLURBS = [
+  'The Moon sits between us and the Sun, so its lit half faces away and we see none.',
+  'Only a thin sliver of the lit half points our way, and it sits on the right.',
+  'From here we see the lit half side-on, so the right half of the disk is bright.',
+  'Swinging further round, the Moon shows most of its lit half, with a dark curve on the left.',
+  'Earth now sits between the Sun and the Moon, so the entire lit half faces us.',
+  'The Moon moves on, so the lit half turns away and a dark curve grows on the right.',
+  'We see the lit half side-on again, so now the left half of the disk is bright.',
+  'Almost back between us and the Sun, the Moon shows only a thin lit edge on the left.'
+];
+var PHASE_NAMES = ['New Moon', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous',
+                   'Full Moon', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent'];
+var PHASE_TREND = ['Turning point', 'Growing', 'Growing', 'Growing',
+                   'Turning point', 'Shrinking', 'Shrinking', 'Shrinking'];
+
+var Phase = { LIST: [] };
+(function buildPhaseList() {
+  for (var i = 0; i < 8; i++) {
+    var centreDay = i * SYNODIC / 8;
+    Phase.LIST.push({
+      index: i,
+      name: PHASE_NAMES[i],
+      alt: i === 6 ? '(Third Quarter)' : '',
+      centreDay: centreDay,
+      centreAngle: i * TAU / 8,
+      illumPct: illumPct(centreDay),
+      waxing: i > 0 && i < 4,
+      trend: PHASE_TREND[i],
+      trendClass: (i === 0 || i === 4) ? 'trend-turn' : (i < 4 ? 'trend-grow' : 'trend-shrink'),
+      trendGlyph: (i === 0 || i === 4) ? '◆' : (i < 4 ? '▲' : '▼'),
+      blurb: PHASE_BLURBS[i]
+    });
+  }
+})();
+
+/* index of the phase whose +/-22.5 deg window contains this day */
+Phase.indexAt = function (day) {
+  var frac = wrapDay(day) / SYNODIC;                 /* 0..1 round the ring */
+  return Math.floor(frac * 8 + 0.5) % 8;             /* nearest eighth */
+};
+
+Phase.at = function (day) {
+  day = wrapDay(day);
+  var base = Phase.LIST[Phase.indexAt(day)];
+  var k = illumFraction(day);
+  return {
+    index: base.index,
+    name: base.name,
+    alt: base.alt,
+    blurb: base.blurb,
+    centreDay: base.centreDay,
+    trend: base.trend,
+    trendClass: base.trendClass,
+    trendGlyph: base.trendGlyph,
+    day: day,
+    illum: k,
+    illumPct: Math.round(k * 100),
+    waxing: isWaxing(day)
+  };
+};
+
+/* =====================================================================
+   GEOMETRY
+   ===================================================================== */
+var Geom = {
+  orbitAngle: function (day) { return Math.PI + phaseAngle(day); },
+
+  /* Moon centre in SCREEN pixels (canvas y-down), Earth at (cx, cy) */
+  moonScreenPos: function (day, cx, cy, R) {
+    var a = Geom.orbitAngle(day);
+    return { x: cx + R * Math.cos(a), y: cy - R * Math.sin(a) };
+  },
+
+  /* Inverse: a vector from Earth in the MATH frame (y-up) -> lunar day */
+  dayFromPointer: function (mx, my) {
+    var a = Math.atan2(my, mx);                      /* -PI..PI */
+    return wrapDay(((a - Math.PI) / TAU) * SYNODIC);
+  },
+
+  /* shortest signed distance from day a to day b, in (-SYNODIC/2, SYNODIC/2] */
+  modDist: function (a, b) {
+    var d = (wrapDay(b) - wrapDay(a)) % SYNODIC;
+    if (d > SYNODIC / 2) d -= SYNODIC;
+    if (d <= -SYNODIC / 2) d += SYNODIC;
+    return d;
+  }
+};
+
+/* =====================================================================
+   STATE  (State.day is the single source of truth)
+   ===================================================================== */
+var State = {
+  day: 0,
+  playing: true,
+  speed: 1,            /* days per second of wall-clock time */
+  dragging: false,
+  dragMode: false,
+  reducedMotion: false
+};
+
+var subscribers = [];
+function subscribe(fn) { if (typeof fn === 'function') subscribers.push(fn); }
+
+function notifyAll(source) {
+  var info = Phase.at(State.day);
+  info.source = source || 'set';
+  for (var i = 0; i < subscribers.length; i++) {
+    try { subscribers[i](info); } catch (e) { /* one bad listener must not stop the rest */ }
+  }
+}
+
+function setDay(day, opts) {
+  var next = wrapDay(day);
+  if (next === State.day && !(opts && opts.force)) return;
+  State.day = next;
+  notifyAll(opts && opts.source);
+  Loop.invalidate();
+}
+
+/* =====================================================================
+   DETERMINISTIC PSEUDO-RANDOM  (so the sky and craters never shimmer)
+   ===================================================================== */
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function makeCanvas(w, h) {
+  var c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w));
+  c.height = Math.max(1, Math.round(h));
+  return c;
+}
+
+/* An offscreen layer sized in DEVICE pixels but drawn in CSS pixels, so
+   cached layers stay sharp on high-DPI screens and blit 1:1. */
+function makeLayer(w, h, dpr) {
+  var c = makeCanvas(w * dpr, h * dpr);
+  var g = c.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { canvas: c, ctx: g };
+}
+
+/* =====================================================================
+   STAR FIELD — rendered ONCE to an offscreen canvas, then blitted
+   ===================================================================== */
+var Sky = (function () {
+  var cache = null, cw = 0, ch = 0;
+
+  function build(w, h) {
+    var c = makeCanvas(w, h), g = c.getContext('2d');
+    var rnd = mulberry32(20260817);
+    var n = Math.round(clamp((w * h) / 2600, 120, 460));
+
+    for (var i = 0; i < n; i++) {
+      var x = rnd() * w, y = rnd() * h;
+      var m = rnd();
+      var r = m > 0.985 ? 1.6 + rnd() * 1.1 : (m > 0.9 ? 1.0 + rnd() * 0.5 : 0.35 + rnd() * 0.6);
+      var a = 0.28 + rnd() * 0.62;
+      var warm = rnd();
+      var col = warm > 0.86 ? '255,214,170' : (warm > 0.66 ? '255,244,228' : '206,226,255');
+      g.beginPath();
+      g.arc(x, y, r, 0, TAU);
+      g.fillStyle = 'rgba(' + col + ',' + a.toFixed(3) + ')';
+      g.fill();
+
+      /* diffraction spikes on the few brightest stars only */
+      if (r > 1.7) {
+        g.strokeStyle = 'rgba(' + col + ',' + (a * 0.42).toFixed(3) + ')';
+        g.lineWidth = 0.7;
+        var s = r * 4.5;
+        g.beginPath();
+        g.moveTo(x - s, y); g.lineTo(x + s, y);
+        g.moveTo(x, y - s); g.lineTo(x, y + s);
+        g.stroke();
+      }
+    }
+    return c;
+  }
+
+  return {
+    get: function (w, h) {
+      if (!cache || cw !== w || ch !== h) { cache = build(w, h); cw = w; ch = h; }
+      return cache;
+    }
+  };
+})();
+
+/* =====================================================================
+   MOON TEXTURE — regolith, maria and craters, drawn once at high res.
+   Two versions: sunlit and shadowed (earthshine).
+   ===================================================================== */
+var MoonTexture = (function () {
+  var lit = null, dark = null, size = 0;
+
+  /* fixed features, in units of the Moon's radius, centred on (0,0) */
+  var MARIA = [
+    [-0.30, -0.38, 0.30, 0.22, -0.30], [0.10, -0.44, 0.24, 0.17, 0.30],
+    [-0.46, -0.02, 0.24, 0.30, 0.20], [-0.08, -0.10, 0.31, 0.25, 0.10],
+    [0.30, -0.16, 0.19, 0.24, -0.40], [-0.24, 0.34, 0.22, 0.16, 0.35],
+    [0.16, 0.30, 0.16, 0.13, 0.00], [0.44, 0.22, 0.13, 0.17, 0.25],
+    [-0.60, 0.34, 0.14, 0.11, 0.00]
+  ];
+  var CRATERS = [
+    [-0.14, 0.58, 0.11], [0.26, 0.56, 0.07], [0.52, -0.44, 0.075],
+    [-0.56, -0.46, 0.065], [0.62, 0.02, 0.055], [-0.70, 0.10, 0.05],
+    [0.04, 0.76, 0.055], [-0.36, 0.70, 0.045], [0.40, -0.66, 0.045],
+    [-0.20, -0.68, 0.04], [0.70, -0.24, 0.04], [-0.66, -0.20, 0.035],
+    [0.18, -0.30, 0.035], [-0.02, 0.20, 0.03], [0.34, 0.16, 0.028]
+  ];
+
+  function paint(px, bright) {
+    var c = makeCanvas(px, px), g = c.getContext('2d');
+    var R = px / 2, cx = R, cy = R;
+    g.save();
+    g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
+
+    /* base regolith */
+    var base = g.createRadialGradient(cx - R * 0.25, cy - R * 0.28, R * 0.1, cx, cy, R);
+    if (bright) {
+      base.addColorStop(0, '#fdfbf5');
+      base.addColorStop(0.55, '#e2ddd2');
+      base.addColorStop(1, '#b9b3a8');
+    } else {
+      base.addColorStop(0, '#2a3350');
+      base.addColorStop(0.6, '#1e2740');
+      base.addColorStop(1, '#151c30');
+    }
+    g.fillStyle = base;
+    g.fillRect(0, 0, px, px);
+
+    /* maria — the dark "seas" */
+    var i, m;
+    for (i = 0; i < MARIA.length; i++) {
+      m = MARIA[i];
+      g.save();
+      g.translate(cx + m[0] * R, cy + m[1] * R);
+      g.rotate(m[4]);
+      var mg = g.createRadialGradient(0, 0, 0, 0, 0, Math.max(m[2], m[3]) * R);
+      mg.addColorStop(0, bright ? 'rgba(120,118,116,0.62)' : 'rgba(10,14,26,0.60)');
+      mg.addColorStop(0.7, bright ? 'rgba(140,138,134,0.34)' : 'rgba(12,16,30,0.34)');
+      mg.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = mg;
+      g.beginPath();
+      g.ellipse(0, 0, m[2] * R, m[3] * R, 0, 0, TAU);
+      g.fill();
+      g.restore();
+    }
+
+    /* fine speckle so it is not glassy */
+    var rnd = mulberry32(4242);
+    for (i = 0; i < Math.round(px * 1.6); i++) {
+      var a = rnd() * TAU, d = Math.sqrt(rnd()) * R;
+      var sx = cx + Math.cos(a) * d, sy = cy + Math.sin(a) * d;
+      g.fillStyle = 'rgba(' + (bright ? '90,86,80' : '6,10,20') + ',' + (0.03 + rnd() * 0.07).toFixed(3) + ')';
+      g.fillRect(sx, sy, 1.2, 1.2);
+    }
+
+    /* craters: rim highlight up-left, shadow down-right (light from the left) */
+    for (i = 0; i < CRATERS.length; i++) {
+      var k = CRATERS[i];
+      var kx = cx + k[0] * R, ky = cy + k[1] * R, kr = k[2] * R;
+      var cg = g.createRadialGradient(kx - kr * 0.3, ky - kr * 0.3, kr * 0.1, kx, ky, kr);
+      cg.addColorStop(0, bright ? 'rgba(255,253,247,0.55)' : 'rgba(70,84,120,0.30)');
+      cg.addColorStop(0.55, 'rgba(0,0,0,0)');
+      cg.addColorStop(1, bright ? 'rgba(60,56,50,0.42)' : 'rgba(4,8,16,0.42)');
+      g.fillStyle = cg;
+      g.beginPath(); g.arc(kx, ky, kr, 0, TAU); g.fill();
+
+      g.strokeStyle = bright ? 'rgba(255,255,250,0.30)' : 'rgba(120,140,190,0.16)';
+      g.lineWidth = Math.max(0.6, kr * 0.14);
+      g.beginPath(); g.arc(kx, ky, kr * 0.94, Math.PI * 0.85, Math.PI * 1.75); g.stroke();
+    }
+
+    /* a couple of bright ray systems (Tycho-like) */
+    if (bright) {
+      g.globalAlpha = 0.13;
+      g.strokeStyle = '#ffffff';
+      for (i = 0; i < 11; i++) {
+        var ra = (i / 11) * TAU + 0.4;
+        g.lineWidth = 1 + (i % 3);
+        g.beginPath();
+        g.moveTo(cx - 0.14 * R, cy + 0.58 * R);
+        g.lineTo(cx - 0.14 * R + Math.cos(ra) * R * 1.1, cy + 0.58 * R + Math.sin(ra) * R * 1.1);
+        g.stroke();
+      }
+      g.globalAlpha = 1;
+    }
+
+    /* limb darkening */
+    var lg = g.createRadialGradient(cx, cy, R * 0.62, cx, cy, R);
+    lg.addColorStop(0, 'rgba(0,0,0,0)');
+    lg.addColorStop(1, bright ? 'rgba(20,18,26,0.50)' : 'rgba(0,0,0,0.55)');
+    g.fillStyle = lg;
+    g.fillRect(0, 0, px, px);
+
+    g.restore();
+    return c;
+  }
+
+  return {
+    get: function (px, bright) {
+      px = Math.max(64, Math.round(px));
+      if (!lit || size !== px) { size = px; lit = paint(px, true); dark = paint(px, false); }
+      return bright ? lit : dark;
+    }
+  };
+})();
+
+/* =====================================================================
+   SCENE — the top-down orbit map
+   ===================================================================== */
+var Scene = (function () {
+  var cvs = null, ctx = null, W = 0, H = 0, dpr = 1;
+  var statics = null;                    /* cached: stars, sun, orbit, Earth, labels */
+  var moonSprite = null;                 /* cached: the Moon as seen from above */
+  var cx = 0, cy = 0, R = 0, moonR = 0, earthR = 0;
+
+  function layout() {
+    cx = W * 0.56;
+    cy = H * 0.5;
+    R = Math.min(W * 0.30, H * 0.36);
+    earthR = clamp(R * 0.20, 9, 26);
+    moonR = clamp(R * 0.11, 6, 15);
+  }
+
+  function drawSun(g) {
+    var sx = -W * 0.06, sy = H * 0.5;
+    var rad = Math.max(W * 0.16, 60);
+    var i, grd;
+
+    /* outer corona */
+    grd = g.createRadialGradient(sx, sy, rad * 0.2, sx, sy, rad * 2.5);
+    grd.addColorStop(0, 'rgba(255,208,110,0.55)');
+    grd.addColorStop(0.35, 'rgba(255,170,60,0.18)');
+    grd.addColorStop(1, 'rgba(255,150,40,0)');
+    g.fillStyle = grd;
+    g.beginPath(); g.arc(sx, sy, rad * 2.5, 0, TAU); g.fill();
+
+    /* inner glow */
+    grd = g.createRadialGradient(sx, sy, rad * 0.1, sx, sy, rad * 1.15);
+    grd.addColorStop(0, 'rgba(255,246,214,1)');
+    grd.addColorStop(0.5, 'rgba(255,212,121,0.92)');
+    grd.addColorStop(1, 'rgba(240,150,50,0)');
+    g.fillStyle = grd;
+    g.beginPath(); g.arc(sx, sy, rad * 1.15, 0, TAU); g.fill();
+
+    /* hot core */
+    grd = g.createRadialGradient(sx - rad * 0.15, sy - rad * 0.12, rad * 0.05, sx, sy, rad * 0.72);
+    grd.addColorStop(0, '#fffdf3');
+    grd.addColorStop(0.6, '#ffe08a');
+    grd.addColorStop(1, '#f6b34a');
+    g.fillStyle = grd;
+    g.beginPath(); g.arc(sx, sy, rad * 0.72, 0, TAU); g.fill();
+
+    g.fillStyle = 'rgba(70,48,6,0.9)';
+    g.font = '700 ' + Math.round(clamp(W * 0.026, 11, 17)) + 'px ui-sans-serif, system-ui, sans-serif';
+    g.textAlign = 'left'; g.textBaseline = 'middle';
+    g.fillText('Sun', sx + rad * 0.12, sy);
+    return { x: sx, y: sy, r: rad };
+  }
+
+  function drawEarth(g) {
+    var i;
+    g.save();
+    g.translate(cx, cy);
+
+    /* atmospheric halo */
+    var halo = g.createRadialGradient(0, 0, earthR * 0.9, 0, 0, earthR * 1.9);
+    halo.addColorStop(0, 'rgba(120,190,255,0.28)');
+    halo.addColorStop(1, 'rgba(120,190,255,0)');
+    g.fillStyle = halo;
+    g.beginPath(); g.arc(0, 0, earthR * 1.9, 0, TAU); g.fill();
+
+    g.save();
+    g.beginPath(); g.arc(0, 0, earthR, 0, TAU); g.clip();
+
+    /* ocean */
+    var oc = g.createRadialGradient(-earthR * 0.35, -earthR * 0.3, earthR * 0.1, 0, 0, earthR);
+    oc.addColorStop(0, '#3f8fd8');
+    oc.addColorStop(0.6, '#1d5b9e');
+    oc.addColorStop(1, '#123c6e');
+    g.fillStyle = oc;
+    g.fillRect(-earthR, -earthR, earthR * 2, earthR * 2);
+
+    /* continents (normalised blobs) */
+    var LAND = [
+      [[-0.62, -0.44], [-0.20, -0.58], [0.02, -0.30], [-0.16, 0.02], [-0.46, -0.06]],
+      [[-0.30, 0.16], [-0.04, 0.10], [0.06, 0.52], [-0.14, 0.78], [-0.34, 0.44]],
+      [[0.10, -0.62], [0.60, -0.50], [0.72, -0.14], [0.34, -0.06], [0.12, -0.34]],
+      [[0.24, 0.14], [0.66, 0.20], [0.70, 0.62], [0.34, 0.60]]
+    ];
+    g.fillStyle = '#2f7d4f';
+    for (i = 0; i < LAND.length; i++) {
+      var p = LAND[i];
+      g.beginPath();
+      g.moveTo(p[0][0] * earthR, p[0][1] * earthR);
+      for (var j = 1; j < p.length; j++) g.lineTo(p[j][0] * earthR, p[j][1] * earthR);
+      g.closePath();
+      g.fill();
+    }
+    /* polar caps */
+    g.fillStyle = 'rgba(238,246,255,0.85)';
+    g.beginPath(); g.ellipse(0, -earthR * 0.92, earthR * 0.7, earthR * 0.22, 0, 0, TAU); g.fill();
+    g.beginPath(); g.ellipse(0, earthR * 0.94, earthR * 0.6, earthR * 0.2, 0, 0, TAU); g.fill();
+
+    /* NIGHT SIDE: sunlight comes from -x, so the +x half is in darkness */
+    var night = g.createLinearGradient(-earthR * 0.08, 0, earthR, 0);
+    night.addColorStop(0, 'rgba(2,5,14,0)');
+    night.addColorStop(0.28, 'rgba(2,5,14,0.72)');
+    night.addColorStop(1, 'rgba(1,3,10,0.94)');
+    g.fillStyle = night;
+    g.fillRect(-earthR, -earthR, earthR * 2, earthR * 2);
+
+    /* city lights on the night side */
+    var rnd = mulberry32(99), lit = Math.round(clamp(earthR * 0.9, 6, 22));
+    g.fillStyle = 'rgba(255,214,140,0.75)';
+    for (i = 0; i < lit; i++) {
+      var a = rnd() * TAU, d = Math.sqrt(rnd()) * earthR * 0.93;
+      var lx = Math.cos(a) * d, ly = Math.sin(a) * d;
+      if (lx > earthR * 0.18) g.fillRect(lx, ly, 1.1, 1.1);
+    }
+    g.restore();
+
+    /* rim-light on the sunlit limb */
+    g.strokeStyle = 'rgba(170,220,255,0.75)';
+    g.lineWidth = Math.max(1, earthR * 0.09);
+    g.beginPath(); g.arc(0, 0, earthR, Math.PI * 0.58, Math.PI * 1.42); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.16)';
+    g.lineWidth = 1;
+    g.beginPath(); g.arc(0, 0, earthR, 0, TAU); g.stroke();
+
+    g.restore();
+
+    g.fillStyle = 'rgba(215,228,255,0.95)';
+    g.font = '600 ' + Math.round(clamp(W * 0.024, 10, 15)) + 'px ui-sans-serif, system-ui, sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'top';
+    g.fillText('Earth', cx, cy + earthR + 6);
+  }
+
+  function drawOrbit(g) {
+    g.save();
+    g.strokeStyle = 'rgba(124,196,255,0.16)';
+    g.lineWidth = 9;
+    g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
+
+    g.strokeStyle = 'rgba(146,206,255,0.72)';
+    g.lineWidth = 1.6;
+    g.setLineDash([7, 7]);
+    g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
+    g.setLineDash([]);
+
+    /* direction-of-travel arrow, counter-clockwise on screen */
+    var aa = Geom.orbitAngle(SYNODIC * 0.14);
+    var ax = cx + R * Math.cos(aa), ay = cy - R * Math.sin(aa);
+    var tang = Math.atan2(-Math.cos(aa), -Math.sin(aa));   /* screen tangent, CCW */
+    g.save();
+    g.translate(ax, ay); g.rotate(tang);
+    g.fillStyle = 'rgba(146,206,255,0.9)';
+    g.beginPath(); g.moveTo(7, 0); g.lineTo(-4, 4.5); g.lineTo(-4, -4.5); g.closePath(); g.fill();
+    g.restore();
+    g.restore();
+  }
+
+  /* The Moon's look in the top-down map never changes — the lit half always
+     faces the Sun. So render it ONCE into a sprite and just blit it. */
+  function buildMoonSprite() {
+    var pad = moonR * 3.4;
+    var s = Math.ceil(pad * 2);
+    var L = makeLayer(s, s, dpr), g = L.ctx, c = pad;
+
+    var gl = g.createRadialGradient(c, c, moonR * 0.6, c, c, pad);
+    gl.addColorStop(0, 'rgba(214,230,255,0.30)');
+    gl.addColorStop(1, 'rgba(214,230,255,0)');
+    g.fillStyle = gl;
+    g.beginPath(); g.arc(c, c, pad, 0, TAU); g.fill();
+
+    /* night side */
+    g.fillStyle = '#20263a';
+    g.beginPath(); g.arc(c, c, moonR, 0, TAU); g.fill();
+
+    /* SUNLIT HALF — the -x (Sun-facing) hemisphere, always */
+    g.save();
+    g.translate(c, c);
+    g.beginPath();
+    g.arc(0, 0, moonR, Math.PI / 2, Math.PI * 1.5, false);
+    g.closePath();
+    var lg = g.createLinearGradient(-moonR, 0, moonR * 0.2, 0);
+    lg.addColorStop(0, '#ffffff');
+    lg.addColorStop(0.7, '#e6e2d8');
+    lg.addColorStop(1, '#bdb8ac');
+    g.fillStyle = lg;
+    g.fill();
+    g.restore();
+
+    /* craters */
+    g.save();
+    g.beginPath(); g.arc(c, c, moonR, 0, TAU); g.clip();
+    g.fillStyle = 'rgba(120,116,110,0.30)';
+    g.beginPath(); g.arc(c - moonR * 0.35, c - moonR * 0.2, moonR * 0.26, 0, TAU); g.fill();
+    g.beginPath(); g.arc(c - moonR * 0.1, c + moonR * 0.42, moonR * 0.18, 0, TAU); g.fill();
+    g.restore();
+
+    g.strokeStyle = 'rgba(255,255,255,0.35)';
+    g.lineWidth = 1;
+    g.beginPath(); g.arc(c, c, moonR, 0, TAU); g.stroke();
+
+    return { canvas: L.canvas, half: pad, size: s };
+  }
+
+  function buildStatics() {
+    var L = makeLayer(W, H, dpr), c = L.canvas, g = L.ctx;
+
+    /* deep-space wash */
+    var bg = g.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#05070f');
+    bg.addColorStop(0.55, '#080d1c');
+    bg.addColorStop(1, '#0a1024');
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+
+    var neb = g.createRadialGradient(W * 0.82, H * 0.18, 0, W * 0.82, H * 0.18, W * 0.6);
+    neb.addColorStop(0, 'rgba(120,90,200,0.16)');
+    neb.addColorStop(1, 'rgba(120,90,200,0)');
+    g.fillStyle = neb; g.fillRect(0, 0, W, H);
+
+    g.drawImage(Sky.get(W, H), 0, 0);
+    drawSun(g);
+    drawOrbit(g);
+    drawEarth(g);
+
+    /* "Sunlight" label under the ray band */
+    g.fillStyle = 'rgba(255,214,140,0.85)';
+    g.font = '600 ' + Math.round(clamp(W * 0.023, 10, 14)) + 'px ui-sans-serif, system-ui, sans-serif';
+    g.textAlign = 'left'; g.textBaseline = 'middle';
+    g.fillText('Sunlight →', W * 0.055, H * 0.93);
+
+    return c;
+  }
+
+  function drawRays(g, t) {
+    var i, n = 5;
+    g.save();
+    g.strokeStyle = 'rgba(255,214,121,0.34)';
+    g.lineWidth = 1.6;
+    g.setLineDash([16, 13]);
+    g.lineDashOffset = -(t * 0.04 % 29);
+    var x0 = W * 0.10, x1 = cx - R * 1.22;
+    if (x1 > x0) {
+      for (i = 0; i < n; i++) {
+        var y = H * (0.16 + i * 0.17);
+        g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
+      }
+      g.setLineDash([]);
+      g.fillStyle = 'rgba(255,214,121,0.5)';
+      for (i = 0; i < n; i++) {
+        var yy = H * (0.16 + i * 0.17);
+        g.beginPath();
+        g.moveTo(x1 + 7, yy); g.lineTo(x1 - 2, yy - 4); g.lineTo(x1 - 2, yy + 4);
+        g.closePath(); g.fill();
+      }
+    }
+    g.restore();
+  }
+
+  function drawMoon(g, day) {
+    var p = Geom.moonScreenPos(day, cx, cy, R);
+
+    /* sight-line Earth -> Moon */
+    g.save();
+    g.strokeStyle = 'rgba(200,220,255,0.30)';
+    g.lineWidth = 1;
+    g.setLineDash([3, 5]);
+    g.beginPath(); g.moveTo(cx, cy); g.lineTo(p.x, p.y); g.stroke();
+    g.restore();
+
+    /* one blit: glow + night side + sunlit half + craters, pre-rendered */
+    if (moonSprite) {
+      g.drawImage(moonSprite.canvas, p.x - moonSprite.half, p.y - moonSprite.half,
+                  moonSprite.size, moonSprite.size);
+    }
+
+    g.fillStyle = 'rgba(226,236,255,0.95)';
+    g.font = '600 ' + Math.round(clamp(W * 0.022, 10, 14)) + 'px ui-sans-serif, system-ui, sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'bottom';
+    g.fillText('Moon', p.x, p.y - moonR - 7);
+    return p;
+  }
+
+  return {
+    attach: function (canvas) {
+      cvs = canvas;
+      ctx = canvas.getContext('2d', { alpha: false });
+      this.resize();
+    },
+    resize: function () {
+      if (!cvs) return;
+      var rect = cvs.getBoundingClientRect();
+      if (rect.width < 2 || rect.height < 2) return;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var w = Math.round(rect.width * dpr), h = Math.round(rect.height * dpr);
+      if (w === cvs.width && h === cvs.height) return;
+      cvs.width = w; cvs.height = h;
+      W = rect.width; H = rect.height;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      layout();
+      statics = buildStatics();
+      moonSprite = buildMoonSprite();
+    },
+    draw: function (day, t) {
+      if (!ctx || !statics) return;
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(statics, 0, 0, W, H);
+      drawRays(ctx, State.reducedMotion ? 0 : t);
+      drawMoon(ctx, day);
+    },
+    /* geometry needed by the drag handler */
+    metrics: function () { return { cx: cx, cy: cy, R: R, moonR: moonR, W: W, H: H }; }
+  };
+})();
+
+/* =====================================================================
+   EARTH VIEW — the Moon as it appears from the ground (N. hemisphere)
+   ===================================================================== */
+var EarthView = (function () {
+  var cvs = null, ctx = null, W = 0, H = 0, dpr = 1, bg = null, mr = 0, mx = 0, my = 0;
+  var overlay = null, glowSprite = null, texPx = 128;
+
+  /* limb darkening + edge: identical every frame, so cache it */
+  function buildOverlay() {
+    var s = Math.ceil(mr * 2) + 2;
+    var L = makeLayer(s, s, dpr), g = L.ctx, c = s / 2;
+    g.save();
+    g.beginPath(); g.arc(c, c, mr, 0, TAU); g.clip();
+    var ld = g.createRadialGradient(c, c, mr * 0.7, c, c, mr);
+    ld.addColorStop(0, 'rgba(0,0,0,0)');
+    ld.addColorStop(1, 'rgba(0,0,0,0.42)');
+    g.fillStyle = ld;
+    g.fillRect(0, 0, s, s);
+    g.restore();
+    g.strokeStyle = 'rgba(150,170,215,0.22)';
+    g.lineWidth = 1;
+    g.beginPath(); g.arc(c, c, mr, 0, TAU); g.stroke();
+    return { canvas: L.canvas, half: c, size: s };
+  }
+
+  /* full-strength moonglow; per-frame we just vary globalAlpha */
+  function buildGlow() {
+    var rad = mr * 3.2, s = Math.ceil(rad * 2);
+    var L = makeLayer(s, s, dpr), g = L.ctx, c = rad;
+    var gl = g.createRadialGradient(c, c, mr * 0.9, c, c, rad);
+    gl.addColorStop(0, 'rgba(198,220,255,0.19)');
+    gl.addColorStop(1, 'rgba(198,220,255,0)');
+    g.fillStyle = gl;
+    g.beginPath(); g.arc(c, c, rad, 0, TAU); g.fill();
+    return { canvas: L.canvas, half: rad, size: s };
+  }
+
+  function buildBg() {
+    var L = makeLayer(W, H, dpr), c = L.canvas, g = L.ctx;
+    var sky = g.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#04060e');
+    sky.addColorStop(0.7, '#070c1c');
+    sky.addColorStop(1, '#0b1226');
+    g.fillStyle = sky; g.fillRect(0, 0, W, H);
+    g.drawImage(Sky.get(W, H), 0, 0);
+    /* vignette */
+    var v = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.max(W, H) * 0.72);
+    v.addColorStop(0, 'rgba(0,0,0,0)');
+    v.addColorStop(1, 'rgba(0,0,0,0.62)');
+    g.fillStyle = v; g.fillRect(0, 0, W, H);
+    return c;
+  }
+
+  return {
+    attach: function (canvas) {
+      cvs = canvas;
+      ctx = canvas.getContext('2d', { alpha: false });
+      this.resize();
+    },
+    resize: function () {
+      if (!cvs) return;
+      var rect = cvs.getBoundingClientRect();
+      if (rect.width < 2 || rect.height < 2) return;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var w = Math.round(rect.width * dpr), h = Math.round(rect.height * dpr);
+      if (w === cvs.width && h === cvs.height) return;
+      cvs.width = w; cvs.height = h;
+      W = rect.width; H = rect.height;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      mr = Math.min(W, H) * 0.36;
+      mx = W / 2; my = H / 2;
+      texPx = Math.round(clamp(mr * 2 * dpr, 128, 420));
+      bg = buildBg();
+      overlay = buildOverlay();
+      glowSprite = buildGlow();
+      MoonTexture.get(texPx, true);           /* warm the cache before first paint */
+    },
+    draw: function (day) {
+      if (!ctx || !bg) return;
+      var g = ctx, ang = phaseAngle(day), k = illumFraction(day);
+
+      g.clearRect(0, 0, W, H);
+      g.drawImage(bg, 0, 0, W, H);
+
+      /* moonglow in the sky — grows with how much is lit */
+      if (k > 0.02 && glowSprite) {
+        g.save();
+        g.globalAlpha = clamp(0.2 + k * 0.8, 0, 1);
+        g.drawImage(glowSprite.canvas, mx - glowSprite.half, my - glowSprite.half,
+                    glowSprite.size, glowSprite.size);
+        g.restore();
+      }
+
+      g.save();
+      g.translate(mx, my);
+
+      /* 1. the whole disk in earthshine (dim blue-grey), stronger on a
+            thin crescent because Earth is then near-full in the Moon's sky */
+      g.save();
+      g.globalAlpha = clamp(0.30 + (1 - Math.abs(0.5 - k) * 2) * 0.0 + (k < 0.25 ? (0.25 - k) * 2.4 : 0), 0.30, 0.92);
+      g.drawImage(MoonTexture.get(texPx, false), -mr, -mr, mr * 2, mr * 2);
+      g.restore();
+
+      /* 2. the sunlit part, clipped to the true lit-region geometry */
+      g.save();
+      litPathCanvas(g, mr, ang);
+      g.clip();
+      g.drawImage(MoonTexture.get(texPx, true), -mr, -mr, mr * 2, mr * 2);
+
+      /* soften the terminator: a narrow gradient band along it */
+      var t = Math.cos(ang);
+      var tx = (isWaxing(day) ? 1 : -1) * t * mr;      /* terminator crossing on the x axis */
+      var dir = isWaxing(day) ? -1 : 1;                /* dark lies this way */
+      var band = mr * 0.16;
+      var tg = g.createLinearGradient(tx - dir * band, 0, tx + dir * band, 0);
+      tg.addColorStop(0, 'rgba(0,0,0,0)');
+      tg.addColorStop(1, 'rgba(2,4,10,0.55)');
+      g.fillStyle = tg;
+      g.fillRect(-mr, -mr, mr * 2, mr * 2);
+      g.restore();
+
+      /* 3. limb darkening + edge, pre-rendered */
+      if (overlay) {
+        g.drawImage(overlay.canvas, -overlay.half, -overlay.half, overlay.size, overlay.size);
+      }
+
+      g.restore();
+
+      /* orientation hint */
+      g.fillStyle = 'rgba(169,182,212,0.72)';
+      g.font = '600 ' + Math.round(clamp(W * 0.033, 9, 13)) + 'px ui-sans-serif, system-ui, sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'bottom';
+      g.fillText(illumPct(day) + '% lit · ' + (k > 0.995 || k < 0.005 ? 'turning point'
+        : (isWaxing(day) ? 'growing ▲' : 'shrinking ▼')), W / 2, H - 8);
+    }
+  };
+})();
+
+/* =====================================================================
+   ANIMATION LOOP — exactly one rAF for the whole page
+   ===================================================================== */
+var Loop = (function () {
+  var raf = 0, last = 0, dirty = true, running = false;
+
+  function frame(ts) {
+    raf = 0;
+    var dt = last ? Math.min((ts - last) / 1000, 0.05) : 0;   /* clamp: no fast-forward */
+    last = ts;
+
+    var advancing = State.playing && !State.dragging && !State.reducedMotion;
+    if (advancing && dt > 0) {
+      State.day = wrapDay(State.day + State.speed * dt);
+      notifyAll('tick');
+      dirty = true;
+    }
+    if (Anim.step(ts)) dirty = true;
+
+    if (dirty || advancing) {
+      Scene.draw(State.day, ts);
+      EarthView.draw(State.day);
+      dirty = false;
+    }
+
+    if (State.playing || Anim.isAnimating() || State.dragging || dirty) {
+      raf = requestAnimationFrame(frame);
+      running = true;
+    } else {
+      running = false;                     /* self-stop: no idle CPU burn */
+      last = 0;
+    }
+  }
+
+  return {
+    start: function () {
+      if (raf) return;
+      last = 0; running = true;
+      raf = requestAnimationFrame(frame);
+    },
+    stop: function () {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0; running = false; last = 0;
+    },
+    invalidate: function () { dirty = true; if (!raf) this.start(); },
+    isRunning: function () { return running; }
+  };
+})();
+
+/* =====================================================================
+   ANIM — eased travel to a target day, along the shortest arc
+   ===================================================================== */
+var Anim = (function () {
+  var active = false, from = 0, delta = 0, t0 = 0, dur = 0;
+
+  return {
+    glideTo: function (targetDay, ms) {
+      targetDay = wrapDay(targetDay);
+      if (State.reducedMotion) { active = false; setDay(targetDay, { source: 'glide' }); return; }
+      from = State.day;
+      delta = Geom.modDist(from, targetDay);
+      if (Math.abs(delta) < 0.001) { active = false; return; }
+      dur = Math.max(180, ms || (420 + Math.abs(delta) * 42));
+      t0 = 0;
+      active = true;
+      Loop.invalidate();
+    },
+    /* called from the loop; returns true while it is driving the day */
+    step: function (ts) {
+      if (!active) return false;
+      if (!t0) t0 = ts;
+      var p = clamp((ts - t0) / dur, 0, 1);
+      State.day = wrapDay(from + delta * easeInOutCubic(p));
+      notifyAll('glide');
+      if (p >= 1) { active = false; }
+      return true;
+    },
+    cancel: function () { active = false; },
+    isAnimating: function () { return active; }
+  };
+})();
+
+/* =====================================================================
+   TEXT DESCRIPTION (canvas aria-labels and the live readout)
+   ===================================================================== */
+function trendWords(day) {
+  var k = illumFraction(day);
+  if (k >= 0.995) return 'fully lit, the turning point';
+  if (k <= 0.005) return 'the sunlit half faces away from Earth';
+  return isWaxing(day) ? 'growing' : 'shrinking';
+}
+
+function describeScene(day) {
+  var p = Phase.at(day);
+  return 'Day ' + fmtDay(day) + ' of 29.5. ' + p.name + '. ' +
+         p.illumPct + ' percent lit. ' + trendWords(day) + '.';
+}
+
+function describeOrbit(day) {
+  var p = Phase.at(day);
+  var where;
+  switch (p.index) {
+    case 0: where = 'directly left of Earth, between Earth and the Sun'; break;
+    case 2: where = 'directly below Earth, a quarter of the way round'; break;
+    case 4: where = 'directly right of Earth, on the far side from the Sun'; break;
+    case 6: where = 'directly above Earth, three quarters of the way round'; break;
+    default: where = 'part-way round its orbit'; break;
+  }
+  return 'Top-down map of the Moon’s orbit. Sunlight comes from the left. Day ' +
+         fmtDay(day) + ': the Moon is ' + where + '. ' + p.name + '.';
+}
+
+function describeEarthView(day) {
+  var p = Phase.at(day);
+  var edge = p.illumPct === 0 ? 'no bright edge visible'
+    : (p.illumPct === 100 ? 'the whole disk is bright'
+      : 'bright edge on the ' + (isWaxing(day) ? 'right' : 'left'));
+  return 'The Moon seen from Earth’s Northern Hemisphere. Day ' + fmtDay(day) + ': ' +
+         p.name + ', ' + p.illumPct + ' percent lit, ' + edge + '.';
+}
+
+/* =====================================================================
+   PUBLIC HANDLE (used by the tests and for debugging)
+   ===================================================================== */
+window.MoonApp = {
+  State: State, setDay: setDay, subscribe: subscribe,
+  Phase: Phase, litPath: litPath, phaseAngle: phaseAngle,
+  illumFraction: illumFraction, isWaxing: isWaxing, illumPct: illumPct,
+  Geom: Geom, Anim: Anim, Loop: Loop, Scene: Scene, EarthView: EarthView,
+  describeScene: describeScene, SYNODIC: SYNODIC, version: '1.0'
+};
+
+/* =====================================================================
+   UI — controls, phase cards, timeline, drag mode, live readout
+   Depends on core.js. Entry point: initUI()
+   ===================================================================== */
+
+function uiEl(id) { return document.getElementById(id); }
+
+/* write text only when it actually changed (avoids needless layout work) */
+function uiSetText(node, txt) {
+  if (node && node.textContent !== txt) node.textContent = txt;
+}
+
+var uiRefs = {};
+var uiLastLive = 0;
+var uiLastLiveText = '';
+var uiSliderLock = false;
+
+/* ---------------------------------------------------------------
+   Phase cards
+   --------------------------------------------------------------- */
+function uiMoonSvg(angle, size) {
+  var r = 44;
+  return '<svg class="card-moon" viewBox="-50 -50 100 100" width="' + size + '" height="' + size +
+    '" aria-hidden="true" focusable="false">' +
+    '<circle cx="0" cy="0" r="' + r + '" fill="#232b3d"/>' +
+    '<path d="' + litPath(r, angle) + '" fill="#e8edf9"/>' +
+    '<circle cx="0" cy="0" r="' + r + '" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1"/>' +
+    '</svg>';
+}
+
+function uiBuildCards() {
+  var host = uiRefs.phaseCards;
+  if (!host) return;
+  var html = '';
+  for (var i = 0; i < Phase.LIST.length; i++) {
+    var p = Phase.LIST[i];
+    var label = 'Jump to ' + p.name + ', day ' + p.centreDay.toFixed(1) + ' of 29.5, ' +
+                p.illumPct + ' percent lit. ' + p.blurb;
+    html += '<button type="button" class="phase-card" data-index="' + i +
+      '" data-day="' + p.centreDay + '" aria-label="' + label + '">' +
+      uiMoonSvg(p.centreAngle, 72) +
+      '<span class="card-name">' + p.name +
+      (p.alt ? '<span class="card-alt">' + p.alt + '</span>' : '') + '</span>' +
+      '<span class="card-day">Day ' + p.centreDay.toFixed(1) + '</span>' +
+      '<span class="card-illum">' + p.illumPct + '% lit</span>' +
+      '<span class="card-trend ' + p.trendClass + '">' +
+      '<span class="trend-glyph" aria-hidden="true">' + p.trendGlyph + '</span>' + p.trend + '</span>' +
+      '<span class="card-blurb">' + p.blurb + '</span>' +
+      '<span class="card-current sr-only">Showing now</span>' +
+      '</button>';
+  }
+  host.innerHTML = html;
+
+  host.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.phase-card') : null;
+    if (!btn || !host.contains(btn)) return;
+    if (State.playing) uiSetPlaying(false);
+    Anim.glideTo(parseFloat(btn.getAttribute('data-day')));
+  });
+
+  /* left/right arrows move between cards without activating them */
+  host.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+    var cards = Array.prototype.slice.call(host.querySelectorAll('.phase-card'));
+    var i = cards.indexOf(document.activeElement);
+    if (i < 0) return;
+    ev.preventDefault();
+    var n = (i + (ev.key === 'ArrowRight' ? 1 : -1) + cards.length) % cards.length;
+    cards[n].focus();
+  });
+}
+
+/* ---------------------------------------------------------------
+   Timeline
+   --------------------------------------------------------------- */
+var TL_MARKERS = [
+  [0, 'New', 'New Moon', 'New Moon, day 0. Start of the cycle.'],
+  [3.69, 'Wax cres.', 'Waxing Crescent', 'Waxing Crescent, day 3.7. About 15 percent lit and growing.'],
+  [7.38, '1st Qtr', 'First Quarter', 'First Quarter, day 7.4. Half lit and growing.'],
+  [11.08, 'Wax gib.', 'Waxing Gibbous', 'Waxing Gibbous, day 11.1. About 85 percent lit and growing.'],
+  [14.77, 'Full', 'Full Moon', 'Full Moon, day 14.8. Fully lit. Halfway point.'],
+  [18.46, 'Wan gib.', 'Waning Gibbous', 'Waning Gibbous, day 18.5. About 85 percent lit and shrinking.'],
+  [22.15, 'Last Qtr', 'Last Quarter', 'Last Quarter, day 22.1. Half lit and shrinking.'],
+  [25.84, 'Wan cres.', 'Waning Crescent', 'Waning Crescent, day 25.8. About 15 percent lit and shrinking.'],
+  [29.53, 'New', 'New Moon', 'New Moon, day 29.5. The cycle starts again.']
+];
+
+function uiBuildTimeline() {
+  var track = uiRefs.timelineTrack;
+  if (!track) return;
+  var html = '';
+  for (var i = 0; i < TL_MARKERS.length; i++) {
+    var m = TL_MARKERS[i];
+    /* the 9th marker is the same New Moon one cycle on: park it at day 0 */
+    var jump = (i === 8) ? 0 : m[0];
+    html += '<button type="button" class="tl-marker" data-day="' + jump +
+      '" data-index="' + i + '" aria-label="' + m[3] + '">' +
+      uiMoonSvg(phaseAngle(m[0]), 26).replace('card-moon', 'tl-moon') +
+      '<span class="tl-tick" aria-hidden="true"></span>' +
+      '<span class="tl-label tl-label-short">' + m[1] + '</span>' +
+      '<span class="tl-label tl-label-wide">' + m[2] + '</span>' +
+      '</button>';
+  }
+  /* APPEND — never replace innerHTML, or #tlThumb is destroyed */
+  track.insertAdjacentHTML('afterbegin', html);
+
+  track.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.tl-marker') : null;
+    if (!btn || !track.contains(btn)) return;
+    if (State.playing) uiSetPlaying(false);
+    Anim.glideTo(parseFloat(btn.getAttribute('data-day')));
+  });
+
+  /* show the swipe hint only when the track really overflows */
+  var scroller = track.parentNode;
+  var hint = document.querySelector('.tl-hint');
+  var checkOverflow = function () {
+    if (!scroller || !hint) return;
+    hint.style.display = scroller.scrollWidth > scroller.clientWidth + 4 ? 'block' : 'none';
+  };
+  checkOverflow();
+  if (window.ResizeObserver) new ResizeObserver(checkOverflow).observe(scroller);
+}
+
+/* ---------------------------------------------------------------
+   Play / pause
+   --------------------------------------------------------------- */
+function uiSetPlaying(on) {
+  State.playing = !!on && !State.reducedMotion;
+  var b = uiRefs.playPause;
+  if (b) {
+    b.setAttribute('aria-pressed', State.playing ? 'true' : 'false');
+    b.setAttribute('aria-label', State.playing ? 'Pause the month' : 'Play the month');
+    var glyph = b.querySelector('.btn-glyph'), text = b.querySelector('.btn-text');
+    uiSetText(glyph, State.playing ? '❚❚' : '▶');
+    uiSetText(text, State.playing ? 'Pause' : 'Play');
+  }
+  if (State.playing) { Anim.cancel(); Loop.start(); } else { Loop.invalidate(); }
+}
+
+/* ---------------------------------------------------------------
+   Drag mode
+   --------------------------------------------------------------- */
+function uiSetDragMode(on) {
+  State.dragMode = !!on;
+  document.body.setAttribute('data-drag', on ? 'on' : 'off');
+  var c = uiRefs.orbitCanvas;
+  if (c) c.classList.toggle('drag-mode', !!on);
+  var b = uiRefs.dragToggle;
+  if (b) {
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.setAttribute('aria-label', on ? 'Turn off drag the Moon mode' : 'Drag the Moon learning mode');
+  }
+}
+
+function uiWireDrag() {
+  var c = uiRefs.orbitCanvas;
+  if (!c) return;
+  var activeId = null, wasPlaying = false;
+
+  function dayAtPointer(ev) {
+    var rect = c.getBoundingClientRect();
+    var m = Scene.metrics();
+    if (!rect.width || !m.R) return null;
+    /* CSS pixels within the canvas box */
+    var px = (ev.clientX - rect.left) * (m.W / rect.width);
+    var py = (ev.clientY - rect.top) * (m.H / rect.height);
+    var vx = px - m.cx;
+    var vy = -(py - m.cy);                     /* flip into the y-up math frame */
+    if (!vx && !vy) return null;
+    return Geom.dayFromPointer(vx, vy);
+  }
+
+  function nearRing(ev) {
+    var rect = c.getBoundingClientRect();
+    var m = Scene.metrics();
+    if (!rect.width || !m.R) return false;
+    var px = (ev.clientX - rect.left) * (m.W / rect.width);
+    var py = (ev.clientY - rect.top) * (m.H / rect.height);
+    var d = Math.sqrt((px - m.cx) * (px - m.cx) + (py - m.cy) * (py - m.cy));
+    /* generous grab band so a fingertip can catch the orbit */
+    return Math.abs(d - m.R) < Math.max(m.R * 0.45, 44);
+  }
+
+  c.addEventListener('pointerdown', function (ev) {
+    if (!State.dragMode || activeId !== null) return;
+    if (!nearRing(ev)) return;
+    activeId = ev.pointerId;
+    wasPlaying = State.playing;
+    State.dragging = true;
+    if (State.playing) uiSetPlaying(false);
+    Anim.cancel();
+    document.body.setAttribute('data-dragging', 'on');
+    c.classList.add('is-grabbing');
+    try { c.setPointerCapture(ev.pointerId); } catch (e) { /* not fatal */ }
+    ev.preventDefault();
+    var d = dayAtPointer(ev);
+    if (d !== null) setDay(d, { source: 'drag' });
+  });
+
+  c.addEventListener('pointermove', function (ev) {
+    if (activeId !== ev.pointerId || !State.dragging) return;
+    ev.preventDefault();
+    var d = dayAtPointer(ev);
+    if (d !== null) setDay(d, { source: 'drag' });
+  });
+
+  function endDrag(ev) {
+    if (activeId !== ev.pointerId) return;
+    activeId = null;
+    State.dragging = false;
+    document.body.setAttribute('data-dragging', 'off');
+    c.classList.remove('is-grabbing');
+    try { c.releasePointerCapture(ev.pointerId); } catch (e) { /* already gone */ }
+    if (wasPlaying) uiSetPlaying(true);
+    Loop.invalidate();
+  }
+  c.addEventListener('pointerup', endDrag);
+  c.addEventListener('pointercancel', endDrag);
+
+  /* keyboard scrubbing on the focused canvas */
+  c.addEventListener('keydown', function (ev) {
+    var step = ev.shiftKey ? 1 : 0.1, handled = true;
+    switch (ev.key) {
+      case 'ArrowRight': case 'ArrowUp': setDay(State.day + step, { source: 'key' }); break;
+      case 'ArrowLeft': case 'ArrowDown': setDay(State.day - step, { source: 'key' }); break;
+      case 'PageUp': setDay(State.day + 1, { source: 'key' }); break;
+      case 'PageDown': setDay(State.day - 1, { source: 'key' }); break;
+      case 'Home': Anim.glideTo(0); break;
+      case 'End': Anim.glideTo(SYNODIC / 2); break;
+      case ' ': case 'Spacebar': uiSetPlaying(!State.playing); break;
+      default:
+        if (ev.key >= '1' && ev.key <= '8') Anim.glideTo(Phase.LIST[+ev.key - 1].centreDay);
+        else handled = false;
+    }
+    if (handled) {
+      ev.preventDefault();
+      if (ev.key !== ' ' && ev.key !== 'Spacebar' && State.playing) uiSetPlaying(false);
+    }
+  });
+}
+
+/* ---------------------------------------------------------------
+   Readout + all derived UI, driven from one subscription
+   --------------------------------------------------------------- */
+function uiSyncAll(info) {
+  var day = info.day;
+
+  uiSetText(uiRefs.rdPhaseB, info.name);
+  uiSetText(uiRefs.rdDay, 'Day ' + fmtDay(day) + ' of 29.5');
+  uiSetText(uiRefs.rdIllum, info.illumPct + '% lit');
+  uiSetText(uiRefs.rdTrend, trendWords(day));
+  uiSetText(uiRefs.dayLabel, 'Day ' + fmtDay(day));
+
+  if (uiRefs.daySlider && !uiSliderLock) {
+    var v = Math.min(29.5, wrapDay(day)).toFixed(1);
+    if (uiRefs.daySlider.value !== v) uiRefs.daySlider.value = v;
+  }
+  if (uiRefs.daySlider) {
+    uiRefs.daySlider.setAttribute('aria-valuetext',
+      'Day ' + fmtDay(day) + ', ' + info.name + ', ' + info.illumPct + ' percent lit, ' +
+      (info.illumPct === 0 || info.illumPct === 100 ? 'turning point'
+        : (info.waxing ? 'growing' : 'shrinking')));
+  }
+
+  /* current phase card */
+  var idx = info.index;
+  if (uiRefs.cards) {
+    for (var i = 0; i < uiRefs.cards.length; i++) {
+      var on = (i === idx);
+      var el = uiRefs.cards[i];
+      if ((el.getAttribute('aria-current') === 'true') !== on) {
+        if (on) el.setAttribute('aria-current', 'true');
+        else el.removeAttribute('aria-current');
+      }
+    }
+  }
+  /* current timeline marker + thumb */
+  if (uiRefs.markers) {
+    var mi = idx;
+    if (idx === 0 && day > SYNODIC * 0.75) mi = 8;      /* the closing New Moon */
+    for (var j = 0; j < uiRefs.markers.length; j++) {
+      var mon = (j === mi);
+      var mel = uiRefs.markers[j];
+      if ((mel.getAttribute('aria-current') === 'true') !== mon) {
+        if (mon) mel.setAttribute('aria-current', 'true');
+        else mel.removeAttribute('aria-current');
+      }
+    }
+  }
+  if (uiRefs.timelineTrack) {
+    uiRefs.timelineTrack.style.setProperty('--tl-pos', (wrapDay(day) / SYNODIC).toFixed(4));
+  }
+
+  /* throttled: canvas descriptions + the screen-reader sentence */
+  var now = (window.performance && performance.now) ? performance.now() : Date.now();
+  if (now - uiLastLive > 340) {
+    uiLastLive = now;
+    var sentence = describeScene(day);
+    if (sentence !== uiLastLiveText) {
+      uiLastLiveText = sentence;
+      if (uiRefs.readoutLive) uiRefs.readoutLive.textContent = sentence;
+      if (uiRefs.orbitCanvas) uiRefs.orbitCanvas.setAttribute('aria-label', describeOrbit(day));
+      if (uiRefs.earthCanvas) uiRefs.earthCanvas.setAttribute('aria-label', describeEarthView(day));
+    }
+  }
+}
+
+/* ---------------------------------------------------------------
+   Reveal-on-scroll (progressive enhancement only)
+   --------------------------------------------------------------- */
+function uiRevealSections() {
+  var items = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window)) {
+    for (var i = 0; i < items.length; i++) items[i].classList.add('is-in');
+    return;
+  }
+  var io = new IntersectionObserver(function (entries) {
+    for (var k = 0; k < entries.length; k++) {
+      if (entries[k].isIntersecting) {
+        entries[k].target.classList.add('is-in');
+        io.unobserve(entries[k].target);
+      }
+    }
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.02 });
+  for (var j = 0; j < items.length; j++) io.observe(items[j]);
+}
+
+/* ---------------------------------------------------------------
+   initUI
+   --------------------------------------------------------------- */
+function initUI() {
+  uiRefs.orbitCanvas = uiEl('orbitCanvas');
+  uiRefs.earthCanvas = uiEl('earthCanvas');
+  uiRefs.readoutLive = document.querySelector('[data-live="readout"]');
+  uiRefs.rdPhaseB = uiEl('rdPhase') ? uiEl('rdPhase').querySelector('b') : null;
+  uiRefs.rdDay = uiEl('rdDay');
+  uiRefs.rdIllum = uiEl('rdIllum');
+  uiRefs.rdTrend = uiEl('rdTrend');
+  uiRefs.daySlider = uiEl('daySlider');
+  uiRefs.dayLabel = uiEl('dayLabel');
+  uiRefs.playPause = uiEl('playPause');
+  uiRefs.dragToggle = uiEl('dragToggle');
+  uiRefs.resetBtn = uiEl('resetBtn');
+  uiRefs.speedSelect = uiEl('speedSelect');
+  uiRefs.phaseCards = uiEl('phaseCards');
+  uiRefs.timelineTrack = uiEl('timelineTrack');
+
+  /* the readout spans hold their label + value; keep only the value node */
+  ['rdDay', 'rdIllum', 'rdTrend'].forEach(function (id) {
+    var host = uiEl(id);
+    if (!host) return;
+    var last = host.lastChild;
+    if (!last || last.nodeType !== 3) { last = document.createTextNode(''); host.appendChild(last); }
+    uiRefs[id] = last;
+  });
+
+  /* reduced motion */
+  var mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  State.reducedMotion = !!(mq && mq.matches);
+  if (State.reducedMotion) State.playing = false;
+
+  /* canvases */
+  if (uiRefs.orbitCanvas) Scene.attach(uiRefs.orbitCanvas);
+  if (uiRefs.earthCanvas) EarthView.attach(uiRefs.earthCanvas);
+
+  uiBuildCards();
+  uiBuildTimeline();
+  uiRefs.cards = uiRefs.phaseCards ? uiRefs.phaseCards.querySelectorAll('.phase-card') : null;
+  uiRefs.markers = uiRefs.timelineTrack ? uiRefs.timelineTrack.querySelectorAll('.tl-marker') : null;
+
+  subscribe(uiSyncAll);
+
+  /* --- controls --- */
+  if (uiRefs.playPause) {
+    uiRefs.playPause.addEventListener('click', function () { uiSetPlaying(!State.playing); });
+  }
+  if (uiRefs.daySlider) {
+    uiRefs.daySlider.addEventListener('input', function () {
+      uiSliderLock = true;
+      if (State.playing) uiSetPlaying(false);
+      Anim.cancel();
+      setDay(parseFloat(uiRefs.daySlider.value) || 0, { source: 'slider' });
+      uiSliderLock = false;
+    });
+  }
+  if (uiRefs.speedSelect) {
+    uiRefs.speedSelect.addEventListener('change', function () {
+      State.speed = parseFloat(uiRefs.speedSelect.value) || 1;
+    });
+    State.speed = parseFloat(uiRefs.speedSelect.value) || 1;
+  }
+  if (uiRefs.dragToggle) {
+    uiRefs.dragToggle.addEventListener('click', function () { uiSetDragMode(!State.dragMode); });
+  }
+  if (uiRefs.resetBtn) {
+    uiRefs.resetBtn.addEventListener('click', function () {
+      Anim.cancel();
+      setDay(0, { source: 'reset', force: true });
+      uiSetPlaying(false);
+    });
+  }
+  uiSetDragMode(false);
+  uiWireDrag();
+
+  /* --- resize --- */
+  var onResize = function () {
+    Scene.resize();
+    EarthView.resize();
+    Loop.invalidate();
+  };
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(onResize);
+    if (uiRefs.orbitCanvas) ro.observe(uiRefs.orbitCanvas);
+    if (uiRefs.earthCanvas) ro.observe(uiRefs.earthCanvas);
+  } else {
+    window.addEventListener('resize', onResize);
+  }
+  window.addEventListener('orientationchange', onResize);
+
+  /* --- global keyboard shortcuts --- */
+  document.addEventListener('keydown', function (ev) {
+    var t = ev.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' ||
+              t.isContentEditable || t === uiRefs.orbitCanvas)) return;
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    if (ev.key === ' ' || ev.key === 'Spacebar') {
+      if (t && t.tagName === 'BUTTON') return;      /* let the button do its own job */
+      ev.preventDefault(); uiSetPlaying(!State.playing);
+    } else if (ev.key === 'r' || ev.key === 'R') {
+      Anim.cancel(); setDay(0, { source: 'key', force: true });
+    }
+  });
+
+  /* --- pause when the tab is hidden --- */
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) Loop.stop();
+    else if (State.playing) Loop.start();
+    else Loop.invalidate();
+  });
+
+  /* --- react to a live change of the motion preference --- */
+  if (mq) {
+    var onMq = function () {
+      State.reducedMotion = mq.matches;
+      if (mq.matches) uiSetPlaying(false);
+      Loop.invalidate();
+    };
+    if (mq.addEventListener) mq.addEventListener('change', onMq);
+    else if (mq.addListener) mq.addListener(onMq);
+  }
+
+  uiRevealSections();
+
+  /* first paint */
+  uiSetPlaying(State.reducedMotion ? false : true);
+  setDay(0, { source: 'init', force: true });
+  Loop.invalidate();
+  Loop.start();
+}
+
+/* =====================================================================
+   LEARNING MODULES — waxing/waning demo, eclipse toggle, quiz
+   Depends on core.js. Entry point: initLearn()
+   ===================================================================== */
+
+/* ---------------------------------------------------------------
+   1. Waxing vs waning side-by-side
+   --------------------------------------------------------------- */
+function lnInitWaxWane() {
+  var slider = document.getElementById('wwSlider');
+  var play = document.getElementById('wwPlay');
+  var litWax = document.getElementById('wwLitWax');
+  var litWane = document.getElementById('wwLitWane');
+  var subWax = document.getElementById('wwSubWax');
+  var subWane = document.getElementById('wwSubWane');
+  if (!slider || !litWax || !litWane) return;
+
+  var raf = 0, playing = false, last = 0, visible = true;
+
+  function render(waxDay) {
+    var waneDay = SYNODIC - waxDay;                 /* mirror in the second half */
+    var kWax = illumFraction(waxDay);
+    var kWane = illumFraction(waneDay);
+
+    litWax.setAttribute('d', litPath(44, phaseAngle(waxDay)));
+    litWane.setAttribute('d', litPath(44, phaseAngle(waneDay)));
+
+    if (subWax) {
+      subWax.textContent = 'Day ' + waxDay.toFixed(1) + ' · ' + Math.round(kWax * 100) +
+        '% lit · bright edge on the right';
+    }
+    if (subWane) {
+      subWane.textContent = 'Day ' + waneDay.toFixed(1) + ' · ' + Math.round(kWane * 100) +
+        '% lit · bright edge on the left';
+    }
+    slider.setAttribute('aria-valuetext',
+      'Day ' + waxDay.toFixed(1) + ' waxing, and day ' + waneDay.toFixed(1) +
+      ' waning. Both ' + Math.round(kWax * 100) + ' percent lit.');
+  }
+
+  function frame(ts) {
+    raf = 0;
+    if (!playing) return;
+    var dt = last ? Math.min((ts - last) / 1000, 0.05) : 0;
+    last = ts;
+    var v = parseFloat(slider.value) + dt * 2.6;
+    if (v > 14.77) v = 0;
+    slider.value = v.toFixed(1);
+    render(v);
+    if (playing && visible) raf = requestAnimationFrame(frame);
+    else stop();
+  }
+
+  function start() {
+    if (State.reducedMotion || playing) return;
+    playing = true; last = 0;
+    if (play) { play.setAttribute('aria-pressed', 'true'); play.textContent = 'Pause both'; }
+    raf = requestAnimationFrame(frame);
+  }
+  function stop() {
+    playing = false;
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    if (play) { play.setAttribute('aria-pressed', 'false'); play.textContent = 'Play both'; }
+  }
+
+  slider.addEventListener('input', function () {
+    stop();
+    render(parseFloat(slider.value) || 0);
+  });
+  if (play) play.addEventListener('click', function () { playing ? stop() : start(); });
+
+  /* stop burning frames when the section scrolls out of view */
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (e) {
+      visible = e[0].isIntersecting;
+      if (!visible && playing) stop();
+    }, { threshold: 0.05 }).observe(slider.closest('section') || slider);
+  }
+
+  render(parseFloat(slider.value) || 3.7);
+}
+
+/* ---------------------------------------------------------------
+   2. Phase vs lunar eclipse toggle
+   --------------------------------------------------------------- */
+function lnInitEclipse() {
+  var bP = document.getElementById('eclBtnPhase');
+  var bE = document.getElementById('eclBtnEclipse');
+  var pP = document.getElementById('eclPanelPhase');
+  var pE = document.getElementById('eclPanelEclipse');
+  if (!bP || !bE || !pP || !pE) return;
+
+  function show(which) {
+    var phase = which === 'phase';
+    bP.setAttribute('aria-pressed', phase ? 'true' : 'false');
+    bE.setAttribute('aria-pressed', phase ? 'false' : 'true');
+    pP.hidden = !phase;
+    pE.hidden = phase;
+  }
+  bP.addEventListener('click', function () { show('phase'); });
+  bE.addEventListener('click', function () { show('eclipse'); });
+  show('phase');
+}
+
+/* ---------------------------------------------------------------
+   3. "Show me" links that drive the main animation
+   --------------------------------------------------------------- */
+function lnAddShowMeButtons() {
+  var targets = [
+    { sel: '.why-punch', day: 14.77, label: 'Show me Full Moon' },
+    { sel: '.myth-punch', day: 0, label: 'Show me New Moon' },
+    { sel: '.ww-punch', day: 7.38, label: 'Show me First Quarter' }
+  ];
+  for (var i = 0; i < targets.length; i++) {
+    (function (t) {
+      var host = document.querySelector(t.sel);
+      if (!host) return;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn--ghost showme-btn';
+      b.textContent = t.label;
+      b.setAttribute('aria-label', t.label + ' in the animation at the top of the page');
+      b.addEventListener('click', function () {
+        var scene = document.getElementById('scene');
+        if (scene && scene.scrollIntoView) {
+          scene.scrollIntoView({ behavior: State.reducedMotion ? 'auto' : 'smooth', block: 'start' });
+        }
+        Anim.glideTo(t.day);
+      });
+      host.insertAdjacentElement('afterend', b);
+    })(targets[i]);
+  }
+}
+
+/* ---------------------------------------------------------------
+   4. Quiz
+   --------------------------------------------------------------- */
+var QUIZ = [
+  {
+    q: 'What actually causes the Moon’s phases?',
+    options: [
+      'Earth’s shadow falls across the Moon and hides part of it.',
+      'Clouds in Earth’s air cover up part of the Moon.',
+      'The Sun lights one half of the Moon, and we see that lit half from changing angles.',
+      'The Moon makes its own light, and it makes more of it on some nights.'
+    ],
+    answer: 2,
+    why: [
+      'That is a lunar eclipse, and it only happens a couple of times a year — phases happen every single month.',
+      'Clouds can hide the Moon, but they cannot make the same neat shapes appear in the same order every month.',
+      'Exactly — the lit half never changes size, only our viewing angle changes, and that is the whole story.',
+      'The Moon makes no light of its own; it is a dark grey ball that shines only because sunlight bounces off it.'
+    ],
+    takeaway: 'Same lit half, different viewing angle. That is a phase.'
+  },
+  {
+    q: 'Which phase comes straight after First Quarter?',
+    options: ['Full Moon', 'Waxing Gibbous', 'Waning Gibbous', 'Waxing Crescent'],
+    answer: 1,
+    why: [
+      'Full Moon is coming, but not yet — it arrives about seven days later, with gibbous in between.',
+      'Right — more than half is lit now and it is still growing, which is exactly what waxing gibbous means.',
+      'Waning means shrinking, and the Moon is still growing at this point in the month.',
+      'Waxing crescent comes just before First Quarter, when less than half the disk is lit.'
+    ],
+    takeaway: 'The order is New, waxing crescent, first quarter, waxing gibbous, full.'
+  },
+  {
+    q: 'What does “waxing” mean?',
+    options: [
+      'The lit part we see is growing bigger each night.',
+      'The lit part we see is shrinking each night.',
+      'The Moon is moving closer to Earth.',
+      'The Moon is spinning faster than usual.'
+    ],
+    answer: 0,
+    why: [
+      'Yes — “wax” is an old word for grow, like wax building up on a candle, so waxing runs from New to Full.',
+      'That is waning. Waxing is the other half of the month, when the lit part is getting bigger.',
+      'The Moon’s distance does change a little, but that changes its size in the sky, not its phase.',
+      'The Moon’s spin is steady, and it takes about the same time as one orbit — that is why we always see the same face.'
+    ],
+    takeaway: 'Waxing = growing, from New Moon up to Full Moon.'
+  },
+  {
+    q: 'What does “waning” mean?',
+    options: [
+      'The lit part we see is growing bigger each night.',
+      'The Moon is drifting away from Earth.',
+      'The Moon is sliding into Earth’s shadow.',
+      'The lit part we see is shrinking each night.'
+    ],
+    answer: 3,
+    why: [
+      'That is waxing. Waning is the second half of the month, when the lit part gets smaller.',
+      'The Moon really does drift away by a few centimetres a year, but that is far too slow to change what we see tonight.',
+      'That would be a lunar eclipse, which is a rare one-evening event, not the slow monthly change we call waning.',
+      'Correct — “wane” is an old word for shrink, so waning runs from Full Moon back down to New.'
+    ],
+    takeaway: 'Waning = shrinking, from Full Moon back down to New Moon.'
+  },
+  {
+    q: 'How long does one full cycle of phases take?',
+    options: ['About 24 hours', 'About 7 days', 'About 29.5 days', 'About 365 days'],
+    answer: 2,
+    why: [
+      '24 hours is one spin of Earth. That gives us day and night, but the Moon’s shape barely changes in a day.',
+      'About seven days is the gap between one milestone and the next, like New Moon to First Quarter — a quarter of the cycle.',
+      'Yes — about 29.5 days from one New Moon to the next, which is where our word “month” comes from.',
+      '365 days is one trip of Earth around the Sun. That is a year, not a Moon cycle.'
+    ],
+    takeaway: 'New Moon to New Moon takes about 29.5 days.'
+  },
+  {
+    q: 'Which statement about Earth’s shadow and the Moon is correct?',
+    options: [
+      'Earth’s shadow on the Moon is what makes the phases we see every month.',
+      'Earth’s shadow only lands on the Moon during a lunar eclipse, which is rare.',
+      'Earth’s shadow is what makes the crescent shapes, but not the other phases.',
+      'Earth’s shadow never reaches the Moon at all.'
+    ],
+    answer: 1,
+    why: [
+      'This is the most common mix-up of all. Phases are about viewing angle, and they happen every month like clockwork.',
+      'Correct — and it is rare because the Moon’s orbit is tilted by about 5°, so it usually passes above or below the shadow.',
+      'A crescent is just a thin slice of the lit half turned our way. No shadow of ours is involved.',
+      'It does reach the Moon now and then, a couple of times a year. When it does, we get a lunar eclipse.'
+    ],
+    takeaway: 'Phase = which way the lit half points. Eclipse = Earth’s shadow actually landing on the Moon.'
+  },
+  {
+    q: 'In which phase do we see the whole sunlit half of the Moon at once?',
+    options: ['New Moon', 'First Quarter', 'Waxing Gibbous', 'Full Moon'],
+    answer: 3,
+    why: [
+      'At New Moon the lit half points away from us, so the side facing Earth is in darkness.',
+      'First Quarter shows exactly half of the disk lit — we are looking at the lit half from the side.',
+      'So close. Waxing gibbous is more than half but not all; a dark curve is still hanging on at one edge.',
+      'Yes — Earth is between the Sun and the Moon, so the entire lit half is turned straight toward us.'
+    ],
+    takeaway: 'Only at Full Moon is the whole sunlit half pointing our way.'
+  }
+];
+
+var SCORE_BANDS = [
+  { min: 0, max: 2, title: 'Good start.',
+    msg: 'You have made a start — now go back to the top and drag the Moon around one full lap. Watch which way the lit half is pointing at each stop, then come back and try again.' },
+  { min: 3, max: 4, title: 'Getting there.',
+    msg: 'You have got the main idea. The bits that trip people up are usually waxing versus waning and the Earth’s-shadow mix-up, so re-read those two sections and give it another go.' },
+  { min: 5, max: 6, title: 'Nicely done.',
+    msg: 'You clearly understand why phases happen. Check the explanations for the ones you missed — they are usually a small detail about order or timing, not the big idea.' },
+  { min: 7, max: 7, title: 'Perfect score.',
+    msg: 'Every one correct. You can now explain the Moon’s phases properly, and you know why the Earth’s-shadow story is wrong. Go outside tonight and name the phase you see.' }
+];
+
+function lnEscape(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function lnInitQuiz() {
+  var host = document.getElementById('quizQuestions');
+  var form = document.getElementById('quizForm');
+  var submit = document.getElementById('quizSubmit');
+  var reset = document.getElementById('quizReset');
+  var scoreBox = document.getElementById('quizScore');
+  var resultsHeading = document.getElementById('quizResultsHeading');
+  if (!host || !form) return;
+
+  var html = '', i, j;
+  for (i = 0; i < QUIZ.length; i++) {
+    var item = QUIZ[i];
+    html += '<fieldset class="q" data-q="' + i + '">' +
+      '<legend>' + (i + 1) + '. ' + lnEscape(item.q) +
+      ' <span class="blank-flag">Needs an answer</span></legend>' +
+      '<div class="q-opts">';
+    for (j = 0; j < item.options.length; j++) {
+      var id = 'q' + i + 'o' + j;
+      html += '<label class="opt" for="' + id + '">' +
+        '<input type="radio" id="' + id + '" name="q' + i + '" value="' + j + '">' +
+        '<span class="opt-text">' + lnEscape(item.options[j]) + '</span>' +
+        '</label>';
+    }
+    html += '</div><div class="q-feedback" role="status" aria-live="polite"></div></fieldset>';
+  }
+  host.innerHTML = html;
+
+  var fieldsets = host.querySelectorAll('.q');
+
+  function feedbackFor(qi, picked, showAnswer) {
+    var item = QUIZ[qi];
+    var ok = picked === item.answer;
+    var fb = fieldsets[qi].querySelector('.q-feedback');
+    if (!fb) return ok;
+    var out = '<p class="fb-verdict ' + (ok ? 'fb-ok' : 'fb-no') + '">' +
+      (ok ? '✓ Correct.' : '✕ Not quite.') + '</p>' +
+      '<p class="fb-why">' + lnEscape(item.why[picked]) + '</p>';
+    if (!ok && showAnswer) {
+      out += '<p class="fb-answer">The answer is: ' + lnEscape(item.options[item.answer]) +
+        ' — ' + lnEscape(item.why[item.answer]) + '</p>';
+    }
+    out += '<p class="fb-takeaway">Takeaway: ' + lnEscape(item.takeaway) + '</p>';
+    fb.setAttribute('data-ok', ok ? 'yes' : 'no');
+    fb.innerHTML = out;
+    return ok;
+  }
+
+  /* immediate feedback as soon as an option is chosen */
+  host.addEventListener('change', function (ev) {
+    var input = ev.target;
+    if (!input || input.type !== 'radio') return;
+    var fs = input.closest('.q');
+    if (!fs) return;
+    var qi = +fs.getAttribute('data-q');
+    fs.classList.remove('is-blank');
+    var opts = fs.querySelectorAll('.opt');
+    for (var k = 0; k < opts.length; k++) {
+      opts[k].classList.toggle('is-checked', !!opts[k].querySelector('input:checked'));
+    }
+    feedbackFor(qi, +input.value, false);
+  });
+
+  function picked(qi) {
+    var el = form.querySelector('input[name="q' + qi + '"]:checked');
+    return el ? +el.value : -1;
+  }
+
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var score = 0, blanks = [], qi;
+    for (qi = 0; qi < QUIZ.length; qi++) {
+      var p = picked(qi);
+      if (p < 0) { blanks.push(qi + 1); fieldsets[qi].classList.add('is-blank'); continue; }
+      fieldsets[qi].classList.remove('is-blank');
+      if (feedbackFor(qi, p, true)) score++;
+    }
+
+    if (blanks.length) {
+      var msg = blanks.length === 1
+        ? 'Almost there — question ' + blanks[0] + ' still needs an answer.'
+        : 'Almost there — ' + blanks.length + ' questions still need an answer. The first one is question ' + blanks[0] + '.';
+      if (scoreBox) scoreBox.innerHTML = '<p class="score-msg fb-warn">' + lnEscape(msg) + '</p>';
+      if (resultsHeading) resultsHeading.hidden = false;
+      var firstBlank = fieldsets[blanks[0] - 1];
+      var radio = firstBlank ? firstBlank.querySelector('input[type=radio]') : null;
+      if (radio) radio.focus();
+      return;
+    }
+
+    var band = SCORE_BANDS[0];
+    for (var b = 0; b < SCORE_BANDS.length; b++) {
+      if (score >= SCORE_BANDS[b].min && score <= SCORE_BANDS[b].max) band = SCORE_BANDS[b];
+    }
+    if (scoreBox) {
+      scoreBox.innerHTML = '<p class="score-line">' + score + ' out of 7</p>' +
+        '<p class="score-msg"><strong>' + lnEscape(band.title) + '</strong> ' + lnEscape(band.msg) + '</p>';
+    }
+    if (resultsHeading) {
+      resultsHeading.hidden = false;
+      if (resultsHeading.focus) resultsHeading.focus();
+    }
+  });
+
+  if (reset) {
+    reset.addEventListener('click', function () {
+      form.reset();
+      for (var qi = 0; qi < fieldsets.length; qi++) {
+        fieldsets[qi].classList.remove('is-blank');
+        var fb = fieldsets[qi].querySelector('.q-feedback');
+        if (fb) { fb.innerHTML = ''; fb.removeAttribute('data-ok'); }
+        var opts = fieldsets[qi].querySelectorAll('.opt');
+        for (var k = 0; k < opts.length; k++) opts[k].classList.remove('is-checked');
+      }
+      if (scoreBox) scoreBox.innerHTML = '';
+      if (resultsHeading) resultsHeading.hidden = true;
+      var first = form.querySelector('input[type=radio]');
+      if (first) first.focus();
+    });
+  }
+  if (submit) submit.setAttribute('type', 'submit');
+}
+
+/* ---------------------------------------------------------------
+   initLearn
+   --------------------------------------------------------------- */
+function initLearn() {
+  lnInitWaxWane();
+  lnInitEclipse();
+  lnInitQuiz();
+  lnAddShowMeButtons();
+}
+
+  /* ---------------- bootstrap ---------------- */
+  function boot() {
+    try { initUI(); } catch (err) { console.error('[MoonApp] initUI failed:', err); }
+    try { initLearn(); } catch (err) { console.error('[MoonApp] initLearn failed:', err); }
+    document.documentElement.classList.add('js-ready');
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else {
+    boot();
+  }
+})();
+</script>
+</body>
+</html>
