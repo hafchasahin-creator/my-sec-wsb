@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bodyguard MCAddon Generator</title>
+<style>
+  :root{
+    --bg:#0e1116; --card:#181e26; --edge:#2a3442; --text:#e9eef4; --dim:#9fadbd;
+    --green:#3c8527; --green-hi:#52b13a; --green-lo:#1f4c12; --gold:#e6b23a; --navy:#3d4fb0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{
+    background:linear-gradient(180deg,#0a0d11 0%,#141c26 45%,#0a0d11 100%);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh; padding:20px 14px 56px; line-height:1.5;
+  }
+  .wrap{max-width:680px;margin:0 auto}
+  .logo{text-align:center;font-size:52px;line-height:1;margin-bottom:6px;
+        filter:drop-shadow(0 4px 8px rgba(0,0,0,.6))}
+  h1{font-size:1.65rem;text-align:center;letter-spacing:.4px;margin-bottom:4px}
+  .sub{color:var(--dim);text-align:center;font-size:.92rem;margin-bottom:22px}
+  .sub b{color:var(--gold)}
+  button.gen{
+    display:block;width:100%;padding:22px 16px;font-size:1.28rem;font-weight:700;color:#fff;
+    background:linear-gradient(180deg,var(--green-hi),var(--green));
+    border:2px solid var(--green-lo);border-bottom-width:6px;border-radius:12px;
+    cursor:pointer;letter-spacing:.3px;
+    box-shadow:0 6px 18px rgba(60,133,39,.35), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  button.gen:active{transform:translateY(3px);border-bottom-width:3px}
+  #status{margin:14px 0 4px;min-height:24px;text-align:center;font-size:.98rem;color:var(--gold);
+          word-break:break-word}
+  #status.ok{color:#7fe06a}
+  #status.err{color:#ff8d7a}
+  .card{background:var(--card);border:1px solid var(--edge);border-radius:14px;
+        padding:16px 16px 14px;margin-top:16px}
+  .card h2{font-size:1.05rem;margin-bottom:10px;color:var(--gold);letter-spacing:.3px}
+  .card ol{padding-left:22px}
+  .card li{margin-bottom:8px}
+  .card li:last-child{margin-bottom:0}
+  ul.feat{list-style:none}
+  ul.feat li{padding-left:26px;position:relative;margin-bottom:7px;font-size:.95rem}
+  ul.feat li::before{content:"✔";position:absolute;left:2px;color:var(--green-hi);font-weight:700}
+  .hint{color:var(--dim);font-size:.85rem;margin-top:10px}
+  .kbd{background:#0a0d11;border:1px solid var(--edge);border-radius:6px;padding:1px 7px;
+       font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.86em;color:#cfe3ff;white-space:nowrap}
+  .bond{border-color:var(--gold)}
+  .bond h2{color:#ffd772}
+  details{margin-top:16px;background:var(--card);border:1px solid var(--edge);border-radius:14px;
+          padding:12px 16px}
+  summary{cursor:pointer;color:var(--dim);font-weight:600}
+  details pre{margin-top:10px;font-size:.78rem;color:#b7c6d6;overflow-x:auto;
+              font-family:ui-monospace,Menlo,Consolas,monospace;line-height:1.55}
+  footer{margin-top:26px;text-align:center;color:#6d7a89;font-size:.8rem;padding:0 8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">🛡️⚔️</div>
+  <h1>Bodyguard Companion</h1>
+  <p class="sub">One-tap <b>.mcaddon</b> generator for <b>Minecraft Bedrock</b> mobile<br>
+     Built for <b>1.21.0.26 beta</b> (works on 1.20.60+) &middot; no Experiments needed</p>
+
+  <button class="gen" id="gen">⬇️&nbsp; Generate Bodyguard MCAddon</button>
+  <div id="status">Tap the button — the finished addon downloads instantly.</div>
+
+  <div class="card">
+    <h2>📦 Install (once downloaded)</h2>
+    <ol>
+      <li>Open the downloaded <span class="kbd">Bodyguard_Companion.mcaddon</span> — from your
+          notification bar or Files/Downloads — and choose <b>Minecraft</b> to open it.</li>
+      <li>Minecraft launches and imports <b>both packs</b> (behavior + resource) automatically.</li>
+      <li>Create or edit a world → <b>Behavior Packs → Available → Bodyguard Companion → Activate</b>.
+          The resource pack activates by itself (it is a dependency).</li>
+    </ol>
+    <p class="hint">If your browser saves it as <span class="kbd">.zip</span>, rename the file to end in
+       <span class="kbd">.mcaddon</span> in the Files app, then open it.</p>
+  </div>
+
+  <div class="card bond">
+    <h2>🤝 Spawn &amp; bond your bodyguard</h2>
+    <ol>
+      <li>Find the <b>Bodyguard Spawn Egg</b> in Creative (search &ldquo;Bodyguard&rdquo;), or with cheats:
+          <span class="kbd">/give @s bgc:bodyguard_spawn_egg</span> &nbsp;/&nbsp;
+          <span class="kbd">/summon bgc:bodyguard</span></li>
+      <li>Tap the ground with the egg to spawn your guard.</li>
+      <li><b>Bond it (one tap):</b> hold <b>any food, an emerald, iron ingot, gold ingot, diamond,
+          stick or bone</b> — the guard walks over to you — then tap it (a <b>Tame</b> button appears).
+          Hearts = it&rsquo;s yours forever.</li>
+    </ol>
+    <p class="hint">Bedrock&rsquo;s stable (non-experimental) engine can&rsquo;t assign an owner at spawn
+       without scripts, so bonding is a single tap — after that everything below is 100% automatic.</p>
+  </div>
+
+  <div class="card">
+    <h2>🗡️ What your bodyguard does</h2>
+    <ul class="feat">
+      <li>Follows you everywhere and sprints to keep up</li>
+      <li><b>Teleports back</b> to you if it falls behind, gets stuck, or you travel far</li>
+      <li>Instantly attacks <b>anything that damages you</b> — and anything <b>you</b> attack</li>
+      <li>Hunts nearby zombies, skeletons, creepers, spiders, pillagers &amp; all hostile mobs on sight</li>
+      <li>Fights until the threat is dead, then returns to your side</li>
+      <li><b>Never</b> attacks you, other players, or tamed/friendly mobs</li>
+      <li>300 ❤ health, heavy knockback resistance, no fall damage, 12 ⚔ sword damage</li>
+      <li><b>On-screen health bar</b> (boss-bar style) once bonded</li>
+      <li>Custom knight model with sword + walk / idle / attack / hurt animations</li>
+      <li>Guarding always beats wandering — it only strolls when you&rsquo;re safe</li>
+      <li>Feed it bread / cooked meat / golden apples to heal it</li>
+    </ul>
+  </div>
+
+  <details>
+    <summary>What&rsquo;s inside the .mcaddon</summary>
+    <pre>Bodyguard_BP/                 (behavior pack)
+  manifest.json               fresh UUIDs every generate
+  pack_icon.png
+  entities/bodyguard.json     AI: follow, guard, retaliate, teleport
+Bodyguard_RP/                 (resource pack)
+  manifest.json
+  pack_icon.png
+  entity/bodyguard.entity.json
+  models/entity/bodyguard.geo.json
+  animations/bodyguard.animation.json
+  render_controllers/bodyguard.render_controllers.json
+  textures/entity/bodyguard.png   (64x64 knight skin)
+  sounds.json                 iron-golem hit/attack sounds
+  texts/en_US.lang + languages.json
+
+Plain folders inside one zip — no nested .zip / .mcpack,
+so Minecraft imports it without errors.</pre>
+  </details>
+
+  <footer>
+    Every generate creates brand-new pack UUIDs, so re-imports never collide.<br>
+    Regenerating a lot? Delete old copies in Minecraft &rarr; Settings &rarr; Storage.
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ---------- zip helpers (tested in Node against unzip -t before shipping) ---------- */
+function crc32Table(){
+  const t=new Uint32Array(256);
+  for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}
+  return t;
+}
+function crc32(u8){
+  const t=crc32Table._t||(crc32Table._t=crc32Table());
+  let c=0xFFFFFFFF;
+  for(let i=0;i<u8.length;i++)c=t[(c^u8[i])&0xFF]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function zipStore(entries){
+  const enc=new TextEncoder();
+  const parts=[],central=[];
+  let offset=0;
+  const DT=0x6000,DD=0x5D11; /* fixed DOS time/date: 2026-08-17 12:00 */
+  for(const e of entries){
+    const name=enc.encode(e.name),data=e.data,crc=crc32(data);
+    const lh=new Uint8Array(30+name.length);
+    const v=new DataView(lh.buffer);
+    v.setUint32(0,0x04034b50,true);v.setUint16(4,20,true);v.setUint16(6,0,true);v.setUint16(8,0,true);
+    v.setUint16(10,DT,true);v.setUint16(12,DD,true);v.setUint32(14,crc,true);
+    v.setUint32(18,data.length,true);v.setUint32(22,data.length,true);
+    v.setUint16(26,name.length,true);v.setUint16(28,0,true);
+    lh.set(name,30);
+    parts.push(lh,data);
+    const ch=new Uint8Array(46+name.length);
+    const cv=new DataView(ch.buffer);
+    cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);
+    cv.setUint16(8,0,true);cv.setUint16(10,0,true);
+    cv.setUint16(12,DT,true);cv.setUint16(14,DD,true);cv.setUint32(16,crc,true);
+    cv.setUint32(20,data.length,true);cv.setUint32(24,data.length,true);
+    cv.setUint16(28,name.length,true);
+    cv.setUint32(42,offset,true);
+    ch.set(name,46);
+    central.push(ch);
+    offset+=lh.length+data.length;
+  }
+  let cdSize=0;for(const c of central)cdSize+=c.length;
+  const eocd=new Uint8Array(22);
+  const ev=new DataView(eocd.buffer);
+  ev.setUint32(0,0x06054b50,true);ev.setUint16(8,entries.length,true);ev.setUint16(10,entries.length,true);
+  ev.setUint32(12,cdSize,true);ev.setUint32(16,offset,true);
+  const out=new Uint8Array(offset+cdSize+22);
+  let p=0;
+  for(const part of parts){out.set(part,p);p+=part.length;}
+  for(const c of central){out.set(c,p);p+=c.length;}
+  out.set(eocd,p);
+  return out;
+}
+
+/* ---------- addon payload (JSON files, lang text, base64 PNGs) ---------- */
+const ASSETS = {"json":{"Bodyguard_BP/entities/bodyguard.json":{"format_version":"1.16.0","minecraft:entity":{"description":{"identifier":"bgc:bodyguard","is_spawnable":true,"is_summonable":true,"is_experimental":false},"component_groups":{"bgc:unbonded":{"minecraft:tameable":{"probability":1,"tame_items":["apple","golden_apple","bread","cookie","melon_slice","sweet_berries","carrot","potato","baked_potato","beetroot","beef","cooked_beef","porkchop","cooked_porkchop","chicken","cooked_chicken","mutton","cooked_mutton","cod","cooked_cod","salmon","cooked_salmon","emerald","iron_ingot","gold_ingot","diamond","stick","bone"],"tame_event":{"event":"bgc:on_bonded","target":"self"}},"minecraft:behavior.tempt":{"priority":4,"speed_multiplier":1.1,"within_radius":12,"items":["apple","golden_apple","bread","cookie","melon_slice","sweet_berries","carrot","potato","baked_potato","beetroot","beef","cooked_beef","porkchop","cooked_porkchop","chicken","cooked_chicken","mutton","cooked_mutton","cod","cooked_cod","salmon","cooked_salmon","emerald","iron_ingot","gold_ingot","diamond","stick","bone"]}},"bgc:bonded":{"minecraft:is_tamed":{},"minecraft:boss":{"should_darken_sky":false,"hud_range":16},"minecraft:behavior.owner_hurt_by_target":{"priority":1},"minecraft:behavior.owner_hurt_target":{"priority":2},"minecraft:behavior.follow_owner":{"priority":4,"speed_multiplier":1.25,"start_distance":7,"stop_distance":2.5}}},"components":{"minecraft:type_family":{"family":["bodyguard","mob"]},"minecraft:health":{"value":300,"max":300},"minecraft:attack":{"damage":12},"minecraft:movement":{"value":0.33},"minecraft:underwater_movement":{"value":0.18},"minecraft:navigation.walk":{"can_path_over_water":true,"can_pass_doors":true,"can_open_doors":true,"avoid_damage_blocks":true},"minecraft:annotation.open_door":{},"minecraft:movement.basic":{},"minecraft:jump.static":{},"minecraft:can_climb":{},"minecraft:breathable":{"breathes_air":true,"breathes_water":true},"minecraft:collision_box":{"width":0.6,"height":1.9},"minecraft:physics":{},"minecraft:pushable":{"is_pushable":true,"is_pushable_by_piston":true},"minecraft:persistent":{},"minecraft:knockback_resistance":{"value":0.85},"minecraft:follow_range":{"value":48,"max":48},"minecraft:nameable":{"allow_name_tag_renaming":true,"always_show":false},"minecraft:leashable":{"soft_distance":4,"hard_distance":6,"max_distance":10},"minecraft:damage_sensor":{"triggers":[{"cause":"fall","deals_damage":false}]},"minecraft:healable":{"items":[{"item":"apple","heal_amount":15},{"item":"bread","heal_amount":20},{"item":"cooked_beef","heal_amount":40},{"item":"cooked_porkchop","heal_amount":40},{"item":"golden_apple","heal_amount":100}]},"minecraft:behavior.float":{"priority":0},"minecraft:behavior.melee_attack":{"priority":3,"speed_multiplier":1.35,"track_target":true,"require_complete_path":false},"minecraft:behavior.hurt_by_target":{"priority":1,"entity_types":[{"filters":{"test":"is_family","subject":"other","operator":"!=","value":"player"},"max_dist":48}]},"minecraft:behavior.nearest_attackable_target":{"priority":2,"must_see":true,"reselect_targets":true,"within_radius":20,"must_see_forget_duration":17,"entity_types":[{"filters":{"test":"is_family","subject":"other","value":"monster"},"max_dist":20}]},"minecraft:behavior.random_stroll":{"priority":6,"speed_multiplier":0.6,"xz_dist":10},"minecraft:behavior.look_at_player":{"priority":7,"look_distance":8,"probability":0.8},"minecraft:behavior.random_look_around":{"priority":8}},"events":{"minecraft:entity_spawned":{"add":{"component_groups":["bgc:unbonded"]}},"bgc:on_bonded":{"sequence":[{"remove":{"component_groups":["bgc:unbonded"]}},{"add":{"component_groups":["bgc:bonded"]}}]}}}},"Bodyguard_RP/entity/bodyguard.entity.json":{"format_version":"1.10.0","minecraft:client_entity":{"description":{"identifier":"bgc:bodyguard","materials":{"default":"entity_alphatest"},"textures":{"default":"textures/entity/bodyguard"},"geometry":{"default":"geometry.bgc_bodyguard"},"animations":{"head_look":"animation.bgc.bodyguard.head_look","idle":"animation.bgc.bodyguard.idle","walk":"animation.bgc.bodyguard.walk","hurt":"animation.bgc.bodyguard.hurt","attack":"animation.bgc.bodyguard.attack"},"scripts":{"animate":["head_look","idle",{"walk":"query.modified_move_speed > 0.05"},{"hurt":"query.hurt_time > 0.0"},{"attack":"query.attack_time > 0.0"}]},"render_controllers":["controller.render.bgc_bodyguard"],"spawn_egg":{"base_color":"#2F3F8F","overlay_color":"#E6B23A"},"enable_attachables":false}}},"Bodyguard_RP/models/entity/bodyguard.geo.json":{"format_version":"1.12.0","minecraft:geometry":[{"description":{"identifier":"geometry.bgc_bodyguard","texture_width":64,"texture_height":64,"visible_bounds_width":3,"visible_bounds_height":3.5,"visible_bounds_offset":[0,1.25,0]},"bones":[{"name":"root","pivot":[0,0,0]},{"name":"body","parent":"root","pivot":[0,24,0],"cubes":[{"origin":[-4,12,-2],"size":[8,12,4],"uv":[16,16]}]},{"name":"head","parent":"body","pivot":[0,24,0],"cubes":[{"origin":[-4,24,-4],"size":[8,8,8],"uv":[0,0]}]},{"name":"right_arm","parent":"body","pivot":[-5,22,0],"cubes":[{"origin":[-8,12,-2],"size":[4,12,4],"uv":[40,16]}]},{"name":"sword","parent":"right_arm","pivot":[-6,12,0],"cubes":[{"origin":[-6.5,2,-0.5],"size":[1,10,1],"uv":[52,0]},{"origin":[-7.5,11.5,-0.5],"size":[3,1,1],"uv":[32,4]},{"origin":[-6.5,12.5,-0.5],"size":[1,3,1],"uv":[32,8]}]},{"name":"left_arm","parent":"body","pivot":[5,22,0],"cubes":[{"origin":[4,12,-2],"size":[4,12,4],"uv":[32,48]}]},{"name":"right_leg","parent":"root","pivot":[-1.9,12,0],"cubes":[{"origin":[-3.9,0,-2],"size":[4,12,4],"uv":[0,16]}]},{"name":"left_leg","parent":"root","pivot":[1.9,12,0],"cubes":[{"origin":[-0.1,0,-2],"size":[4,12,4],"uv":[16,48]}]}]}]},"Bodyguard_RP/animations/bodyguard.animation.json":{"format_version":"1.8.0","animations":{"animation.bgc.bodyguard.head_look":{"loop":true,"bones":{"head":{"rotation":["query.target_x_rotation","query.target_y_rotation",0]}}},"animation.bgc.bodyguard.idle":{"loop":true,"bones":{"left_arm":{"rotation":["math.cos(query.anim_time * 90.0) * 2.5",0,"2.0 + math.sin(query.anim_time * 90.0) * 1.5"]},"right_arm":{"rotation":[-6,0,"-(2.0 + math.sin(query.anim_time * 90.0) * 1.5)"]}}},"animation.bgc.bodyguard.walk":{"loop":true,"bones":{"right_leg":{"rotation":["math.cos(query.modified_distance_moved * 38.17) * 42.0",0,0]},"left_leg":{"rotation":["math.cos(query.modified_distance_moved * 38.17 + 180.0) * 42.0",0,0]},"left_arm":{"rotation":["math.cos(query.modified_distance_moved * 38.17) * 32.0",0,0]},"right_arm":{"rotation":["math.cos(query.modified_distance_moved * 38.17 + 180.0) * 16.0",0,0]}}},"animation.bgc.bodyguard.attack":{"loop":true,"bones":{"right_arm":{"rotation":["-math.sin(query.attack_time * 180.0) * 130.0",0,"math.sin(query.attack_time * 180.0) * 10.0"]},"body":{"rotation":[0,"-math.sin(query.attack_time * 180.0) * 14.0",0]}}},"animation.bgc.bodyguard.hurt":{"loop":true,"bones":{"body":{"rotation":["query.hurt_time * 1.2",0,"math.sin(query.hurt_time * 72.0) * 4.0"]},"head":{"rotation":["query.hurt_time * 1.5",0,0]}}}}},"Bodyguard_RP/render_controllers/bodyguard.render_controllers.json":{"format_version":"1.10.0","render_controllers":{"controller.render.bgc_bodyguard":{"geometry":"Geometry.default","materials":[{"*":"Material.default"}],"textures":["Texture.default"]}}},"Bodyguard_RP/sounds.json":{"entity_sounds":{"entities":{"bgc:bodyguard":{"volume":1,"pitch":[0.85,1.05],"events":{"hurt":"mob.irongolem.hit","death":"mob.irongolem.death","attack":{"sound":"mob.irongolem.throw"},"step":{"sound":"mob.irongolem.walk","volume":0.35}}}}}},"Bodyguard_RP/texts/languages.json":["en_US"]},"text":{"Bodyguard_RP/texts/en_US.lang":"entity.bgc:bodyguard.name=Bodyguard\nitem.spawn_egg.entity.bgc:bodyguard.name=Bodyguard Spawn Egg\n"},"bin":{"Bodyguard_BP/pack_icon.png":"iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAACz0lEQVR42u3dMW7UQBQG4NQUiIaaPpE4ALkCZ+EYtNyEIkUUWlruEdHQ0YOEQIqQ7dhee+bNe1/x1+t5/7dee9fauXrx8s0vqZsrQwDAIAAQAP7m1esbSRwAAKgJ4OHj9aYAAAAAAAAAAAAAAJAoH95fL8ZdAAAAAAAAAAAAAMCOPN69C53nAEQ/fgAAAAAAAAAAAAAAABgPwOf7r13zHIDexwcAAAAAAAAAAKzL1t/5jw4AAABwJIC3t582pfdt2dbjBQAAAAAAAAAAAAAAAAAuBbC5gC/f/uT7j5+TOf31AQAAAAAAAAAAAAAAAAAAAAAAAAAAAKA0gEu/Yo0OYO8cAAAAAAAAAMBFoItAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAJjuHRkXQE0Dv8ptvHRsRQVQALcrvsnfwXgTZAEQov9vm0ZEQ9ABwyak/ze7hURBEA9Cy/O7bx+9BMDqASOV3B7CEoNVZoCWAaOWHANAbQQQAvcoPA2APgtEARCw/FIBeCFoAiFp+OAA9EEQD0Hre4QBsRRAdQOTywwJoieBMANHLDw1gDsHRHwVzxZ8FIFL54QFsQXBJUVXLHwJALwQVyh8GQGsER1/4RS1/KABrEZz9BM8R7/5IMx0KQHQEo5U/JIDICEYrf1gAUwh6Axix/KEBTEHohWDU8lMAiIBg1PLTAFhCoPwiAHogWDr1jzKzVABaIxi9/JQA5hAovxCApwhOeYwsSfmpAZyJIEv56QFMIVB+MQBHIshWfhkARyF4CiDLXMoA+B+B8gsCmLswXJts5ZcE8A+B8gsD2Ioga/mlAaxFkLn88gDW/ItZ9vWXB7CEoMLaAZhBUGXdAEwgqLRmAIoHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKRiAADAEACQsvkNTyBZ58kLSCoAAAAASUVORK5CYII=","Bodyguard_RP/pack_icon.png":"iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAACz0lEQVR42u3dMW7UQBQG4NQUiIaaPpE4ALkCZ+EYtNyEIkUUWlruEdHQ0YOEQIqQ7dhee+bNe1/x1+t5/7dee9fauXrx8s0vqZsrQwDAIAAQAP7m1esbSRwAAKgJ4OHj9aYAAAAAAAAAAAAAAJAoH95fL8ZdAAAAAAAAAAAAAMCOPN69C53nAEQ/fgAAAAAAAAAAAAAAABgPwOf7r13zHIDexwcAAAAAAAAAAKzL1t/5jw4AAABwJIC3t582pfdt2dbjBQAAAAAAAAAAAAAAAAAuBbC5gC/f/uT7j5+TOf31AQAAAAAAAAAAAAAAAAAAAAAAAAAAAKA0gEu/Yo0OYO8cAAAAAAAAAMBFoItAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAJjuHRkXQE0Dv8ptvHRsRQVQALcrvsnfwXgTZAEQov9vm0ZEQ9ABwyak/ze7hURBEA9Cy/O7bx+9BMDqASOV3B7CEoNVZoCWAaOWHANAbQQQAvcoPA2APgtEARCw/FIBeCFoAiFp+OAA9EEQD0Hre4QBsRRAdQOTywwJoieBMANHLDw1gDsHRHwVzxZ8FIFL54QFsQXBJUVXLHwJALwQVyh8GQGsER1/4RS1/KABrEZz9BM8R7/5IMx0KQHQEo5U/JIDICEYrf1gAUwh6Axix/KEBTEHohWDU8lMAiIBg1PLTAFhCoPwiAHogWDr1jzKzVABaIxi9/JQA5hAovxCApwhOeYwsSfmpAZyJIEv56QFMIVB+MQBHIshWfhkARyF4CiDLXMoA+B+B8gsCmLswXJts5ZcE8A+B8gsD2Ioga/mlAaxFkLn88gDW/ItZ9vWXB7CEoMLaAZhBUGXdAEwgqLRmAIoHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKRiAADAEACQsvkNTyBZ58kLSCoAAAAASUVORK5CYII=","Bodyguard_RP/textures/entity/bodyguard.png":"iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABmElEQVR42u2avU4CQRRG900sKEwIWWqk8QGILQ9gh4klpaV20tDxBDbEUBBt7Yyxs7CiNDZ29mPGZMjOiPcyuXthhv2+5ISfZJeZk5nZYe8WBZOrm6mhuBufkRQ7zvzxxXx+fRv7eju7l//+fPlkKCAAAiBAJOBjcWIoDl7Aw3XbUGAKQICyAK6D3D6AO76KG9bV7y4HbY/kBNSJW9iSFRA2zvI8HZFs6mSMgGHvyCO5EWA72e+2fnGdrn4+qBHwnwCb8vx9LcC+t6lDQLHvbCPA4VZ2agrEsncB3CrPCeCO58hKwCayFxCm1bkwHselh3RK/Tl/AHf+17eVqdI7HXhAAARAgLDDkYQdtI2i/lfscuu91WUWAhQFhDu/LASE1+nGCUhtCnD3DMX3FFMXUPYnItQFSBuoDQRAACcg2OnFQi1A7iaoZBFLXoB0BHGEW91YIABBEARBEARBEARBEEQ70uKqevUXAiAAAnQ7LCytZfeYHQRAQL3PFzRuBKjX/1MXoF77gwAIgABdAcLqcuMFZF/+zl3AD2XZ2c4fZhY5AAAAAElFTkSuQmCC"}};
+
+function uuid(){
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  const b = new Uint8Array(16);
+  if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(b);
+  else for (let i=0;i<16;i++) b[i] = (Math.random()*256)|0;
+  b[6]=(b[6]&15)|64; b[8]=(b[8]&63)|128;
+  const h=[...b].map(x=>x.toString(16).padStart(2,"0")).join("");
+  return h.slice(0,8)+"-"+h.slice(8,12)+"-"+h.slice(12,16)+"-"+h.slice(16,20)+"-"+h.slice(20);
+}
+function b64ToU8(b64){
+  const s=atob(b64), u=new Uint8Array(s.length);
+  for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i);
+  return u;
+}
+function makeManifests(){
+  const bpHeader=uuid(), bpModule=uuid(), rpHeader=uuid(), rpModule=uuid();
+  const version=[1,0,0], minEngine=[1,20,60];
+  const bp={
+    format_version:2,
+    header:{
+      name:"Bodyguard Companion",
+      description:"Loyal knight bodyguard: follows and teleports to you, and destroys anything that threatens you. Bond it with one tap while holding any food.",
+      uuid:bpHeader, version, min_engine_version:minEngine
+    },
+    modules:[{type:"data", uuid:bpModule, version}],
+    dependencies:[{uuid:rpHeader, version}],
+    metadata:{authors:["Bodyguard MCAddon Generator"]}
+  };
+  const rp={
+    format_version:2,
+    header:{
+      name:"Bodyguard Companion Resources",
+      description:"Knight model, textures, animations and sounds for the Bodyguard Companion.",
+      uuid:rpHeader, version, min_engine_version:minEngine
+    },
+    modules:[{type:"resources", uuid:rpModule, version}],
+    metadata:{authors:["Bodyguard MCAddon Generator"]}
+  };
+  return {bp, rp};
+}
+function buildAddonBytes(){
+  const enc=new TextEncoder();
+  const js=o=>enc.encode(JSON.stringify(o,null,2));
+  const {bp,rp}=makeManifests();
+  const entries=[
+    {name:"Bodyguard_BP/manifest.json", data:js(bp)},
+    {name:"Bodyguard_RP/manifest.json", data:js(rp)}
+  ];
+  for(const [path,obj] of Object.entries(ASSETS.json))
+    entries.push({name:path, data:js(obj)});
+  for(const [path,text] of Object.entries(ASSETS.text))
+    entries.push({name:path, data:enc.encode(text)});
+  for(const [path,b64] of Object.entries(ASSETS.bin))
+    entries.push({name:path, data:b64ToU8(b64)});
+  return zipStore(entries);
+}
+document.getElementById("gen").addEventListener("click", function(){
+  const st=document.getElementById("status");
+  st.className=""; st.textContent="Building your bodyguard…";
+  try{
+    const bytes=buildAddonBytes();
+    const blob=new Blob([bytes],{type:"application/octet-stream"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="Bodyguard_Companion.mcaddon";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},4000);
+    st.className="ok";
+    st.textContent="✅ Bodyguard_Companion.mcaddon ("+(bytes.length/1024).toFixed(1)+" KB) downloaded — open it with Minecraft!";
+  }catch(e){
+    st.className="err";
+    st.textContent="⚠️ Generation failed: "+(e && e.message ? e.message : e);
+  }
+});
+</script>
+</body>
+</html>
