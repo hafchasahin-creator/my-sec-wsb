@@ -1,0 +1,21 @@
+{
+  "pools": [
+    {
+      "rolls": {
+        "min": 0,
+        "max": 1
+      },
+      "entries": [
+        {
+          "type": "item",
+          "name": "daybreak:flesh_sample",
+          "weight": 6
+        },
+        {
+          "type": "empty",
+          "weight": 6
+        }
+      ]
+    }
+  ]
+}

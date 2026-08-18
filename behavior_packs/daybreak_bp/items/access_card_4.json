@@ -1,0 +1,29 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "daybreak:access_card_4",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "access_card_4"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Level 4 Access Card"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:glint": true,
+      "minecraft:tags": {
+        "tags": [
+          "daybreak:gear",
+          "daybreak:access_card"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "daybreak:flesh_sample",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "flesh_sample"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Flesh Sample"
+      },
+      "minecraft:max_stack_size": 64,
+      "minecraft:tags": {
+        "tags": [
+          "daybreak:gear"
+        ]
+      }
+    }
+  }
+}

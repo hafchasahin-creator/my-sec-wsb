@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "daybreak:suit_leggings"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "PLP",
+      "P P",
+      "P P"
+    ],
+    "key": {
+      "P": {
+        "item": "daybreak:scrap_plating"
+      },
+      "L": {
+        "item": "daybreak:uv_lens"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "daybreak:suit_leggings",
+      "count": 1
+    }
+  }
+}

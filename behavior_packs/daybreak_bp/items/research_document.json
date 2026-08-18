@@ -1,0 +1,35 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "daybreak:research_document",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "research_document"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Research Document"
+      },
+      "minecraft:max_stack_size": 16,
+      "minecraft:use_modifiers": {
+        "use_duration": 0.1,
+        "movement_modifier": 1.0
+      },
+      "minecraft:cooldown": {
+        "category": "daybreak_doc",
+        "duration": 1.0
+      },
+      "minecraft:tags": {
+        "tags": [
+          "daybreak:gear"
+        ]
+      }
+    }
+  }
+}

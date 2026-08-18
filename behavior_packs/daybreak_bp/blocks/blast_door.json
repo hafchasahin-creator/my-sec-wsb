@@ -1,0 +1,28 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "daybreak:blast_door",
+      "menu_category": {
+        "category": "construction"
+      }
+    },
+    "components": {
+      "minecraft:display_name": "Blast Door",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "daybreak_blast_door",
+          "render_method": "opaque"
+        }
+      },
+      "minecraft:map_color": "#5e5a52",
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 32
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 1200
+      },
+      "minecraft:friction": 0.6
+    }
+  }
+}

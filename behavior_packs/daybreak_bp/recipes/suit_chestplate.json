@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "daybreak:suit_chestplate"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "P P",
+      "PLP",
+      "PPP"
+    ],
+    "key": {
+      "P": {
+        "item": "daybreak:scrap_plating"
+      },
+      "L": {
+        "item": "daybreak:uv_lens"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "daybreak:suit_chestplate",
+      "count": 1
+    }
+  }
+}

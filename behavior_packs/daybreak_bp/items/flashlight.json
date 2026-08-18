@@ -1,0 +1,49 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "daybreak:flashlight",
+      "menu_category": {
+        "category": "tools"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "flashlight"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Flashlight"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:durability": {
+        "max_durability": 420
+      },
+      "minecraft:hand_equipped": true,
+      "minecraft:use_modifiers": {
+        "use_duration": 0.1,
+        "movement_modifier": 1.0
+      },
+      "minecraft:cooldown": {
+        "category": "daybreak_light",
+        "duration": 0.4
+      },
+      "minecraft:repairable": {
+        "repair_items": [
+          {
+            "items": [
+              "daybreak:battery"
+            ],
+            "repair_amount": 140
+          }
+        ]
+      },
+      "minecraft:tags": {
+        "tags": [
+          "daybreak:gear"
+        ]
+      }
+    }
+  }
+}

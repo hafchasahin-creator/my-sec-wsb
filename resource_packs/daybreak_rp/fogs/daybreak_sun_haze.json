@@ -1,0 +1,22 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "daybreak:sun_haze"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 0.32,
+        "fog_end": 1.0,
+        "fog_color": "#C2571E",
+        "render_distance_type": "render"
+      },
+      "weather": {
+        "fog_start": 0.32,
+        "fog_end": 1.0,
+        "fog_color": "#C2571E",
+        "render_distance_type": "render"
+      }
+    }
+  }
+}

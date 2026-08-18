@@ -1,0 +1,94 @@
+{
+  "entity_sounds": {
+    "entities": {
+      "daybreak:melted_survivor": {
+        "volume": 1.0,
+        "pitch": [0.5, 0.7],
+        "events": {
+          "ambient": { "sound": "mob.zombie.say", "volume": 0.85, "pitch": [0.42, 0.6] },
+          "hurt": { "sound": "mob.zombie.hurt", "pitch": [0.45, 0.62] },
+          "death": { "sound": "mob.zombie.death", "pitch": [0.4, 0.55] },
+          "step": { "sound": "mob.zombie.step", "volume": 0.5, "pitch": [0.6, 0.8] }
+        }
+      },
+      "daybreak:flesh_mass": {
+        "volume": 1.2,
+        "pitch": [0.35, 0.5],
+        "events": {
+          "ambient": { "sound": "mob.ravager.ambient", "volume": 1.0, "pitch": [0.3, 0.45] },
+          "hurt": { "sound": "mob.ravager.hurt", "pitch": [0.35, 0.5] },
+          "death": { "sound": "mob.ravager.death", "pitch": [0.3, 0.42] },
+          "step": { "sound": "mob.ravager.step", "volume": 0.9, "pitch": [0.4, 0.55] }
+        }
+      },
+      "daybreak:crawling_melt": {
+        "volume": 0.8,
+        "pitch": [1.2, 1.5],
+        "events": {
+          "ambient": { "sound": "mob.spider.say", "volume": 0.6, "pitch": [1.25, 1.6] },
+          "hurt": { "sound": "mob.spider.say", "pitch": [1.4, 1.7] },
+          "death": { "sound": "mob.spider.death", "pitch": [1.3, 1.6] },
+          "step": { "sound": "mob.spider.step", "volume": 0.4, "pitch": [1.3, 1.6] }
+        }
+      },
+      "daybreak:flesh_assimilator": {
+        "volume": 1.0,
+        "pitch": [0.6, 0.8],
+        "events": {
+          "ambient": { "sound": "mob.husk.ambient", "volume": 0.8, "pitch": [0.55, 0.75] },
+          "hurt": { "sound": "mob.husk.hurt", "pitch": [0.6, 0.8] },
+          "death": { "sound": "mob.husk.death", "pitch": [0.5, 0.7] }
+        }
+      },
+      "daybreak:mimic_survivor": {
+        "volume": 1.0,
+        "pitch": [0.9, 1.05],
+        "events": {
+          "ambient": { "sound": "mob.villager.idle", "volume": 0.7, "pitch": [0.85, 1.0] },
+          "hurt": { "sound": "mob.zombie_villager.hurt", "pitch": [0.6, 0.8] },
+          "death": { "sound": "mob.zombie_villager.death", "pitch": [0.5, 0.7] }
+        }
+      },
+      "daybreak:survivor_civilian": {
+        "volume": 0.9,
+        "events": {
+          "ambient": { "sound": "mob.villager.idle", "volume": 0.5, "pitch": [0.9, 1.1] },
+          "hurt": { "sound": "mob.villager.hurt" },
+          "death": { "sound": "mob.villager.death" }
+        }
+      },
+      "daybreak:survivor_scientist": {
+        "volume": 0.9,
+        "events": {
+          "ambient": { "sound": "mob.villager.idle", "volume": 0.5, "pitch": [0.95, 1.15] },
+          "hurt": { "sound": "mob.villager.hurt" },
+          "death": { "sound": "mob.villager.death" }
+        }
+      },
+      "daybreak:survivor_guard": {
+        "volume": 0.9,
+        "events": {
+          "ambient": { "sound": "mob.villager.idle", "volume": 0.5, "pitch": [0.75, 0.9] },
+          "hurt": { "sound": "mob.villager.hurt", "pitch": [0.8, 0.95] },
+          "death": { "sound": "mob.villager.death", "pitch": [0.8, 0.95] }
+        }
+      },
+      "daybreak:survivor_medic": {
+        "volume": 0.9,
+        "events": {
+          "ambient": { "sound": "mob.villager.idle", "volume": 0.5, "pitch": [1.0, 1.2] },
+          "hurt": { "sound": "mob.villager.hurt" },
+          "death": { "sound": "mob.villager.death" }
+        }
+      },
+      "daybreak:survivor_engineer": {
+        "volume": 0.9,
+        "events": {
+          "ambient": { "sound": "mob.villager.idle", "volume": 0.5, "pitch": [0.85, 1.0] },
+          "hurt": { "sound": "mob.villager.hurt" },
+          "death": { "sound": "mob.villager.death" }
+        }
+      }
+    }
+  }
+}

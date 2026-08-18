@@ -1,0 +1,38 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "daybreak:mimic_survivor",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/daybreak/mimic_human",
+        "revealed": "textures/entity/daybreak/mimic_revealed"
+      },
+      "geometry": {
+        "default": "geometry.daybreak.survivor",
+        "revealed": "geometry.daybreak.melted_survivor"
+      },
+      "render_controllers": [
+        "controller.render.daybreak.mimic"
+      ],
+      "animations": {
+        "idle": "animation.daybreak.humanoid.idle",
+        "walk": "animation.daybreak.humanoid.walk",
+        "attack": "animation.daybreak.humanoid.attack",
+        "look_at_target": "animation.daybreak.look_at_target",
+        "controller": "controller.animation.daybreak.humanoid"
+      },
+      "scripts": {
+        "animate": [
+          "controller"
+        ]
+      },
+      "spawn_egg": {
+        "base_color": "#807682",
+        "overlay_color": "#8a3a32"
+      }
+    }
+  }
+}

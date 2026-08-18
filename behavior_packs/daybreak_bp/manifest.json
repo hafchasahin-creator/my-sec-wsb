@@ -1,0 +1,39 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Daybreak BP",
+    "description": "When Day Breaks - the sun is anomalous and lethal. Survival-horror behaviour pack.",
+    "uuid": "a4a941b0-9b72-42fe-a09a-342866bef249",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "c1e868f7-ce5b-4f17-8de1-625a50b9eab6",
+      "version": [1, 0, 0]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "710b5fd1-a7e8-4725-b126-7219e6867881",
+      "version": [1, 0, 0]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "fd0ce125-61b4-4311-9ef3-50ecc61918cf",
+      "version": [1, 0, 0]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": ["Daybreak"],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

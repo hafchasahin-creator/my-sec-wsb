@@ -1,0 +1,22 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "daybreak:storm_relief"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 0.18,
+        "fog_end": 0.78,
+        "fog_color": "#5A4A46",
+        "render_distance_type": "render"
+      },
+      "weather": {
+        "fog_start": 0.18,
+        "fog_end": 0.78,
+        "fog_color": "#5A4A46",
+        "render_distance_type": "render"
+      }
+    }
+  }
+}

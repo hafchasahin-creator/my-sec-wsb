@@ -1,0 +1,22 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "daybreak:critical_burn"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 0.0,
+        "fog_end": 0.42,
+        "fog_color": "#8C1408",
+        "render_distance_type": "render"
+      },
+      "weather": {
+        "fog_start": 0.0,
+        "fog_end": 0.42,
+        "fog_color": "#8C1408",
+        "render_distance_type": "render"
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "daybreak:suit_boots"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "P P",
+      "P P"
+    ],
+    "key": {
+      "P": {
+        "item": "daybreak:scrap_plating"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "daybreak:suit_boots",
+      "count": 1
+    }
+  }
+}

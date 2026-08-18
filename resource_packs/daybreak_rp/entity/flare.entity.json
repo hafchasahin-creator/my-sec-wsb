@@ -1,0 +1,32 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "daybreak:flare",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/daybreak/flare"
+      },
+      "geometry": {
+        "default": "geometry.daybreak.flare"
+      },
+      "render_controllers": [
+        "controller.render.daybreak.default"
+      ],
+      "animations": {
+        "idle": "animation.daybreak.prop.idle",
+        "walk": "animation.daybreak.prop.walk",
+        "attack": "animation.daybreak.prop.attack",
+        "look_at_target": "animation.daybreak.look_at_target",
+        "controller": "controller.animation.daybreak.prop"
+      },
+      "scripts": {
+        "animate": [
+          "controller"
+        ]
+      }
+    }
+  }
+}

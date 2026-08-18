@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "daybreak:bunker_door"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "PPP",
+      "PBP",
+      "PPP"
+    ],
+    "key": {
+      "P": {
+        "item": "daybreak:scrap_plating"
+      },
+      "B": {
+        "item": "minecraft:iron_bars"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "daybreak:bunker_door",
+      "count": 2
+    }
+  }
+}

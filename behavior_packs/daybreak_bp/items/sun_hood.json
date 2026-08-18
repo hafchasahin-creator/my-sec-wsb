@@ -1,0 +1,46 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "daybreak:sun_hood",
+      "menu_category": {
+        "category": "equipment",
+        "group": "itemGroup.name.helmet"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "sun_hood"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Reinforced Sun Hood"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:wearable": {
+        "slot": "slot.armor.head",
+        "protection": 1
+      },
+      "minecraft:durability": {
+        "max_durability": 90
+      },
+      "minecraft:repairable": {
+        "repair_items": [
+          {
+            "items": [
+              "daybreak:scrap_plating"
+            ],
+            "repair_amount": 60
+          }
+        ]
+      },
+      "minecraft:tags": {
+        "tags": [
+          "daybreak:gear",
+          "daybreak:protective"
+        ]
+      }
+    }
+  }
+}

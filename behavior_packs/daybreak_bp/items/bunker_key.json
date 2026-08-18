@@ -1,0 +1,28 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "daybreak:bunker_key",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "bunker_key"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Bunker Key"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:glint": true,
+      "minecraft:tags": {
+        "tags": [
+          "daybreak:gear"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.daybreak.assimilator",
+        "texture_width": 64,
+        "texture_height": 64,
+        "visible_bounds_width": 2.2,
+        "visible_bounds_height": 3.2,
+        "visible_bounds_offset": [
+          0,
+          1.4,
+          0
+        ]
+      },
+      "bones": [
+        {
+          "name": "head",
+          "pivot": [
+            0,
+            32,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -3.5,
+                32,
+                -3.5
+              ],
+              "size": [
+                7,
+                7,
+                7
+              ],
+              "uv": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "name": "body",
+          "pivot": [
+            0,
+            32,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -3,
+                18,
+                -2
+              ],
+              "size": [
+                6,
+                14,
+                4
+              ],
+              "uv": [
+                16,
+                16
+              ]
+            }
+          ]
+        },
+        {
+          "name": "rightArm",
+          "pivot": [
+            -3.5,
+            31,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -6.5,
+                11,
+                -1.5
+              ],
+              "size": [
+                3,
+                20,
+                3
+              ],
+              "uv": [
+                40,
+                16
+              ]
+            }
+          ]
+        },
+        {
+          "name": "leftArm",
+          "pivot": [
+            3.5,
+            31,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                3.5,
+                11,
+                -1.5
+              ],
+              "size": [
+                3,
+                20,
+                3
+              ],
+              "uv": [
+                32,
+                48
+              ]
+            }
+          ]
+        },
+        {
+          "name": "rightLeg",
+          "pivot": [
+            -1.6,
+            18,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -3.2,
+                0,
+                -1.5
+              ],
+              "size": [
+                3,
+                18,
+                3
+              ],
+              "uv": [
+                0,
+                16
+              ]
+            }
+          ]
+        },
+        {
+          "name": "leftLeg",
+          "pivot": [
+            1.6,
+            18,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                0.2,
+                0,
+                -1.5
+              ],
+              "size": [
+                3,
+                18,
+                3
+              ],
+              "uv": [
+                16,
+                48
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

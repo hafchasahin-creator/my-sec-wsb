@@ -1,0 +1,81 @@
+{
+  "resource_pack_name": "daybreak",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "suit_helmet": {
+      "textures": "textures/items/suit_helmet"
+    },
+    "suit_chestplate": {
+      "textures": "textures/items/suit_chestplate"
+    },
+    "suit_leggings": {
+      "textures": "textures/items/suit_leggings"
+    },
+    "suit_boots": {
+      "textures": "textures/items/suit_boots"
+    },
+    "sun_hood": {
+      "textures": "textures/items/sun_hood"
+    },
+    "gas_mask": {
+      "textures": "textures/items/gas_mask"
+    },
+    "uv_detector": {
+      "textures": "textures/items/uv_detector"
+    },
+    "flashlight": {
+      "textures": "textures/items/flashlight"
+    },
+    "battery": {
+      "textures": "textures/items/battery"
+    },
+    "emergency_flare": {
+      "textures": "textures/items/emergency_flare"
+    },
+    "radio": {
+      "textures": "textures/items/radio"
+    },
+    "research_document": {
+      "textures": "textures/items/research_document"
+    },
+    "medical_kit": {
+      "textures": "textures/items/medical_kit"
+    },
+    "canned_food": {
+      "textures": "textures/items/canned_food"
+    },
+    "emergency_water": {
+      "textures": "textures/items/emergency_water"
+    },
+    "bunker_key": {
+      "textures": "textures/items/bunker_key"
+    },
+    "survival_starter": {
+      "textures": "textures/items/survival_starter"
+    },
+    "scrap_plating": {
+      "textures": "textures/items/scrap_plating"
+    },
+    "uv_lens": {
+      "textures": "textures/items/uv_lens"
+    },
+    "flesh_sample": {
+      "textures": "textures/items/flesh_sample"
+    },
+    "access_card_1": {
+      "textures": "textures/items/access_card_1"
+    },
+    "access_card_2": {
+      "textures": "textures/items/access_card_2"
+    },
+    "access_card_3": {
+      "textures": "textures/items/access_card_3"
+    },
+    "access_card_4": {
+      "textures": "textures/items/access_card_4"
+    },
+    "access_card_5": {
+      "textures": "textures/items/access_card_5"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "daybreak:night_pall"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 0.28,
+        "fog_end": 0.92,
+        "fog_color": "#070B16",
+        "render_distance_type": "render"
+      },
+      "weather": {
+        "fog_start": 0.28,
+        "fog_end": 0.92,
+        "fog_color": "#070B16",
+        "render_distance_type": "render"
+      }
+    }
+  }
+}

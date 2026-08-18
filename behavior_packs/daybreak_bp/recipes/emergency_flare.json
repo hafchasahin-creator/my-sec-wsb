@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "daybreak:emergency_flare"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "G",
+      "P",
+      "S"
+    ],
+    "key": {
+      "G": {
+        "item": "minecraft:gunpowder"
+      },
+      "P": {
+        "item": "minecraft:paper"
+      },
+      "S": {
+        "item": "minecraft:stick"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "daybreak:emergency_flare",
+      "count": 2
+    }
+  }
+}

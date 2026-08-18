@@ -1,0 +1,198 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "daybreak:mimic_survivor",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "is_experimental": false
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "survivor",
+          "mob"
+        ]
+      },
+      "minecraft:health": {
+        "value": 24,
+        "max": 24
+      },
+      "minecraft:movement": {
+        "value": 0.2
+      },
+      "minecraft:follow_range": {
+        "value": 24,
+        "max": 24
+      },
+      "minecraft:knockback_resistance": {
+        "value": 0.0
+      },
+      "minecraft:attack": {
+        "damage": 0
+      },
+      "minecraft:navigation.walk": {
+        "can_path_over_water": true,
+        "avoid_water": true,
+        "can_open_doors": false,
+        "can_pass_doors": true,
+        "can_walk": true
+      },
+      "minecraft:movement.basic": {},
+      "minecraft:jump.static": {},
+      "minecraft:physics": {},
+      "minecraft:pushable": {
+        "is_pushable": true,
+        "is_pushable_by_piston": true
+      },
+      "minecraft:collision_box": {
+        "width": 0.6,
+        "height": 1.9
+      },
+      "minecraft:breathable": {
+        "total_supply": 15,
+        "suffocate_time": 0,
+        "breathes_water": true
+      },
+      "minecraft:nameable": {},
+      "minecraft:loot": {
+        "table": "loot_tables/entities/mimic_survivor.json"
+      },
+      "minecraft:ambient_sound_interval": {
+        "value": 16.0,
+        "range": 14.0,
+        "event_name": "ambient"
+      },
+      "minecraft:conditional_bandwidth_optimization": {
+        "default_values": {
+          "max_optimized_distance": 80,
+          "max_dropped_ticks": 10,
+          "use_motion_prediction_hints": true
+        }
+      },
+      "minecraft:despawn": {
+        "despawn_from_distance": {
+          "max_distance": 108,
+          "min_distance": 72
+        },
+        "min_range_random_chance": 6
+      },
+      "minecraft:behavior.float": {
+        "priority": 0
+      },
+      "minecraft:variant": {
+        "value": 0
+      },
+      "minecraft:behavior.random_stroll": {
+        "priority": 6,
+        "speed_multiplier": 0.6
+      },
+      "minecraft:behavior.look_at_player": {
+        "priority": 5,
+        "look_distance": 16,
+        "probability": 0.25
+      },
+      "minecraft:behavior.random_look_around": {
+        "priority": 8
+      }
+    },
+    "component_groups": {
+      "daybreak:disguised": {
+        "minecraft:target_nearby_sensor": {
+          "inside_range": 3.5,
+          "outside_range": 8.0,
+          "must_see": true,
+          "on_inside_range": {
+            "event": "daybreak:reveal",
+            "target": "self"
+          }
+        }
+      },
+      "daybreak:revealed": {
+        "minecraft:type_family": {
+          "family": [
+            "daybreak_monster",
+            "monster",
+            "mob"
+          ]
+        },
+        "minecraft:variant": {
+          "value": 1
+        },
+        "minecraft:health": {
+          "value": 46,
+          "max": 46
+        },
+        "minecraft:movement": {
+          "value": 0.31
+        },
+        "minecraft:attack": {
+          "damage": 8
+        },
+        "minecraft:behavior.hurt_by_target": {
+          "priority": 1
+        },
+        "minecraft:behavior.melee_attack": {
+          "priority": 2,
+          "speed_multiplier": 1.15,
+          "track_target": true,
+          "reach_multiplier": 1.4
+        },
+        "minecraft:behavior.nearest_attackable_target": {
+          "priority": 3,
+          "must_see": false,
+          "must_see_forget_duration": 10.0,
+          "reselect_targets": true,
+          "within_default_and_max_radius": true,
+          "entity_types": [
+            {
+              "filters": {
+                "test": "is_family",
+                "subject": "other",
+                "value": "player"
+              },
+              "max_dist": 34
+            },
+            {
+              "filters": {
+                "test": "is_family",
+                "subject": "other",
+                "value": "survivor"
+              },
+              "max_dist": 24
+            },
+            {
+              "filters": {
+                "test": "is_family",
+                "subject": "other",
+                "value": "villager"
+              },
+              "max_dist": 20
+            }
+          ]
+        }
+      }
+    },
+    "events": {
+      "minecraft:entity_spawned": {
+        "add": {
+          "component_groups": [
+            "daybreak:disguised"
+          ]
+        }
+      },
+      "daybreak:reveal": {
+        "remove": {
+          "component_groups": [
+            "daybreak:disguised"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "daybreak:revealed"
+          ]
+        }
+      }
+    }
+  }
+}

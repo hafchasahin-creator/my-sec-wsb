@@ -1,0 +1,28 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "daybreak:bunker_door",
+      "menu_category": {
+        "category": "construction"
+      }
+    },
+    "components": {
+      "minecraft:display_name": "Bunker Door",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "daybreak_bunker_door",
+          "render_method": "opaque"
+        }
+      },
+      "minecraft:map_color": "#7a644a",
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 24
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 1200
+      },
+      "minecraft:friction": 0.6
+    }
+  }
+}

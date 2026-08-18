@@ -1,0 +1,57 @@
+{
+  "pools": [
+    {
+      "rolls": {
+        "min": 0,
+        "max": 2
+      },
+      "entries": [
+        {
+          "type": "item",
+          "name": "daybreak:flesh_sample",
+          "weight": 10,
+          "functions": [
+            {
+              "function": "set_count",
+              "count": {
+                "min": 1,
+                "max": 2
+              }
+            }
+          ]
+        },
+        {
+          "type": "empty",
+          "weight": 4
+        }
+      ]
+    },
+    {
+      "rolls": {
+        "min": 0,
+        "max": 1
+      },
+      "entries": [
+        {
+          "type": "item",
+          "name": "daybreak:scrap_plating",
+          "weight": 6
+        },
+        {
+          "type": "item",
+          "name": "daybreak:battery",
+          "weight": 4
+        },
+        {
+          "type": "item",
+          "name": "daybreak:access_card_1",
+          "weight": 1
+        },
+        {
+          "type": "empty",
+          "weight": 22
+        }
+      ]
+    }
+  ]
+}

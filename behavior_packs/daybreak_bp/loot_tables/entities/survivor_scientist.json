@@ -1,0 +1,36 @@
+{
+  "pools": [
+    {
+      "rolls": {
+        "min": 0,
+        "max": 1
+      },
+      "entries": [
+        {
+          "type": "item",
+          "name": "daybreak:research_document",
+          "weight": 6
+        },
+        {
+          "type": "item",
+          "name": "daybreak:access_card_2",
+          "weight": 3
+        },
+        {
+          "type": "item",
+          "name": "daybreak:uv_lens",
+          "weight": 3
+        },
+        {
+          "type": "item",
+          "name": "daybreak:access_card_3",
+          "weight": 1
+        },
+        {
+          "type": "empty",
+          "weight": 6
+        }
+      ]
+    }
+  ]
+}

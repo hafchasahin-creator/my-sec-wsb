@@ -1,0 +1,36 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "daybreak:radio",
+      "menu_category": {
+        "category": "tools"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "radio"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Field Radio"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:hand_equipped": true,
+      "minecraft:use_modifiers": {
+        "use_duration": 0.1,
+        "movement_modifier": 1.0
+      },
+      "minecraft:cooldown": {
+        "category": "daybreak_radio",
+        "duration": 3.0
+      },
+      "minecraft:tags": {
+        "tags": [
+          "daybreak:gear"
+        ]
+      }
+    }
+  }
+}

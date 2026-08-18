@@ -1,0 +1,36 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "daybreak:flesh_mass",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/daybreak/flesh_mass"
+      },
+      "geometry": {
+        "default": "geometry.daybreak.flesh_mass"
+      },
+      "render_controllers": [
+        "controller.render.daybreak.default"
+      ],
+      "animations": {
+        "idle": "animation.daybreak.mass.idle",
+        "walk": "animation.daybreak.mass.walk",
+        "attack": "animation.daybreak.mass.attack",
+        "look_at_target": "animation.daybreak.look_at_target",
+        "controller": "controller.animation.daybreak.mass"
+      },
+      "scripts": {
+        "animate": [
+          "controller"
+        ]
+      },
+      "spawn_egg": {
+        "base_color": "#4a1a1e",
+        "overlay_color": "#a8564e"
+      }
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "daybreak:flare",
+      "is_spawnable": false,
+      "is_summonable": true,
+      "is_experimental": false
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "daybreak_lure",
+          "inanimate"
+        ]
+      },
+      "minecraft:health": {
+        "value": 250,
+        "max": 250
+      },
+      "minecraft:physics": {},
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": false
+      },
+      "minecraft:collision_box": {
+        "width": 0.3,
+        "height": 0.45
+      },
+      "minecraft:fire_immune": {},
+      "minecraft:knockback_resistance": {
+        "value": 1.0
+      },
+      "minecraft:conditional_bandwidth_optimization": {},
+      "minecraft:timer": {
+        "looping": false,
+        "time": 45.0,
+        "time_down_event": {
+          "event": "daybreak:burn_out",
+          "target": "self"
+        }
+      }
+    },
+    "component_groups": {
+      "daybreak:spent": {
+        "minecraft:instant_despawn": {}
+      }
+    },
+    "events": {
+      "daybreak:burn_out": {
+        "add": {
+          "component_groups": [
+            "daybreak:spent"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,3 +1,20 @@
+# Minecraft Bedrock add-ons
+
+Two self-contained Bedrock Edition add-ons, both targeting **1.21.0** on Android with
+stable APIs only — no experimental toggles.
+
+| Add-on | What it is | Download | Docs |
+| --- | --- | --- | --- |
+| **Daybreak** | SCP-style survival horror where sunlight itself is the enemy: exposure and shelter mechanics, flesh creatures, assimilation, survivor NPCs, protective suits, card-locked facilities | `dist/Daybreak.mcaddon` | [DAYBREAK.md](DAYBREAK.md) |
+| **Arcane Arsenal** | Six legendary weapons with scripted magic effects | `dist/ArcaneArsenal.mcaddon` | below |
+
+```bash
+python3 tools/build_daybreak.py   # validate + package Daybreak
+python3 tools/build.py            # validate + package Arcane Arsenal
+```
+
+---
+
 # Arcane Arsenal
 
 A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six

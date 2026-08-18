@@ -1,0 +1,36 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "daybreak:crawling_melt",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/daybreak/crawling_melt"
+      },
+      "geometry": {
+        "default": "geometry.daybreak.crawling_melt"
+      },
+      "render_controllers": [
+        "controller.render.daybreak.default"
+      ],
+      "animations": {
+        "idle": "animation.daybreak.quad.idle",
+        "walk": "animation.daybreak.quad.walk",
+        "attack": "animation.daybreak.quad.attack",
+        "look_at_target": "animation.daybreak.look_at_target",
+        "controller": "controller.animation.daybreak.quad"
+      },
+      "scripts": {
+        "animate": [
+          "controller"
+        ]
+      },
+      "spawn_egg": {
+        "base_color": "#a25246",
+        "overlay_color": "#ecd6a0"
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Daybreak RP",
+    "description": "Anomalous sun, flesh creatures, facility blocks and HUD atmosphere. Resource Pack.",
+    "uuid": "fd0ce125-61b4-4311-9ef3-50ecc61918cf",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "6e76d261-85b7-4361-9f0e-1227f690e47f",
+      "version": [1, 0, 0]
+    }
+  ],
+  "metadata": {
+    "authors": ["Daybreak"],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

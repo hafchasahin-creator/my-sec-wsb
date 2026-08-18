@@ -1,0 +1,28 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "daybreak:emergency_water"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "GGG"
+    ],
+    "key": {
+      "G": {
+        "item": "minecraft:glass_bottle"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "daybreak:emergency_water",
+      "count": 1
+    }
+  }
+}

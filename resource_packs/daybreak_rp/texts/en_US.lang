@@ -1,0 +1,94 @@
+## Daybreak - English (US)
+
+pack.name=Daybreak RP
+pack.description=Anomalous sun, flesh creatures and facility blocks.
+
+## Items
+item.daybreak:suit_helmet=Daybreak Suit Helmet
+item.daybreak:suit_helmet.name=Daybreak Suit Helmet
+item.daybreak:suit_chestplate=Daybreak Suit Chestpiece
+item.daybreak:suit_chestplate.name=Daybreak Suit Chestpiece
+item.daybreak:suit_leggings=Daybreak Suit Leggings
+item.daybreak:suit_leggings.name=Daybreak Suit Leggings
+item.daybreak:suit_boots=Daybreak Suit Boots
+item.daybreak:suit_boots.name=Daybreak Suit Boots
+item.daybreak:sun_hood=Reinforced Sun Hood
+item.daybreak:sun_hood.name=Reinforced Sun Hood
+item.daybreak:gas_mask=Gas Mask
+item.daybreak:gas_mask.name=Gas Mask
+item.daybreak:uv_detector=UV Exposure Detector
+item.daybreak:uv_detector.name=UV Exposure Detector
+item.daybreak:flashlight=Flashlight
+item.daybreak:flashlight.name=Flashlight
+item.daybreak:battery=Battery
+item.daybreak:battery.name=Battery
+item.daybreak:emergency_flare=Emergency Flare
+item.daybreak:emergency_flare.name=Emergency Flare
+item.daybreak:radio=Field Radio
+item.daybreak:radio.name=Field Radio
+item.daybreak:research_document=Research Document
+item.daybreak:research_document.name=Research Document
+item.daybreak:medical_kit=Medical Kit
+item.daybreak:medical_kit.name=Medical Kit
+item.daybreak:canned_food=Canned Food
+item.daybreak:canned_food.name=Canned Food
+item.daybreak:emergency_water=Emergency Water
+item.daybreak:emergency_water.name=Emergency Water
+item.daybreak:bunker_key=Bunker Key
+item.daybreak:bunker_key.name=Bunker Key
+item.daybreak:survival_starter=Daybreak Survival Starter
+item.daybreak:survival_starter.name=Daybreak Survival Starter
+item.daybreak:scrap_plating=Scrap Plating
+item.daybreak:scrap_plating.name=Scrap Plating
+item.daybreak:uv_lens=UV Lens
+item.daybreak:uv_lens.name=UV Lens
+item.daybreak:flesh_sample=Flesh Sample
+item.daybreak:flesh_sample.name=Flesh Sample
+item.daybreak:access_card_1=Level 1 Access Card
+item.daybreak:access_card_1.name=Level 1 Access Card
+item.daybreak:access_card_2=Level 2 Access Card
+item.daybreak:access_card_2.name=Level 2 Access Card
+item.daybreak:access_card_3=Level 3 Access Card
+item.daybreak:access_card_3.name=Level 3 Access Card
+item.daybreak:access_card_4=Level 4 Access Card
+item.daybreak:access_card_4.name=Level 4 Access Card
+item.daybreak:access_card_5=Level 5 Access Card
+item.daybreak:access_card_5.name=Level 5 Access Card
+
+## Blocks
+tile.daybreak:security_door.name=Security Door
+tile.daybreak:lab_door.name=Laboratory Door
+tile.daybreak:blast_door.name=Blast Door
+tile.daybreak:bunker_door.name=Bunker Door
+
+## Entities
+entity.daybreak:melted_survivor.name=Melted Survivor
+entity.daybreak:flesh_mass.name=Flesh Mass
+entity.daybreak:crawling_melt.name=Crawling Melt
+entity.daybreak:flesh_assimilator.name=Flesh Assimilator
+entity.daybreak:mimic_survivor.name=Mimic Survivor
+entity.daybreak:survivor_civilian.name=Civilian Survivor
+entity.daybreak:survivor_scientist.name=Site Scientist
+entity.daybreak:survivor_guard.name=Security Guard
+entity.daybreak:survivor_medic.name=Field Medic
+entity.daybreak:survivor_engineer.name=Facility Engineer
+entity.daybreak:flare.name=Burning Flare
+entity.daybreak:contamination_marker.name=Contamination Source
+entity.daybreak:alarm_marker.name=Facility Alarm
+item.spawn_egg.entity.daybreak:melted_survivor.name=Spawn Melted Survivor
+item.spawn_egg.entity.daybreak:flesh_mass.name=Spawn Flesh Mass
+item.spawn_egg.entity.daybreak:crawling_melt.name=Spawn Crawling Melt
+item.spawn_egg.entity.daybreak:flesh_assimilator.name=Spawn Flesh Assimilator
+item.spawn_egg.entity.daybreak:mimic_survivor.name=Spawn Mimic Survivor
+item.spawn_egg.entity.daybreak:survivor_civilian.name=Spawn Civilian Survivor
+item.spawn_egg.entity.daybreak:survivor_scientist.name=Spawn Site Scientist
+item.spawn_egg.entity.daybreak:survivor_guard.name=Spawn Security Guard
+item.spawn_egg.entity.daybreak:survivor_medic.name=Spawn Field Medic
+item.spawn_egg.entity.daybreak:survivor_engineer.name=Spawn Facility Engineer
+
+## Item lore / hints
+daybreak.card.1=Maintenance and surface airlocks.
+daybreak.card.2=Laboratories and medical wing.
+daybreak.card.3=Containment corridors and armoury.
+daybreak.card.4=Blast doors and generator control.
+daybreak.card.5=Site director. Sun anomaly archive.

@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "daybreak:lab_door"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "PPP",
+      "PGP",
+      "PPP"
+    ],
+    "key": {
+      "P": {
+        "item": "daybreak:scrap_plating"
+      },
+      "G": {
+        "item": "minecraft:glass"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "daybreak:lab_door",
+      "count": 2
+    }
+  }
+}

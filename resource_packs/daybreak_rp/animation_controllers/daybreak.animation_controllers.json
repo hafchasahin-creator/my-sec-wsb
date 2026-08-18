@@ -1,0 +1,109 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.daybreak.humanoid": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": ["idle", "look_at_target"],
+          "blend_transition": 0.2,
+          "transitions": [
+            { "attack": "query.is_delayed_attacking" },
+            { "moving": "query.modified_move_speed > 0.03" }
+          ]
+        },
+        "moving": {
+          "animations": ["walk", "look_at_target"],
+          "blend_transition": 0.2,
+          "transitions": [
+            { "attack": "query.is_delayed_attacking" },
+            { "idle": "query.modified_move_speed <= 0.03" }
+          ]
+        },
+        "attack": {
+          "animations": ["attack"],
+          "blend_transition": 0.15,
+          "transitions": [
+            { "idle": "!query.is_delayed_attacking" }
+          ]
+        }
+      }
+    },
+
+    "controller.animation.daybreak.quad": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": ["idle", "look_at_target"],
+          "blend_transition": 0.15,
+          "transitions": [
+            { "attack": "query.is_delayed_attacking" },
+            { "moving": "query.modified_move_speed > 0.03" }
+          ]
+        },
+        "moving": {
+          "animations": ["walk", "look_at_target"],
+          "blend_transition": 0.15,
+          "transitions": [
+            { "attack": "query.is_delayed_attacking" },
+            { "idle": "query.modified_move_speed <= 0.03" }
+          ]
+        },
+        "attack": {
+          "animations": ["attack"],
+          "blend_transition": 0.1,
+          "transitions": [
+            { "idle": "!query.is_delayed_attacking" }
+          ]
+        }
+      }
+    },
+
+    "controller.animation.daybreak.mass": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": ["idle", "look_at_target"],
+          "blend_transition": 0.35,
+          "transitions": [
+            { "attack": "query.is_delayed_attacking" },
+            { "moving": "query.modified_move_speed > 0.02" }
+          ]
+        },
+        "moving": {
+          "animations": ["walk", "look_at_target"],
+          "blend_transition": 0.35,
+          "transitions": [
+            { "attack": "query.is_delayed_attacking" },
+            { "idle": "query.modified_move_speed <= 0.02" }
+          ]
+        },
+        "attack": {
+          "animations": ["attack"],
+          "blend_transition": 0.25,
+          "transitions": [
+            { "idle": "!query.is_delayed_attacking" }
+          ]
+        }
+      }
+    },
+
+    "controller.animation.daybreak.prop": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": ["idle"],
+          "transitions": [
+            { "moving": "query.modified_move_speed > 0.05" }
+          ]
+        },
+        "moving": {
+          "animations": ["walk"],
+          "transitions": [
+            { "idle": "query.modified_move_speed <= 0.05" }
+          ]
+        }
+      }
+    }
+  }
+}
