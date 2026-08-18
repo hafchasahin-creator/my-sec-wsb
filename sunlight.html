@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="A simple, animated explainer on what sunlight is and how long it takes to travel from the Sun to Earth.">
+<title>Sunlight's Journey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Design tokens ---------- */
+  :root {
+    color-scheme: dark;
+    --void: #090c16;
+    --void-soft: #121729;
+    --void-soft-2: #182140;
+    --line: #262e4d;
+    --sun-core: #fff2d0;
+    --sun: #ffb64c;
+    --flare: #ff6a3d;
+    --earth: #5fb0d9;
+    --ink: #f3f0e8;
+    --ink-dim: #a7adc4;
+    --ink-faint: #6b7191;
+
+    --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --font-body: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'Space Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: auto; }
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
+
+  body {
+    margin: 0;
+    background: var(--void);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  img, svg { max-width: 100%; display: block; }
+
+  a { color: var(--sun); }
+  a:focus-visible,
+  button:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--sun);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    color: var(--sun-core);
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  p { margin: 0 0 1rem; max-width: 62ch; }
+  p:last-child { margin-bottom: 0; }
+
+  strong { color: var(--sun-core); font-weight: 600; }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* ---------- Starfield ---------- */
+  #stars {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .star {
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+    opacity: .5;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .star { animation-name: twinkle; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: .15; }
+    50% { opacity: .9; }
+  }
+
+  /* ---------- Layout shell ---------- */
+  main, header, footer { position: relative; z-index: 1; }
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative;
+    min-height: 92vh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+  }
+  .hero-glow {
+    position: absolute;
+    top: -25%;
+    right: -15%;
+    width: 60vw;
+    height: 60vw;
+    max-width: 900px;
+    max-height: 900px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, var(--sun-core) 0%, var(--sun) 28%, var(--flare) 52%, transparent 72%);
+    filter: blur(6px);
+    opacity: .55;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-glow { animation: pulseGlow 7s ease-in-out infinite; }
+  }
+  @keyframes pulseGlow {
+    0%, 100% { transform: scale(1); opacity: .5; }
+    50% { transform: scale(1.06); opacity: .65; }
+  }
+  .hero-inner { position: relative; padding: 6rem 0; max-width: 720px; }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: .8rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--earth);
+    margin: 0 0 1.25rem;
+  }
+  .hero h1 {
+    font-size: clamp(2.75rem, 6.5vw, 4.75rem);
+    font-weight: 600;
+    line-height: 1.04;
+    margin-bottom: 1.5rem;
+  }
+  .hero-sub {
+    font-size: 1.15rem;
+    color: var(--ink-dim);
+    max-width: 46ch;
+  }
+  .scroll-cue {
+    display: inline-block;
+    margin-top: 2.5rem;
+    font-family: var(--font-mono);
+    font-size: .85rem;
+    letter-spacing: .04em;
+    color: var(--sun);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color .2s ease;
+  }
+  .scroll-cue:hover, .scroll-cue:focus-visible { border-color: var(--sun); }
+
+  /* ---------- Sections ---------- */
+  .section {
+    padding: 6rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .section:last-of-type { border-bottom: none; }
+  .section-head { margin-bottom: 2rem; max-width: 62ch; }
+  .tag {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: .8rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--flare);
+    margin-bottom: .9rem;
+  }
+  .section h2 {
+    font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+    font-weight: 600;
+    line-height: 1.15;
+  }
+  .section-body { max-width: 62ch; color: var(--ink); }
+  .section-body p { color: var(--ink-dim); }
+
+  .reveal { opacity: 0; transform: translateY(28px); }
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { transition: opacity .8s ease, transform .8s ease; }
+  }
+  .reveal.in-view { opacity: 1; transform: translateY(0); }
+
+  /* ---------- Prism (what is sunlight) ---------- */
+  .prism { margin: 2.5rem 0 1rem; }
+  .prism-beam {
+    height: 6px;
+    width: 40%;
+    min-width: 160px;
+    background: linear-gradient(90deg, var(--sun-core), var(--sun));
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+  }
+  .prism-fan {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+  }
+  .band {
+    font-family: var(--font-mono);
+    font-size: .75rem;
+    padding: .45rem .7rem;
+    border-radius: 999px;
+    color: var(--void);
+    background: var(--c, var(--sun));
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  .band.ghost {
+    color: var(--ink-dim);
+    background: transparent;
+    border: 1px dashed var(--ink-faint);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .band { transition: opacity .5s ease, transform .5s ease; }
+  }
+  .in-view .band { opacity: 1; transform: translateY(0); }
+  .in-view .band:nth-child(1) { transition-delay: .05s; }
+  .in-view .band:nth-child(2) { transition-delay: .1s; }
+  .in-view .band:nth-child(3) { transition-delay: .15s; }
+  .in-view .band:nth-child(4) { transition-delay: .2s; }
+  .in-view .band:nth-child(5) { transition-delay: .25s; }
+  .in-view .band:nth-child(6) { transition-delay: .3s; }
+  .in-view .band:nth-child(7) { transition-delay: .35s; }
+  .in-view .band:nth-child(8) { transition-delay: .4s; }
+  .in-view .band:nth-child(9) { transition-delay: .45s; }
+  .prism-caption { font-size: .9rem; color: var(--ink-faint); margin-top: 1.25rem; }
+
+  /* ---------- Layer bar (where it comes from) ---------- */
+  .layers-bar {
+    display: flex;
+    margin: 2.5rem 0 .75rem;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .layer {
+    flex: 1;
+    padding: 1rem .5rem;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    color: var(--void);
+    letter-spacing: .02em;
+  }
+  .layer span { display: block; margin-top: .35rem; opacity: .75; }
+  .layer.core { background: var(--sun-core); flex: 0.8; }
+  .layer.radiative { background: var(--sun); flex: 1.6; }
+  .layer.convective { background: var(--flare); flex: 1.1; color: var(--sun-core); }
+  .layer.surface { background: var(--void-soft-2); color: var(--ink); flex: 0.7; border-left: 1px dashed var(--line); }
+  .layers-caption { font-size: .9rem; color: var(--ink-faint); }
+
+  /* ---------- Journey (centerpiece) ---------- */
+  .journey-section { padding-bottom: 5rem; }
+  .stage-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 1.5rem;
+    margin: 2.5rem 0 2rem;
+  }
+  @media (max-width: 760px) {
+    .stage-grid { grid-template-columns: 1fr; }
+  }
+  .stage-card {
+    background: var(--void-soft);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .stage-label {
+    font-family: var(--font-mono);
+    font-size: .75rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: .35rem;
+  }
+  .stage-title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--sun-core);
+    margin-bottom: 1rem;
+  }
+
+  /* Stage A: inside the sun */
+  .sun-ring {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-width: 220px;
+    margin: 0 auto 1.25rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, var(--sun-core) 0%, var(--sun) 45%, var(--flare) 78%, #7a2a12 100%);
+    overflow: hidden;
+    box-shadow: 0 0 40px -8px rgba(255, 122, 61, .5);
+  }
+  .photon-a {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    margin: -5px 0 0 -5px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 10px 3px #fff, 0 0 20px 8px var(--sun-core);
+    transform: translate(0, 0);
+  }
+  .photon-a.moving { transition: transform .16s ease-out; }
+  .photon-a.escaping { transition: transform .5s ease-in, opacity .5s ease-in; opacity: 0; }
+  .stage-readout {
+    text-align: center;
+    font-family: var(--font-mono);
+  }
+  .stage-readout .value {
+    font-size: 1.5rem;
+    color: var(--sun-core);
+    font-variant-numeric: tabular-nums;
+  }
+  .stage-readout .unit { font-size: .8rem; color: var(--ink-faint); display: block; margin-top: .2rem; }
+
+  /* Stage B: crossing space */
+  .track-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .track {
+    position: relative;
+    height: 4px;
+    background: var(--line);
+    border-radius: 4px;
+    margin: 2.5rem .5rem 1.5rem;
+  }
+  .track-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 0%;
+    background: linear-gradient(90deg, var(--sun), var(--earth));
+    border-radius: 4px;
+  }
+  .track-fill.animating { transition: width .05s linear; }
+  .icon-sun, .icon-earth {
+    position: absolute;
+    top: 50%;
+    width: 34px;
+    height: 34px;
+    margin-top: -17px;
+    border-radius: 50%;
+  }
+  .icon-sun {
+    left: 0; margin-left: -17px;
+    background: radial-gradient(circle at 40% 35%, var(--sun-core), var(--sun) 60%, var(--flare));
+    box-shadow: 0 0 18px 2px rgba(255, 182, 76, .6);
+  }
+  .icon-earth {
+    right: 0; margin-right: -17px;
+    background: radial-gradient(circle at 35% 30%, #bfe4f6, var(--earth) 55%, #235a78);
+    box-shadow: 0 0 0 2px var(--void-soft), 0 0 0 3px var(--line);
+  }
+  .icon-earth.arrived { box-shadow: 0 0 20px 4px var(--earth), 0 0 0 2px var(--void-soft); }
+  .photon-b {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    width: 9px;
+    height: 9px;
+    margin: -4.5px 0 0 -4.5px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 8px 3px #fff, 0 0 16px 6px var(--sun-core);
+    opacity: 0;
+  }
+  .photon-b.animating { transition: left .05s linear; opacity: 1; }
+  .track-readouts {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .track-readouts .value { font-size: 1.5rem; color: var(--sun-core); font-variant-numeric: tabular-nums; }
+  .track-readouts .unit { font-size: .75rem; color: var(--ink-faint); display: block; margin-top: .15rem; }
+
+  /* Controls + status */
+  .journey-controls { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+  #startBtn {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--void);
+    background: linear-gradient(90deg, var(--sun-core), var(--sun));
+    border: none;
+    padding: .9rem 1.6rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+    box-shadow: 0 8px 24px -8px rgba(255, 182, 76, .55);
+  }
+  #startBtn:hover:not(:disabled) { transform: translateY(-2px); }
+  #startBtn:disabled { opacity: .55; cursor: progress; }
+  #journeyStatus {
+    font-family: var(--font-mono);
+    font-size: .85rem;
+    color: var(--ink-dim);
+    margin: 0;
+    max-width: none;
+  }
+
+  /* ---------- Facts grid ---------- */
+  .facts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1.25rem;
+    margin-top: 2.5rem;
+  }
+  .fact-card {
+    background: var(--void-soft);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.5rem;
+  }
+  .fact-card .value {
+    font-family: var(--font-mono);
+    font-size: 1.6rem;
+    color: var(--sun-core);
+    font-variant-numeric: tabular-nums;
+    display: block;
+    margin-bottom: .5rem;
+  }
+  .fact-card .label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: .4rem;
+  }
+  .fact-card .desc {
+    font-size: .9rem;
+    color: var(--ink-faint);
+    margin: 0;
+  }
+
+  /* ---------- Footer ---------- */
+  footer {
+    padding: 3.5rem 0 4rem;
+    text-align: left;
+  }
+  footer p {
+    color: var(--ink-faint);
+    font-size: .9rem;
+  }
+</style>
+</head>
+<body>
+
+<div id="stars" aria-hidden="true"></div>
+
+<header class="hero">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="wrap hero-inner">
+    <p class="eyebrow">A short science story</p>
+    <h1>Sunlight's Journey</h1>
+    <p class="hero-sub">Every warm patch of sunlight on your skin began as light deep inside the Sun. This is the simple story of what sunlight actually is — and the surprisingly long trip it takes to reach you.</p>
+    <a class="scroll-cue" href="#what">Scroll to begin ↓</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="what" class="section reveal">
+    <div class="section-head">
+      <span class="tag">01 — The basics</span>
+      <h2>What is sunlight, really?</h2>
+    </div>
+    <div class="section-body">
+      <p>Sunlight looks plain: a warm, whitish-yellow glow. But it isn't just one thing. It's made of tiny packets of energy called <strong>photons</strong>, and hiding inside that "white" glow is an entire rainbow — plus light your eyes can't even see.</p>
+      <div class="prism">
+        <div class="prism-beam" aria-hidden="true"></div>
+        <div class="prism-fan" role="list" aria-label="Colors and light types hidden inside sunlight">
+          <span class="band" role="listitem" style="--c:#ff5c5c">Red</span>
+          <span class="band" role="listitem" style="--c:#ff9a4d">Orange</span>
+          <span class="band" role="listitem" style="--c:#ffd84d">Yellow</span>
+          <span class="band" role="listitem" style="--c:#7ed957">Green</span>
+          <span class="band" role="listitem" style="--c:#5fb0d9">Blue</span>
+          <span class="band" role="listitem" style="--c:#6b7bff">Indigo</span>
+          <span class="band" role="listitem" style="--c:#b57bff">Violet</span>
+          <span class="band ghost" role="listitem">Ultraviolet</span>
+          <span class="band ghost" role="listitem">Infrared</span>
+        </div>
+      </div>
+      <p class="prism-caption">Split sunlight with a prism — or look at a rainbow — and the hidden colors appear. Ultraviolet (which can tan or burn skin) and infrared (which we feel as heat) ride along too. We just can't see them.</p>
+    </div>
+  </section>
+
+  <section id="made" class="section reveal">
+    <div class="section-head">
+      <span class="tag">02 — The source</span>
+      <h2>Born in a furnace, 15 million °C hot</h2>
+    </div>
+    <div class="section-body">
+      <p>Sunlight is made deep in the Sun's <strong>core</strong>, where the crush of gravity is so strong that hydrogen atoms fuse together into helium. This process, called nuclear fusion, releases enormous bursts of energy — light and heat.</p>
+      <p>But that light doesn't just zoom straight out into space. First, it has to escape the Sun itself, crossing several crowded layers on the way to the surface:</p>
+      <div class="layers-bar" aria-hidden="true">
+        <div class="layer core">Core<span>~15M °C</span></div>
+        <div class="layer radiative">Radiative zone<span>the slow crawl</span></div>
+        <div class="layer convective">Convective zone<span>rising heat</span></div>
+        <div class="layer surface">Surface<span>escapes!</span></div>
+      </div>
+      <p class="layers-caption">This crowded path is the reason sunlight's journey happens in two very different parts — the part you're about to watch, next.</p>
+    </div>
+  </section>
+
+  <section id="journey" class="section journey-section reveal">
+    <div class="section-head">
+      <span class="tag">03 — The journey</span>
+      <h2>The trip to Earth, in two parts</h2>
+    </div>
+    <div class="section-body">
+      <p>Part one is agonizingly slow. Part two is almost unbelievably fast. Press the button and watch both — sped up so you don't have to wait a hundred thousand years.</p>
+    </div>
+
+    <div class="stage-grid">
+      <div class="stage-card">
+        <p class="stage-label">Part 1 · Inside the Sun</p>
+        <h3 class="stage-title">Escaping the core</h3>
+        <div class="sun-ring" aria-hidden="true">
+          <div class="photon-a" id="photonA"></div>
+        </div>
+        <div class="stage-readout">
+          <span class="value" id="yearsValue">0</span>
+          <span class="unit">years spent bouncing around inside the Sun</span>
+        </div>
+      </div>
+
+      <div class="stage-card">
+        <p class="stage-label">Part 2 · Crossing space</p>
+        <h3 class="stage-title">Reaching Earth</h3>
+        <div class="track-wrap">
+          <div class="track">
+            <div class="track-fill" id="trackFill"></div>
+            <div class="photon-b" id="photonB"></div>
+            <div class="icon-sun" aria-hidden="true"></div>
+            <div class="icon-earth" id="iconEarth" aria-hidden="true"></div>
+          </div>
+          <div class="track-readouts">
+            <div>
+              <span class="value" id="timerValue">0:00</span>
+              <span class="unit">time elapsed</span>
+            </div>
+            <div>
+              <span class="value" id="distanceValue">0</span>
+              <span class="unit">km travelled</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="journey-controls">
+      <button id="startBtn" type="button">Start the Journey ☀️</button>
+      <p id="journeyStatus" role="status" aria-live="polite">Ready when you are.</p>
+    </div>
+  </section>
+
+  <section id="facts" class="section reveal">
+    <div class="section-head">
+      <span class="tag">04 — Quick facts</span>
+      <h2>The numbers, all in one place</h2>
+    </div>
+    <div class="facts-grid">
+      <div class="fact-card">
+        <span class="value">299,792 km/s</span>
+        <span class="label">Speed of light</span>
+        <p class="desc">About 300,000 km every second — the fastest anything can travel in the universe.</p>
+      </div>
+      <div class="fact-card">
+        <span class="value">150,000,000 km</span>
+        <span class="label">Sun-to-Earth distance</span>
+        <p class="desc">Also called 1 Astronomical Unit (AU) — roughly 93 million miles.</p>
+      </div>
+      <div class="fact-card">
+        <span class="value">8 min 20 sec</span>
+        <span class="label">Time to cross space</span>
+        <p class="desc">How "old" the sunlight on your skin is right now, once it finally left the Sun.</p>
+      </div>
+      <div class="fact-card">
+        <span class="value">~170,000 years</span>
+        <span class="label">Time trapped inside the Sun</span>
+        <p class="desc">Estimates vary a lot — from thousands of years to around this figure — for a photon to random-walk out of the core.</p>
+      </div>
+      <div class="fact-card">
+        <span class="value">8 minutes</span>
+        <span class="label">If the Sun vanished</span>
+        <p class="desc">We wouldn't notice it had gone dark until the last sunlight already on its way finally arrived.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <p>So the next time sunlight lands on your skin, remember: it spent longer trapped inside the Sun than humans have had writing — and still made the 150-million-kilometre dash to you in under nine minutes.</p>
+</footer>
+
+<script>
+  (function () {
+    'use strict';
+
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ---------- Starfield ---------- */
+    function buildStars() {
+      var container = document.getElementById('stars');
+      var count = 70;
+      var frag = document.createDocumentFragment();
+      for (var i = 0; i < count; i++) {
+        var star = document.createElement('div');
+        star.className = 'star';
+        var size = (Math.random() * 2 + 1).toFixed(1);
+        star.style.width = size + 'px';
+        star.style.height = size + 'px';
+        star.style.top = (Math.random() * 100).toFixed(2) + '%';
+        star.style.left = (Math.random() * 100).toFixed(2) + '%';
+        star.style.animationDuration = (Math.random() * 3 + 2.5).toFixed(2) + 's';
+        star.style.animationDelay = (Math.random() * 4).toFixed(2) + 's';
+        frag.appendChild(star);
+      }
+      container.appendChild(frag);
+    }
+    buildStars();
+
+    /* ---------- Scroll reveal ---------- */
+    var revealEls = document.querySelectorAll('.reveal');
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.2 });
+      revealEls.forEach(function (el) { io.observe(el); });
+    } else {
+      revealEls.forEach(function (el) { el.classList.add('in-view'); });
+    }
+
+    /* ---------- Journey animation ---------- */
+    var startBtn = document.getElementById('startBtn');
+    var statusEl = document.getElementById('journeyStatus');
+    var photonA = document.getElementById('photonA');
+    var yearsValue = document.getElementById('yearsValue');
+    var photonB = document.getElementById('photonB');
+    var trackFill = document.getElementById('trackFill');
+    var iconEarth = document.getElementById('iconEarth');
+    var timerValue = document.getElementById('timerValue');
+    var distanceValue = document.getElementById('distanceValue');
+
+    var YEARS_TARGET = 170000;
+    var SECONDS_TARGET = 500; // 8:20
+    var KM_TARGET = 150000000;
+
+    var STAGE_A_MS = reduceMotion ? 300 : 3200;
+    var STAGE_B_MS = reduceMotion ? 300 : 3800;
+    var BOUNCE_INTERVAL_MS = 160;
+
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+    function easeInCubic(t) { return t * t * t; }
+
+    function formatTime(totalSeconds) {
+      var m = Math.floor(totalSeconds / 60);
+      var s = Math.floor(totalSeconds % 60);
+      return m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    function runStageA() {
+      return new Promise(function (resolve) {
+        statusEl.textContent = 'Part 1: a photon is bouncing randomly inside the Sun, looking for a way out...';
+        var start = null;
+        var bounceTimer = null;
+
+        if (!reduceMotion) {
+          photonA.classList.add('moving');
+          bounceTimer = window.setInterval(function () {
+            var angle = Math.random() * Math.PI * 2;
+            var radius = Math.random() * 34; // stay inside the ring
+            var x = Math.cos(angle) * radius;
+            var y = Math.sin(angle) * radius;
+            photonA.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+          }, BOUNCE_INTERVAL_MS);
+        }
+
+        function tick(ts) {
+          if (start === null) start = ts;
+          var elapsed = ts - start;
+          var t = Math.min(elapsed / STAGE_A_MS, 1);
+          var eased = easeOutCubic(t);
+          yearsValue.textContent = Math.round(eased * YEARS_TARGET).toLocaleString('en-US');
+          if (t < 1) {
+            window.requestAnimationFrame(tick);
+          } else {
+            if (bounceTimer) window.clearInterval(bounceTimer);
+            photonA.classList.remove('moving');
+            photonA.classList.add('escaping');
+            window.setTimeout(function () {
+              statusEl.textContent = 'It escaped! After roughly ' + YEARS_TARGET.toLocaleString('en-US') + ' years, the photon finally reaches the surface.';
+              resolve();
+            }, reduceMotion ? 0 : 500);
+          }
+        }
+        window.requestAnimationFrame(tick);
+      });
+    }
+
+    function runStageB() {
+      return new Promise(function (resolve) {
+        statusEl.textContent = 'Part 2: free at last, the photon crosses 150 million km of space toward Earth.';
+        photonB.classList.add('animating');
+        trackFill.classList.add('animating');
+        var start = null;
+
+        function tick(ts) {
+          if (start === null) start = ts;
+          var elapsed = ts - start;
+          var t = Math.min(elapsed / STAGE_B_MS, 1);
+          var eased = easeInCubic(t) * 0.3 + t * 0.7; // near-linear, slight ease-in
+          var pct = eased * 100;
+          photonB.style.left = pct + '%';
+          trackFill.style.width = pct + '%';
+          timerValue.textContent = formatTime(eased * SECONDS_TARGET);
+          distanceValue.textContent = Math.round(eased * KM_TARGET).toLocaleString('en-US');
+          if (t < 1) {
+            window.requestAnimationFrame(tick);
+          } else {
+            iconEarth.classList.add('arrived');
+            statusEl.textContent = 'Sunlight has arrived — 8 minutes and 20 seconds after leaving the Sun’s surface.';
+            resolve();
+          }
+        }
+        window.requestAnimationFrame(tick);
+      });
+    }
+
+    function resetJourney() {
+      photonA.classList.remove('moving', 'escaping');
+      photonA.style.transform = 'translate(0,0)';
+      photonA.style.opacity = '';
+      yearsValue.textContent = '0';
+
+      photonB.classList.remove('animating');
+      photonB.style.left = '0%';
+      photonB.style.opacity = 0;
+      trackFill.classList.remove('animating');
+      trackFill.style.width = '0%';
+      iconEarth.classList.remove('arrived');
+      timerValue.textContent = '0:00';
+      distanceValue.textContent = '0';
+    }
+
+    startBtn.addEventListener('click', function () {
+      startBtn.disabled = true;
+      startBtn.textContent = 'Journey in progress…';
+      resetJourney();
+      // small delay so the reset is visible before the run starts
+      window.setTimeout(function () {
+        runStageA()
+          .then(function () {
+            return new Promise(function (r) { window.setTimeout(r, reduceMotion ? 0 : 450); });
+          })
+          .then(runStageB)
+          .then(function () {
+            startBtn.disabled = false;
+            startBtn.textContent = 'Replay the Journey ↺';
+          });
+      }, 50);
+    });
+  })();
+</script>
+
+</body>
+</html>
