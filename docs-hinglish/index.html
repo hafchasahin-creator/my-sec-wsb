@@ -1,0 +1,754 @@
+<title>Fable 5 Hinglish Docs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+
+<style>
+  :root {
+    --paper:      #F6F5F8;
+    --surface:    #FFFFFF;
+    --surface-2:  #EEECF2;
+    --ink:        #1A1B2E;
+    --ink-2:      #43455F;
+    --muted:      #6B6C85;
+    --line:       #DCDAE4;
+    --line-soft:  #E7E5EC;
+    --accent:     #C0175F;
+    --accent-ink: #96114A;
+    --accent-wash:#FBEAF1;
+    --indigo:     #2F3D7C;
+    --indigo-wash:#E9EBF5;
+
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --display: "Bricolage Grotesque", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    --shell: 1200px;
+    --read: 68ch;
+    --radius: 10px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #14151F;
+      --surface:    #1B1C28;
+      --surface-2:  #23242F;
+      --ink:        #ECEBF2;
+      --ink-2:      #C3C2D2;
+      --muted:      #9695AC;
+      --line:       #32333F;
+      --line-soft:  #282935;
+      --accent:     #FF74A8;
+      --accent-ink: #FF9BC1;
+      --accent-wash:#2C1B26;
+      --indigo:     #A3B0EA;
+      --indigo-wash:#1D2033;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #14151F;
+    --surface:    #1B1C28;
+    --surface-2:  #23242F;
+    --ink:        #ECEBF2;
+    --ink-2:      #C3C2D2;
+    --muted:      #9695AC;
+    --line:       #32333F;
+    --line-soft:  #282935;
+    --accent:     #FF74A8;
+    --accent-ink: #FF9BC1;
+    --accent-wash:#2C1B26;
+    --indigo:     #A3B0EA;
+    --indigo-wash:#1D2033;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16.5px;
+    line-height: 1.68;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent-ink); text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); text-underline-offset: 3px; }
+  a:hover { text-decoration-color: var(--accent); }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.87em;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 5px;
+    padding: 0.1em 0.36em;
+    word-break: break-word;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .masthead-inner {
+    max-width: var(--shell);
+    margin: 0 auto;
+    padding: 14px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+  }
+  .wordmark {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.02rem;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .wordmark .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent);
+    flex: none;
+  }
+  .masthead-tag {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--muted);
+    border-left: 1px solid var(--line);
+    padding-left: 14px;
+  }
+  .masthead-link {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 0.74rem;
+  }
+
+  /* ---------- shell ---------- */
+
+  .shell {
+    max-width: var(--shell);
+    margin: 0 auto;
+    padding: 0 24px 96px;
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+  }
+
+  .sidenav {
+    position: sticky;
+    top: 0;
+    padding: 44px 0;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+  .sidenav h2 {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin: 0 0 14px;
+    font-weight: 500;
+  }
+  .sidenav ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-left: 1px solid var(--line);
+  }
+  .sidenav a {
+    display: block;
+    padding: 6px 0 6px 14px;
+    margin-left: -1px;
+    border-left: 2px solid transparent;
+    font-size: 0.87rem;
+    line-height: 1.45;
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  .sidenav a:hover {
+    color: var(--accent-ink);
+    border-left-color: var(--accent);
+  }
+  .sidenav .sub a { padding-left: 26px; font-size: 0.82rem; color: var(--muted); }
+
+  main {
+    padding: 44px 0 0;
+    min-width: 0;
+  }
+  main > * { max-width: var(--read); }
+  main > .wide { max-width: none; }
+
+  /* ---------- type ---------- */
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--accent-ink);
+    margin: 0 0 12px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(2.05rem, 1.4rem + 2.4vw, 3rem);
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+    margin: 0 0 16px;
+  }
+  .standfirst {
+    font-size: 1.12rem;
+    line-height: 1.6;
+    color: var(--ink-2);
+    margin: 0 0 34px;
+  }
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.62rem;
+    line-height: 1.2;
+    letter-spacing: -0.018em;
+    text-wrap: balance;
+    margin: 62px 0 16px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+  }
+  h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.16rem;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 36px 0 10px;
+  }
+  p { margin: 0 0 18px; }
+  ul { margin: 0 0 18px; padding-left: 1.15em; }
+  li { margin-bottom: 9px; }
+  li::marker { color: var(--accent); }
+  strong { font-weight: 600; color: var(--ink); }
+
+  /* ---------- callouts ---------- */
+
+  .note {
+    display: flex;
+    gap: 14px;
+    background: var(--indigo-wash);
+    border: 1px solid color-mix(in srgb, var(--indigo) 26%, transparent);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin: 0 0 32px;
+    font-size: 0.95rem;
+  }
+  .note p { margin: 0; }
+  .note .label {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--indigo);
+    padding-top: 3px;
+    flex: none;
+  }
+  .note.disclaimer {
+    background: var(--accent-wash);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .note.disclaimer .label { color: var(--accent-ink); }
+
+  /* ---------- table ---------- */
+
+  .table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    margin: 0 0 22px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 620px;
+    font-size: 0.92rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+  thead th {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--muted);
+    background: var(--surface-2);
+    border-bottom-color: var(--line);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td:first-child { font-weight: 600; white-space: nowrap; }
+
+  /* ---------- spec strip ---------- */
+
+  .specs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 0 0 24px;
+    padding: 0;
+  }
+  .specs > div {
+    background: var(--surface);
+    padding: 16px 18px;
+  }
+  .specs dt {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .specs dd {
+    margin: 0;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.3rem;
+    letter-spacing: -0.015em;
+    font-variant-numeric: tabular-nums;
+  }
+  .specs .unit {
+    display: block;
+    font-family: var(--sans);
+    font-weight: 400;
+    font-size: 0.84rem;
+    letter-spacing: 0;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ---------- feature list ---------- */
+
+  .features {
+    columns: 2;
+    column-gap: 28px;
+    padding-left: 1.15em;
+    margin: 0 0 18px;
+  }
+  .features li { break-inside: avoid; }
+
+  /* ---------- cards ---------- */
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+    gap: 14px;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .card {
+    display: block;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 17px 18px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .card .card-title {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+    margin: 0 0 5px;
+    color: var(--accent-ink);
+  }
+  .card p {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--muted);
+  }
+
+  footer {
+    max-width: var(--shell);
+    margin: 0 auto;
+    padding: 26px 24px 56px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.84rem;
+  }
+  footer p { margin: 0 0 6px; max-width: var(--read); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .sidenav {
+      position: static;
+      max-height: none;
+      padding: 32px 0 0;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 24px;
+    }
+    .sidenav ol { flex-direction: row; flex-wrap: wrap; border-left: none; gap: 6px 8px; }
+    .sidenav a { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; margin: 0; }
+    .sidenav .sub { display: none; }
+    main { padding-top: 32px; }
+    .features { columns: 1; }
+  }
+</style>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="#top"><span class="dot"></span>Fable 5 Docs</a>
+    <span class="masthead-tag">Hinglish</span>
+    <a class="masthead-link" href="https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5">Original English page &rarr;</a>
+  </div>
+</header>
+
+<div class="shell" id="top">
+  <nav class="sidenav" aria-label="Is page ke sections">
+    <h2>Is page par</h2>
+    <ol>
+      <li><a href="#models">Models</a></li>
+      <li><a href="#refusals">Refusals, fallback aur billing</a></li>
+      <li class="sub"><a href="#refusals-detail">Refusals</a></li>
+      <li class="sub"><a href="#fallback">Fallback</a></li>
+      <li class="sub"><a href="#billing">Billing</a></li>
+      <li><a href="#availability">Availability</a></li>
+      <li><a href="#working">Kaam kaise karein</a></li>
+      <li><a href="#messages-api">Messages API</a></li>
+      <li><a href="#features">Supported features</a></li>
+      <li><a href="#migration">Purane models se migration</a></li>
+      <li><a href="#next">Aage kya padhein</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <p class="eyebrow">Model announcement</p>
+    <h1>Claude Fable 5 aur Claude Mythos 5 ka introduction</h1>
+    <p class="standfirst">
+      Claude Fable 5 aur Claude Mythos 5 ki capabilities, API mein kya-kya badla hai, aur availability &mdash; poori detail ke saath.
+    </p>
+
+    <div class="note disclaimer">
+      <span class="label">Note</span>
+      <p>
+        Yeh Anthropic ke official documentation page ka <strong>unofficial Hinglish roopantar</strong> hai, sirf padhne-samajhne ki aasaani ke liye.
+        Kisi bhi confusion ki soorat mein
+        <a href="https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5">official English page</a>
+        hi final maana jayega.
+      </p>
+    </div>
+
+    <div class="note">
+      <span class="label">Tip</span>
+      <p>
+        Claude Fable 5 aur Claude Mythos 5 ka access wapas bahal kar diya gaya hai. Zyada jaankari ke liye
+        <a href="https://www.anthropic.com/news/redeploying-fable-5">hamara statement</a> dekhein.
+      </p>
+    </div>
+
+    <p>
+      <strong>Claude Fable 5</strong> Anthropic ka sabse capable widely released model hai, jo sabse mushkil reasoning
+      aur lambe chalne wale (long-horizon) agentic kaam ke liye banaya gaya hai. <strong>Claude Mythos 5</strong> ki
+      capabilities bilkul wahi hain, lekin yeh sirf limited release mein
+      <a href="https://anthropic.com/glasswing">Project Glasswing</a> ke through available hai.
+    </p>
+
+    <p>
+      Integrations ke liye sabse bada badlaav yeh hai: Claude Fable 5 mein safety classifiers hain jo kuch requests ko
+      decline kar sakte hain. Claude Mythos 5 mein yeh classifiers nahi hain. Agar aapka integration Claude Fable 5 ko
+      call karta hai, toh teen cheezon ki planning kar lein &mdash; refusals ke liye naya response handling, doosre Claude
+      model par retry karne ke liye fallback options, aur naye billing rules.
+      <a href="#refusals">Refusals, fallback aur billing</a> section mein teeno ka summary hai.
+    </p>
+
+    <h2 id="models">Models</h2>
+
+    <div class="table-scroll wide">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Model</th>
+            <th scope="col">API model ID</th>
+            <th scope="col">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Claude Fable 5</td>
+            <td><code>claude-fable-5</code></td>
+            <td>Anthropic ka sabse capable widely released model &mdash; sabse demanding reasoning aur long-horizon agentic kaam ke liye.</td>
+          </tr>
+          <tr>
+            <td>Claude Mythos 5</td>
+            <td><code>claude-mythos-5</code></td>
+            <td>Claude Fable 5 jaisi hi capabilities, lekin safety classifiers ke bina. Project Glasswing ke through available. Claude Mythos Preview ka successor.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Claude Fable 5 aur Claude Mythos 5 ke specs aur pricing ek jaise hain:</p>
+
+    <dl class="specs wide">
+      <div>
+        <dt>Context window</dt>
+        <dd>1M <span class="unit">tokens, by default</span></dd>
+      </div>
+      <div>
+        <dt>Max output</dt>
+        <dd>128k <span class="unit">tokens per request</span></dd>
+      </div>
+      <div>
+        <dt>Input pricing</dt>
+        <dd>$10 <span class="unit">per million input tokens</span></dd>
+      </div>
+      <div>
+        <dt>Output pricing</dt>
+        <dd>$50 <span class="unit">per million output tokens</span></dd>
+      </div>
+    </dl>
+
+    <p>
+      Sabhi current models ke specs dekhne ke liye
+      <a href="https://platform.claude.com/docs/en/about-claude/models/overview">models overview</a> padhein.
+    </p>
+
+    <h2 id="refusals">Claude Fable 5 par refusals, fallback aur billing</h2>
+
+    <p>
+      Claude Fable 5 mein safety classifiers hain jo kuch requests ko decline kar sakte hain. Claude Mythos 5 mein yeh
+      classifiers nahi hain, isliye yeh section sirf Claude Fable 5 par lagoo hota hai. Neeche har cheez ka short summary
+      hai; poori guide ka link bhi diya gaya hai.
+    </p>
+
+    <h3 id="refusals-detail">Refusals</h3>
+    <p>
+      Jab Claude Fable 5 kisi request ko decline karta hai, toh Messages API ek successful <strong>HTTP 200</strong>
+      response bhejta hai jismein <code>stop_reason: "refusal"</code> hota hai &mdash; yeh error nahi hai. Response mein yeh
+      bhi bataya jata hai ki kis classifier ne request decline ki. Response shapes aur handling ke liye
+      <a href="https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback">Refusals and fallback</a> dekhein.
+    </p>
+
+    <h3 id="fallback">Fallback</h3>
+    <p>
+      Jis request ko Claude Fable 5 refuse karta hai, use aam taur par koi doosra Claude model handle kar leta hai.
+      Retry karne ke teen tareeke hain:
+    </p>
+    <ul>
+      <li>
+        <strong>Server-side:</strong> <code>fallbacks</code> parameter pass kar dein, API khud retry kar legi &mdash;
+        Anthropic ke recommended models ke liye iska <code>"default"</code> mode use karein, ya khud apne models
+        naam se dein (Claude API par abhi beta mein hai). Dekhein
+        <a href="https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback#server-side-fallback">Server-side fallback</a>.
+      </li>
+      <li>
+        <strong>Client-side:</strong> kisi bhi platform par client se retry karne ke liye
+        <a href="https://platform.claude.com/docs/en/cli-sdks-libraries/middleware">SDK middleware</a> use karein. Dekhein
+        <a href="https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback#client-side-fallback">Client-side fallback</a>.
+      </li>
+      <li>
+        <strong>Manual:</strong> retry ka logic khud likh lein &mdash; kisi bhi platform aur kisi bhi language mein. Dekhein
+        <a href="https://platform.claude.com/docs/en/build-with-claude/fallback-credit">Fallback credit</a>.
+      </li>
+    </ul>
+
+    <h3 id="billing">Billing</h3>
+    <p>
+      Jo request koi bhi output generate hone se pehle refuse ho jaati hai, uska aapse charge nahi liya jata. Aur jab aap
+      doosre model par retry karte hain, toh
+      <a href="https://platform.claude.com/docs/en/build-with-claude/fallback-credit">fallback credit</a>
+      model switch karne ki prompt-cache cost refund kar deta hai &mdash; yaani wahi cost do baar nahi bharni padti.
+    </p>
+
+    <h2 id="availability">Availability</h2>
+
+    <p>Claude Fable 5 aur Claude Mythos 5, dono <strong>9 June 2026</strong> se available honge:</p>
+    <ul>
+      <li>
+        <strong>Claude Fable 5</strong> generally available hai &mdash; Claude API,
+        <a href="https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock">Amazon Bedrock</a>,
+        <a href="https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws">Claude Platform on AWS</a>,
+        <a href="https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai">Google Cloud</a>, aur
+        <a href="https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry">Microsoft Foundry</a> par.
+      </li>
+      <li>
+        <strong>Claude Mythos 5</strong> generally available nahi hai: yeh sirf
+        <a href="https://anthropic.com/glasswing">Project Glasswing</a> ke approved customers ko limited availability mein
+        milta hai. Access ke liye apni Anthropic, AWS ya Google Cloud account team se baat karein. Jinke paas Claude
+        Mythos 5 ka access nahi hai, woh Claude Fable 5 use kar sakte hain &mdash; jo generally available hai aur wahi
+        capabilities deta hai.
+      </li>
+    </ul>
+
+    <p>
+      Claude Fable 5 aur Claude Mythos 5 par <strong>30-din ka data retention</strong> lagoo hota hai aur yeh zero data
+      retention ke saath available nahi hain: dono
+      <a href="https://support.claude.com/en/articles/15425695">Covered Models</a> hain. Dekhein
+      <a href="https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#model-specific-data-retention-requirements">Model-specific data retention requirements</a>.
+    </p>
+
+    <h2 id="working">Claude Fable 5 aur Claude Mythos 5 ke saath kaam karna</h2>
+
+    <h3>Prompting</h3>
+    <p>
+      Claude Fable 5 wahi prompting techniques samajhta hai jo baaki Claude models samajhte hain, bas long-context prompts
+      aur reasoning instructions ko structure karne ke tareeke mein thoda farak hai. Dekhein
+      <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5">Prompting Claude Fable 5</a>.
+    </p>
+
+    <h2 id="messages-api">Messages API par kya badla hai</h2>
+
+    <h3>Adaptive thinking hamesha on rehti hai</h3>
+    <p>
+      Claude Fable 5 aur Claude Mythos 5 par thinking hamesha enabled rehti hai; <code>thinking: {"type": "disabled"}</code>
+      pass karna supported nahi hai. Thinking ki depth kam karni ho ya control karni ho, toh
+      <a href="https://platform.claude.com/docs/en/build-with-claude/effort">effort</a> parameter ka istemaal karein.
+    </p>
+
+    <h3>Raw thinking content kabhi return nahi hoti</h3>
+    <p>
+      Claude Fable 5 aur Claude Mythos 5 par raw chain of thought kabhi return nahi ki jaati. Uski jagah thinking blocks
+      mein kya aayega, yeh <code>thinking.display</code> setting tay karti hai:
+    </p>
+    <ul>
+      <li><code>"summarized"</code> &mdash; thinking blocks mein reasoning ka ek padhne-yogya summary aata hai.</li>
+      <li><code>"omitted"</code> (default) &mdash; thinking blocks aate hain lekin unka <code>thinking</code> field khaali rehta hai.</li>
+    </ul>
+    <p>
+      Multi-turn conversations mein, usi model par, thinking blocks ko bina badle waapas pass karein. Cross-model handling
+      ke liye
+      <a href="https://platform.claude.com/docs/en/build-with-claude/thinking#thinking-output-on-claude-fable-5-and-claude-mythos-5">Claude Fable 5 aur Claude Mythos 5 par thinking output</a> dekhein.
+    </p>
+
+    <h2 id="features">Supported features</h2>
+
+    <p>Launch ke waqt Claude Fable 5 aur Claude Mythos 5 in features ko support karte hain:</p>
+    <ul class="features">
+      <li><a href="https://platform.claude.com/docs/en/build-with-claude/effort">Effort</a></li>
+      <li><a href="https://platform.claude.com/docs/en/build-with-claude/task-budgets">Task budgets</a> (beta: <code>task-budgets-2026-03-13</code> header set karein)</li>
+      <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool">Memory tool</a></li>
+      <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/code-execution-tool">Code execution</a></li>
+      <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling">Programmatic tool calling</a></li>
+      <li><a href="https://platform.claude.com/docs/en/build-with-claude/context-editing">Context editing</a> ke through tool result clearing (beta: <code>context-management-2025-06-27</code> header set karein)</li>
+      <li><a href="https://platform.claude.com/docs/en/build-with-claude/compaction">Compaction</a></li>
+      <li><a href="https://platform.claude.com/docs/en/build-with-claude/vision">Vision</a></li>
+    </ul>
+
+    <h2 id="migration">Purane models se migration</h2>
+
+    <p>Step-by-step instructions migration guide mein hain:</p>
+    <ul>
+      <li>
+        Claude Mythos Preview se:
+        <a href="https://platform.claude.com/docs/en/about-claude/models/migration-guide#migrating-from-claude-mythos-preview">Claude Mythos Preview se Claude Mythos 5 par migrate karna</a>.
+      </li>
+      <li>
+        Claude Opus 4.8 se:
+        <a href="https://platform.claude.com/docs/en/about-claude/models/migration-guide#migrating-from-claude-opus-48">Claude Opus 4.8 se Claude Fable 5 par migrate karna</a>.
+      </li>
+    </ul>
+
+    <h2 id="next">Aage kya padhein</h2>
+
+    <ul class="cards wide">
+      <li>
+        <a class="card" href="https://platform.claude.com/docs/en/about-claude/models/migration-guide">
+          <p class="card-title">Migration guide</p>
+          <p>Claude Opus 4.8 aur Claude Mythos Preview se upgrade karne ke step-by-step instructions.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card" href="https://platform.claude.com/docs/en/about-claude/models/overview">
+          <p class="card-title">Models overview</p>
+          <p>Sabhi current Claude models ke specs aur aapas mein comparison.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card" href="https://platform.claude.com/docs/en/build-with-claude/thinking">
+          <p class="card-title">Adaptive thinking</p>
+          <p>Claude Fable 5 aur Claude Mythos 5 par yahi ek thinking mode hai.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card" href="https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback">
+          <p class="card-title">Refusals aur fallback</p>
+          <p>Claude Fable 5 requests kaise decline karta hai, aur doosre model par retry kaise karein.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card" href="https://platform.claude.com/docs/en/build-with-claude/fallback-credit">
+          <p class="card-title">Fallback credit</p>
+          <p>Retry par prompt-cache ki cost do baar bharne se bachein.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card" href="https://platform.claude.com/cookbook/fable-5-fallback-billing-guide">
+          <p class="card-title">Fallback aur billing cookbook</p>
+          <p>Refusal handling, fallback aur billing ka poora end-to-end worked example.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card" href="https://platform.claude.com/docs/en/build-with-claude/effort">
+          <p class="card-title">Effort</p>
+          <p>Claude Fable 5 aur Claude Mythos 5 par thinking depth aur cost control karein.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card" href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5">
+          <p class="card-title">Prompting Claude Fable 5</p>
+          <p>Fable-specific prompting techniques.</p>
+        </a>
+      </li>
+    </ul>
+  </main>
+</div>
+
+<footer>
+  <p>
+    Yeh page Anthropic ke public documentation ka ek community Hinglish roopantar hai. Anthropic dwara na toh yeh
+    banaya gaya hai aur na hi endorse kiya gaya hai.
+  </p>
+  <p>
+    Source: <a href="https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5">platform.claude.com &mdash; Introducing Claude Fable 5 and Claude Mythos 5</a>
+  </p>
+</footer>
