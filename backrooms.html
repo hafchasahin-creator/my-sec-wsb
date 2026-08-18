@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>THE BACKROOMS &mdash; Level 0</title>
 <style>
 :root{
@@ -13,16 +13,19 @@
   --disp:"Helvetica Neue",Helvetica,Arial,"Liberation Sans",sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#000;color:var(--paper);
-  font-family:var(--mono);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000;color:var(--paper);
+  font-family:var(--mono);-webkit-font-smoothing:antialiased;overscroll-behavior:none;
+  touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 body{cursor:default}
 body.playing{cursor:none}
-canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;background:#000;image-rendering:auto}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;background:#000;
+  image-rendering:auto;touch-action:none}
 
 /* ───────────────────────── shared overlay chrome ───────────────────────── */
 .layer{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
   justify-content:safe center;flex-direction:column;z-index:10;opacity:0;pointer-events:none;
-  transition:opacity .45s ease;overflow-y:auto;overscroll-behavior:contain;padding:26px 16px}
+  transition:opacity .45s ease;overflow-y:auto;overscroll-behavior:contain;padding:26px 16px;
+  touch-action:pan-y}
 .layer>*{flex:0 0 auto}
 .layer.on{opacity:1;pointer-events:auto}
 .layer::before{content:"";position:fixed;inset:0;pointer-events:none;
@@ -69,6 +72,7 @@ h1.title{font-family:var(--disp);font-weight:800;font-size:clamp(42px,9.2vw,104p
 
 /* ───────────────────────── panels (settings / help) ───────────────────────── */
 .panel{position:relative;z-index:2;width:min(560px,90vw);max-height:82vh;overflow-y:auto;
+  touch-action:pan-y;
   border:1px solid rgba(232,201,106,.2);background:rgba(8,8,7,.9);padding:26px 28px 24px;
   box-shadow:0 0 60px rgba(0,0,0,.9)}
 .panel h2{font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.34em;
@@ -77,7 +81,7 @@ h1.title{font-family:var(--disp);font-weight:800;font-size:clamp(42px,9.2vw,104p
   border-bottom:1px solid rgba(232,201,106,.07);font-size:11.5px;letter-spacing:.1em;color:#a9a184}
 .row:last-of-type{border-bottom:none}
 .row .val{color:var(--amber);min-width:56px;text-align:right;font-variant-numeric:tabular-nums}
-input[type=range]{-webkit-appearance:none;appearance:none;width:190px;height:2px;background:rgba(232,201,106,.22);outline:none}
+input[type=range]{-webkit-appearance:none;appearance:none;width:190px;height:2px;background:rgba(232,201,106,.22);outline:none;touch-action:pan-x}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--amber);
   cursor:pointer;border-radius:0;box-shadow:0 0 10px rgba(232,201,106,.6)}
 input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--amber);border:0;cursor:pointer;border-radius:0}
@@ -165,6 +169,50 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--ambe
 .deathMsg{position:relative;z-index:2;font-size:12px;letter-spacing:.16em;color:#7c7360;
   margin-top:18px;font-style:italic;max-width:520px;text-align:center;padding:0 20px}
 
+/* ───────────────────────── touch controls ─────────────────────────
+   Left half drives a dynamic-origin stick (it appears wherever the thumb
+   lands, so there is nothing to reach for); right half is the look drag.
+   Buttons sit outside both zones so they never steal a drag.            */
+#touch{position:fixed;inset:0;z-index:9;display:none;touch-action:none}
+#touch.on{display:block}
+.tzone{position:absolute;top:0;bottom:0;touch-action:none}
+#tMoveZone{left:0;width:46%}
+#tLookZone{right:0;width:54%}
+.stick{position:absolute;width:138px;height:138px;margin:-69px 0 0 -69px;border-radius:50%;
+  border:1px solid rgba(232,201,106,.26);background:rgba(0,0,0,.20);opacity:0;
+  transition:opacity .16s;pointer-events:none}
+.stick.on{opacity:1}
+.stick b{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;
+  border-radius:50%;background:rgba(232,201,106,.26);border:1px solid rgba(232,201,106,.5);
+  box-shadow:0 0 20px rgba(232,201,106,.22)}
+.stick.run{border-color:rgba(255,243,196,.7)}
+.stick.run b{background:rgba(255,243,196,.42)}
+.tbtn{position:absolute;border-radius:50%;border:1px solid rgba(232,201,106,.30);
+  background:rgba(10,9,6,.5);color:#cfc6a4;font-family:var(--mono);font-size:9px;
+  letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;
+  justify-content:center;text-align:center;line-height:1.25;padding:3px;
+  width:60px;height:60px;touch-action:none;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.tbtn.big{width:80px;height:80px;font-size:10.5px}
+.tbtn.act{background:rgba(232,201,106,.85);color:#12100a;border-color:rgba(232,201,106,.95)}
+.tbtn.dim{opacity:.34}
+#tUse{right:20px;bottom:132px}
+#tTorch{right:114px;bottom:100px}
+#tCrouch{right:24px;bottom:44px}
+#tDet{right:118px;bottom:196px}
+#tPause{top:12px;right:12px;width:42px;height:42px;font-size:14px;letter-spacing:0}
+/* with thumbs on the bottom corners the readouts move to the top */
+body.touchui .hudL{top:64px;bottom:auto;left:14px;width:132px}
+body.touchui .hudR{top:64px;bottom:auto;right:14px}
+body.touchui #objective{top:auto;bottom:26%}
+body.touchui #subs{bottom:auto;top:26%}
+body.touchui #prompt{top:calc(50% + 40px)}
+body.touchui .foot{font-size:8.5px;letter-spacing:.2em}
+@media (max-height:430px){
+  .tbtn{width:52px;height:52px;font-size:8px}.tbtn.big{width:66px;height:66px;font-size:9px}
+  #tUse{bottom:106px}#tTorch{right:96px;bottom:80px}#tCrouch{bottom:36px}#tDet{right:100px;bottom:158px}
+  body.touchui .hudL,body.touchui .hudR{top:56px}
+}
+
 #loading{position:fixed;inset:0;z-index:40;background:#000;display:flex;align-items:center;
   justify-content:center;flex-direction:column;gap:20px;transition:opacity .7s}
 #loading.off{opacity:0;pointer-events:none}
@@ -212,6 +260,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--ambe
     <div class="objVal"><span id="fuseN">0</span><small>/<span id="fuseT">5</span></small></div>
     <div class="objNote" id="hudNote">Find the maintenance door</div>
   </div>
+</div>
+
+<!-- ══ TOUCH CONTROLS ══ -->
+<div id="touch">
+  <div class="tzone" id="tMoveZone"></div>
+  <div class="tzone" id="tLookZone"></div>
+  <div class="stick" id="tStick"><b id="tKnob"></b></div>
+  <button class="tbtn big" id="tUse">Use</button>
+  <button class="tbtn" id="tTorch">Torch</button>
+  <button class="tbtn" id="tCrouch">Crouch</button>
+  <button class="tbtn" id="tDet">Det</button>
+  <button class="tbtn" id="tPause">II</button>
 </div>
 
 <!-- ══ NOTE READER ══ -->
@@ -4046,6 +4106,9 @@ class Game {
     this.audio = new AudioEngine();
     this.mode = 'menu';                 // menu | playing | paused | dead | won | reading
     this.keys = {};
+    this.isTouch = false;
+    this.touch = { moveId: null, moveOX: 0, moveOY: 0, moveX: 0, moveZ: 0, sprint: false,
+                   lookId: null, lookLX: 0, lookLY: 0, crouch: false };
     this.settings = {
       sens: 1.0, fov: 78, scale: 1.0, gamma: 1.0, vol: 0.8, bob: 1.0,
       volum: 2, post: 2, diff: 1, invertY: 0,
@@ -4223,16 +4286,15 @@ class Game {
       this.mode = 'playing';
       $('#hud').classList.add('on');
       document.body.classList.add('playing');
-      this.requestLock();
+      if (this.isTouch) { document.body.classList.add('touchui'); $('#touch').classList.add('on'); }
+      else this.requestLock();
     };
-    /* Pointer lock and a keyboard are load-bearing here. Say so plainly on a
-       touch device rather than handing over a canvas that cannot be played. */
-    const touchOnly = matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches;
-    if (touchOnly || !document.body.requestPointerLock) {
+    this.isTouch = matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches;
+    if (this.isTouch) {
       const f = document.querySelector('#menu .foot');
-      if (f) f.innerHTML = 'This one needs a mouse and a keyboard &mdash; there are no touch controls.' +
-                           '<br>Open it on a desktop browser.';
-      $('#btnPlay').querySelector('small').textContent = 'Needs mouse + keyboard';
+      if (f) f.textContent = 'Touch controls: drag left to move, drag right to look.';
+      $('#btnPlay').querySelector('small').textContent = 'Touch controls ready';
+      this.bindTouch();
     }
     $('#btnPlay').onclick = () => { this.audio.unlock(); go(); };
     $('#btnSettings').onclick = () => { this.audio.uiClick(); show('menu', false); show('settings', true); this.settingsFrom = 'menu'; };
@@ -4246,6 +4308,7 @@ class Game {
     $('#btnPauseSet').onclick = () => { this.audio.uiClick(); show('pause', false); show('settings', true); this.settingsFrom = 'pause'; };
     $('#btnQuit').onclick = () => { this.audio.uiClick(); this.toMenu(); };
     $('#btnRetry').onclick = go;
+    $('#reader').addEventListener('click', () => { if (this.mode === 'reading') this.closeReader(); });
     $('#btnAgain').onclick = go;
     $('#btnDeadMenu').onclick = () => { this.audio.uiClick(); this.toMenu(); };
     $('#btnWinMenu').onclick = () => { this.audio.uiClick(); this.toMenu(); };
@@ -4278,6 +4341,7 @@ class Game {
     addEventListener('blur', () => { this.keys = {}; if (this.mode === 'playing') this.pause(); });
 
     this.canvas.addEventListener('click', () => {
+      if (this.isTouch) return;
       if (this.mode === 'playing' && document.pointerLockElement !== this.canvas) this.requestLock();
     });
     addEventListener('mousemove', e => {
@@ -4299,6 +4363,91 @@ class Game {
     addEventListener('resize', () => this.onResize());
     this.onResize();
   }
+  /* ── touch: dynamic-origin move stick (left) + look-drag (right) + buttons ── */
+  bindTouch() {
+    const T = this.touch;
+    const zone = $('#tMoveZone'), lookZone = $('#tLookZone');
+    const stick = $('#tStick'), knob = $('#tKnob');
+    const RADIUS = 60;
+
+    const findTouch = (list, id) => { for (const t of list) if (t.identifier === id) return t; return null; };
+
+    zone.addEventListener('touchstart', e => {
+      if (this.mode !== 'playing' || T.moveId !== null) return;
+      const t = e.changedTouches[0]; if (!t) return;
+      e.preventDefault();
+      T.moveId = t.identifier; T.moveOX = t.clientX; T.moveOY = t.clientY;
+      stick.style.left = t.clientX + 'px'; stick.style.top = t.clientY + 'px';
+      stick.classList.add('on'); knob.style.transform = '';
+    }, { passive: false });
+    zone.addEventListener('touchmove', e => {
+      const t = findTouch(e.changedTouches, T.moveId); if (!t) return;
+      e.preventDefault();
+      let dx = t.clientX - T.moveOX, dy = t.clientY - T.moveOY;
+      const d = Math.hypot(dx, dy);
+      const edge = d > RADIUS ? RADIUS / d : 1;
+      const kx = dx * edge, ky = dy * edge;
+      knob.style.transform = 'translate(' + kx.toFixed(1) + 'px,' + ky.toFixed(1) + 'px)';
+      /* a little dead zone so a stationary thumb doesn't read as drift */
+      const dead = 8;
+      const mx = abs(dx) < dead ? 0 : clamp(dx / RADIUS, -1, 1);
+      const mz = abs(dy) < dead ? 0 : clamp(-dy / RADIUS, -1, 1);
+      T.moveX = mx; T.moveZ = mz;
+      T.sprint = d > RADIUS * 0.90;
+      stick.classList.toggle('run', T.sprint);
+    }, { passive: false });
+    const endMove = e => {
+      const t = findTouch(e.changedTouches, T.moveId); if (!t) return;
+      T.moveId = null; T.moveX = 0; T.moveZ = 0; T.sprint = false;
+      stick.classList.remove('on', 'run');
+    };
+    zone.addEventListener('touchend', endMove);
+    zone.addEventListener('touchcancel', endMove);
+
+    lookZone.addEventListener('touchstart', e => {
+      if (this.mode !== 'playing' || T.lookId !== null) return;
+      const t = e.changedTouches[0]; if (!t) return;
+      e.preventDefault();
+      T.lookId = t.identifier; T.lookLX = t.clientX; T.lookLY = t.clientY;
+    }, { passive: false });
+    lookZone.addEventListener('touchmove', e => {
+      const t = findTouch(e.changedTouches, T.lookId); if (!t) return;
+      e.preventDefault();
+      const dx = t.clientX - T.lookLX, dy = t.clientY - T.lookLY;
+      T.lookLX = t.clientX; T.lookLY = t.clientY;
+      const p = this.player; if (!p) return;
+      /* touch drags cover far fewer pixels per turn than a mouse's raw delta,
+         so this runs hotter than the mouse's 0.00135 sensitivity constant */
+      const k = 0.0032 * this.settings.sens;
+      p.yaw += dx * k;
+      p.pitch += dy * k * (this.settings.invertY ? 1 : -1);
+      p.pitch = clamp(p.pitch, -1.50, 1.50);
+      if (p.yaw > PI) p.yaw -= TAU; if (p.yaw < -PI) p.yaw += TAU;
+    }, { passive: false });
+    const endLook = e => { if (findTouch(e.changedTouches, T.lookId)) T.lookId = null; };
+    lookZone.addEventListener('touchend', endLook);
+    lookZone.addEventListener('touchcancel', endLook);
+
+    const btn = (id, fn, opts) => {
+      $(id).addEventListener('touchstart', e => {
+        e.preventDefault(); e.stopPropagation();
+        if (this.mode === 'playing' || (opts && opts.always)) fn();
+      }, { passive: false });
+    };
+    btn('#tUse', () => this.interact());
+    btn('#tTorch', () => this.toggleFlash());
+    btn('#tDet', () => this.toggleDetector());
+    btn('#tCrouch', () => { T.crouch = !T.crouch; $('#tCrouch').classList.toggle('act', T.crouch); });
+    btn('#tPause', () => { if (this.mode === 'playing') this.pause(); else if (this.mode === 'paused') this.resume(); }, { always: true });
+  }
+  releaseTouchInput() {
+    const T = this.touch;
+    T.moveId = null; T.moveX = 0; T.moveZ = 0; T.sprint = false; T.lookId = null; T.crouch = false;
+    const stick = document.getElementById('tStick');
+    if (stick) stick.classList.remove('on', 'run');
+    const cb = document.getElementById('tCrouch');
+    if (cb) cb.classList.remove('act');
+  }
   requestLock() {
     const c = this.canvas;
     if (!c.requestPointerLock) return;
@@ -4315,6 +4464,8 @@ class Game {
     if (this.mode !== 'playing') return;
     this.mode = 'paused'; this.show('pause', true);
     document.body.classList.remove('playing');
+    $('#touch').classList.remove('on');
+    this.releaseTouchInput();
     if (document.pointerLockElement) document.exitPointerLock();
     this.audio.suspend();
   }
@@ -4322,14 +4473,17 @@ class Game {
     if (this.mode !== 'paused') return;
     this.show('pause', false); this.show('settings', false);
     this.mode = 'playing'; document.body.classList.add('playing');
-    this.audio.resume(); this.requestLock();
+    this.audio.resume();
+    if (this.isTouch) $('#touch').classList.add('on'); else this.requestLock();
   }
   toMenu() {
     this.mode = 'menu';
     ['pause','dead','win','settings','help'].forEach(i => this.show(i, false));
     this.show('menu', true);
     $('#hud').classList.remove('on');
-    document.body.classList.remove('playing');
+    document.body.classList.remove('playing', 'touchui');
+    $('#touch').classList.remove('on');
+    this.releaseTouchInput();
     if (document.pointerLockElement) document.exitPointerLock();
     this.audio.resume();
   }
@@ -4346,14 +4500,15 @@ class Game {
     const n = NOTES[noteId % NOTES.length];
     $('#noteBody').innerHTML = '<h3>' + n[0] + '</h3><p>' + n[1] + '</p>' +
       (n[2] ? '<div class="sig">' + n[2] + '</div>' : '') +
-      '<div class="close">[ E ] or [ Esc ] to put it down</div>';
+      '<div class="close">' + (this.isTouch ? 'Tap anywhere to put it down' : '[ E ] or [ Esc ] to put it down') + '</div>';
     $('#reader').classList.add('on');
     this.mode = 'reading';
     if (document.pointerLockElement) document.exitPointerLock();
   }
   closeReader() {
     $('#reader').classList.remove('on');
-    this.mode = 'playing'; this.requestLock();
+    this.mode = 'playing';
+    if (!this.isTouch) this.requestLock();
   }
 
   /* ───────────── player systems ───────────── */
@@ -4403,6 +4558,8 @@ class Game {
     this.mode = 'dead';
     this.player.health = 0;
     document.body.classList.remove('playing');
+    $('#touch').classList.remove('on');
+    this.releaseTouchInput();
     if (document.pointerLockElement) document.exitPointerLock();
     $('#deathMsg').innerHTML = why || 'Something in here disagreed with you being here.';
     $('#deadStats').innerHTML = this.statsHTML();
@@ -4413,6 +4570,8 @@ class Game {
   win() {
     this.mode = 'won'; this.won = true;
     document.body.classList.remove('playing');
+    $('#touch').classList.remove('on');
+    this.releaseTouchInput();
     if (document.pointerLockElement) document.exitPointerLock();
     $('#winStats').innerHTML = this.statsHTML();
     this.show('win', true);
@@ -4589,11 +4748,13 @@ class Game {
     if (K['s'] || K['arrowdown']) iz -= 1;
     if (K['a'] || K['arrowleft']) ix -= 1;
     if (K['d'] || K['arrowright']) ix += 1;
+    if (this.isTouch) { ix += this.touch.moveX; iz += this.touch.moveZ; }
     const mag = Math.hypot(ix, iz);
     if (mag > 1) { ix /= mag; iz /= mag; }
 
-    p.crouching = !!(K['control'] || K['c']);
-    const wantsSprint = !!(K['shift']) && !p.crouching && iz > 0.1 && p.stamina > 6;
+    p.crouching = !!(K['control'] || K['c']) || (this.isTouch && this.touch.crouch);
+    const touchSprint = this.isTouch && this.touch.sprint && mag > 0.15;
+    const wantsSprint = (!!(K['shift']) || touchSprint) && !p.crouching && iz > 0.1 && p.stamina > 6;
     p.sprinting = wantsSprint && p.staminaLock <= 0;
 
     let target = p.crouching ? 1.35 : p.sprinting ? 5.05 : 2.90;
@@ -4787,6 +4948,11 @@ class Game {
         : t.kind === 'note' ? 'READ' : 'TAKE ' + t.kind.toUpperCase();
     } else pr.classList.remove('on');
     $('#reticle').classList.toggle('act', !!t);
+    if (this.isTouch) {
+      $('#tUse').classList.toggle('dim', !t);
+      $('#tTorch').classList.toggle('act', p.flashOn);
+      $('#tDet').classList.toggle('act', p.detectorOn);
+    }
     const note = $('#hudNote');
     const sig = Math.round(this.signal * 100);
     note.textContent = p.detectorOn
