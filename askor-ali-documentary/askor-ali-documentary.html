@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ASKOR ALI — A 30 Second Documentary</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: #08090b;
+    color: #cfc7b8;
+    font: 14px/1.5 "Liberation Sans", Helvetica, Arial, sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; padding: 24px;
+  }
+  #wrap { width: min(100%, 1280px); }
+  #stage {
+    width: 100%; height: auto; display: block; background: #000;
+    border-radius: 4px; box-shadow: 0 24px 80px rgba(0,0,0,.8), 0 0 0 1px #1b1d22;
+  }
+  #bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
+  button {
+    font: 600 13px/1 "Liberation Sans", Helvetica, Arial, sans-serif;
+    letter-spacing: .08em; text-transform: uppercase;
+    background: #16181d; color: #e8b25c; border: 1px solid #2c2f37;
+    padding: 11px 16px; border-radius: 3px; cursor: pointer;
+  }
+  button:hover { background: #1e2128; border-color: #4a4235; }
+  button:disabled { opacity: .45; cursor: default; }
+  #status { font-size: 12px; letter-spacing: .06em; color: #8d8677; }
+  #track { flex: 1 1 160px; height: 3px; background: #1c1f25; border-radius: 2px; overflow: hidden; min-width: 120px; }
+  #fill { height: 100%; width: 0; background: #e8b25c; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="stage" width="1280" height="720"></canvas>
+  <div id="bar">
+    <button id="play">▶ Play 30s</button>
+    <button id="rec">● Record MP4</button>
+    <div id="track"><div id="fill"></div></div>
+    <span id="status">ready</span>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ------------------------------------------------------------------ *
+ *  ASKOR ALI — "Chapriya Gondho Futkiya"
+ *  A 30 second procedural documentary. Every pixel and every note is
+ *  generated at runtime; there are no external assets.
+ *  Rendering is a pure function of time so the film can be captured
+ *  frame-accurately by a headless browser (see tools/render-mp4.mjs).
+ * ------------------------------------------------------------------ */
+
+const W = 1280, H = 720, DURATION = 30, FPS = 30;
+const cv = document.getElementById("stage");
+const g  = cv.getContext("2d", { alpha: false });
+
+const SERIF = '"Liberation Serif", "DejaVu Serif", Georgia, serif';
+const SANS  = '"Liberation Sans", "DejaVu Sans", Helvetica, Arial, sans-serif';
+const MONO  = '"Liberation Mono", "DejaVu Sans Mono", monospace';
+
+const AMBER = "#e8b25c", BONE = "#f4eee2", RUST = "#c8622e";
+
+/* --------------------------- small helpers ------------------------- */
+const clamp = (v, a = 0, b = 1) => v < a ? a : v > b ? b : v;
+const lerp  = (a, b, t) => a + (b - a) * t;
+const easeOut  = t => 1 - Math.pow(1 - t, 3);
+const easeInOut = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+
+// deterministic PRNG so identical time -> identical frame
+function rng(seed) {
+  let s = (seed * 2654435761) >>> 0;
+  return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+}
+// 1 while inside [a,b], with `f` second ramps on each side
+const band = (t, a, b, f = .5) => clamp((t - a) / f) * clamp((b - t) / f);
+
+function text(str, x, y, { size = 40, font = SERIF, weight = "", color = BONE,
+                          align = "center", track = 0, alpha = 1, glow = 0 } = {}) {
+  if (alpha <= 0) return 0;
+  g.save();
+  g.globalAlpha = alpha;
+  g.font = `${weight} ${size}px ${font}`.trim();
+  g.textBaseline = "alphabetic";
+  g.fillStyle = color;
+  if (glow) { g.shadowColor = color; g.shadowBlur = glow; }
+  const chars = [...str];
+  let w = 0;
+  for (const ch of chars) w += g.measureText(ch).width + track;
+  if (track) w -= track;
+  let cx = align === "center" ? x - w / 2 : align === "right" ? x - w : x;
+  for (const ch of chars) { g.fillText(ch, cx, y); cx += g.measureText(ch).width + track; }
+  g.restore();
+  return w;
+}
+
+function rule(x, y, w, alpha, color = AMBER, h = 2) {
+  if (alpha <= 0) return;
+  g.save(); g.globalAlpha = alpha; g.fillStyle = color;
+  g.fillRect(x - w / 2, y, w, h); g.restore();
+}
+
+/* ----------------------------- backdrop ---------------------------- */
+function backdrop(t, tint = 0) {
+  const grd = g.createRadialGradient(W * .5, H * .45, 40, W * .5, H * .5, 900);
+  grd.addColorStop(0, `hsl(${lerp(28, 210, tint)} 26% ${lerp(11, 8, tint)}%)`);
+  grd.addColorStop(1, "#050608");
+  g.fillStyle = grd; g.fillRect(0, 0, W, H);
+
+  // slow drifting warm haze
+  g.save(); g.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 3; i++) {
+    const p = t * .06 + i * .37;
+    const cxp = W * (.3 + .4 * Math.sin(p * 2.1 + i));
+    const cyp = H * (.4 + .25 * Math.cos(p * 1.7 + i * 2));
+    const gg = g.createRadialGradient(cxp, cyp, 0, cxp, cyp, 460);
+    gg.addColorStop(0, `rgba(232,178,92,${0.05 - tint * .02})`);
+    gg.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = gg; g.fillRect(0, 0, W, H);
+  }
+  g.restore();
+}
+
+function dust(t, count = 90, speed = 1) {
+  const r = rng(7);
+  g.save(); g.globalCompositeOperation = "lighter";
+  for (let i = 0; i < count; i++) {
+    const bx = r(), by = r(), sp = .2 + r() * .8, sz = .6 + r() * 1.9, ph = r() * 100;
+    const x = ((bx + t * .012 * sp * speed) % 1.2 - .1) * W;
+    const y = ((by - t * .008 * sp * speed) % 1.2 - .1) * H + Math.sin(t * sp + ph) * 12;
+    const a = (.10 + .22 * (0.5 + 0.5 * Math.sin(t * 1.6 * sp + ph))) * (sz / 2.5);
+    g.fillStyle = `rgba(240,225,195,${a.toFixed(3)})`;
+    g.beginPath(); g.arc(x, y, sz, 0, 7); g.fill();
+  }
+  g.restore();
+}
+
+/* ---------------------------- scene 1: cold open ------------------- */
+function sceneOpen(t) {           // 0.0 – 4.2
+  backdrop(t, .8);
+  dust(t, 70, .7);
+
+  const line = "THIS IS A TRUE STORY.";
+  const typed = line.slice(0, Math.floor(clamp((t - .55) / 1.5) * line.length));
+  text(typed, W / 2, 330, { size: 30, font: MONO, color: BONE, track: 4,
+                            alpha: band(t, .4, 3.4, .45) });
+  if (t > .55 && t < 2.6 && Math.floor(t * 3) % 2 === 0)
+    text("_", W / 2 + 6, 330, { size: 30, font: MONO, alpha: .8 * band(t, .4, 3.4, .45), align: "left" });
+
+  text("ONLY THE NAMES ARE RIDICULOUS.", W / 2, 386,
+       { size: 17, font: SANS, color: "#8d8677", track: 6, alpha: band(t, 2.2, 3.5, .5) });
+}
+
+/* ---------------------------- scene 2: main title ------------------ */
+function sceneTitle(t) {          // 4.2 – 9.6
+  const l = t - 4.2, dur = 5.4;
+  backdrop(t, .1);
+
+  // slow ken-burns push on a radiating light
+  const push = 1 + easeOut(clamp(l / dur)) * .10;
+  g.save();
+  g.translate(W / 2, H / 2); g.scale(push, push); g.translate(-W / 2, -H / 2);
+
+  g.save(); g.globalCompositeOperation = "lighter";
+  const beam = g.createRadialGradient(W / 2, 300, 0, W / 2, 300, 620);
+  beam.addColorStop(0, `rgba(232,178,92,${0.16 * clamp(l / .8)})`);
+  beam.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = beam; g.fillRect(0, 0, W, H);
+  g.restore();
+
+  dust(t, 110, 1);
+
+  const a1 = clamp((l - .15) / .7);
+  text("ASKOR ALI", W / 2, 316, { size: 128, font: SERIF, weight: "bold", color: BONE,
+                                  track: lerp(26, 12, easeOut(a1)), alpha: a1, glow: 26 * a1 });
+
+  rule(W / 2, 352, lerp(0, 620, easeInOut(clamp((l - .85) / .9))), clamp((l - .85) / .5));
+
+  text("CHAPRIYA  GONDHO  FUTKIYA", W / 2, 408,
+       { size: 30, font: SANS, color: AMBER, track: 9, alpha: clamp((l - 1.25) / .7) });
+
+  text("PROFESSOR   ·   LEGEND   ·   NATURAL DISASTER OF THE SYLLABUS", W / 2, 462,
+       { size: 17, font: SANS, color: "#9a9285", track: 5, alpha: clamp((l - 1.9) / .8) });
+
+  text("A 30 SECOND DOCUMENTARY", W / 2, 540,
+       { size: 14, font: MONO, color: "#6f6a60", track: 7, alpha: band(t, 7.0, 9.5, .6) });
+  g.restore();
+}
+
+/* ---------------------------- scene 3: the chalkboard -------------- */
+const EQUATIONS = [
+  { s: "∂(knowledge)/∂t  =  ∞", x: 250, y: 250, size: 44, at: .35 },
+  { s: "Σ  doubt  →  0",         x: 250, y: 330, size: 40, at: .95 },
+  { s: "E = mc²  (mostly chai)", x: 250, y: 410, size: 36, at: 1.55 },
+  { s: "∴  he is built different", x: 250, y: 486, size: 30, at: 2.2 }
+];
+
+function sceneBoard(t) {          // 9.6 – 15.4
+  const l = t - 9.6;
+  backdrop(t, .55);
+
+  // the board itself, gently pushed in
+  const push = 1 + easeOut(clamp(l / 5.8)) * .07;
+  g.save();
+  g.translate(W / 2, H / 2); g.scale(push, push); g.translate(-W / 2, -H / 2);
+
+  g.save();
+  g.globalAlpha = clamp(l / .5);
+  const bg = g.createLinearGradient(0, 120, 0, 620);
+  bg.addColorStop(0, "#1d2a24"); bg.addColorStop(1, "#101a16");
+  g.fillStyle = bg; g.fillRect(150, 120, W - 300, 500);
+  g.strokeStyle = "#3a2f22"; g.lineWidth = 14; g.strokeRect(150, 120, W - 300, 500);
+  // ghosts of a thousand erased lectures
+  const r = rng(3);
+  for (let i = 0; i < 42; i++) {
+    g.strokeStyle = `rgba(220,235,225,${(0.012 + r() * 0.03).toFixed(3)})`;
+    g.lineWidth = 6 + r() * 26;
+    g.beginPath();
+    const y = 150 + r() * 440;
+    g.moveTo(170 + r() * 300, y); g.lineTo(400 + r() * 500, y + (r() - .5) * 40); g.stroke();
+  }
+  g.restore();
+
+  // chalk writing, one line at a time
+  for (const eq of EQUATIONS) {
+    const p = clamp((l - eq.at) / .85);
+    if (p <= 0) continue;
+    const shown = [...eq.s].slice(0, Math.ceil(p * eq.s.length)).join("");
+    text(shown, eq.x, eq.y, { size: eq.size, font: MONO, color: "#e6f1e8",
+                              align: "left", alpha: .93, glow: 8 });
+    if (p < 1) { // chalk dust at the writing tip
+      g.save(); g.font = `${eq.size}px ${MONO}`;
+      const tipX = eq.x + g.measureText(shown).width;
+      const r2 = rng(Math.floor(l * 60) + eq.at * 100);
+      for (let i = 0; i < 9; i++) {
+        g.fillStyle = `rgba(230,241,232,${(0.25 * r2()).toFixed(3)})`;
+        g.beginPath(); g.arc(tipX + (r2() - .5) * 18, eq.y + (r2() - .5) * 22, r2() * 2.2, 0, 7); g.fill();
+      }
+      g.restore();
+    }
+  }
+  // the underline he always draws twice
+  const up = clamp((l - 3.0) / .7);
+  if (up > 0) {
+    g.save(); g.strokeStyle = "rgba(232,178,92,.85)"; g.lineWidth = 4; g.lineCap = "round";
+    g.beginPath(); g.moveTo(250, 500); g.lineTo(250 + 480 * easeOut(up), 503); g.stroke();
+    if (up > .55) {
+      g.beginPath(); g.moveTo(252, 511);
+      g.lineTo(252 + 470 * easeOut(clamp((up - .55) / .45)), 508); g.stroke();
+    }
+    g.restore();
+  }
+  g.restore();
+
+  lowerThird(l, [
+    { s: "They said the subject was impossible.", at: .7,  hold: 2.1 },
+    { s: "He assigned it as homework.",           at: 3.0, hold: 2.3 }
+  ]);
+}
+
+function lowerThird(l, lines) {
+  for (const ln of lines) {
+    const a = band(l, ln.at, ln.at + ln.hold, .45);
+    if (a <= 0) continue;
+    g.save(); g.globalAlpha = a * .82;
+    g.fillStyle = "rgba(6,7,9,.72)"; g.fillRect(0, 592, W, 62);
+    g.fillStyle = AMBER; g.fillRect(96, 600, 4, 46);
+    g.restore();
+    text(ln.s, 122, 631, { size: 26, font: SERIF, color: BONE, align: "left", alpha: a });
+  }
+}
+
+/* ---------------------------- scene 4: the lecture hall ------------ */
+const STATS = [
+  { n: 10472, label: "STUDENTS TAUGHT",      suffix: "", at: .55 },
+  { n: 27,    label: "YEARS ON THE PODIUM",  suffix: "", at: 1.9  },
+  { n: 0,     label: "BORING LECTURES",      suffix: "", at: 3.2  }
+];
+
+function sceneHall(t) {           // 15.4 – 21.0
+  const l = t - 15.4;
+  backdrop(t, .45);
+
+  // projector beam from the back of the hall
+  g.save(); g.globalCompositeOperation = "lighter";
+  g.globalAlpha = clamp(l / .8) * (0.9 + 0.1 * Math.sin(t * 34));
+  const beam = g.createLinearGradient(0, 60, 0, 660);
+  beam.addColorStop(0, "rgba(255,226,170,.30)");
+  beam.addColorStop(1, "rgba(255,226,170,0)");
+  g.fillStyle = beam;
+  g.beginPath(); g.moveTo(W / 2 - 60, 40); g.lineTo(W / 2 + 60, 40);
+  g.lineTo(W / 2 + 470, 660); g.lineTo(W / 2 - 470, 660); g.closePath(); g.fill();
+  g.restore();
+
+  dust(t, 130, 1.4);
+
+  // silhouetted rows of students, nearer rows darker & bigger
+  for (let row = 0; row < 5; row++) {
+    const depth = row / 4;
+    const y = 470 + row * 62;
+    const headR = lerp(15, 30, depth);
+    const step  = lerp(74, 132, depth);
+    g.save();
+    g.globalAlpha = clamp(l / .7) * lerp(.55, 1, depth);
+    g.fillStyle = `rgb(${Math.round(lerp(20,4,depth))},${Math.round(lerp(23,5,depth))},${Math.round(lerp(28,7,depth))})`;
+    for (let i = -6; i <= 6; i++) {
+      const x = W / 2 + i * step + ((row % 2) ? step / 2 : 0)
+                + Math.sin(t * .8 + i * 1.7 + row) * 2.2;
+      g.beginPath();
+      g.arc(x, y - headR * .1, headR, Math.PI, 0);
+      g.moveTo(x - headR * 2.0, y + headR * 2.4);
+      g.quadraticCurveTo(x - headR * 1.5, y + headR * .25, x, y + headR * .05);
+      g.quadraticCurveTo(x + headR * 1.5, y + headR * .25, x + headR * 2.0, y + headR * 2.4);
+      g.closePath(); g.fill();
+    }
+    g.restore();
+  }
+
+  // counters
+  STATS.forEach((st, i) => {
+    const a = band(l, st.at, st.at + 1.5, .35);
+    if (a <= 0) return;
+    const p = easeOut(clamp((l - st.at) / 1.0));
+    const val = st.n === 0 ? (p < .92 ? Math.round(lerp(880, 0, p)) : 0) : Math.round(st.n * p);
+    const x = W / 2, y = 250;
+    text(val.toLocaleString("en-US") + st.suffix, x, y,
+         { size: 118, font: SERIF, weight: "bold", color: BONE, alpha: a, glow: 18 * a });
+    rule(x, y + 26, 300 * a, a * .9);
+    text(st.label, x, y + 76, { size: 22, font: SANS, color: AMBER, track: 8, alpha: a });
+  });
+}
+
+/* ---------------------------- scene 5: the man himself ------------- */
+function professor(t, l) {
+  const cx = 902, push = 1 + easeOut(clamp(l / 5.2)) * .12;
+  g.save();
+  g.translate(cx, 520); g.scale(push, push); g.translate(-cx, -520);
+
+  // rim light behind him
+  g.save(); g.globalCompositeOperation = "lighter";
+  const halo = g.createRadialGradient(cx - 20, 300, 20, cx - 20, 330, 430);
+  halo.addColorStop(0, `rgba(232,178,92,${.24 * clamp(l / 1.0)})`);
+  halo.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = halo; g.fillRect(0, 0, W, H);
+  g.restore();
+
+  // one continuous outline: shoulders → neck → skull → neck → shoulders
+  const bust = new Path2D();
+  bust.moveTo(cx - 300, 700);
+  bust.bezierCurveTo(cx - 292, 522, cx - 190, 452, cx - 108, 436);
+  bust.lineTo(cx - 46, 424);
+  bust.bezierCurveTo(cx - 42, 402, cx - 42, 384, cx - 44, 366);
+  bust.bezierCurveTo(cx - 96, 344, cx - 96, 196, cx, 190);
+  bust.bezierCurveTo(cx + 96, 196, cx + 96, 344, cx + 44, 366);
+  bust.bezierCurveTo(cx + 42, 384, cx + 42, 402, cx + 46, 424);
+  bust.lineTo(cx + 108, 436);
+  bust.bezierCurveTo(cx + 190, 452, cx + 292, 522, cx + 300, 700);
+  bust.closePath();
+
+  // the arm that has pointed at a blackboard for twenty-seven years
+  const fistX = cx - 214, fistY = 508;
+  const arm = new Path2D();
+  arm.moveTo(cx - 250, 700);
+  arm.bezierCurveTo(cx - 268, 604, cx - 258, 540, fistX - 30, fistY + 6);
+  arm.bezierCurveTo(fistX - 34, fistY - 34, fistX + 26, fistY - 36, fistX + 26, fistY + 2);
+  arm.bezierCurveTo(fistX + 26, fistY + 46, cx - 190, 600, cx - 186, 700);
+  arm.closePath();
+
+  // beard of authority
+  const beard = new Path2D();
+  beard.moveTo(cx - 80, 300);
+  beard.bezierCurveTo(cx - 84, 366, cx - 44, 398, cx, 398);
+  beard.bezierCurveTo(cx + 44, 398, cx + 84, 366, cx + 80, 300);
+
+  g.save();
+  g.globalAlpha = clamp(l / .8);
+  g.fillStyle = "#06080b";
+  g.fill(bust); g.fill(arm);
+
+  // rim highlight, keyed from the right
+  const rim = g.createLinearGradient(cx - 220, 0, cx + 280, 0);
+  rim.addColorStop(0, "rgba(232,178,92,0)");
+  rim.addColorStop(.5, "rgba(232,178,92,.30)");
+  rim.addColorStop(1, "rgba(255,216,152,.95)");
+  g.lineWidth = 4; g.lineJoin = "round";
+  g.strokeStyle = rim;
+  g.shadowColor = "rgba(232,178,92,.5)"; g.shadowBlur = 16;
+  g.stroke(bust); g.stroke(arm);
+  g.shadowBlur = 0;
+
+  // a cold fill light from the left, so the far edge still reads
+  const fill = g.createLinearGradient(cx - 320, 0, cx - 40, 0);
+  fill.addColorStop(0, "rgba(150,176,214,.42)");
+  fill.addColorStop(1, "rgba(150,176,214,0)");
+  g.strokeStyle = fill; g.lineWidth = 2.6;
+  g.stroke(bust); g.stroke(arm);
+
+  // what is left of the hair
+  g.strokeStyle = "rgba(226,214,192,.14)"; g.lineWidth = 9; g.lineCap = "round";
+  g.beginPath();
+  g.moveTo(cx - 74, 232); g.quadraticCurveTo(cx - 96, 274, cx - 82, 312);
+  g.moveTo(cx + 74, 232); g.quadraticCurveTo(cx + 96, 274, cx + 82, 312);
+  g.stroke();
+  g.lineCap = "butt";
+
+  // beard + moustache, drawn as line work over the silhouette
+  g.strokeStyle = "rgba(238,226,204,.20)"; g.lineWidth = 2.6;
+  g.stroke(beard);
+  g.strokeStyle = "rgba(238,226,204,.26)"; g.lineWidth = 6; g.lineCap = "round";
+  g.beginPath();
+  g.moveTo(cx - 4, 306); g.quadraticCurveTo(cx - 22, 314, cx - 38, 308);
+  g.moveTo(cx + 4, 306); g.quadraticCurveTo(cx + 22, 314, cx + 38, 308);
+  g.stroke();
+  g.lineCap = "butt";
+
+  // spectacles — the instrument of judgement
+  g.strokeStyle = "rgba(244,238,226,.88)"; g.lineWidth = 3.2;
+  g.beginPath();
+  g.ellipse(cx - 40, 268, 32, 25, 0, 0, 7);
+  g.ellipse(cx + 40, 268, 32, 25, 0, 0, 7);
+  g.moveTo(cx - 8, 266); g.lineTo(cx + 8, 266);
+  g.moveTo(cx - 72, 262); g.lineTo(cx - 98, 254);
+  g.moveTo(cx + 72, 262); g.lineTo(cx + 98, 254);
+  g.stroke();
+
+  // a glint that arrives exactly when he makes his point
+  const glint = band(l, 2.5, 3.1, .28);
+  if (glint > 0) {
+    g.save(); g.globalAlpha = glint; g.globalCompositeOperation = "lighter";
+    g.fillStyle = "rgba(255,242,214,.9)";
+    g.beginPath(); g.ellipse(cx + 52, 260, 13, 6, -.5, 0, 7); g.fill();
+    g.restore();
+  }
+
+  // the chalk, held like a conductor's baton
+  g.save();
+  g.translate(fistX - 2, fistY - 6);
+  g.rotate(-.55 + Math.sin(l * 1.5) * .06);
+  g.fillStyle = "rgba(244,238,226,.9)";
+  g.shadowColor = "rgba(244,238,226,.5)"; g.shadowBlur = 10;
+  g.beginPath(); g.roundRect(-8, -26, 11, 40, 5); g.fill();
+  g.restore();
+
+  g.restore();
+  g.restore();
+}
+
+function sceneMan(t) {            // 21.0 – 26.0
+  const l = t - 21.0;
+  backdrop(t, .2);
+  dust(t, 80, .8);
+  professor(t, l);
+
+  text("“He does not teach", 96, 226,
+       { size: 42, font: SERIF, color: BONE, align: "left", alpha: band(l, .8, 3.2, .5) });
+  text("the syllabus.", 96, 276,
+       { size: 42, font: SERIF, color: BONE, align: "left", alpha: band(l, 1.0, 3.2, .5) });
+  text("The syllabus attends", 96, 340,
+       { size: 42, font: SERIF, color: BONE, align: "left", alpha: band(l, 1.5, 3.4, .5) });
+  text("his class.”", 96, 390,
+       { size: 42, font: SERIF, color: BONE, align: "left", alpha: band(l, 1.7, 3.4, .5) });
+  text("— EVERY STUDENT, EVER", 98, 438,
+       { size: 17, font: SANS, color: AMBER, track: 6, alpha: band(l, 2.3, 3.6, .5) });
+
+  const a2 = band(l, 3.6, 5.0, .45);
+  if (a2 > 0) {
+    g.save(); g.globalAlpha = a2 * .82; g.fillStyle = "rgba(6,7,9,.74)";
+    g.fillRect(0, 592, W, 66); g.fillStyle = RUST; g.fillRect(96, 600, 4, 50); g.restore();
+    text("ASKOR ALI", 122, 622, { size: 27, font: SERIF, weight: "bold", color: BONE, align: "left", alpha: a2 });
+    text("Professor of Everything, Department of Absolutely Anything", 122, 648,
+         { size: 16, font: SANS, color: "#9a9285", align: "left", alpha: a2 });
+  }
+}
+
+/* ---------------------------- scene 6: end card -------------------- */
+function sceneEnd(t) {            // 26.0 – 30.0
+  const l = t - 26.0;
+  backdrop(t, .35);
+  dust(t, 60, .5);
+
+  const a = clamp(l / .8);
+  text("ASKOR ALI", W / 2, 300, { size: 96, font: SERIF, weight: "bold",
+                                  color: BONE, track: lerp(4, 16, easeOut(a)), alpha: a, glow: 20 * a });
+  rule(W / 2, 336, 520 * easeOut(clamp((l - .35) / .8)), clamp((l - .35) / .5));
+  text("PROFESSOR OF EVERYTHING", W / 2, 392,
+       { size: 26, font: SANS, color: AMBER, track: 10, alpha: clamp((l - .6) / .7) });
+  text("COMING SOON TO A CLASSROOM NEAR YOU", W / 2, 470,
+       { size: 16, font: MONO, color: "#7d7669", track: 6, alpha: clamp((l - 1.3) / .8) });
+  text("NO PROFESSORS WERE HARMED IN THE MAKING OF THIS FILM", W / 2, 560,
+       { size: 13, font: SANS, color: "#5c574e", track: 4, alpha: band(l, 2.1, 3.6, .6) });
+}
+
+/* --------------------------- film treatment ------------------------ */
+function grain(frame, amount = 1) {
+  const r = rng(frame * 977 + 13);
+  g.save();
+  g.globalCompositeOperation = "overlay";
+  for (let i = 0; i < 900 * amount; i++) {
+    const v = r();
+    g.fillStyle = v > .5 ? `rgba(255,255,255,${(v * .10).toFixed(3)})`
+                         : `rgba(0,0,0,${((1 - v) * .12).toFixed(3)})`;
+    g.fillRect(r() * W, r() * H, 1.6, 1.6);
+  }
+  // an occasional scratch on the print
+  if (r() > .86) {
+    g.globalCompositeOperation = "screen";
+    const x = r() * W;
+    g.fillStyle = "rgba(255,250,235,.10)";
+    g.fillRect(x, r() * H * .4, 1.2, H * (.3 + r() * .6));
+  }
+  g.restore();
+}
+
+function vignette() {
+  const v = g.createRadialGradient(W / 2, H / 2, H * .32, W / 2, H / 2, H * .92);
+  v.addColorStop(0, "rgba(0,0,0,0)");
+  v.addColorStop(1, "rgba(0,0,0,.82)");
+  g.fillStyle = v; g.fillRect(0, 0, W, H);
+}
+
+function letterbox(t) {
+  const open = easeOut(clamp(t / 1.1));
+  const bar = lerp(H / 2, 58, open);
+  g.fillStyle = "#000";
+  g.fillRect(0, 0, W, bar); g.fillRect(0, H - bar, W, bar);
+}
+
+// hard cuts get a one-beat flash, like a splice in the print
+const CUTS = [4.2, 9.6, 15.4, 21.0, 26.0];
+function splice(t) {
+  for (const c of CUTS) {
+    const d = t - c;
+    if (d >= -0.06 && d < 0.16) {
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      g.globalAlpha = clamp(1 - Math.abs(d) / 0.16) * .32;
+      g.fillStyle = "#ffe6bd"; g.fillRect(0, 0, W, H);
+      g.restore();
+    }
+  }
+}
+
+function timecode(t) {
+  const f = Math.floor(t * FPS);
+  const s = String(Math.floor(f / FPS)).padStart(2, "0");
+  const ff = String(f % FPS).padStart(2, "0");
+  text(`00:00:${s}:${ff}`, W - 44, H - 22, { size: 13, font: MONO, color: "rgba(232,178,92,.42)", align: "right", track: 1 });
+  g.save(); g.globalAlpha = .38 + .28 * Math.sin(t * 6);
+  g.fillStyle = RUST; g.beginPath(); g.arc(W - 176, H - 27, 5, 0, 7); g.fill(); g.restore();
+  text("REC", W - 190, H - 22, { size: 13, font: MONO, color: "rgba(200,98,46,.6)", align: "right", track: 2 });
+}
+
+/* ----------------------------- the film ---------------------------- */
+function renderAt(t) {
+  t = clamp(t, 0, DURATION);
+  const frame = Math.round(t * FPS);
+
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+
+  // gate weave: real film never sits perfectly still
+  const r = rng(frame * 31 + 5);
+  g.save();
+  g.translate((r() - .5) * 1.6, (r() - .5) * 1.2);
+
+  if      (t < 4.2)  sceneOpen(t);
+  else if (t < 9.6)  sceneTitle(t);
+  else if (t < 15.4) sceneBoard(t);
+  else if (t < 21.0) sceneHall(t);
+  else if (t < 26.0) sceneMan(t);
+  else               sceneEnd(t);
+
+  splice(t);
+  vignette();
+  grain(frame, 1);
+  g.restore();
+
+  letterbox(t);
+  timecode(t);
+
+  // fade up from black, and out at the end
+  const dark = 1 - clamp(t / .9) + (1 - clamp((DURATION - t) / 1.3));
+  if (dark > 0) { g.fillStyle = `rgba(0,0,0,${clamp(dark)})`; g.fillRect(0, 0, W, H); }
+}
+
+/* ------------------------------ score ------------------------------ *
+ * A small procedural documentary score: a low drone, a slow four-chord
+ * pad, a heartbeat pulse and three impacts landing on the hard cuts.
+ * ------------------------------------------------------------------ */
+const CHORDS = [                       // [start, freqs]
+  [0.0,  [55.00, 82.41, 130.81]],      // A  — the mystery
+  [9.6,  [65.41, 98.00, 155.56]],      // C  — the work
+  [15.4, [73.42, 110.00, 174.61]],     // D  — the crowd
+  [21.0, [49.00, 73.42, 146.83]],      // G  — the man
+  [26.0, [55.00, 82.41, 164.81]]       // A  — the legend
+];
+const IMPACTS = [4.2, 9.6, 15.4, 21.0, 26.0];
+
+function buildScore(ctx, destination, startAt) {
+  const t0 = startAt;
+  const master = ctx.createGain();
+  master.gain.value = 0.9;
+  master.connect(destination);
+
+  const osc = (type, freq, at, dur, peak, detune = 0) => {
+    const o = ctx.createOscillator(), gn = ctx.createGain();
+    o.type = type; o.frequency.value = freq; o.detune.value = detune;
+    gn.gain.setValueAtTime(0.0001, t0 + at);
+    gn.gain.exponentialRampToValueAtTime(peak, t0 + at + Math.min(.9, dur * .35));
+    gn.gain.exponentialRampToValueAtTime(0.0001, t0 + at + dur);
+    o.connect(gn); gn.connect(master);
+    o.start(t0 + at); o.stop(t0 + at + dur + .05);
+  };
+
+  // drone for the whole film
+  osc("sine", 36.71, 0, DURATION, .16);
+  osc("sine", 55.00, 0, DURATION, .07, 6);
+
+  // pad chords
+  CHORDS.forEach(([at, freqs], i) => {
+    const end = (CHORDS[i + 1]?.[0] ?? DURATION) - at;
+    freqs.forEach((f, k) => {
+      osc("triangle", f, at, end + .6, .075 - k * .012, (k - 1) * 5);
+      osc("sine", f * 2, at, end + .4, .022);
+    });
+  });
+
+  // heartbeat pulse from the chalkboard onward
+  for (let b = 9.6; b < 27.6; b += 0.75) {
+    const o = ctx.createOscillator(), gn = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(120, t0 + b);
+    o.frequency.exponentialRampToValueAtTime(42, t0 + b + .16);
+    gn.gain.setValueAtTime(0.34, t0 + b);
+    gn.gain.exponentialRampToValueAtTime(0.0001, t0 + b + .34);
+    o.connect(gn); gn.connect(master);
+    o.start(t0 + b); o.stop(t0 + b + .4);
+  }
+
+  // impacts + noise riser into each cut
+  const noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const nd = noiseBuf.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1);
+
+  IMPACTS.forEach(at => {
+    osc("sine", 62, at, 1.6, .42);
+    const src = ctx.createBufferSource(), gn = ctx.createGain(), flt = ctx.createBiquadFilter();
+    src.buffer = noiseBuf;
+    flt.type = "bandpass"; flt.frequency.value = 900; flt.Q.value = .8;
+    gn.gain.setValueAtTime(0.0001, t0 + at - 1.2);
+    gn.gain.exponentialRampToValueAtTime(0.16, t0 + at);
+    gn.gain.exponentialRampToValueAtTime(0.0001, t0 + at + .7);
+    src.connect(flt); flt.connect(gn); gn.connect(master);
+    src.start(t0 + Math.max(0, at - 1.2)); src.stop(t0 + at + .8);
+  });
+
+  // final swell and a clean tail
+  osc("triangle", 110, 25.4, 3.4, .10);
+  master.gain.setValueAtTime(0.9, t0 + 28.4);
+  master.gain.linearRampToValueAtTime(0.0, t0 + DURATION);
+  return master;
+}
+
+/* ---------------------------- playback UI -------------------------- */
+const $play = document.getElementById("play");
+const $rec  = document.getElementById("rec");
+const $st   = document.getElementById("status");
+const $fill = document.getElementById("fill");
+
+let raf = null, audioCtx = null;
+
+function runFilm({ audioDest = null, onFrame = null, onDone = null } = {}) {
+  if (raf) cancelAnimationFrame(raf);
+  const start = performance.now();
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  buildScore(audioCtx, audioDest || audioCtx.destination, audioCtx.currentTime + 0.08);
+
+  const step = now => {
+    const t = (now - start) / 1000;
+    renderAt(t);
+    $fill.style.width = `${clamp(t / DURATION) * 100}%`;
+    onFrame && onFrame(t);
+    if (t < DURATION) raf = requestAnimationFrame(step);
+    else { raf = null; onDone && onDone(); }
+  };
+  raf = requestAnimationFrame(step);
+}
+
+$play.addEventListener("click", () => {
+  $st.textContent = "playing…";
+  runFilm({ onDone: () => { $st.textContent = "fin."; } });
+});
+
+$rec.addEventListener("click", async () => {
+  const types = [
+    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    "video/mp4;codecs=avc1",
+    "video/mp4",
+    "video/webm;codecs=vp9,opus",
+    "video/webm"
+  ];
+  const mime = types.find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
+  if (!mime) { $st.textContent = "recording not supported in this browser"; return; }
+
+  const ext = mime.startsWith("video/mp4") ? "mp4" : "webm";
+  const stream = cv.captureStream(FPS);
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const dest = ctx.createMediaStreamDestination();
+  dest.stream.getAudioTracks().forEach(tr => stream.addTrack(tr));
+
+  const chunks = [];
+  const mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+  mr.ondataavailable = e => e.data.size && chunks.push(e.data);
+  mr.onstop = () => {
+    const blob = new Blob(chunks, { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `askor-ali-documentary.${ext}`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    $st.textContent = `saved askor-ali-documentary.${ext} (${(blob.size / 1e6).toFixed(1)} MB)`;
+    $play.disabled = $rec.disabled = false;
+    ctx.close();
+  };
+
+  $play.disabled = $rec.disabled = true;
+  $st.textContent = `recording 30s → ${ext}…`;
+  mr.start(200);
+  runFilm({ audioDest: dest, onDone: () => setTimeout(() => mr.stop(), 260) });
+  // keep the audible mix playing through the speakers too
+  const spk = ctx.createMediaStreamSource(dest.stream); spk.connect(ctx.destination);
+});
+
+// poster frame + hooks for the offline (headless) renderer
+renderAt(6.4);
+window.__doc = { renderAt, DURATION, FPS, W, H, CHORDS, IMPACTS };
+})();
+</script>
+</body>
+</html>
