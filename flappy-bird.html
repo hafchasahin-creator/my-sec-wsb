@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4ec0ca">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Flappy Bird</title>
+<style>
+  /* ---------- Reset & page lockdown ---------- */
+  html, body {
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    background: #4ec0ca;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  #game {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    touch-action: none;
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* ---------- Mute toggle button (HTML overlay for a solid tap target) ---------- */
+  .mute-btn {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    background: rgba(0, 0, 0, 0.30);
+    color: #fff;
+    font-size: 20px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.08s ease;
+  }
+  .mute-btn:active { transform: scale(0.90); }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  noscript {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #4ec0ca;
+    color: #fff;
+    font-size: 18px;
+    text-align: center;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+</style>
+</head>
+<body>
+  <canvas id="game" aria-label="Flappy Bird game canvas"></canvas>
+  <button id="muteBtn" class="mute-btn" type="button" aria-label="Mute sound">🔊</button>
+  <!-- Screen-reader-only live region: announces score/game-state changes that
+       are otherwise only conveyed as canvas pixels. -->
+  <div id="announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+  <noscript>This game needs JavaScript enabled to run.</noscript>
+
+<script>
+/*
+ * Flappy Bird clone — single-file, dependency-free implementation.
+ * Everything is drawn procedurally on <canvas>; all audio is synthesized
+ * at runtime with the Web Audio API. No network requests, no external assets.
+ *
+ * The whole program lives inside one IIFE so nothing leaks onto `window`
+ * except the single automatic call to init() at the bottom of this closure.
+ */
+(function () {
+  'use strict';
+
+  // =========================================================================
+  // Module-scoped state (intentionally NOT global — scoped to this closure)
+  // =========================================================================
+  let canvas, ctx, muteBtn, announcerEl;
+  let W = 0, H = 0;                 // logical (CSS-pixel) canvas size
+  let dpr = 1;                      // device pixel ratio in use
+  let windowFocused = true;         // tracks OS-level window focus (separate from tab visibility)
+
+  /** Tunable numbers, recomputed on every resize so play feels consistent
+   *  across window sizes / orientations. Values scale off W/H rather than
+   *  being fixed pixel constants. */
+  const CONFIG = {};
+
+  let bird = null;                  // { x, y, vy, radius, rotation, wingPhase, flapTimer }
+  let pipes = [];                   // [{ x, width, topHeight, gapHeight, passed }]
+  let clouds = [];                  // [{ x, y, scale, speed }]
+  let particles = [];               // [{ x, y, vx, vy, life, maxLife, color, size }] — feathers/dust/sparkles
+  let groundOffset = 0;             // scrolling offset for the ground texture
+  let hillOffset = 0;               // scrolling offset for the distant hill silhouette (slower parallax)
+
+  let score = 0;
+  let best = 0;
+  let isNewBest = false;
+  let scorePopTimer = 0;            // counts down from SCORE_POP_DURATION each time score increments
+
+  let muted = false;
+  let audioCtx = null;
+
+  /** Finite state machine: 'start' -> 'playing' -> 'dying' -> 'gameover' -> 'playing' ...
+   *  'dying' is a brief sub-state entered on collision where the bird keeps
+   *  falling/rotating into the ground (classic Flappy Bird "flop") while
+   *  pipes/ground freeze, before the game-over panel appears. */
+  let state = 'start';
+  let stateChangedAt = 0;           // seconds, used for screen transition easing
+  let deathDustSpawned = false;     // guards the one-shot ground-impact dust puff during 'dying'
+
+  let nowSeconds = 0;               // updated once per animation frame
+  let lastTime = null;              // previous rAF timestamp (ms), for delta-time
+  let flashAlpha = 0;               // white "impact" flash overlay on death
+  let shakeTimer = 0;               // seconds remaining of screen-shake, decays to 0
+  let rafId = null;
+
+  const SHAKE_DURATION = 0.25;      // seconds a collision screen-shake lasts
+  const SCORE_POP_DURATION = 0.25;  // seconds the score HUD "pop" animation lasts
+  const DEATH_FALL_TIMEOUT = 0.6;   // max seconds to wait for the dying bird to reach the ground
+
+  // =========================================================================
+  // Small utilities
+  // =========================================================================
+  function clamp(v, min, max) { return v < min ? min : (v > max ? max : v); }
+
+  function easeOutBack(t) {
+    const c1 = 1.70158, c3 = c1 + 1;
+    t = clamp(t, 0, 1);
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  }
+
+  // =========================================================================
+  // Persistent storage (guarded — localStorage can throw or be unavailable,
+  // e.g. in private-browsing modes or sandboxed iframes)
+  // =========================================================================
+  const hasStorage = (function () {
+    try {
+      const k = '__flappy_test__';
+      localStorage.setItem(k, '1');
+      localStorage.removeItem(k);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  })();
+
+  let memoryBest = 0;
+  let memoryMuted = false;
+
+  function loadBest() {
+    if (!hasStorage) return memoryBest;
+    try {
+      const v = parseInt(localStorage.getItem('flappyBird.bestScore') || '0', 10);
+      return Number.isFinite(v) ? v : 0;
+    } catch (e) { return memoryBest; }
+  }
+
+  function saveBest(v) {
+    memoryBest = v;
+    if (!hasStorage) return;
+    try { localStorage.setItem('flappyBird.bestScore', String(v)); } catch (e) { /* ignore */ }
+  }
+
+  function loadMuted() {
+    if (!hasStorage) return memoryMuted;
+    try { return localStorage.getItem('flappyBird.muted') === '1'; } catch (e) { return memoryMuted; }
+  }
+
+  function saveMuted(v) {
+    memoryMuted = v;
+    if (!hasStorage) return;
+    try { localStorage.setItem('flappyBird.muted', v ? '1' : '0'); } catch (e) { /* ignore */ }
+  }
+
+  // =========================================================================
+  // Audio — synthesized with WebAudio oscillators/gain nodes. Created lazily
+  // on the first user gesture so browsers that require an unlock (iOS Safari,
+  // autoplay-policy browsers) work correctly.
+  // =========================================================================
+  function ensureAudioContext() {
+    if (audioCtx) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      audioCtx = new AC();
+    } catch (e) {
+      audioCtx = null;
+    }
+  }
+
+  function unlockAudio() {
+    ensureAudioContext();
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(function () { /* ignore */ });
+    }
+  }
+
+  function playTone(freqStart, freqEnd, duration, type, volume) {
+    if (muted || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(Math.max(1, freqStart), now);
+    if (freqEnd !== freqStart) {
+      osc.frequency.exponentialRampToValueAtTime(Math.max(1, freqEnd), now + duration);
+    }
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(volume, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + duration + 0.03);
+  }
+
+  function playFlap() {
+    playTone(480, 720, 0.09, 'sine', 0.18);
+  }
+
+  function playScore() {
+    if (muted || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    // Quick two-note ascending chime.
+    [880, 1174.66].forEach(function (freq, i) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const t0 = now + i * 0.07;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.18);
+    });
+  }
+
+  function playHit() {
+    if (muted || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(55, now + 0.35);
+    gain.gain.setValueAtTime(0.26, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.42);
+  }
+
+  function toggleMute() {
+    muted = !muted;
+    saveMuted(muted);
+    updateMuteButtonUI();
+  }
+
+  function updateMuteButtonUI() {
+    if (!muteBtn) return;
+    muteBtn.textContent = muted ? '🔇' : '🔊';
+    muteBtn.setAttribute('aria-label', muted ? 'Unmute sound' : 'Mute sound');
+  }
+
+  /** Pushes text into the visually-hidden aria-live region so screen-reader
+   *  users get the score/game-state feedback that's otherwise only drawn as
+   *  canvas pixels. */
+  function announce(text) {
+    if (announcerEl) announcerEl.textContent = text;
+  }
+
+  // =========================================================================
+  // Difficulty / config — recomputed on resize, gently ramped by score.
+  // =========================================================================
+  function computeConfig() {
+    CONFIG.groundHeight = clamp(H * 0.14, 64, 140);
+    CONFIG.birdRadius   = clamp(H * 0.024, 14, 28);
+    // Clamped (not just linear in H) so flap "punch" relative to bird size
+    // stays consistent instead of feeling floaty on short screens or
+    // twitchy on tall ones once birdRadius itself hits its own clamp.
+    CONFIG.gravity      = clamp(H * 2.35, 1400, 3200);   // px/s^2
+    CONFIG.flapVelocity = clamp(-H * 0.62, -840, -370);  // px/s (impulse, not additive)
+    CONFIG.maxFall      = clamp(H * 0.95, 570, 1300);    // terminal velocity
+
+    CONFIG.pipeWidth    = clamp(W * 0.13, 56, 96);
+    CONFIG.baseGap      = clamp(H * 0.32, 165, 260);
+    CONFIG.baseSpeed    = clamp(W * 0.30, 150, 260);
+    // Derived from baseSpeed (not W directly) so the seconds-between-pipes
+    // interval the player learns stays constant across viewport widths,
+    // instead of drifting wherever the two formulas' clamps used to kick in
+    // at different W breakpoints.
+    CONFIG.pipeSpacing  = clamp(CONFIG.baseSpeed * 1.6, 230, 420);
+
+    applyDifficulty();
+  }
+
+  /** Nudges live pipe speed/gap from the base values as score rises. */
+  function applyDifficulty() {
+    const s = score;
+    CONFIG.pipeSpeed = Math.min(CONFIG.baseSpeed + s * 4, CONFIG.baseSpeed * 1.9);
+    CONFIG.pipeGap   = Math.max(CONFIG.baseGap - s * 1.6, CONFIG.baseGap * 0.6);
+  }
+
+  // =========================================================================
+  // Bird
+  // =========================================================================
+  function createBird() {
+    return { x: 0, y: 0, vy: 0, radius: 18, rotation: 0, wingPhase: 0, flapTimer: 0 };
+  }
+
+  function flap() {
+    bird.vy = CONFIG.flapVelocity;
+    bird.flapTimer = 0.25; // seconds of "fast wing flap" animation after a flap
+    playFlap();
+  }
+
+  function updateBird(dt) {
+    bird.vy += CONFIG.gravity * dt;
+    if (bird.vy > CONFIG.maxFall) bird.vy = CONFIG.maxFall;
+    bird.y += bird.vy * dt;
+
+    // Nose-up when climbing, nose-down (diving) when falling — smoothed.
+    const targetRot = bird.vy < 0 ? -0.5 : Math.min(bird.vy / CONFIG.maxFall, 1) * 1.4;
+    bird.rotation += (targetRot - bird.rotation) * Math.min(1, dt * 8);
+
+    if (bird.flapTimer > 0) bird.flapTimer -= dt;
+    bird.wingPhase += dt * (bird.flapTimer > 0 ? 20 : 5);
+  }
+
+  // =========================================================================
+  // Pipes
+  // =========================================================================
+  function spawnPipe() {
+    const margin = 30;
+    const available = H - CONFIG.groundHeight - margin * 2;
+    const gap = Math.min(CONFIG.pipeGap, Math.max(90, available * 0.55));
+    const minTop = margin;
+    const maxTop = Math.max(minTop + 10, H - CONFIG.groundHeight - margin - gap);
+    const topHeight = minTop + Math.random() * (maxTop - minTop);
+    pipes.push({ x: W + 10, width: CONFIG.pipeWidth, topHeight: topHeight, gapHeight: gap, passed: false });
+  }
+
+  function updatePipes(dt) {
+    for (let i = pipes.length - 1; i >= 0; i--) {
+      const p = pipes[i];
+      p.x -= CONFIG.pipeSpeed * dt;
+      if (p.x + p.width < -10) pipes.splice(i, 1);
+    }
+    const last = pipes[pipes.length - 1];
+    if (!last || (W - last.x) >= CONFIG.pipeSpacing) {
+      spawnPipe();
+    }
+  }
+
+  function updateScoring() {
+    for (let i = 0; i < pipes.length; i++) {
+      const p = pipes[i];
+      if (!p.passed && p.x + p.width < bird.x - bird.radius) {
+        p.passed = true;
+        score++;
+        scorePopTimer = SCORE_POP_DURATION;
+        applyDifficulty();
+        playScore();
+        spawnParticles(bird.x, bird.y, 6, ['#fff', '#ffe98a'], {
+          minSpeed: 30, speedRange: 70, minLife: 0.2, lifeRange: 0.2, minSize: 1, sizeRange: 2
+        });
+      }
+    }
+  }
+
+  // =========================================================================
+  // Ground & clouds (parallax decoration)
+  // =========================================================================
+  function updateGround(dt) {
+    const tile = 40;
+    groundOffset = (groundOffset - CONFIG.pipeSpeed * dt) % tile;
+    // Distant hill silhouette scrolls slower than the ground for a cheap parallax depth cue.
+    hillOffset = (hillOffset - CONFIG.pipeSpeed * 0.35 * dt) % 120;
+  }
+
+  function initClouds() {
+    clouds = [];
+    const count = 5;
+    for (let i = 0; i < count; i++) {
+      clouds.push(makeCloud(Math.random() * W));
+    }
+  }
+
+  function makeCloud(x) {
+    return {
+      x: x,
+      y: 30 + Math.random() * (H * 0.35),
+      scale: 0.6 + Math.random() * 0.9,
+      speed: 12 + Math.random() * 18
+    };
+  }
+
+  function updateClouds(dt) {
+    for (let i = 0; i < clouds.length; i++) {
+      const c = clouds[i];
+      c.x -= c.speed * dt;
+      if (c.x < -120 * c.scale) {
+        const fresh = makeCloud(W + 120 * c.scale);
+        c.x = fresh.x; c.y = fresh.y; c.scale = fresh.scale; c.speed = fresh.speed;
+      }
+    }
+  }
+
+  // =========================================================================
+  // Particles — lightweight procedural feather/dust/sparkle bursts. No
+  // images: just faded circles with simple gravity/drag.
+  // =========================================================================
+  function spawnParticles(x, y, count, colors, opts) {
+    opts = opts || {};
+    const minSpeed = opts.minSpeed || 60, speedRange = opts.speedRange || 160;
+    const minLife = opts.minLife || 0.3, lifeRange = opts.lifeRange || 0.4;
+    const minSize = opts.minSize || 2, sizeRange = opts.sizeRange || 3;
+    const upBias = opts.upBias || 0;
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = minSpeed + Math.random() * speedRange;
+      const life = minLife + Math.random() * lifeRange;
+      particles.push({
+        x: x, y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - upBias,
+        life: life, maxLife: life,
+        color: colors[(Math.random() * colors.length) | 0],
+        size: minSize + Math.random() * sizeRange
+      });
+    }
+  }
+
+  function updateParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.vy += 420 * dt; // light gravity so debris settles/falls
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= dt;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function drawParticles() {
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // =========================================================================
+  // Collision detection
+  // =========================================================================
+  function circleRectOverlap(cx, cy, cr, rx, ry, rw, rh) {
+    const closestX = clamp(cx, rx, rx + rw);
+    const closestY = clamp(cy, ry, ry + rh);
+    const dx = cx - closestX, dy = cy - closestY;
+    return (dx * dx + dy * dy) < cr * cr;
+  }
+
+  function checkCollisions() {
+    const groundY = H - CONFIG.groundHeight;
+
+    // Ground
+    if (bird.y + bird.radius >= groundY) {
+      bird.y = groundY - bird.radius;
+      return true;
+    }
+    // Ceiling — clamp the position but don't kill; the sky isn't an
+    // obstacle in classic Flappy Bird, only pipes and the ground are.
+    if (bird.y - bird.radius <= 0) {
+      bird.y = bird.radius;
+      if (bird.vy < 0) bird.vy = 0;
+    }
+    // Pipes — slightly forgiving hitbox vs. the drawn sprite.
+    const hitR = bird.radius * 0.78;
+    for (let i = 0; i < pipes.length; i++) {
+      const p = pipes[i];
+      if (bird.x + hitR < p.x || bird.x - hitR > p.x + p.width) continue;
+      if (circleRectOverlap(bird.x, bird.y, hitR, p.x, 0, p.width, p.topHeight)) return true;
+      const bottomY = p.topHeight + p.gapHeight;
+      if (circleRectOverlap(bird.x, bird.y, hitR, p.x, bottomY, p.width, H - CONFIG.groundHeight - bottomY)) return true;
+    }
+    return false;
+  }
+
+  // =========================================================================
+  // State transitions
+  // =========================================================================
+  function resetGame() {
+    pipes = [];
+    particles = [];
+    score = 0;
+    isNewBest = false;
+    flashAlpha = 0;
+    shakeTimer = 0;
+    scorePopTimer = 0;
+    deathDustSpawned = false;
+    bird.x = Math.round(W * 0.28);
+    bird.y = H * 0.42;
+    bird.vy = 0;
+    bird.rotation = 0;
+    bird.wingPhase = 0;
+    bird.flapTimer = 0;
+    applyDifficulty();
+  }
+
+  function startGame() {
+    resetGame();
+    state = 'playing';
+    stateChangedAt = nowSeconds;
+    announce('Game started. Tap, click, or press Space to flap.');
+  }
+
+  /** Collision just happened: freeze pipes/scoring, kick off the impact
+   *  juice (flash/shake/feathers/hit sound), and drop into the brief
+   *  'dying' sub-state so the bird can fall the rest of the way to the
+   *  ground before the game-over panel appears. */
+  function startDeath() {
+    state = 'dying';
+    stateChangedAt = nowSeconds;
+    deathDustSpawned = false;
+    flashAlpha = 1;
+    shakeTimer = SHAKE_DURATION;
+    playHit();
+    spawnParticles(bird.x, bird.y, 14, ['#ffd23f', '#ffb703', '#ff7d1a', '#fff'], {
+      minSpeed: 90, speedRange: 220, minLife: 0.35, lifeRange: 0.35, minSize: 2, sizeRange: 3
+    });
+    isNewBest = score > best;
+    if (isNewBest) {
+      best = score;
+      saveBest(best);
+    }
+  }
+
+  /** Bird has settled on the ground (or the fall timed out): show the panel. */
+  function enterGameOver() {
+    state = 'gameover';
+    stateChangedAt = nowSeconds; // restart the panel's intro-animation timer
+    announce('Game over. Score ' + score + '. Best ' + best + (isNewBest ? '. New best!' : '') + '.');
+  }
+
+  // =========================================================================
+  // Update (per-frame, delta-time based)
+  // =========================================================================
+  function update(dt) {
+    if (state === 'playing') {
+      updateBird(dt);
+      updatePipes(dt);
+      updateScoring();
+      updateGround(dt);
+      updateClouds(dt);
+      if (checkCollisions()) startDeath();
+    } else if (state === 'start') {
+      updateGround(dt);
+      updateClouds(dt);
+    } else if (state === 'dying') {
+      // Bird keeps falling/rotating into the ground for a beat while pipes
+      // and the ground stay frozen — only ambient clouds keep drifting.
+      updateBird(dt);
+      updateClouds(dt);
+      const groundY = H - CONFIG.groundHeight;
+      const settled = bird.y + bird.radius >= groundY;
+      if (settled && !deathDustSpawned) {
+        bird.y = groundY - bird.radius;
+        spawnParticles(bird.x, groundY, 6, ['#c9b97a', '#ded895'], {
+          minSpeed: 40, speedRange: 90, minLife: 0.25, lifeRange: 0.3, minSize: 2, sizeRange: 2, upBias: 70
+        });
+        deathDustSpawned = true;
+      }
+      if (settled || nowSeconds - stateChangedAt > DEATH_FALL_TIMEOUT) {
+        enterGameOver();
+      }
+    } else if (state === 'gameover') {
+      updateClouds(dt);
+    }
+
+    updateParticles(dt);
+    if (shakeTimer > 0) shakeTimer = Math.max(0, shakeTimer - dt);
+    if (scorePopTimer > 0) scorePopTimer = Math.max(0, scorePopTimer - dt);
+    if (flashAlpha > 0) flashAlpha = Math.max(0, flashAlpha - dt / 0.3);
+  }
+
+  // =========================================================================
+  // Drawing
+  // =========================================================================
+  function drawBackground() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#63c6e8');
+    g.addColorStop(0.7, '#bdeef0');
+    g.addColorStop(1, '#e7f8e0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(255,247,214,0.9)';
+    ctx.arc(W * 0.82, H * 0.16, Math.min(W, H) * 0.09, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawCloudShape(x, y, s) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, 26 * s, 16 * s, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + 22 * s, y + 4 * s, 20 * s, 14 * s, 0, 0, Math.PI * 2);
+    ctx.ellipse(x - 22 * s, y + 6 * s, 18 * s, 12 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawClouds() {
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    for (let i = 0; i < clouds.length; i++) {
+      drawCloudShape(clouds[i].x, clouds[i].y, clouds[i].scale);
+    }
+  }
+
+  /** Slow-parallax hill silhouette just above the ground — a cheap depth
+   *  cue so the scene doesn't read as flat sky + ground + pipes. */
+  function drawHills() {
+    const gy = H - CONFIG.groundHeight;
+    const hillH = Math.min(46, CONFIG.groundHeight * 0.7);
+    const bumpW = 120;
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.beginPath();
+    const startX = hillOffset - bumpW;
+    ctx.moveTo(startX, gy);
+    for (let x = startX; x < W + bumpW; x += bumpW) {
+      ctx.quadraticCurveTo(x + bumpW * 0.5, gy - hillH, x + bumpW, gy);
+    }
+    ctx.lineTo(W + bumpW, gy + 2);
+    ctx.lineTo(startX, gy + 2);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /** Small flattened shadow under the bird, fading in as it nears the
+   *  ground — gives it a sense of vertical position/depth. */
+  function drawBirdShadow(bx, by, r) {
+    const groundY = H - CONFIG.groundHeight;
+    const dist = clamp(groundY - (by + r), 0, H);
+    const t = 1 - clamp(dist / (H * 0.5), 0, 1); // 1 = at the ground, 0 = far above it
+    if (t <= 0.02) return;
+    ctx.save();
+    ctx.globalAlpha = 0.25 * t;
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath();
+    ctx.ellipse(bx, groundY + 2, r * (1.3 + 0.4 * t), r * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawRoundedRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawGround() {
+    const gy = H - CONFIG.groundHeight;
+    ctx.fillStyle = '#ded895';
+    ctx.fillRect(0, gy, W, CONFIG.groundHeight);
+
+    const grassH = Math.min(14, CONFIG.groundHeight * 0.25);
+    ctx.fillStyle = '#8bd450';
+    ctx.fillRect(0, gy, W, grassH);
+    ctx.fillStyle = '#6fb83e';
+    ctx.fillRect(0, gy + grassH - 3, W, 3);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    const tile = 40;
+    for (let x = groundOffset - tile; x < W + tile; x += tile) {
+      ctx.fillRect(x, gy + grassH + 8, tile * 0.5, 6);
+    }
+  }
+
+  function drawPipeSegment(x, y, w, h, isTop) {
+    if (h <= 0) return;
+    const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+    grad.addColorStop(0, '#8fe066');
+    grad.addColorStop(0.5, '#5fbf3f');
+    grad.addColorStop(1, '#3f8f2b');
+
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = '#2c6b1f';
+    ctx.lineWidth = 2;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+
+    const capH = Math.min(28, h * 0.6 + 10);
+    const capOverhang = 6;
+    const capY = isTop ? y + h - capH : y;
+    ctx.fillStyle = grad;
+    ctx.fillRect(x - capOverhang, capY, w + capOverhang * 2, capH);
+    ctx.strokeRect(x - capOverhang + 1, capY + 1, w + capOverhang * 2 - 2, capH - 2);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(x + 4, y, Math.max(2, w * 0.18), h);
+  }
+
+  function drawPipes() {
+    for (let i = 0; i < pipes.length; i++) {
+      const p = pipes[i];
+      drawPipeSegment(p.x, 0, p.width, p.topHeight, true);
+      const bottomY = p.topHeight + p.gapHeight;
+      drawPipeSegment(p.x, bottomY, p.width, H - CONFIG.groundHeight - bottomY, false);
+    }
+  }
+
+  /** Generic bird sprite renderer, shared by the live bird and the title/preview bird. */
+  function drawBirdShape(cx, cy, r, rotation, wingPhase) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rotation);
+
+    // Body
+    ctx.fillStyle = '#ffd23f';
+    ctx.strokeStyle = '#c99a1e';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 1.15, r, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Wing (flaps via rotation driven by a sine wave)
+    const wingFlap = Math.sin(wingPhase);
+    ctx.save();
+    ctx.translate(-r * 0.1, r * 0.15);
+    ctx.rotate(wingFlap * 0.6);
+    ctx.fillStyle = '#ffb703';
+    ctx.strokeStyle = '#c98a03';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.65, r * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // Eye
+    ctx.beginPath();
+    ctx.fillStyle = '#fff';
+    ctx.arc(r * 0.35, -r * 0.25, r * 0.32, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.fillStyle = '#222';
+    ctx.arc(r * 0.45, -r * 0.25, r * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Beak
+    ctx.fillStyle = '#ff7d1a';
+    ctx.strokeStyle = '#c9590a';
+    ctx.beginPath();
+    ctx.moveTo(r * 0.9, -r * 0.05);
+    ctx.lineTo(r * 1.55, r * 0.05);
+    ctx.lineTo(r * 0.9, r * 0.35);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawBirdPreview() {
+    const px = W * 0.5;
+    const py = H * 0.58 + Math.sin(nowSeconds * 3) * 8;
+    const rot = Math.sin(nowSeconds * 3) * 0.15;
+    drawBirdShape(px, py, CONFIG.birdRadius * 1.3, rot, nowSeconds * 6);
+  }
+
+  function drawScoreHUD() {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.font = 'bold ' + Math.round(clamp(H * 0.06, 32, 56)) + "px 'Segoe UI', Arial, sans-serif";
+    const txt = String(score);
+    const x = W / 2, y = H * 0.05;
+
+    // Quick "pop" scale right after a point is scored, settling back to 1x.
+    const popT = clamp(1 - scorePopTimer / SCORE_POP_DURATION, 0, 1);
+    const popScale = 1 + 0.35 * (1 - popT);
+    ctx.translate(x, y);
+    ctx.scale(popScale, popScale);
+    ctx.translate(-x, -y);
+
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.strokeText(txt, x, y);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(txt, x, y);
+    ctx.restore();
+  }
+
+  function drawStartScreen() {
+    ctx.save();
+    ctx.textAlign = 'center';
+
+    const titleSize = clamp(W * 0.09, 32, 64);
+    ctx.font = 'bold ' + titleSize + "px 'Segoe UI', Arial, sans-serif";
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillStyle = '#fff';
+    const titleY = H * 0.20;
+    ctx.strokeText('Flappy Bird', W / 2, titleY);
+    ctx.fillText('Flappy Bird', W / 2, titleY);
+
+    ctx.font = '600 ' + clamp(W * 0.032, 16, 22) + "px 'Segoe UI', Arial, sans-serif";
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 4;
+    const line1 = 'Tap, click, or press Space / ↑ to flap';
+    const line2 = 'Best: ' + best;
+    ctx.strokeText(line1, W / 2, titleY + 46);
+    ctx.fillText(line1, W / 2, titleY + 46);
+    ctx.strokeText(line2, W / 2, titleY + 76);
+    ctx.fillText(line2, W / 2, titleY + 76);
+
+    const pulse = 0.55 + 0.45 * Math.sin(nowSeconds * 3.2);
+    ctx.globalAlpha = pulse;
+    ctx.font = 'bold ' + clamp(W * 0.035, 16, 24) + "px 'Segoe UI', Arial, sans-serif";
+    const promptY = H - CONFIG.groundHeight - 56;
+    ctx.strokeText('Tap to Start', W / 2, promptY);
+    ctx.fillText('Tap to Start', W / 2, promptY);
+    ctx.globalAlpha = 1;
+
+    ctx.restore();
+  }
+
+  function drawGameOverPanel() {
+    const elapsed = nowSeconds - stateChangedAt;
+    const scale = easeOutBack(clamp(elapsed / 0.35, 0, 1));
+    const panelW = clamp(W * 0.7, 260, 420);
+    const panelH = clamp(H * 0.42, 220, 320);
+    const cx = W / 2, cy = H / 2;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(scale, scale);
+    ctx.translate(-cx, -cy);
+
+    drawRoundedRect(cx - panelW / 2, cy - panelH / 2, panelW, panelH, 18);
+    ctx.fillStyle = 'rgba(20,20,30,0.72)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold ' + clamp(panelW * 0.13, 22, 34) + "px 'Segoe UI', Arial, sans-serif";
+    ctx.fillText('Game Over', cx, cy - panelH * 0.32);
+
+    ctx.font = '600 ' + clamp(panelW * 0.09, 16, 22) + "px 'Segoe UI', Arial, sans-serif";
+    ctx.fillText('Score: ' + score, cx, cy - panelH * 0.08);
+    ctx.fillText('Best: ' + best, cx, cy + panelH * 0.12);
+
+    if (isNewBest) {
+      ctx.fillStyle = '#ffd23f';
+      ctx.font = 'bold ' + clamp(panelW * 0.07, 14, 18) + "px 'Segoe UI', Arial, sans-serif";
+      ctx.fillText('New Best!', cx, cy + panelH * 0.28);
+    }
+
+    const pulse = 0.55 + 0.45 * Math.sin(nowSeconds * 3.2);
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = '#fff';
+    ctx.font = '600 ' + clamp(panelW * 0.065, 14, 16) + "px 'Segoe UI', Arial, sans-serif";
+    ctx.fillText('Tap / Space to Restart', cx, cy + panelH * 0.42);
+    ctx.globalAlpha = 1;
+
+    ctx.restore();
+  }
+
+  function drawFlash() {
+    if (flashAlpha <= 0) return;
+    ctx.fillStyle = 'rgba(255,255,255,' + (flashAlpha * 0.7) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Small camera shake on impact — decays over SHAKE_DURATION and only
+    // affects the world layers below, not the HUD/panel text drawn after.
+    ctx.save();
+    if (shakeTimer > 0) {
+      const amp = 9 * (shakeTimer / SHAKE_DURATION);
+      ctx.translate((Math.random() * 2 - 1) * amp, (Math.random() * 2 - 1) * amp);
+    }
+
+    drawBackground();
+    drawClouds();
+    drawHills();
+    if (state !== 'start') drawPipes();
+    drawGround();
+
+    if (state === 'start') {
+      drawBirdPreview();
+      drawStartScreen();
+    } else {
+      drawBirdShadow(bird.x, bird.y, bird.radius);
+      drawBirdShape(bird.x, bird.y, bird.radius, bird.rotation, bird.wingPhase);
+    }
+
+    drawParticles();
+    ctx.restore();
+
+    if (state === 'playing') drawScoreHUD();
+    if (state === 'gameover') drawGameOverPanel();
+    drawFlash();
+  }
+
+  // =========================================================================
+  // Input
+  // =========================================================================
+  function primaryAction() {
+    if (state === 'start') {
+      startGame();
+      flap();
+    } else if (state === 'playing') {
+      flap();
+    } else if (state === 'gameover') {
+      // Small debounce so the tap/key that caused death can't also
+      // instantly retrigger a restart on the same input event stream.
+      if (nowSeconds - stateChangedAt > 0.35) {
+        startGame();
+        flap(); // mirror the 'start' branch: the restart tap should also flap,
+                // otherwise the bird just hangs and free-falls until the next tap
+      }
+    }
+    // (No branch for 'dying' — taps during the death tumble are ignored so a
+    // stray tap can't cut the flop animation short or sneak in a restart.)
+  }
+
+  function onPointerDown(e) {
+    // Ignore non-primary mouse buttons (right/middle click) so they don't
+    // flap and swallow the context menu; touch/pen always count.
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    unlockAudio();
+    primaryAction();
+  }
+
+  function onKeyDown(e) {
+    const isFlapKey = e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'Enter' ||
+      e.key === ' ' || e.key === 'ArrowUp' || e.key === 'Spacebar' || e.key === 'Enter';
+    if (!isFlapKey) return;
+    e.preventDefault(); // stop the page from scrolling
+    if (e.repeat) return; // ignore key auto-repeat while held
+    unlockAudio();
+    primaryAction();
+  }
+
+  function onMuteClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    unlockAudio();
+    toggleMute();
+  }
+
+  // =========================================================================
+  // Resize handling
+  // =========================================================================
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    computeConfig();
+
+    // Only snap the bird's x-position and hitbox radius while still on the
+    // start screen. Resizing/rotating mid-flight (state 'playing'/'dying'/
+    // 'gameover') must NOT teleport the bird or resize its hitbox against
+    // pipes that were never rescaled — that could cause an unearned
+    // collision or let the bird slip through a pipe without colliding.
+    if (state === 'start') {
+      bird.x = Math.round(W * 0.28);
+      bird.y = H * 0.42;
+      bird.vy = 0;
+      bird.rotation = 0;
+      bird.radius = CONFIG.birdRadius;
+    } else {
+      bird.y = clamp(bird.y, bird.radius, H - CONFIG.groundHeight - bird.radius);
+    }
+  }
+
+  // =========================================================================
+  // Main loop — requestAnimationFrame with delta-time based movement so
+  // speed stays consistent regardless of the display's refresh rate.
+  // =========================================================================
+  function loop(ts) {
+    rafId = requestAnimationFrame(loop);
+
+    // Keep nowSeconds tracking wall-clock time even on frames where we bail
+    // out early below — it feeds UI timers (e.g. the post-death restart
+    // debounce) that must stay accurate even if a tap/key arrives right as
+    // the tab regains visibility, before the next full frame runs.
+    nowSeconds = ts / 1000;
+
+    if (document.hidden || !windowFocused) {
+      lastTime = null; // avoid a huge dt jump once we become active again
+      return;
+    }
+    if (lastTime === null) lastTime = ts;
+
+    let dt = (ts - lastTime) / 1000;
+    lastTime = ts;
+    if (dt > 0.035) dt = 0.035; // clamp worst-case dt (e.g. after a stall)
+
+    update(dt);
+    draw();
+  }
+
+  // =========================================================================
+  // Init
+  // =========================================================================
+  function init() {
+    canvas = document.getElementById('game');
+    ctx = canvas.getContext('2d');
+    muteBtn = document.getElementById('muteBtn');
+    announcerEl = document.getElementById('announcer');
+
+    bird = createBird();
+    best = loadBest();
+    muted = loadMuted();
+    updateMuteButtonUI();
+
+    window.addEventListener('resize', resize);
+    window.addEventListener('orientationchange', resize);
+    document.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
+
+    // Pause simulation on OS-level focus loss too (not just tab-hidden) so a
+    // non-fullscreen window losing focus doesn't keep running the physics
+    // "off camera".
+    window.addEventListener('blur', function () { windowFocused = false; });
+    window.addEventListener('focus', function () { windowFocused = true; });
+
+    canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
+    window.addEventListener('keydown', onKeyDown, { passive: false });
+    // Plain 'click' (not 'pointerdown') so keyboard activation (Tab + Enter/
+    // Space) and assistive-tech synthetic clicks (VoiceOver/TalkBack) can
+    // toggle mute, not just pointer/touch input.
+    muteBtn.addEventListener('click', onMuteClick);
+
+    resize();
+    initClouds();
+    resetGame();
+
+    stateChangedAt = nowSeconds;
+    lastTime = null;
+    rafId = requestAnimationFrame(loop);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
