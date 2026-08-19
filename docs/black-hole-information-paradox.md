@@ -70,7 +70,7 @@ Consider one late Hawking quantum $b$, emitted after the Page time.
 
 Exactly one of **U**, **E**, **S** must be abandoned:
 
-- **Drop U.** Hawking's original position: information is genuinely destroyed, the $S$-matrix replaced by a superscattering operator $\$$. Note that $\$$ is still *linear* on density matrices, so linearity is not the objection. The objections are that (i) Banks, Peskin and Susskind showed such evolution generically violates energy–momentum conservation, producing violent heating of ordinary matter, and (ii) — decisively for most workers — AdS/CFT, where the boundary gauge theory evolves manifestly unitarily while describing bulk black hole formation and evaporation.
+- **Drop U.** Hawking's original position: information is genuinely destroyed, the $S$-matrix replaced by a superscattering operator $\$$. Note that $\$$ is still *linear* on density matrices, so linearity is not the objection. The objections are that (i) Banks, Susskind and Peskin showed such evolution generically violates energy–momentum conservation, producing violent heating of ordinary matter, and (ii) — decisively for most workers — AdS/CFT, where the boundary gauge theory evolves manifestly unitarily while describing bulk black hole formation and evaporation.
 - **Drop E.** The semiclassical description near or outside the horizon fails, in a way that is subtle, low-energy, and plausibly nonlocal.
 - **Drop S.** A *firewall*. The near-horizon vacuum entanglement is broken, and this is not free: the two-point function no longer has its vacuum short-distance form, so $\langle T_{\mu\nu}\rangle$ in the infalling frame is formally UV-divergent, cut off at the Planck scale. Extending the argument to all partial waves — via the mining thought experiment — AMPS conclude the infaller meets a Planck density of Planck-scale quanta and is destroyed at the horizon rather than crossing it unharmed.
 
@@ -150,7 +150,7 @@ What remains open is the mechanism. The island formula appears to be the correct
 8. L. Susskind, L. Thorlacius and J. Uglum, "The stretched horizon and black hole complementarity," *Phys. Rev. D* **48** (1993) 3743, arXiv:hep-th/9306069.
 9. D. N. Page, "Average entropy of a subsystem," *Phys. Rev. Lett.* **71** (1993) 1291, arXiv:gr-qc/9305007.
 10. D. N. Page, "Information in black hole radiation," *Phys. Rev. Lett.* **71** (1993) 3743, arXiv:hep-th/9306083.
-11. R. Horodecki and P. Horodecki, "Quantum redundancies and local realism," *Phys. Lett. A* **194** (1994) 147.
+11. R. Horodecki, P. Horodecki and M. Horodecki, "Quantum $\alpha$-entropy inequalities: independent condition for local realism?" *Phys. Lett. A* **210** (1996) 377; R. Horodecki and M. Horodecki, "Information-theoretic aspects of inseparability of mixed states," *Phys. Rev. A* **54** (1996) 1838, arXiv:quant-ph/9607007.
 12. M. A. Nielsen and J. Kempe, "Separable states are more disordered globally than locally," *Phys. Rev. Lett.* **86** (2001) 5184, arXiv:quant-ph/0011117.
 13. S. D. Mathur, "The information paradox: a pedagogical introduction," *Class. Quant. Grav.* **26** (2009) 224001, arXiv:0909.1038.
 14. A. Almheiri, D. Marolf, J. Polchinski and J. Sully, "Black holes: complementarity or firewalls?" *JHEP* **02** (2013) 062, arXiv:1207.3123.
