@@ -78,7 +78,7 @@ A smooth horizon requires b and b̃ to be in a pure state together, so S(b b̃) 
 
     S(Rb) ≥ S(R) + S(b) .
 
-Combined with subadditivity, S(Rb) ≤ S(R) + S(b), this forces exact additivity, S(Rb) = S(R) + S(b): the radiation entropy increases by S(b) with every emission — Hawking's rising curve, forever. Equivalently, the conditional entropy S(b|R) = S(Rb) − S(R) is non-negative, whereas unitarity after the Page time demands S(b|R) < 0. It contradicts the Page curve's requirement that S(Rb) < S(R) after the Page time.
+Combined with subadditivity, S(Rb) ≤ S(R) + S(b), this forces exact additivity, S(Rb) = S(R) + S(b): the radiation entropy increases by S(b) with every emission — Hawking's rising curve, forever. Equivalently, the conditional entropy S(b|R) = S(Rb) − S(R) comes out non-negative, whereas the Page curve after the Page time requires S(Rb) < S(R), i.e. S(b|R) < 0. The two cannot both hold.
 
 The three roles, plainly:
 
@@ -103,6 +103,7 @@ The island results lend weight to the first line: they reproduce the Page curve 
 - S. W. Hawking, *Particle creation by black holes*, Commun. Math. Phys. **43** (1975) 199.
 - S. W. Hawking, *Breakdown of predictability in gravitational collapse*, Phys. Rev. D **14** (1976) 2460.
 - W. H. Zurek, *Entropy evaporated by a black hole*, Phys. Rev. Lett. **49** (1982) 1683.
+- D. N. Page, *Comment on "Entropy evaporated by a black hole"*, Phys. Rev. Lett. **50** (1983) 1013.
 - D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71** (1993) 1291 [gr-qc/9305007]; *Information in black hole radiation*, Phys. Rev. Lett. **71** (1993) 3743 [hep-th/9306083].
 - L. Susskind, L. Thorlacius, J. Uglum, *The stretched horizon and black hole complementarity*, Phys. Rev. D **48** (1993) 3743 [hep-th/9306069].
 - G. T. Horowitz, J. Maldacena, *The black hole final state*, JHEP **0402** (2004) 008 [hep-th/0310281].
