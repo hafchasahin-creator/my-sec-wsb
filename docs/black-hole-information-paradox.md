@@ -28,7 +28,7 @@ The outside radiation is mixed *only* because its purifier sits behind the horiz
 
 The now-standard packaging of the AMPS argument (Almheiri, Marolf, Polchinski, Sully 2012) rests on four claims:
 
-- **U — Unitarity.** The full state stays pure; information returns in the radiation. Equivalently, to a distant observer the hole behaves as an ordinary quantum system with a discrete spectrum and ≈ e^{A/4G} states.
+- **U — Unitarity.** The full state stays pure; information returns in the radiation. AMPS pair this with the related postulate that a distant observer sees the hole as an ordinary quantum system with a discrete spectrum and roughly e^{A/4G} states.
 - **E — Semiclassical effective field theory outside.** Hawking's calculation is valid; ordinary local physics holds outside (in AMPS's phrasing, outside the stretched horizon).
 - **S — Smooth horizon ("no drama").** By the equivalence principle, a freely falling observer sees the local vacuum as they cross.
 - **M — Monogamy of entanglement.** A system cannot be maximally entangled with two independent systems at once. This is a theorem of ordinary quantum mechanics; it follows from strong subadditivity (SSA) of the von Neumann entropy — not, as is sometimes said, equivalent to it.
@@ -78,7 +78,7 @@ A smooth horizon requires b and b̃ to be in a pure state together, so S(b b̃) 
 
     S(Rb) ≥ S(R) + S(b) .
 
-Combined with subadditivity, S(Rb) ≤ S(R) + S(b), this forces the entropy to be exactly additive: the radiation entropy increases by S(b) with every emission — Hawking's rising curve, forever. It contradicts the Page curve's requirement that S(Rb) < S(R) after the Page time.
+Combined with subadditivity, S(Rb) ≤ S(R) + S(b), this forces exact additivity, S(Rb) = S(R) + S(b): the radiation entropy increases by S(b) with every emission — Hawking's rising curve, forever. Equivalently, the conditional entropy S(b|R) = S(Rb) − S(R) is non-negative, whereas unitarity after the Page time demands S(b|R) < 0. It contradicts the Page curve's requirement that S(Rb) < S(R) after the Page time.
 
 The three roles, plainly:
 
