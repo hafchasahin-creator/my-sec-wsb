@@ -1,4 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="launcher_background">#1565C0</color>
-    <color name="launcher_foreground">#E53935</color>
+    <!-- Imran Recorder identity: warm ember gradient, distinct from any reference brand. -->
+    <color name="brand_500">#FF5A1F</color>
+    <color name="brand_600">#F2400F</color>
+    <color name="brand_400">#FF8A3D</color>
+    <color name="brand_end">#E8265F</color>
+    <color name="brand_tint">#FFF1EA</color>
+    <color name="brand_tint_strong">#FFE2D4</color>
+
+    <color name="record_red">#F0323F</color>
+    <color name="record_red_dark">#C8202C</color>
+
+    <color name="bg">#FFFFFF</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_alt">#F5F6F8</color>
+    <color name="surface_sunken">#EEF0F3</color>
+    <color name="divider">#E8EAEE</color>
+
+    <color name="text_primary">#111417</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="text_tertiary">#9AA1AC</color>
+    <color name="text_on_brand">#FFFFFF</color>
+
+    <color name="icon_idle">#3F444B</color>
+    <color name="scrim">#99000000</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="pill_dark">#1E2227</color>
+
+    <color name="ok_green">#18A957</color>
 </resources>

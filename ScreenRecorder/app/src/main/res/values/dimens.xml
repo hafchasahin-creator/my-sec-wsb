@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="gutter">20dp</dimen>
+    <dimen name="gap_xs">6dp</dimen>
+    <dimen name="gap_s">10dp</dimen>
+    <dimen name="gap_m">16dp</dimen>
+    <dimen name="gap_l">24dp</dimen>
+    <dimen name="gap_xl">32dp</dimen>
+
+    <dimen name="quick_tool">58dp</dimen>
+    <dimen name="row_min">62dp</dimen>
+    <dimen name="pill_h">58dp</dimen>
+    <dimen name="nav_h">64dp</dimen>
+    <dimen name="touch_min">48dp</dimen>
+    <dimen name="icon_row">22dp</dimen>
+</resources>

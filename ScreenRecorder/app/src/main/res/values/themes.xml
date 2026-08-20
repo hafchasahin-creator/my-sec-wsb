@@ -1,3 +1,126 @@
-<resources>
-    <style name="Theme.ScreenRecorder" parent="Theme.Material3.DayNight.NoActionBar" />
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Light-only by design: a utility recorder reads better with one committed palette
+         than with a half-tuned dark variant. values-night mirrors this deliberately. -->
+    <style name="Theme.Imran" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/brand_500</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/brand_tint</item>
+        <item name="colorOnPrimaryContainer">@color/brand_600</item>
+        <item name="colorSecondary">@color/brand_end</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="android:colorBackground">@color/bg</item>
+        <item name="colorOutline">@color/divider</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
+        <item name="android:windowAnimationStyle">@style/Anim.Imran</item>
+        <item name="materialAlertDialogTheme">@style/Theme.Imran.Dialog</item>
+    </style>
+
+    <style name="Theme.Imran.Splash" parent="Theme.Imran">
+        <item name="android:windowBackground">@drawable/bg_brand_gradient</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
+    </style>
+
+    <style name="Theme.Imran.Dark" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/brand_400</item>
+        <item name="android:statusBarColor">@color/black</item>
+        <item name="android:navigationBarColor">@color/black</item>
+        <item name="android:windowAnimationStyle">@style/Anim.Imran</item>
+    </style>
+
+    <style name="Theme.Imran.Transparent" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
+    <style name="Theme.Imran.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="alertDialogStyle">@style/Imran.AlertDialog</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/Imran.DialogTitle</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Imran.DialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Imran.DialogButtonMuted</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Imran.DialogButtonMuted</item>
+    </style>
+
+    <style name="Imran.AlertDialog" parent="MaterialAlertDialog.Material3">
+        <item name="shapeAppearanceOverlay">@style/Shape.Dialog</item>
+        <item name="backgroundTint">@color/surface</item>
+    </style>
+
+    <style name="Shape.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">26dp</item>
+    </style>
+
+    <style name="Imran.DialogTitle" parent="MaterialAlertDialog.Material3.Title.Text">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">21sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Imran.DialogButton" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/brand_500</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="cornerRadius">22dp</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Imran.DialogButtonMuted" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Anim.Imran" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/slide_in_right</item>
+        <item name="android:activityOpenExitAnimation">@anim/slide_out_left</item>
+        <item name="android:activityCloseEnterAnimation">@anim/slide_in_left</item>
+        <item name="android:activityCloseExitAnimation">@anim/slide_out_right</item>
+    </style>
+
+    <!-- Text hierarchy -->
+    <style name="T.Display" parent="">
+        <item name="android:textSize">30sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:letterSpacing">-0.02</item>
+    </style>
+
+    <style name="T.Title" parent="">
+        <item name="android:textSize">19sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/text_primary</item>
+    </style>
+
+    <style name="T.Row" parent="">
+        <item name="android:textSize">15.5sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="T.Sub" parent="">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/text_secondary</item>
+    </style>
+
+    <style name="T.Group" parent="">
+        <item name="android:textSize">12.5sp</item>
+        <item name="android:textColor">@color/text_tertiary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.04</item>
+    </style>
 </resources>

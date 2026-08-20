@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="8dp"
+        android:paddingEnd="8dp">
+
+        <TextView
+            android:id="@+id/obSkip"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_gravity="end"
+            android:gravity="center"
+            android:background="@drawable/rp_borderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:text="@string/skip"
+            android:textColor="@color/text_secondary"
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/obPager"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:id="@+id/obDots"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:orientation="horizontal"
+        android:layout_marginBottom="20dp" />
+
+    <LinearLayout
+        android:id="@+id/obNext"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/pill_h"
+        android:layout_marginStart="@dimen/gutter"
+        android:layout_marginEnd="@dimen/gutter"
+        android:layout_marginBottom="28dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/rp_pill_brand"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:id="@+id/obNextLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/next"
+            android:textColor="@color/white"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>

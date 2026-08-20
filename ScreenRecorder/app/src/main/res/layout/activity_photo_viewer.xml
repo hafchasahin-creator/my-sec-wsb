@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <ImageView
+        android:id="@+id/photo"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="8dp"
+        android:adjustViewBounds="true"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/screenshots" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#66000000"
+        android:paddingStart="4dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
+
+        <ImageView
+            android:id="@+id/photoBack"
+            android:layout_width="@dimen/touch_min"
+            android:layout_height="@dimen/touch_min"
+            android:background="@drawable/rp_borderless"
+            android:padding="13dp"
+            android:src="@drawable/ic_back"
+            android:contentDescription="@string/cancel"
+            android:tint="@color/white" />
+
+        <TextView
+            android:id="@+id/photoTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:maxLines="1"
+            android:ellipsize="middle"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:background="#88000000"
+        android:paddingTop="10dp"
+        android:paddingBottom="20dp">
+
+        <LinearLayout
+            android:id="@+id/photoEdit"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/rp_borderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+
+            <ImageView android:layout_width="23dp" android:layout_height="23dp"
+                android:src="@drawable/ic_pencil" android:tint="@color/white"
+                android:contentDescription="@string/tool_photo" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="5dp" android:text="@string/tool_photo"
+                android:textColor="@color/white" android:textSize="11.5sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/photoShare"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/rp_borderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+
+            <ImageView android:layout_width="23dp" android:layout_height="23dp"
+                android:src="@drawable/ic_share" android:tint="@color/white"
+                android:contentDescription="@string/share" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="5dp" android:text="@string/share"
+                android:textColor="@color/white" android:textSize="11.5sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/photoDelete"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/rp_borderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+
+            <ImageView android:layout_width="23dp" android:layout_height="23dp"
+                android:src="@drawable/ic_delete" android:tint="@color/record_red"
+                android:contentDescription="@string/delete" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="5dp" android:text="@string/delete"
+                android:textColor="@color/white" android:textSize="11.5sp" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

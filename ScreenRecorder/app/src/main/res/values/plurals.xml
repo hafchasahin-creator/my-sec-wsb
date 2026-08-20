@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="shot_count">
+        <item quantity="one">%d shot</item>
+        <item quantity="other">%d shots</item>
+    </plurals>
+    <plurals name="clip_count">
+        <item quantity="one">%d clip</item>
+        <item quantity="other">%d clips</item>
+    </plurals>
+</resources>

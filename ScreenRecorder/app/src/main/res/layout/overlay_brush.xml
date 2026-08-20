@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.imran.recorder.overlay.BrushView
+        android:id="@+id/brush"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/brushBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="40dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_brush_bar"
+        android:padding="8dp"
+        android:elevation="12dp">
+
+        <View
+            android:id="@+id/swRed"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/sw_red" />
+
+        <View
+            android:id="@+id/swYellow"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/sw_yellow" />
+
+        <View
+            android:id="@+id/swGreen"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/sw_green" />
+
+        <View
+            android:id="@+id/swBlue"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/sw_blue" />
+
+        <View
+            android:id="@+id/swWhite"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/sw_white" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="26dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="4dp"
+            android:background="#33FFFFFF" />
+
+        <ImageView
+            android:id="@+id/brushUndo"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:background="@drawable/rp_borderless"
+            android:padding="10dp"
+            android:src="@drawable/ic_undo"
+            android:contentDescription="Undo"
+            android:tint="@color/white"
+            tools:ignore="HardcodedText" />
+
+        <ImageView
+            android:id="@+id/brushClear"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:background="@drawable/rp_borderless"
+            android:padding="10dp"
+            android:src="@drawable/ic_refresh"
+            android:contentDescription="Clear"
+            android:tint="@color/white"
+            tools:ignore="HardcodedText" />
+
+        <ImageView
+            android:id="@+id/brushExit"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/rp_borderless"
+            android:padding="11dp"
+            android:src="@drawable/ic_close"
+            android:contentDescription="@string/done"
+            android:tint="@color/record_red" />
+    </LinearLayout>
+</FrameLayout>

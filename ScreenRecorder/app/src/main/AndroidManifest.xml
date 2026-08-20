@@ -1,33 +1,101 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <application
+        android:name=".ImranApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
-        android:theme="@style/Theme.ScreenRecorder"
-        android:supportsRtl="true">
+        android:theme="@style/Theme.Imran"
+        android:hardwareAccelerated="true"
+        android:supportsRtl="true"
+        tools:targetApi="34">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.SplashActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.ScreenRecorder">
+            android:theme="@style/Theme.Imran.Splash"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.OnboardingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Imran" />
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.Imran" />
+
+        <!-- Transparent shim that owns the MediaProjection consent dialog so overlays
+             and the notification can start a capture without the app being foreground. -->
+        <activity
+            android:name=".record.ProjectionRequestActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=".projection"
+            android:theme="@style/Theme.Imran.Transparent" />
+
+        <activity
+            android:name=".ui.player.PlayerActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/Theme.Imran.Dark" />
+
+        <activity
+            android:name=".ui.photo.PhotoViewerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Imran.Dark" />
+
+        <activity android:name=".ui.info.InfoActivity" android:exported="false" />
+        <activity android:name=".ui.tools.TrimActivity" android:exported="false" />
+        <activity android:name=".ui.tools.CompressActivity" android:exported="false" />
+        <activity android:name=".ui.tools.GifActivity" android:exported="false" />
+        <activity android:name=".ui.tools.PhotoEditActivity" android:exported="false" />
+
         <service
-            android:name=".ScreenRecordService"
-            android:foregroundServiceType="mediaProjection"
+            android:name=".record.RecorderService"
+            android:foregroundServiceType="mediaProjection|camera|microphone"
             android:exported="false" />
+
+        <service
+            android:name=".overlay.OverlayService"
+            android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 

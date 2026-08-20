@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="6dp"
+    android:orientation="vertical"
+    android:background="@drawable/rp_card_white"
+    android:clickable="true"
+    android:focusable="true"
+    android:padding="16dp"
+    android:minHeight="150dp">
+
+    <ImageView
+        android:id="@+id/toolIcon"
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:background="@drawable/bg_circle_tint"
+        android:padding="12dp"
+        android:src="@drawable/ic_cut"
+        android:contentDescription="@string/tools_title"
+        android:tint="@color/brand_600" />
+
+    <TextView
+        android:id="@+id/toolTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        style="@style/T.Row" />
+
+    <TextView
+        android:id="@+id/toolSub"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:lineSpacingExtra="2dp"
+        style="@style/T.Sub" />
+</LinearLayout>

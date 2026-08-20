@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg">
+
+    <include layout="@layout/view_toolbar" />
+
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="@dimen/gutter"
+            android:paddingEnd="@dimen/gutter"
+            android:paddingTop="18dp"
+            android:paddingBottom="30dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_card_sunken"
+                android:padding="14dp">
+
+                <ImageView
+                    android:id="@+id/srcThumb"
+                    android:layout_width="86dp"
+                    android:layout_height="54dp"
+                    android:background="@drawable/bg_thumb"
+                    android:clipToOutline="true"
+                    android:scaleType="centerCrop"
+                    android:contentDescription="@null" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/srcName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:maxLines="1"
+                        android:ellipsize="middle"
+                        style="@style/T.Row" />
+
+                    <TextView
+                        android:id="@+id/srcMeta"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        style="@style/T.Sub" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="10dp"
+                android:text="Target size"
+                style="@style/T.Group"
+                tools:ignore="HardcodedText" />
+
+            <LinearLayout
+                android:id="@+id/levels"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card_white" />
+
+            <TextView
+                android:id="@+id/compressNote"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:lineSpacingExtra="2dp"
+                android:text="The video track is re-encoded at a lower bitrate; audio is copied across untouched. Longer clips take longer."
+                style="@style/T.Sub"
+                tools:ignore="HardcodedText" />
+
+            <ProgressBar
+                android:id="@+id/progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="18dp"
+                android:progressDrawable="@drawable/seek_progress"
+                android:max="100"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/progressLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:visibility="gone"
+                style="@style/T.Sub" />
+
+            <LinearLayout
+                android:id="@+id/compressRun"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/pill_h"
+                android:layout_marginTop="20dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/rp_pill_brand"
+                android:clickable="true"
+                android:focusable="true">
+
+                <TextView
+                    android:id="@+id/compressRunLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tool_compress"
+                    android:textColor="@color/white"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

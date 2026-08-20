@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg">
+
+    <include layout="@layout/view_toolbar" />
+
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="@dimen/gutter"
+            android:paddingEnd="@dimen/gutter"
+            android:paddingTop="18dp"
+            android:paddingBottom="30dp">
+
+            <ImageView
+                android:id="@+id/gifPreview"
+                android:layout_width="match_parent"
+                android:layout_height="190dp"
+                android:background="@drawable/bg_thumb"
+                android:clipToOutline="true"
+                android:scaleType="centerCrop"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="Start point"
+                style="@style/T.Group"
+                tools:ignore="HardcodedText" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <SeekBar
+                    android:id="@+id/gifStart"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:progressDrawable="@drawable/seek_progress"
+                    android:thumb="@drawable/seek_thumb" />
+
+                <TextView
+                    android:id="@+id/gifStartLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="52dp"
+                    android:gravity="end"
+                    style="@style/T.Sub" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Length"
+                style="@style/T.Group"
+                tools:ignore="HardcodedText" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <SeekBar
+                    android:id="@+id/gifLen"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:progressDrawable="@drawable/seek_progress"
+                    android:thumb="@drawable/seek_thumb" />
+
+                <TextView
+                    android:id="@+id/gifLenLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="52dp"
+                    android:gravity="end"
+                    style="@style/T.Sub" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:layout_marginBottom="10dp"
+                android:text="Size"
+                style="@style/T.Group"
+                tools:ignore="HardcodedText" />
+
+            <LinearLayout
+                android:id="@+id/gifSizes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card_white" />
+
+            <ProgressBar
+                android:id="@+id/gifProgress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="18dp"
+                android:progressDrawable="@drawable/seek_progress"
+                android:max="100"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/gifProgressLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:visibility="gone"
+                style="@style/T.Sub" />
+
+            <LinearLayout
+                android:id="@+id/gifRun"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/pill_h"
+                android:layout_marginTop="20dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/rp_pill_brand"
+                android:clickable="true"
+                android:focusable="true">
+
+                <TextView
+                    android:id="@+id/gifRunLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tool_gif"
+                    android:textColor="@color/white"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/rp_card_white"
+    android:clickable="true"
+    android:focusable="true"
+    android:padding="10dp"
+    android:layout_marginBottom="12dp">
+
+    <FrameLayout
+        android:layout_width="112dp"
+        android:layout_height="68dp"
+        android:background="@drawable/bg_thumb"
+        android:clipToOutline="true">
+
+        <ImageView
+            android:id="@+id/thumb"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/play" />
+
+        <ImageView
+            android:id="@+id/thumbFallback"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_video"
+            android:contentDescription="@string/play"
+            android:tint="@color/text_tertiary" />
+
+        <TextView
+            android:id="@+id/duration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="5dp"
+            android:background="@drawable/bg_badge_dark"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:textColor="@color/white"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            tools:text="01:24" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="14dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:ellipsize="middle"
+            style="@style/T.Row"
+            tools:text="Recording_20260820_150233.mp4" />
+
+        <TextView
+            android:id="@+id/meta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            style="@style/T.Sub"
+            tools:text="24.6 MB · 1080×2400" />
+
+        <TextView
+            android:id="@+id/date"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:maxLines="1"
+            android:textColor="@color/text_tertiary"
+            android:textSize="12sp"
+            tools:text="20 Aug 2026 · 15:02" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/more"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/rp_borderless"
+        android:padding="10dp"
+        android:src="@drawable/ic_more"
+        android:contentDescription="@string/content_desc_more"
+        android:tint="@color/text_tertiary" />
+</LinearLayout>

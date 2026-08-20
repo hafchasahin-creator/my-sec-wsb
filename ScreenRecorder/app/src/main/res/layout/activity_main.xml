@@ -1,34 +1,265 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
-    android:padding="32dp">
+    android:background="@color/bg">
 
-    <TextView
-        android:id="@+id/statusText"
-        android:layout_width="wrap_content"
+    <!-- top bar -->
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="18sp"
-        android:layout_marginBottom="32dp"
-        android:text="@string/status_idle" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/gutter"
+        android:paddingEnd="12dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:background="@color/surface">
 
-    <Button
-        android:id="@+id/startButton"
-        android:layout_width="220dp"
+        <ImageView
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:src="@drawable/ic_logomark"
+            android:contentDescription="@string/app_name"
+            android:tint="@color/brand_500" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:text="@string/app_name"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:letterSpacing="-0.01" />
+
+        <ImageView
+            android:id="@+id/topShot"
+            android:layout_width="@dimen/touch_min"
+            android:layout_height="@dimen/touch_min"
+            android:background="@drawable/rp_borderless"
+            android:padding="13dp"
+            android:src="@drawable/ic_screenshot"
+            android:contentDescription="@string/tool_screenshot"
+            android:tint="@color/icon_idle" />
+
+        <ImageView
+            android:id="@+id/topMenu"
+            android:layout_width="@dimen/touch_min"
+            android:layout_height="@dimen/touch_min"
+            android:background="@drawable/rp_borderless"
+            android:padding="13dp"
+            android:src="@drawable/ic_menu"
+            android:contentDescription="@string/content_desc_more"
+            android:tint="@color/icon_idle" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <!-- fragment host -->
+    <FrameLayout
+        android:id="@+id/container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- primary record action -->
+    <FrameLayout
+        android:id="@+id/recordBar"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/start_recording" />
+        android:paddingStart="@dimen/gutter"
+        android:paddingEnd="@dimen/gutter"
+        android:paddingTop="8dp"
+        android:paddingBottom="12dp"
+        android:background="@color/surface">
 
-    <Space
-        android:layout_width="wrap_content"
-        android:layout_height="16dp" />
+        <LinearLayout
+            android:id="@+id/recordButton"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/pill_h"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@drawable/rp_pill_brand"
+            android:clickable="true"
+            android:focusable="true"
+            android:elevation="2dp">
 
-    <Button
-        android:id="@+id/stopButton"
-        android:layout_width="220dp"
+            <ImageView
+                android:id="@+id/recordIcon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_record_dot"
+                android:contentDescription="@string/record"
+                android:tint="@color/white" />
+
+            <TextView
+                android:id="@+id/recordLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="@string/record"
+                android:textColor="@color/white"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- bottom navigation -->
+    <LinearLayout
+        android:id="@+id/bottomNav"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:enabled="false"
-        android:text="@string/stop_recording" />
+        android:orientation="horizontal"
+        android:background="@color/surface"
+        android:elevation="12dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
 
+        <LinearLayout
+            android:id="@+id/navVideo"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/nav_h"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/rp_borderless"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/navVideoIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_video"
+                android:contentDescription="@string/nav_video"
+                android:tint="@color/nav_item" />
+
+            <TextView
+                android:id="@+id/navVideoText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="@string/nav_video"
+                android:textColor="@color/nav_item"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/navPhoto"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/nav_h"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/rp_borderless"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/navPhotoIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_photo"
+                android:contentDescription="@string/nav_photo"
+                android:tint="@color/nav_item" />
+
+            <TextView
+                android:id="@+id/navPhotoText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="@string/nav_photo"
+                android:textColor="@color/nav_item"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Raised quick-action slot -->
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="@dimen/nav_h"
+            android:layout_weight="1">
+
+            <ImageView
+                android:id="@+id/navQuick"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_gravity="center"
+                android:background="@drawable/rp_fab_brand"
+                android:padding="14dp"
+                android:src="@drawable/ic_add"
+                android:contentDescription="@string/nav_create"
+                android:elevation="6dp"
+                android:tint="@color/white" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/navEdit"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/nav_h"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/rp_borderless"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/navEditIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_cut"
+                android:contentDescription="@string/nav_edit"
+                android:tint="@color/nav_item" />
+
+            <TextView
+                android:id="@+id/navEditText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="@string/nav_edit"
+                android:textColor="@color/nav_item"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/navSettings"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/nav_h"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/rp_borderless"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/navSettingsIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_settings"
+                android:contentDescription="@string/nav_settings"
+                android:tint="@color/nav_item" />
+
+            <TextView
+                android:id="@+id/navSettingsText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="@string/nav_settings"
+                android:textColor="@color/nav_item"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
 </LinearLayout>

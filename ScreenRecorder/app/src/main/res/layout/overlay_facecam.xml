@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/facecamRoot"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <FrameLayout
+        android:id="@+id/facecamFrame"
+        android:layout_width="120dp"
+        android:layout_height="160dp"
+        android:layout_margin="10dp"
+        android:background="@drawable/bg_facecam_frame"
+        android:clipToOutline="true"
+        android:elevation="10dp">
+
+        <TextureView
+            android:id="@+id/facecamPreview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
+
+    <ImageView
+        android:id="@+id/facecamClose"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_gravity="top|end"
+        android:background="@drawable/bg_bubble_dot"
+        android:padding="7dp"
+        android:src="@drawable/ic_close"
+        android:contentDescription="@string/cancel"
+        android:elevation="12dp"
+        android:tint="@color/white" />
+
+    <ImageView
+        android:id="@+id/facecamResize"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_gravity="bottom|end"
+        android:background="@drawable/bg_bubble_dot"
+        android:padding="7dp"
+        android:src="@drawable/ic_crop"
+        android:contentDescription="Resize"
+        android:elevation="12dp"
+        android:tint="@color/white"
+        tools:ignore="HardcodedText" />
+</FrameLayout>

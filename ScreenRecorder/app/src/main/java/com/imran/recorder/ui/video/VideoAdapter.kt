@@ -1,0 +1,61 @@
+package com.imran.recorder.ui.video
+
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.RecyclerView
+import com.imran.recorder.R
+import com.imran.recorder.data.MediaEntry
+import com.imran.recorder.data.Thumbnails
+import com.imran.recorder.util.Format
+import com.imran.recorder.util.visible
+
+class VideoAdapter(
+    private val onOpen: (MediaEntry) -> Unit,
+    private val onMore: (MediaEntry) -> Unit
+) : ListAdapter<MediaEntry, VideoAdapter.VH>(DIFF) {
+
+    class VH(view: View) : RecyclerView.ViewHolder(view) {
+        val thumb: ImageView = view.findViewById(R.id.thumb)
+        val fallback: ImageView = view.findViewById(R.id.thumbFallback)
+        val duration: TextView = view.findViewById(R.id.duration)
+        val name: TextView = view.findViewById(R.id.name)
+        val meta: TextView = view.findViewById(R.id.meta)
+        val date: TextView = view.findViewById(R.id.date)
+        val more: ImageView = view.findViewById(R.id.more)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = VH(
+        LayoutInflater.from(parent.context).inflate(R.layout.item_video, parent, false)
+    )
+
+    override fun onBindViewHolder(holder: VH, position: Int) {
+        val item = getItem(position)
+
+        holder.name.text = item.name.substringBeforeLast('.')
+        holder.duration.text = Format.clock(item.durationMs)
+        holder.meta.text = buildString {
+            append(Format.size(item.sizeBytes))
+            if (item.width > 0 && item.height > 0) append(" · ${item.width}×${item.height}")
+        }
+        holder.date.text = Format.date(item.dateAddedSec)
+
+        holder.fallback.visible(true)
+        Thumbnails.load(holder.thumb, item.uri, 480)
+        holder.thumb.post { if (holder.thumb.drawable != null) holder.fallback.visible(false) }
+
+        holder.itemView.setOnClickListener { onOpen(item) }
+        holder.more.setOnClickListener { onMore(item) }
+    }
+
+    companion object {
+        private val DIFF = object : DiffUtil.ItemCallback<MediaEntry>() {
+            override fun areItemsTheSame(a: MediaEntry, b: MediaEntry) = a.id == b.id
+            override fun areContentsTheSame(a: MediaEntry, b: MediaEntry) = a == b
+        }
+    }
+}

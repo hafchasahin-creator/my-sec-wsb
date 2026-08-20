@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/gutter"
+        android:paddingEnd="@dimen/gutter"
+        android:paddingTop="18dp"
+        android:paddingBottom="24dp">
+
+        <!-- Quick-start card (replaces the reference's subscription banner) -->
+        <LinearLayout
+            android:id="@+id/banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/rp_banner"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="16dp">
+
+            <ImageView
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_circle_white"
+                android:padding="11dp"
+                android:src="@drawable/ic_help"
+                android:contentDescription="@string/tutorial"
+                android:tint="@color/brand_500" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tutorial"
+                    android:textColor="@color/brand_600"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="A 30-second walkthrough of recording and floating controls"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12.5sp"
+                    tools:ignore="HardcodedText" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:background="@drawable/bg_circle_white"
+                android:padding="5dp"
+                android:src="@drawable/ic_chevron"
+                android:contentDescription="@string/tutorial"
+                android:tint="@color/brand_500" />
+        </LinearLayout>
+
+        <!-- Recording method -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:layout_marginBottom="10dp"
+            android:text="@string/recording_method"
+            style="@style/T.Group" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card_white">
+
+            <include android:id="@+id/rowFloating" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowFacecam" layout="@layout/row_setting" />
+        </LinearLayout>
+
+        <!-- Video -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:layout_marginBottom="10dp"
+            android:text="@string/group_video"
+            style="@style/T.Group" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card_white">
+
+            <include android:id="@+id/rowAudio" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowResolution" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowQuality" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowFps" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowOrientation" layout="@layout/row_setting" />
+        </LinearLayout>
+
+        <!-- Control -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:layout_marginBottom="10dp"
+            android:text="@string/group_control"
+            style="@style/T.Group" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card_white">
+
+            <include android:id="@+id/rowCountdown" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowStorage" layout="@layout/row_setting" />
+        </LinearLayout>
+
+        <!-- About -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:layout_marginBottom="10dp"
+            android:text="@string/group_about"
+            style="@style/T.Group" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card_white">
+
+            <include android:id="@+id/rowFaq" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowTutorial" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowFeedback" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowBug" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowShare" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowPrivacy" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowVersion" layout="@layout/row_setting" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

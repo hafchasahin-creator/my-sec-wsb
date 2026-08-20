@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/bubbleRoot"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_bubble_capsule"
+    android:paddingStart="6dp"
+    android:paddingEnd="6dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp"
+    android:elevation="10dp">
+
+    <!-- Collapsed handle: shows the record dot when idle, the running time while capturing. -->
+    <FrameLayout
+        android:id="@+id/handle"
+        android:layout_width="wrap_content"
+        android:layout_height="44dp"
+        android:minWidth="44dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <ImageView
+            android:id="@+id/handleIcon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_record_dot"
+            android:contentDescription="@string/record"
+            android:tint="@color/record_red" />
+
+        <TextView
+            android:id="@+id/handleTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:text="00:00"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:ignore="HardcodedText" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/actions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/btnRecord"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_float_btn"
+            android:padding="11dp"
+            android:src="@drawable/ic_record_dot"
+            android:contentDescription="@string/record"
+            android:tint="@color/record_red" />
+
+        <ImageView
+            android:id="@+id/btnPause"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_float_btn"
+            android:padding="12dp"
+            android:src="@drawable/ic_pause"
+            android:contentDescription="@string/pause"
+            android:tint="@color/brand_500" />
+
+        <ImageView
+            android:id="@+id/btnShot"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_float_btn"
+            android:padding="11dp"
+            android:src="@drawable/ic_screenshot"
+            android:contentDescription="@string/tool_screenshot"
+            android:tint="@color/icon_idle" />
+
+        <ImageView
+            android:id="@+id/btnBrush"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_float_btn"
+            android:padding="11dp"
+            android:src="@drawable/ic_brush"
+            android:contentDescription="@string/tool_brush"
+            android:tint="@color/icon_idle" />
+
+        <ImageView
+            android:id="@+id/btnStop"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_float_btn"
+            android:padding="13dp"
+            android:src="@drawable/ic_stop_square"
+            android:contentDescription="@string/stop"
+            android:tint="@color/record_red" />
+
+        <ImageView
+            android:id="@+id/btnClose"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/rp_borderless"
+            android:padding="12dp"
+            android:src="@drawable/ic_close"
+            android:contentDescription="@string/cancel"
+            android:tint="#99FFFFFF" />
+    </LinearLayout>
+</LinearLayout>

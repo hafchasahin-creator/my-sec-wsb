@@ -1,11 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Screen Recorder</string>
-    <string name="start_recording">Start Recording</string>
-    <string name="stop_recording">Stop Recording</string>
-    <string name="status_idle">Not recording</string>
-    <string name="status_recording">Recording…</string>
-    <string name="notification_channel_name">Screen Recording</string>
-    <string name="notification_title">Screen Recorder</string>
-    <string name="notification_text">Recording your screen</string>
+    <string name="app_name">Imran Recorder</string>
+    <string name="tagline">Record everything on your screen</string>
+
+    <!-- Nav -->
+    <string name="nav_video">Video</string>
+    <string name="nav_photo">Photo</string>
+    <string name="nav_create">Record</string>
+    <string name="nav_edit">Edit</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Quick tools -->
+    <string name="tool_brush">Brush</string>
+    <string name="tool_facecam">Facecam</string>
+    <string name="tool_screenshot">Screenshot</string>
+    <string name="tool_floating">Floating</string>
+
+    <!-- Recorder -->
+    <string name="record">Record</string>
     <string name="stop">Stop</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="starting">Starting…</string>
+    <string name="saving">Saving…</string>
+    <string name="state_idle">Ready to record</string>
+    <string name="state_recording">Recording</string>
+    <string name="state_paused">Paused</string>
+    <string name="state_saving">Saving your recording…</string>
+
+    <string name="notif_channel_recording">Recording</string>
+    <string name="notif_channel_recording_desc">Shows recorder controls while a capture is running</string>
+    <string name="notif_recording_title">Imran Recorder</string>
+    <string name="notif_recording_text">Screen capture running</string>
+    <string name="notif_paused_text">Recording paused</string>
+
+    <!-- Library -->
+    <string name="videos">Videos</string>
+    <string name="screenshots">Screenshots</string>
+    <string name="empty_video_title">No recordings yet</string>
+    <string name="empty_video_body">Tap Record to capture your screen. Finished clips land here automatically.</string>
+    <string name="empty_photo_title">No screenshots yet</string>
+    <string name="empty_photo_body">Use the Screenshot tool — from the app or the floating controls — and your captures appear here.</string>
+
+    <string name="play">Play</string>
+    <string name="share">Share</string>
+    <string name="rename">Rename</string>
+    <string name="delete">Delete</string>
+    <string name="details">Details</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="done">Done</string>
+    <string name="start">Start</string>
+    <string name="ok">OK</string>
+    <string name="skip">Skip</string>
+    <string name="next">Next</string>
+    <string name="got_it">Got it</string>
+    <string name="open_settings">Open settings</string>
+    <string name="not_now">Not now</string>
+    <string name="grant">Grant</string>
+    <string name="enable">Enable</string>
+    <string name="disable">Disable</string>
+
+    <string name="delete_title">Delete this file?</string>
+    <string name="delete_body">This permanently removes it from your device.</string>
+    <string name="rename_title">Rename</string>
+    <string name="deleted">Deleted</string>
+    <string name="renamed">Renamed</string>
+
+    <!-- Settings -->
+    <string name="recording_method">Recording method</string>
+    <string name="group_video">Video</string>
+    <string name="group_control">Control</string>
+    <string name="group_about">About</string>
+    <string name="set_floating">Floating controls</string>
+    <string name="set_floating_sub">A draggable bubble to pause, stop and capture from any app</string>
+    <string name="set_audio">Audio source</string>
+    <string name="set_resolution">Resolution</string>
+    <string name="set_fps">Frame rate</string>
+    <string name="set_quality">Video quality</string>
+    <string name="set_orientation">Orientation</string>
+    <string name="set_countdown">Countdown</string>
+    <string name="set_countdown_sub">Delay before capture begins</string>
+    <string name="set_storage">Storage location</string>
+    <string name="set_facecam">Facecam</string>
+
+    <string name="faq">FAQ</string>
+    <string name="tutorial">How it works</string>
+    <string name="feedback">Send feedback</string>
+    <string name="report_bug">Report a problem</string>
+    <string name="share_app">Share Imran Recorder</string>
+    <string name="privacy">Privacy</string>
+    <string name="version">Version</string>
+
+    <!-- Audio dialog -->
+    <string name="audio_title">Choose audio</string>
+    <string name="audio_internal">Device audio</string>
+    <string name="audio_internal_sub">Capture sound played by apps</string>
+    <string name="audio_mic">Microphone</string>
+    <string name="audio_mic_sub">Capture your voice and the room</string>
+    <string name="audio_mute">No audio</string>
+    <string name="audio_mute_sub">Record video only</string>
+
+    <!-- Permissions -->
+    <string name="perm_mic_title">Microphone access</string>
+    <string name="perm_mic_body">Imran Recorder needs the microphone to record your narration. Video capture keeps working without it.</string>
+    <string name="perm_cam_title">Camera access</string>
+    <string name="perm_cam_body">Facecam shows your front camera on top of the recording. Everything else works without this.</string>
+    <string name="perm_overlay_title">Display over other apps</string>
+    <string name="perm_overlay_body">Floating controls need permission to draw over other apps so you can pause or stop without leaving what you are recording.</string>
+    <string name="perm_notif_title">Notifications</string>
+    <string name="perm_notif_body">Android requires an ongoing notification while the screen is being captured.</string>
+    <string name="perm_denied_capture">Screen capture permission was declined.</string>
+
+    <!-- Tools -->
+    <string name="tools_title">Tools</string>
+    <string name="tool_trim">Trim video</string>
+    <string name="tool_trim_sub">Cut a clip down to the part you need</string>
+    <string name="tool_compress">Compress video</string>
+    <string name="tool_compress_sub">Shrink file size by re-encoding</string>
+    <string name="tool_gif">Video to GIF</string>
+    <string name="tool_gif_sub">Turn a short section into an animated GIF</string>
+    <string name="tool_photo">Edit photo</string>
+    <string name="tool_photo_sub">Crop, rotate and adjust a screenshot</string>
+    <string name="tool_transfer">Share files</string>
+    <string name="tool_transfer_sub">Send recordings to another app or device</string>
+    <string name="pick_a_video">Choose a recording</string>
+    <string name="pick_a_photo">Choose a screenshot</string>
+    <string name="no_media_for_tool">Nothing to work with yet — record something first.</string>
+    <string name="processing">Processing…</string>
+    <string name="export_done">Saved to your library</string>
+    <string name="export_failed">Could not finish — the file may be unsupported</string>
+
+    <!-- Onboarding -->
+    <string name="ob1_title">Record in one tap</string>
+    <string name="ob1_body">The big Record button captures whatever is on screen — games, calls, tutorials, anything.</string>
+    <string name="ob2_title">Android asks first</string>
+    <string name="ob2_body">A system dialog appears every time capture starts. That prompt comes from Android and cannot be skipped by any app.</string>
+    <string name="ob3_title">Controls that follow you</string>
+    <string name="ob3_body">Turn on floating controls to pause, stop, annotate or grab a screenshot without returning here.</string>
+    <string name="ob4_title">Everything is saved</string>
+    <string name="ob4_body">Stop from the bubble or the notification. Finished clips appear in your Video library, ready to play or share.</string>
+
+    <string name="storage_free">%1$s free of %2$s</string>
+    <string name="content_desc_more">More options</string>
 </resources>

@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg">
+
+    <!-- Quick tools, mirroring the reference's four circular actions. -->
+    <LinearLayout
+        android:id="@+id/quickTools"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="18dp"
+        android:paddingBottom="18dp"
+        android:background="@color/surface">
+
+        <LinearLayout
+            android:id="@+id/toolBrush"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/rp_borderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
+
+            <ImageView
+                android:id="@+id/toolBrushIcon"
+                android:layout_width="@dimen/quick_tool"
+                android:layout_height="@dimen/quick_tool"
+                android:background="@drawable/bg_circle_soft"
+                android:padding="17dp"
+                android:src="@drawable/ic_brush"
+                android:contentDescription="@string/tool_brush"
+                android:tint="@color/icon_idle" />
+
+            <TextView
+                android:id="@+id/toolBrushLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/tool_brush"
+                android:textColor="@color/text_secondary"
+                android:textSize="12.5sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/toolFacecam"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/rp_borderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
+
+            <ImageView
+                android:id="@+id/toolFacecamIcon"
+                android:layout_width="@dimen/quick_tool"
+                android:layout_height="@dimen/quick_tool"
+                android:background="@drawable/bg_circle_soft"
+                android:padding="17dp"
+                android:src="@drawable/ic_facecam"
+                android:contentDescription="@string/tool_facecam"
+                android:tint="@color/icon_idle" />
+
+            <TextView
+                android:id="@+id/toolFacecamLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/tool_facecam"
+                android:textColor="@color/text_secondary"
+                android:textSize="12.5sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/toolShot"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/rp_borderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
+
+            <ImageView
+                android:id="@+id/toolShotIcon"
+                android:layout_width="@dimen/quick_tool"
+                android:layout_height="@dimen/quick_tool"
+                android:background="@drawable/bg_circle_soft"
+                android:padding="17dp"
+                android:src="@drawable/ic_screenshot"
+                android:contentDescription="@string/tool_screenshot"
+                android:tint="@color/icon_idle" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/tool_screenshot"
+                android:textColor="@color/text_secondary"
+                android:textSize="12.5sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/toolFloating"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/rp_borderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
+
+            <ImageView
+                android:id="@+id/toolFloatingIcon"
+                android:layout_width="@dimen/quick_tool"
+                android:layout_height="@dimen/quick_tool"
+                android:background="@drawable/bg_circle_soft"
+                android:padding="17dp"
+                android:src="@drawable/ic_bubble"
+                android:contentDescription="@string/tool_floating"
+                android:tint="@color/icon_idle" />
+
+            <TextView
+                android:id="@+id/toolFloatingLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/tool_floating"
+                android:textColor="@color/text_secondary"
+                android:textSize="12.5sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Section header + storage -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/gutter"
+        android:paddingEnd="@dimen/gutter"
+        android:paddingTop="16dp"
+        android:paddingBottom="12dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/videos"
+            style="@style/T.Display" />
+
+        <LinearLayout
+            android:id="@+id/storagePill"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/rp_storage"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingStart="12dp"
+            android:paddingEnd="8dp">
+
+            <ProgressBar
+                android:id="@+id/storageRing"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="34dp"
+                android:layout_height="5dp"
+                android:progressDrawable="@drawable/seek_progress"
+                android:max="100"
+                android:progress="40" />
+
+            <TextView
+                android:id="@+id/storageText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="12.5sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginStart="2dp"
+                android:src="@drawable/ic_chevron"
+                android:contentDescription="@string/set_storage"
+                android:tint="@color/text_tertiary" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingStart="@dimen/gutter"
+            android:paddingEnd="@dimen/gutter"
+            android:paddingBottom="16dp"
+            android:scrollbars="none" />
+
+        <LinearLayout
+            android:id="@+id/empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingStart="40dp"
+            android:paddingEnd="40dp"
+            android:paddingBottom="40dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="132dp"
+                android:layout_height="120dp"
+                android:src="@drawable/il_empty_video"
+                android:contentDescription="@string/empty_video_title" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="@string/empty_video_title"
+                style="@style/T.Title" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:lineSpacingExtra="3dp"
+                android:text="@string/empty_video_body"
+                style="@style/T.Sub" />
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

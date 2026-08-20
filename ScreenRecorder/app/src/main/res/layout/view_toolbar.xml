@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/toolbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@color/surface"
+    android:paddingStart="4dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp"
+    android:elevation="1dp">
+
+    <ImageView
+        android:id="@+id/barBack"
+        android:layout_width="@dimen/touch_min"
+        android:layout_height="@dimen/touch_min"
+        android:background="@drawable/rp_borderless"
+        android:padding="13dp"
+        android:src="@drawable/ic_back"
+        android:contentDescription="@string/cancel"
+        android:tint="@color/icon_idle" />
+
+    <TextView
+        android:id="@+id/barTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="6dp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textColor="@color/text_primary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/barAction"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:gravity="center"
+        android:background="@drawable/rp_chip"
+        android:clickable="true"
+        android:focusable="true"
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp"
+        android:textColor="@color/brand_600"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+</LinearLayout>
