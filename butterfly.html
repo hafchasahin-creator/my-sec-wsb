@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Butterfly Garden</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; background: #000; font-family: sans-serif; }
+canvas { display: block; }
+#ui {
+  position: fixed; top: 16px; right: 16px;
+  display: flex; gap: 8px; z-index: 10;
+}
+.btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff; padding: 8px 14px;
+  border-radius: 20px; cursor: pointer;
+  font-size: 13px; backdrop-filter: blur(6px);
+  transition: background 0.2s;
+  user-select: none;
+}
+.btn:hover { background: rgba(255,255,255,0.28); }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <button class="btn" id="soundBtn">🔇 Sound Off</button>
+  <button class="btn" id="fsBtn">⛶ Fullscreen</button>
+</div>
+<script>
+// ─── Canvas setup ────────────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ─── Audio ───────────────────────────────────────────────────────────────────
+let audioCtx = null, soundOn = false;
+let windNode, windGain, masterGain;
+let ambientOscillators = [];
+let flapGain;
+
+function initAudio() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.6;
+  masterGain.connect(audioCtx.destination);
+
+  // Wind: filtered noise
+  const bufLen = audioCtx.sampleRate * 2;
+  const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+
+  windNode = audioCtx.createBufferSource();
+  windNode.buffer = buf;
+  windNode.loop = true;
+
+  const windFilter = audioCtx.createBiquadFilter();
+  windFilter.type = 'lowpass';
+  windFilter.frequency.value = 400;
+  windFilter.Q.value = 0.5;
+
+  windGain = audioCtx.createGain();
+  windGain.gain.value = 0.08;
+
+  windNode.connect(windFilter);
+  windFilter.connect(windGain);
+  windGain.connect(masterGain);
+  windNode.start();
+
+  // Ambient: layered sine drones (nature feel)
+  const ambFreqs = [220, 330, 440, 528];
+  ambFreqs.forEach((f, i) => {
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = f;
+    const lfo = audioCtx.createOscillator();
+    lfo.frequency.value = 0.1 + i * 0.05;
+    const lfoGain = audioCtx.createGain();
+    lfoGain.gain.value = 2;
+    const g = audioCtx.createGain();
+    g.gain.value = 0.012;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start(); lfo.start();
+    ambientOscillators.push({ osc, lfo, g });
+  });
+
+  // Flap gain node (triggered per wing beat)
+  flapGain = audioCtx.createGain();
+  flapGain.gain.value = 0;
+  flapGain.connect(masterGain);
+
+  // Schedule bird chirps
+  scheduleBirds();
+}
+
+function scheduleBirds() {
+  if (!audioCtx || !soundOn) return;
+  const delay = 4 + Math.random() * 8;
+  setTimeout(() => {
+    if (soundOn && audioCtx) chirp();
+    scheduleBirds();
+  }, delay * 1000);
+}
+
+function chirp() {
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = 'sine';
+  const baseFreq = 1200 + Math.random() * 800;
+  osc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, audioCtx.currentTime + 0.08);
+  osc.frequency.exponentialRampToValueAtTime(baseFreq, audioCtx.currentTime + 0.18);
+  g.gain.setValueAtTime(0, audioCtx.currentTime);
+  g.gain.linearRampToValueAtTime(0.07, audioCtx.currentTime + 0.02);
+  g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+  osc.connect(g); g.connect(masterGain);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+}
+
+function triggerFlap(intensity) {
+  if (!audioCtx || !soundOn || !flapGain) return;
+  const now = audioCtx.currentTime;
+  // Tiny percussive noise burst
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.value = 80 + Math.random() * 40;
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(0.03 * intensity, now + 0.01);
+  g.gain.linearRampToValueAtTime(0, now + 0.06);
+  osc.connect(g); g.connect(masterGain);
+  osc.start(); osc.stop(now + 0.08);
+}
+
+// ─── Sound button ─────────────────────────────────────────────────────────────
+const soundBtn = document.getElementById('soundBtn');
+soundBtn.addEventListener('click', () => {
+  if (!audioCtx) {
+    initAudio();
+    soundOn = true;
+    soundBtn.textContent = '🔊 Sound On';
+  } else if (soundOn) {
+    soundOn = false;
+    masterGain.gain.value = 0;
+    soundBtn.textContent = '🔇 Sound Off';
+  } else {
+    soundOn = true;
+    masterGain.gain.value = 0.6;
+    soundBtn.textContent = '🔊 Sound On';
+    scheduleBirds();
+  }
+});
+
+// ─── Fullscreen ───────────────────────────────────────────────────────────────
+document.getElementById('fsBtn').addEventListener('click', () => {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+});
+
+// ─── Math helpers ─────────────────────────────────────────────────────────────
+const TAU = Math.PI * 2;
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function rand(lo, hi) { return lo + Math.random() * (hi - lo); }
+function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+
+// ─── Pointer tracking ────────────────────────────────────────────────────────
+let pointer = { x: W/2, y: H/2, active: false };
+let attractTarget = null;
+let attractTimer = 0;
+
+function onPointer(e) {
+  const x = (e.touches ? e.touches[0].clientX : e.clientX);
+  const y = (e.touches ? e.touches[0].clientY : e.clientY);
+  pointer.x = x; pointer.y = y; pointer.active = true;
+
+  // Check if clicking butterfly
+  const dx = x - butterfly.x, dy = y - butterfly.y;
+  if (Math.sqrt(dx*dx + dy*dy) < 40) {
+    butterfly.scared = true;
+    butterfly.scaredTimer = 2.0;
+  } else {
+    attractTarget = { x, y };
+    attractTimer = 4.0;
+  }
+}
+canvas.addEventListener('mousedown', onPointer);
+canvas.addEventListener('touchstart', onPointer, { passive: true });
+
+// ─── Scene elements ──────────────────────────────────────────────────────────
+
+// Clouds
+const clouds = Array.from({ length: 6 }, () => ({
+  x: rand(0, 1), y: rand(0.04, 0.22),
+  w: rand(0.12, 0.28), h: rand(0.04, 0.08),
+  speed: rand(0.00002, 0.00006),
+  alpha: rand(0.6, 0.95),
+  blobs: Array.from({ length: 5 }, () => ({ dx: rand(-0.5, 0.5), dy: rand(-0.5, 0.5), r: rand(0.5, 1.0) }))
+}));
+
+// Flowers
+const NUM_FLOWERS = 22;
+const flowers = Array.from({ length: NUM_FLOWERS }, (_, i) => ({
+  x: rand(0.03, 0.97),
+  y: rand(0.68, 0.92),
+  scale: rand(0.6, 1.4),
+  hue: Math.floor(rand(0, 6)) * 60, // red, yellow, magenta, cyan, blue, green
+  sway: rand(-0.02, 0.02),
+  swaySpeed: rand(0.8, 1.6),
+  swayPhase: rand(0, TAU),
+  petals: Math.floor(rand(5, 9)),
+  landed: false,
+}));
+
+// Trees (silhouettes in back)
+const trees = Array.from({ length: 8 }, () => ({
+  x: rand(0, 1),
+  h: rand(0.18, 0.32),
+  w: rand(0.04, 0.08),
+  dark: rand(0.3, 0.55),
+}));
+
+// Grass blades
+const grassBlades = Array.from({ length: 220 }, () => ({
+  x: rand(0, 1),
+  y: rand(0.74, 0.98),
+  h: rand(0.03, 0.07),
+  w: rand(0.001, 0.003),
+  hue: rand(90, 140),
+  phase: rand(0, TAU),
+  speed: rand(0.8, 2.0),
+}));
+
+// Particles (pollen / dust)
+const particles = Array.from({ length: 60 }, () => makeParticle());
+function makeParticle() {
+  return {
+    x: rand(0, 1), y: rand(0.1, 0.85),
+    vx: rand(-0.0002, 0.0002), vy: rand(-0.0003, 0.0001),
+    r: rand(1, 3),
+    alpha: rand(0.2, 0.7),
+    hue: rand(40, 80),
+    life: rand(0.3, 1.0), maxLife: 1.0,
+  };
+}
+
+// Floating leaves
+const leaves = Array.from({ length: 12 }, () => makeLeaf());
+function makeLeaf() {
+  return {
+    x: rand(0, 1), y: rand(0.1, 0.7),
+    vx: rand(-0.001, -0.0003),
+    vy: rand(-0.0002, 0.0002),
+    rot: rand(0, TAU),
+    rotV: rand(-0.03, 0.03),
+    size: rand(5, 12),
+    hue: rand(80, 150),
+    alpha: rand(0.4, 0.8),
+  };
+}
+
+// ─── Butterfly state machine ─────────────────────────────────────────────────
+const STATES = { FLY: 'fly', HOVER: 'hover', LAND: 'land', TAKEOFF: 'takeoff', FLEE: 'flee' };
+
+const butterfly = {
+  x: W * 0.5, y: H * 0.4,
+  vx: 0, vy: 0,
+  angle: 0,        // direction of travel
+  tilt: 0,         // roll tilt for banking
+  wingPhase: 0,    // 0-TAU
+  wingSpeed: 8,    // radians per second
+  state: STATES.FLY,
+  stateTimer: 0,
+  targetX: W * 0.5, targetY: H * 0.4,
+  landedFlower: null,
+  scared: false, scaredTimer: 0,
+  shadow: { alpha: 0.18 },
+  // trail
+  trail: [],
+};
+
+let nextTargetTimer = 0;
+
+function pickNewTarget() {
+  const margin = 0.12;
+  butterfly.targetX = rand(W * margin, W * (1 - margin));
+  butterfly.targetY = rand(H * 0.12, H * 0.75);
+  nextTargetTimer = rand(3, 8);
+}
+
+function pickFlowerTarget() {
+  // Find a flower near current y range
+  const f = flowers[Math.floor(Math.random() * flowers.length)];
+  butterfly.targetX = f.x * W;
+  butterfly.targetY = (f.y - 0.06) * H;
+  butterfly.landedFlower = f;
+}
+
+pickNewTarget();
+
+// ─── Wing shape helper ───────────────────────────────────────────────────────
+function drawWing(ctx, side, flapAngle, mirror) {
+  // side: +1 right, -1 left (relative to butterfly heading)
+  // flapAngle: 0=fully open, PI/2=folded
+  ctx.save();
+  ctx.scale(mirror ? -1 : 1, 1);
+
+  // Upper wing
+  const uw = 58, uh = 44;
+  const fold = Math.cos(flapAngle);
+  ctx.save();
+  ctx.transform(fold, -Math.sin(flapAngle) * 0.2, 0, 1, 0, 0);
+
+  // Gradient for upper wing
+  const grad = ctx.createLinearGradient(0, -uh * 0.8, uw, uh * 0.4);
+  grad.addColorStop(0,   'rgba(255, 160, 30, 0.92)');
+  grad.addColorStop(0.35,'rgba(235, 80, 10, 0.88)');
+  grad.addColorStop(0.7, 'rgba(30, 30, 30, 0.92)');
+  grad.addColorStop(1,   'rgba(10, 10, 10, 0.9)');
+
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.bezierCurveTo(uw * 0.3, -uh * 1.1, uw * 1.0, -uh * 0.7, uw, -uh * 0.05);
+  ctx.bezierCurveTo(uw * 0.9, uh * 0.5, uw * 0.4, uh * 0.55, 0, 0);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Wing pattern: spots
+  const spots = [
+    { x: uw * 0.55, y: -uh * 0.45, r: 5, c: 'rgba(255,255,255,0.6)' },
+    { x: uw * 0.7,  y: -uh * 0.2,  r: 4, c: 'rgba(255,255,255,0.5)' },
+    { x: uw * 0.82, y: -uh * 0.05, r: 3, c: 'rgba(255,255,200,0.4)' },
+  ];
+  spots.forEach(s => {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, TAU);
+    ctx.fillStyle = s.c;
+    ctx.fill();
+  });
+
+  // Veins
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = 0.8;
+  for (let v = 0; v < 4; v++) {
+    const t = (v + 1) / 5;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(uw * t, -uh * 0.5, uw * (0.4 + t * 0.5), uh * 0.1);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Lower wing
+  const lw = 40, lh = 36;
+  ctx.save();
+  ctx.transform(fold, Math.sin(flapAngle) * 0.15, 0, 1, 0, 0);
+
+  const grad2 = ctx.createLinearGradient(0, 0, lw, lh);
+  grad2.addColorStop(0,   'rgba(240, 120, 20, 0.9)');
+  grad2.addColorStop(0.5, 'rgba(200, 60, 0, 0.88)');
+  grad2.addColorStop(1,   'rgba(20, 20, 20, 0.92)');
+
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.bezierCurveTo(lw * 0.2, lh * 0.8, lw * 0.9, lh * 1.0, lw, lh * 0.55);
+  ctx.bezierCurveTo(lw * 0.85, lh * 0.1, lw * 0.3, -lh * 0.1, 0, 0);
+  ctx.fillStyle = grad2;
+  ctx.fill();
+
+  // Lower spots
+  ctx.beginPath();
+  ctx.arc(lw * 0.6, lh * 0.55, 4, 0, TAU);
+  ctx.fillStyle = 'rgba(255,255,180,0.5)';
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+  ctx.lineWidth = 0.7;
+  for (let v = 0; v < 3; v++) {
+    const t = (v + 1) / 4;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(lw * t, lh * 0.7, lw * 0.9, lh * t);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  ctx.restore();
+}
+
+function drawButterfly(x, y, angle, tilt, flapAngle, scale) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.scale(scale, scale);
+  // tilt for banking
+  ctx.transform(1, 0, 0, 1 - Math.abs(Math.sin(tilt)) * 0.18, 0, 0);
+
+  // Shadow
+  const sh = butterfly.shadow;
+  const groundY = H * 0.88 - y;
+  if (groundY > 0 && groundY < H * 0.35) {
+    const shadowScale = clamp(1 - groundY / (H * 0.35), 0.05, 0.6);
+    ctx.save();
+    ctx.translate(0, groundY);
+    ctx.scale(1, 0.25);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 40 * shadowScale, 20 * shadowScale, 0, 0, TAU);
+    ctx.fillStyle = `rgba(0,0,0,${sh.alpha * shadowScale})`;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Wings
+  drawWing(ctx, 1, flapAngle, false);
+  drawWing(ctx, -1, flapAngle, true);
+
+  // Body
+  const bodyGrad = ctx.createLinearGradient(0, -22, 0, 18);
+  bodyGrad.addColorStop(0, '#2a1a00');
+  bodyGrad.addColorStop(0.4, '#3d2800');
+  bodyGrad.addColorStop(1, '#1a0f00');
+  ctx.beginPath();
+  ctx.ellipse(0, -8, 3.5, 18, 0, 0, TAU);
+  ctx.fillStyle = bodyGrad;
+  ctx.fill();
+
+  // Head
+  ctx.beginPath();
+  ctx.arc(0, -26, 5, 0, TAU);
+  ctx.fillStyle = '#2a1800';
+  ctx.fill();
+  ctx.beginPath(); ctx.arc(-1.5, -27, 1.2, 0, TAU);
+  ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.beginPath(); ctx.arc(-1.5, -27, 0.7, 0, TAU);
+  ctx.fillStyle = '#111'; ctx.fill();
+
+  // Antennae
+  ctx.strokeStyle = '#1a0f00';
+  ctx.lineWidth = 1.0;
+  for (const s of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(s * 2, -28);
+    ctx.quadraticCurveTo(s * 14, -50, s * 16, -58);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(s * 16, -59, 2.2, 0, TAU);
+    ctx.fillStyle = '#1a0f00'; ctx.fill();
+  }
+
+  // Legs (3 per side)
+  ctx.strokeStyle = 'rgba(30,15,0,0.7)';
+  ctx.lineWidth = 0.8;
+  for (const s of [-1, 1]) {
+    for (let l = 0; l < 3; l++) {
+      const ly = -6 + l * 8;
+      ctx.beginPath();
+      ctx.moveTo(s * 3.5, ly);
+      ctx.lineTo(s * 14, ly + 10);
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+// ─── Background drawing ───────────────────────────────────────────────────────
+function drawSky() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H * 0.65);
+  grad.addColorStop(0,   '#3a8ecf');
+  grad.addColorStop(0.4, '#7dc4f0');
+  grad.addColorStop(0.7, '#b8e0f5');
+  grad.addColorStop(1,   '#d6f0c8');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H * 0.65);
+
+  // Sun glow
+  const sunX = W * 0.78, sunY = H * 0.08;
+  const sunGrad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, H * 0.25);
+  sunGrad.addColorStop(0, 'rgba(255,245,180,0.9)');
+  sunGrad.addColorStop(0.15, 'rgba(255,220,100,0.4)');
+  sunGrad.addColorStop(0.5, 'rgba(255,200,60,0.12)');
+  sunGrad.addColorStop(1, 'rgba(255,200,60,0)');
+  ctx.fillStyle = sunGrad;
+  ctx.fillRect(0, 0, W, H * 0.65);
+
+  // Sun disc
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, H * 0.038, 0, TAU);
+  ctx.fillStyle = 'rgba(255,248,200,0.95)';
+  ctx.fill();
+}
+
+function drawGround() {
+  // Hill gradient
+  const grad = ctx.createLinearGradient(0, H * 0.6, 0, H);
+  grad.addColorStop(0,   '#5cad2a');
+  grad.addColorStop(0.25,'#4a9a1e');
+  grad.addColorStop(0.6, '#3a7e14');
+  grad.addColorStop(1,   '#2a5e0c');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.62);
+  ctx.bezierCurveTo(W * 0.2, H * 0.57, W * 0.5, H * 0.60, W * 0.75, H * 0.58);
+  ctx.bezierCurveTo(W * 0.88, H * 0.57, W, H * 0.60, W, H * 0.64);
+  ctx.lineTo(W, H); ctx.lineTo(0, H);
+  ctx.closePath();
+  ctx.fill();
+
+  // Path/lighter center strip
+  const pathGrad = ctx.createLinearGradient(0, H * 0.7, 0, H);
+  pathGrad.addColorStop(0, 'rgba(100,160,40,0.0)');
+  pathGrad.addColorStop(1, 'rgba(90,140,30,0.0)');
+  ctx.fillStyle = pathGrad;
+  ctx.fillRect(0, H * 0.7, W, H * 0.3);
+}
+
+function drawTrees(t) {
+  trees.forEach(tr => {
+    const x = tr.x * W;
+    const baseY = H * 0.62;
+    const treeH = tr.h * H;
+    const treeW = tr.w * W;
+    const dark = tr.dark;
+
+    // Trunk
+    ctx.fillStyle = `rgba(${Math.floor(dark*80)},${Math.floor(dark*50)},${Math.floor(dark*20)},0.8)`;
+    ctx.fillRect(x - treeW * 0.08, baseY - treeH * 0.3, treeW * 0.16, treeH * 0.3);
+
+    // Canopy
+    const canopyGrad = ctx.createRadialGradient(x, baseY - treeH * 0.6, 0, x, baseY - treeH * 0.6, treeW * 0.7);
+    canopyGrad.addColorStop(0, `rgba(${Math.floor(dark*140)},${Math.floor(dark*180)},${Math.floor(dark*60)},0.9)`);
+    canopyGrad.addColorStop(1, `rgba(${Math.floor(dark*60)},${Math.floor(dark*100)},${Math.floor(dark*20)},0.85)`);
+    ctx.beginPath();
+    ctx.ellipse(x, baseY - treeH * 0.62, treeW * 0.5, treeH * 0.55, 0, 0, TAU);
+    ctx.fillStyle = canopyGrad;
+    ctx.fill();
+  });
+}
+
+function drawClouds(t) {
+  clouds.forEach(c => {
+    c.x = (c.x + c.speed) % 1.3;
+    const cx = (c.x - 0.15) * W, cy = c.y * H;
+    const cw = c.w * W, ch = c.h * H;
+
+    ctx.save();
+    ctx.globalAlpha = c.alpha;
+    ctx.fillStyle = 'rgba(255,255,255,0.88)';
+    c.blobs.forEach(b => {
+      ctx.beginPath();
+      ctx.ellipse(cx + b.dx * cw, cy + b.dy * ch, cw * 0.35 * b.r, ch * 0.7 * b.r, 0, 0, TAU);
+      ctx.fill();
+    });
+    ctx.restore();
+  });
+}
+
+function drawGrass(t) {
+  grassBlades.forEach(g => {
+    const x = g.x * W, baseY = g.y * H;
+    const h = g.h * H;
+    const sway = Math.sin(t * g.speed + g.phase) * 3;
+    ctx.strokeStyle = `hsla(${g.hue}, 60%, 35%, 0.8)`;
+    ctx.lineWidth = g.w * W;
+    ctx.beginPath();
+    ctx.moveTo(x, baseY);
+    ctx.quadraticCurveTo(x + sway, baseY - h * 0.5, x + sway * 1.5, baseY - h);
+    ctx.stroke();
+  });
+}
+
+function drawFlowers(t) {
+  flowers.forEach(f => {
+    const x = f.x * W, y = f.y * H;
+    const sway = Math.sin(t * f.swaySpeed + f.swayPhase) * 4 * f.scale + f.sway * W;
+    const stemH = 28 * f.scale;
+
+    ctx.save();
+    ctx.translate(x + sway * 0.5, y);
+
+    // Stem
+    ctx.strokeStyle = `hsl(110, 50%, 30%)`;
+    ctx.lineWidth = 1.5 * f.scale;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(sway * 0.3, -stemH * 0.5, sway * 0.4, -stemH);
+    ctx.stroke();
+
+    // Petals
+    ctx.save();
+    ctx.translate(sway * 0.4, -stemH);
+    const petals = f.petals;
+    for (let p = 0; p < petals; p++) {
+      ctx.save();
+      ctx.rotate((p / petals) * TAU);
+      ctx.beginPath();
+      ctx.ellipse(0, -7 * f.scale, 4 * f.scale, 8 * f.scale, 0, 0, TAU);
+      ctx.fillStyle = `hsl(${f.hue}, 80%, 60%)`;
+      ctx.fill();
+      ctx.restore();
+    }
+    // Center
+    ctx.beginPath();
+    ctx.arc(0, 0, 5 * f.scale, 0, TAU);
+    ctx.fillStyle = `hsl(${f.hue + 40}, 90%, 50%)`;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.restore();
+  });
+}
+
+function drawParticles(t, dt) {
+  particles.forEach((p, i) => {
+    p.x += p.vx + Math.sin(t * 0.7 + i) * 0.0001;
+    p.y += p.vy;
+    p.life -= dt * 0.08;
+    if (p.life <= 0 || p.y < 0 || p.x < 0 || p.x > 1) {
+      particles[i] = makeParticle();
+      return;
+    }
+    const a = p.alpha * clamp(p.life / p.maxLife, 0, 1);
+    ctx.beginPath();
+    ctx.arc(p.x * W, p.y * H, p.r, 0, TAU);
+    ctx.fillStyle = `hsla(${p.hue}, 80%, 70%, ${a})`;
+    ctx.fill();
+  });
+}
+
+function drawLeaves(t, dt) {
+  leaves.forEach((l, i) => {
+    l.x += l.vx;
+    l.y += l.vy + Math.sin(t + i) * 0.0001;
+    l.rot += l.rotV;
+    if (l.x < -0.05) { leaves[i] = makeLeaf(); leaves[i].x = 1.1; }
+
+    ctx.save();
+    ctx.globalAlpha = l.alpha;
+    ctx.translate(l.x * W, l.y * H);
+    ctx.rotate(l.rot);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, l.size, l.size * 0.45, 0, 0, TAU);
+    ctx.fillStyle = `hsl(${l.hue}, 55%, 38%)`;
+    ctx.fill();
+    // Vein
+    ctx.strokeStyle = `hsla(${l.hue + 20}, 60%, 50%, 0.4)`;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(-l.size, 0); ctx.lineTo(l.size, 0);
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
+// ─── Butterfly update ─────────────────────────────────────────────────────────
+let prevFlapPhase = 0;
+
+function updateButterfly(dt, t) {
+  const b = butterfly;
+
+  // Scare timer
+  if (b.scared) {
+    b.scaredTimer -= dt;
+    if (b.scaredTimer <= 0) { b.scared = false; b.state = STATES.FLY; }
+  }
+
+  // Attract timer
+  if (attractTimer > 0) {
+    attractTimer -= dt;
+    if (attractTimer <= 0) attractTarget = null;
+  }
+
+  switch (b.state) {
+    case STATES.FLY: {
+      nextTargetTimer -= dt;
+      let tx = b.targetX, ty = b.targetY;
+
+      if (b.scared) {
+        // Flee away from pointer
+        const dx = b.x - pointer.x, dy = b.y - pointer.y;
+        const len = Math.sqrt(dx*dx + dy*dy) || 1;
+        tx = b.x + dx/len * 300;
+        ty = b.y + dy/len * 300;
+        b.wingSpeed = 18;
+      } else if (attractTarget && !b.scared) {
+        tx = attractTarget.x; ty = attractTarget.y;
+        b.wingSpeed = lerp(b.wingSpeed, 12, dt * 2);
+      } else {
+        // Wander with sinusoidal offset
+        tx = b.targetX + Math.sin(t * 0.4) * 60;
+        ty = b.targetY + Math.cos(t * 0.3) * 40;
+        b.wingSpeed = lerp(b.wingSpeed, 8, dt);
+      }
+
+      const dx = tx - b.x, dy = ty - b.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const speed = b.scared ? 260 : (attractTarget ? 180 : 120);
+      const acc = speed * dt;
+
+      b.vx = lerp(b.vx, (dx / Math.max(dist, 1)) * speed, dt * 2.5);
+      b.vy = lerp(b.vy, (dy / Math.max(dist, 1)) * speed, dt * 2.5);
+
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+
+      // Target angle
+      if (Math.abs(b.vx) > 1 || Math.abs(b.vy) > 1) {
+        const targetAngle = Math.atan2(b.vy, b.vx) + Math.PI / 2;
+        let da = targetAngle - b.angle;
+        while (da > Math.PI) da -= TAU;
+        while (da < -Math.PI) da += TAU;
+        b.angle = lerp(b.angle, b.angle + da, dt * 4);
+        b.tilt = lerp(b.tilt, da * 1.5, dt * 3);
+      }
+
+      // Keep in bounds
+      b.x = clamp(b.x, 50, W - 50);
+      b.y = clamp(b.y, 60, H * 0.78);
+
+      // Transition to hover/land
+      if (!b.scared && !attractTarget && nextTargetTimer <= 0) {
+        if (Math.random() < 0.3) {
+          b.state = STATES.HOVER;
+          b.stateTimer = rand(1.5, 3.5);
+        } else if (Math.random() < 0.4) {
+          pickFlowerTarget();
+          b.state = STATES.LAND;
+          b.stateTimer = rand(2, 5);
+        } else {
+          pickNewTarget();
+        }
+        nextTargetTimer = rand(3, 7);
+      }
+      break;
+    }
+
+    case STATES.HOVER: {
+      b.stateTimer -= dt;
+      // Gentle bobbing
+      b.x += Math.sin(t * 1.2) * 0.5;
+      b.y += Math.sin(t * 0.9) * 0.5;
+      b.vx = lerp(b.vx, 0, dt * 4);
+      b.vy = lerp(b.vy, 0, dt * 4);
+      b.wingSpeed = lerp(b.wingSpeed, 6, dt * 2);
+      if (b.stateTimer <= 0 || b.scared || attractTarget) {
+        pickNewTarget();
+        b.state = STATES.FLY;
+      }
+      break;
+    }
+
+    case STATES.LAND: {
+      const dx = b.targetX - b.x, dy = b.targetY - b.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      b.vx = lerp(b.vx, dx * 2, dt * 2);
+      b.vy = lerp(b.vy, dy * 2, dt * 2);
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.wingSpeed = lerp(b.wingSpeed, 2.5, dt * 1.5);
+
+      if (dist < 8 || b.stateTimer <= 0) {
+        b.x = b.targetX; b.y = b.targetY;
+        b.vx = 0; b.vy = 0;
+        b.stateTimer -= dt;
+        if (b.stateTimer <= 0 || b.scared || attractTarget) {
+          b.state = STATES.TAKEOFF;
+          b.stateTimer = 0.6;
+        }
+      } else {
+        b.stateTimer -= dt;
+        if (b.stateTimer <= 0) { pickNewTarget(); b.state = STATES.FLY; }
+      }
+      break;
+    }
+
+    case STATES.TAKEOFF: {
+      b.stateTimer -= dt;
+      b.vy -= 180 * dt;
+      b.y += b.vy * dt;
+      b.wingSpeed = lerp(b.wingSpeed, 14, dt * 5);
+      if (b.stateTimer <= 0) {
+        pickNewTarget();
+        b.state = STATES.FLY;
+      }
+      break;
+    }
+  }
+
+  // Wing animation
+  b.wingPhase += b.wingSpeed * dt;
+  const flapAngle = (Math.sin(b.wingPhase) * 0.5 + 0.5) * (Math.PI * 0.72);
+
+  // Flap sound on wing beat peak
+  const wrapped = b.wingPhase % TAU;
+  if (prevFlapPhase > TAU * 0.9 && wrapped < TAU * 0.1) {
+    triggerFlap(clamp(b.wingSpeed / 14, 0.3, 1.0));
+  }
+  prevFlapPhase = wrapped;
+
+  // Trail
+  b.trail.push({ x: b.x, y: b.y, a: 0.18 });
+  if (b.trail.length > 20) b.trail.shift();
+
+  return flapAngle;
+}
+
+// ─── Draw trail ───────────────────────────────────────────────────────────────
+function drawTrail() {
+  const tr = butterfly.trail;
+  for (let i = 1; i < tr.length; i++) {
+    const t0 = tr[i - 1], t1 = tr[i];
+    const a = (i / tr.length) * 0.12;
+    ctx.strokeStyle = `rgba(255,200,100,${a})`;
+    ctx.lineWidth = (i / tr.length) * 3;
+    ctx.beginPath();
+    ctx.moveTo(t0.x, t0.y);
+    ctx.lineTo(t1.x, t1.y);
+    ctx.stroke();
+  }
+}
+
+// ─── Main loop ────────────────────────────────────────────────────────────────
+let lastTime = 0;
+let totalTime = 0;
+
+function loop(ts) {
+  requestAnimationFrame(loop);
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+  totalTime += dt;
+  const t = totalTime;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // --- Sky layer
+  drawSky();
+
+  // --- Distant trees (parallax layer 1)
+  ctx.save();
+  ctx.globalAlpha = 0.7;
+  drawTrees(t);
+  ctx.restore();
+
+  // --- Clouds
+  drawClouds(t);
+
+  // --- Ground
+  drawGround();
+
+  // --- Leaves (mid air)
+  drawLeaves(t, dt);
+
+  // --- Flowers
+  drawFlowers(t);
+
+  // --- Grass
+  drawGrass(t);
+
+  // --- Pollen particles
+  drawParticles(t, dt);
+
+  // --- Butterfly update + draw
+  const flapAngle = updateButterfly(dt, t);
+
+  // Trail
+  drawTrail();
+
+  // Draw butterfly
+  const b = butterfly;
+  const scale = 0.85 + Math.sin(t * 0.8) * 0.03;
+  drawButterfly(b.x, b.y, b.angle, b.tilt, flapAngle, scale);
+
+  // --- Light overlay (lens bloom top-right)
+  const bloom = ctx.createRadialGradient(W * 0.78, H * 0.08, 0, W * 0.78, H * 0.08, W * 0.55);
+  bloom.addColorStop(0, 'rgba(255,250,200,0.08)');
+  bloom.addColorStop(1, 'rgba(255,250,200,0)');
+  ctx.fillStyle = bloom;
+  ctx.fillRect(0, 0, W, H);
+}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
