@@ -36,7 +36,6 @@ object Prefs {
     private const val K_PRO = "pro_entitled"
     private const val K_CLEAN_CAPTURE = "clean_capture"
     private const val K_INTRO = "intro_enabled"
-    private const val K_INTRO_SOUND = "intro_sound"
 
     var onboarded: Boolean
         get() = sp.getBoolean(K_ONBOARDED, false)
@@ -91,15 +90,10 @@ object Prefs {
         get() = sp.getBoolean(K_CLEAN_CAPTURE, true)
         set(v) = sp.edit().putBoolean(K_CLEAN_CAPTURE, v).apply()
 
-    /** Play the branded intro clip on launch instead of the static mark. */
+    /** Play the cosmic launch sequence. Off means the app opens straight to the UI. */
     var introEnabled: Boolean
         get() = sp.getBoolean(K_INTRO, true)
         set(v) = sp.edit().putBoolean(K_INTRO, v).apply()
-
-    /** Intro audio; also suppressed whenever the ringer is not on normal. */
-    var introSound: Boolean
-        get() = sp.getBoolean(K_INTRO_SOUND, true)
-        set(v) = sp.edit().putBoolean(K_INTRO_SOUND, v).apply()
 
     /** Cached entitlement; the source of truth is the Play purchase BillingManager reports. */
     var proEntitled: Boolean

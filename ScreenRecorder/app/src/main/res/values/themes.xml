@@ -22,12 +22,12 @@
         <item name="materialAlertDialogTheme">@style/Theme.Imran.Dialog</item>
     </style>
 
-    <style name="Theme.Imran.Splash" parent="Theme.Imran">
+    <!-- Black window behind the launch, so the mandatory system splash dissolves into the
+         intro's deep space with no colour step between them. -->
+    <style name="Theme.Imran.Launch" parent="Theme.Imran">
         <item name="android:windowBackground">@color/black</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
     </style>
 
     <style name="Theme.Imran.Dark" parent="Theme.Material3.Dark.NoActionBar">

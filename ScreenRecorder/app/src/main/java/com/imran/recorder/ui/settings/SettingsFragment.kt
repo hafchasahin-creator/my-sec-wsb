@@ -150,19 +150,6 @@ class SettingsFragment : Fragment(R.layout.fragment_settings), MainActivity.Refr
         ) { Prefs.introEnabled = !Prefs.introEnabled; bindAll() }
 
         row(
-            root, R.id.rowIntroSound, R.drawable.ic_volume,
-            getString(R.string.set_intro_sound), getString(R.string.set_intro_sound_sub),
-            switch = Prefs.introSound && Prefs.introEnabled
-        ) {
-            if (!Prefs.introEnabled) {
-                requireContext().toast("Turn the intro animation on first")
-            } else {
-                Prefs.introSound = !Prefs.introSound
-            }
-            bindAll()
-        }
-
-        row(
             root, R.id.rowStorage, R.drawable.ic_storage,
             getString(R.string.set_storage), MediaStoreRepo.VIDEO_DIR
         ) { showStorageInfo() }

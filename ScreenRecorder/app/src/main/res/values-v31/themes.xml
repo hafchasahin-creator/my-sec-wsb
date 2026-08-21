@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      From API 31 the platform always draws a splash. Painting it the same black the
+      intro opens on makes the handoff invisible, rather than stacking two openings.
+    -->
+    <style name="Theme.Imran.Launch" parent="Theme.Imran">
+        <item name="android:windowBackground">@color/black</item>
+        <item name="android:windowSplashScreenBackground">@color/black</item>
+        <item name="android:windowSplashScreenAnimationDuration">200</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

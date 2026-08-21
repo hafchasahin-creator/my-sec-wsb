@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  The intro is an overlay on the real UI rather than a separate activity, so the portal
+  opens straight onto the running home screen with no second window to hand off to.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+<LinearLayout
+        android:id="@+id/appRoot"
+        android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/bg">
@@ -366,3 +376,9 @@
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
+
+    <com.imran.recorder.ui.intro.CosmicIntroView
+        android:id="@+id/cosmicIntro"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+</FrameLayout>

@@ -30,27 +30,22 @@
         tools:targetApi="34">
 
         <activity
-            android:name=".ui.SplashActivity"
+            android:name=".ui.OnboardingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Imran" />
+
+        <!-- Single launch window: the cosmic intro renders inside this activity, so the
+             system splash hands straight over to it with nothing in between. -->
+        <activity
+            android:name=".ui.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.Imran.Splash"
-            android:screenOrientation="portrait"
-            tools:ignore="DiscouragedApi,LockedOrientationActivity">
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.Imran.Launch">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".ui.OnboardingActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Imran" />
-
-        <activity
-            android:name=".ui.MainActivity"
-            android:exported="false"
-            android:launchMode="singleTask"
-            android:theme="@style/Theme.Imran" />
 
         <!-- Transparent shim that owns the MediaProjection consent dialog so overlays
              and the notification can start a capture without the app being foreground. -->

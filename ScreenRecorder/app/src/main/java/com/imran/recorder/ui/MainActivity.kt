@@ -11,6 +11,8 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -23,6 +25,7 @@ import com.imran.recorder.record.RecState
 import com.imran.recorder.record.RecorderBus
 import com.imran.recorder.record.RecorderService
 import com.imran.recorder.ui.info.InfoActivity
+import com.imran.recorder.ui.intro.CosmicIntroView
 import com.imran.recorder.ui.photo.PhotoFragment
 import com.imran.recorder.ui.settings.SettingsFragment
 import com.imran.recorder.ui.tools.ToolsFragment
@@ -58,6 +61,10 @@ class MainActivity : AppCompatActivity() {
     private var pulse: android.animation.ObjectAnimator? = null
     private var lastState: RecState? = null
 
+    private lateinit var appRoot: View
+    private lateinit var intro: CosmicIntroView
+    private var chromeRevealed = false
+
     private var pendingPermission: ((Boolean) -> Unit)? = null
     private var pendingOverlay: (() -> Unit)? = null
 
@@ -81,6 +88,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        appRoot = findViewById(R.id.appRoot)
+        intro = findViewById(R.id.cosmicIntro)
 
         findViewById<View>(R.id.topBar).padTopForStatusBar()
         findViewById<View>(R.id.bottomNav).padBottomForNavBar()
@@ -144,7 +154,111 @@ class MainActivity : AppCompatActivity() {
         // On a config change the FragmentManager restores the fragment itself.
         if (savedInstanceState == null) showFragment(current) else syncNav()
 
+        setUpIntro(savedInstanceState)
         observe()
+    }
+
+    // ---------------- launch sequence ----------------
+
+    /**
+     * The intro is a view over the real UI, so there is exactly one window and no second
+     * splash to hand off to. It plays once per process — not on rotation, and not when
+     * MainActivity comes back from a child screen.
+     */
+    private fun setUpIntro(savedInstanceState: Bundle?) {
+        val shouldPlay = savedInstanceState == null &&
+            !introPlayedThisProcess &&
+            Prefs.introEnabled &&
+            !intro.animationsDisabled()
+
+        if (!shouldPlay) {
+            intro.visibility = View.GONE
+            appRoot.alpha = 1f
+            chromeRevealed = true
+            applySystemBars(dark = false)
+            if (!Prefs.onboarded) openOnboarding()
+            return
+        }
+
+        introPlayedThisProcess = true
+
+        // Held back so the portal is what reveals it, then eased in behind the flash.
+        appRoot.alpha = 0f
+        intro.visibility = View.VISIBLE
+        intro.isClickable = true
+        intro.setOnClickListener { intro.skip() }
+        applySystemBars(dark = true)
+
+        intro.onPortalProgress = { u ->
+            // The chrome settles in *during* the dive, so by the time the sequence ends
+            // the home screen is already there rather than fading in after it.
+            if (u >= 0.26f && !chromeRevealed) {
+                chromeRevealed = true
+                appRoot.alpha = 1f
+                applySystemBars(dark = false)
+                staggerChromeIn()
+            }
+        }
+        intro.onFinished = { finishIntro() }
+        intro.post { intro.start() }
+    }
+
+    private fun finishIntro() {
+        intro.animate().alpha(0f).setDuration(150).withLayer().withEndAction {
+            intro.visibility = View.GONE
+            intro.onFinished = null
+            intro.onPortalProgress = null
+            intro.release()
+        }.start()
+
+        // Safety net: a skip can retire the sequence before the dive reported progress.
+        if (!chromeRevealed) {
+            chromeRevealed = true
+            appRoot.alpha = 1f
+            applySystemBars(dark = false)
+            staggerChromeIn()
+        }
+
+        if (!Prefs.onboarded) appRoot.postDelayed({ openOnboarding() }, 260)
+    }
+
+    /**
+     * The launch window is black for the intro, so the bar icons have to be light for it
+     * and dark again for the app proper. The nav bar follows the same switch.
+     */
+    private fun applySystemBars(dark: Boolean) {
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.isAppearanceLightStatusBars = !dark
+        controller.isAppearanceLightNavigationBars = !dark
+        window.navigationBarColor =
+            if (dark) android.graphics.Color.BLACK
+            else ContextCompat.getColor(this, R.color.surface)
+    }
+
+    /** Chrome settles into place as the app emerges from the portal. */
+    private fun staggerChromeIn() {
+        val rise = resources.displayMetrics.density * 16f
+        val pieces = listOf(
+            findViewById<View>(R.id.topBar),
+            findViewById(R.id.container),
+            findViewById(R.id.recordBar),
+            findViewById(R.id.bottomNav)
+        )
+        pieces.forEachIndexed { index, view ->
+            view.translationY = rise
+            view.alpha = 0f
+            view.animate()
+                .translationY(0f).alpha(1f)
+                .setStartDelay(index * 55L)
+                .setDuration(320)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+        }
+    }
+
+    private fun openOnboarding() {
+        startActivity(Intent(this, OnboardingActivity::class.java))
+        overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -564,6 +678,26 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onStop() {
+        super.onStop()
+        // Nobody watches a launch animation from the background, and the frame loop would
+        // keep posting against a window that has stopped drawing. Retire it so the app
+        // returns to the home screen instead of a stale frame.
+        if (intro.visibility == View.VISIBLE) abortIntro()
+    }
+
+    private fun abortIntro() {
+        intro.onFinished = null
+        intro.onPortalProgress = null
+        intro.visibility = View.GONE
+        intro.release()
+        if (!chromeRevealed) {
+            chromeRevealed = true
+            appRoot.alpha = 1f
+            applySystemBars(dark = false)
+        }
+    }
+
     override fun onDestroy() {
         stopPulse()
         super.onDestroy()
@@ -576,6 +710,9 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val KEY_TAB = "tab"
+
+        /** Survives activity recreation, so the sequence is a launch event, not a screen event. */
+        private var introPlayedThisProcess = false
 
         /** Below this, a capture is likely to be cut short, so warn before starting. */
         private const val LOW_STORAGE_BYTES = 500L * 1024 * 1024
