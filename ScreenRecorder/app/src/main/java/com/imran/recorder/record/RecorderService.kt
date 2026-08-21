@@ -307,6 +307,11 @@ class RecorderService : Service() {
     }
 
     private fun finishRecording() {
+        // Stop can arrive from the bar, the notification, the bubble, shake, the auto-stop
+        // timer and the projection callback at once. Finalising is already under way, so
+        // ignore the extras rather than tearing the service down mid-save.
+        if (RecorderBus.state.value == RecState.SAVING) return
+
         main.removeCallbacks(countdownStep)
         main.removeCallbacks(ticker)
 
@@ -352,6 +357,13 @@ class RecorderService : Service() {
         releaseProjection()
         OverlayService.hideBrush()
         OverlayService.hideFacecam()
+        // Two independent choices: whether the button shows during a capture, and whether
+        // it stays afterwards. This handles the "keep it" case even when it was off during.
+        if (Prefs.floatingPersists && Perms.overlay(this)) {
+            OverlayService.showBubble(this)
+        } else {
+            OverlayService.hideBubble()
+        }
 
         RecorderBus.setElapsed(0)
         RecorderBus.setBytes(0)

@@ -9,6 +9,8 @@ import androidx.appcompat.widget.SwitchCompat
 import androidx.fragment.app.Fragment
 import com.imran.recorder.BuildConfig
 import com.imran.recorder.R
+import com.imran.recorder.billing.Pro
+import com.imran.recorder.billing.ProFeature
 import com.imran.recorder.data.AudioSource
 import com.imran.recorder.data.MediaStoreRepo
 import com.imran.recorder.data.Orientation
@@ -19,6 +21,7 @@ import com.imran.recorder.ui.MainActivity
 import com.imran.recorder.ui.SheetItem
 import com.imran.recorder.ui.Sheets
 import com.imran.recorder.ui.info.InfoActivity
+import com.imran.recorder.ui.pro.ProActivity
 import com.imran.recorder.util.Format
 import com.imran.recorder.util.Perms
 import com.imran.recorder.util.toast
@@ -47,12 +50,35 @@ class SettingsFragment : Fragment(R.layout.fragment_settings), MainActivity.Refr
     private fun bindAll() {
         val root = view ?: return
 
+        row(
+            root, R.id.rowPro, R.drawable.ic_crown,
+            getString(R.string.settings_pro),
+            if (Pro.isPro) getString(R.string.settings_pro_sub_active)
+            else getString(R.string.settings_pro_sub_free)
+        ) { ProActivity.open(requireContext()) }
+
         // --- recording method ---
         row(
             root, R.id.rowFloating, R.drawable.ic_bubble,
             getString(R.string.set_floating), getString(R.string.set_floating_sub),
             switch = Prefs.floatingEnabled
         ) { host?.toggleFloating(); root.postDelayed({ bindAll() }, 250) }
+
+        row(
+            root, R.id.rowFloatingPersist, R.drawable.ic_bubble,
+            getString(R.string.set_floating_persist), getString(R.string.set_floating_persist_sub),
+            switch = Prefs.floatingPersists
+        ) { Prefs.floatingPersists = !Prefs.floatingPersists; bindAll() }
+
+        row(
+            root, R.id.rowCleanCapture, R.drawable.ic_shield,
+            getString(R.string.set_clean_capture), getString(R.string.set_clean_capture_sub),
+            switch = Prefs.keepOverlayOutOfVideo
+        ) {
+            Prefs.keepOverlayOutOfVideo = !Prefs.keepOverlayOutOfVideo
+            OverlayService.reapplySecureFlag()
+            bindAll()
+        }
 
         row(
             root, R.id.rowFacecam, R.drawable.ic_facecam,
@@ -279,8 +305,16 @@ class SettingsFragment : Fragment(R.layout.fragment_settings), MainActivity.Refr
                     else -> "Matches your display exactly"
                 }
             },
+            enabled = { Pro.allowsResolution(it) },
             current = Prefs.resolution
-        ) { Prefs.resolution = it; bindAll() }
+        ) {
+            if (!Pro.allowsResolution(it)) {
+                ProActivity.promptFor(requireContext(), ProFeature.NATIVE_RESOLUTION)
+            } else {
+                Prefs.resolution = it
+                bindAll()
+            }
+        }
     }
 
     private fun pickQuality() {
@@ -296,8 +330,16 @@ class SettingsFragment : Fragment(R.layout.fragment_settings), MainActivity.Refr
                     else -> "Recommended for most recordings"
                 }
             },
+            enabled = { Pro.allowsQuality(it) },
             current = Prefs.quality
-        ) { Prefs.quality = it; bindAll() }
+        ) {
+            if (!Pro.allowsQuality(it)) {
+                ProActivity.promptFor(requireContext(), ProFeature.HIGH_QUALITY)
+            } else {
+                Prefs.quality = it
+                bindAll()
+            }
+        }
     }
 
     private fun pickFps() {
@@ -315,9 +357,16 @@ class SettingsFragment : Fragment(R.layout.fragment_settings), MainActivity.Refr
                     else -> "Smooth — best for games"
                 }
             },
-            enabled = { it <= max },
+            enabled = { it <= max && Pro.allowsFps(it) },
             current = Prefs.fps
-        ) { Prefs.fps = it; bindAll() }
+        ) {
+            if (!Pro.allowsFps(it)) {
+                ProActivity.promptFor(requireContext(), ProFeature.HIGH_FPS)
+            } else {
+                Prefs.fps = it
+                bindAll()
+            }
+        }
     }
 
     private fun pickOrientation() {
@@ -361,14 +410,26 @@ class SettingsFragment : Fragment(R.layout.fragment_settings), MainActivity.Refr
                     else -> null
                 }
             },
+            enabled = { it == 0 || !Pro.isLocked(ProFeature.AUTO_STOP) },
             current = Prefs.maxMinutes
-        ) { Prefs.maxMinutes = it; bindAll() }
+        ) {
+            if (it != 0 && Pro.isLocked(ProFeature.AUTO_STOP)) {
+                ProActivity.promptFor(requireContext(), ProFeature.AUTO_STOP)
+            } else {
+                Prefs.maxMinutes = it
+                bindAll()
+            }
+        }
     }
 
     private fun toggleFacecam() {
         val ctx = context ?: return
         if (!Perms.hasFrontCamera(ctx)) {
             ctx.toast("This device has no front camera")
+            return
+        }
+        if (!OverlayService.facecamActive && Pro.isLocked(ProFeature.FACECAM)) {
+            ProActivity.promptFor(ctx, ProFeature.FACECAM)
             return
         }
         if (OverlayService.facecamActive) {

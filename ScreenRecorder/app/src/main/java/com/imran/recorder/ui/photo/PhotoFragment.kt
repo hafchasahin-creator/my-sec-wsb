@@ -40,7 +40,7 @@ class PhotoFragment : Fragment(R.layout.fragment_photo), MainActivity.Refreshabl
         empty = view.findViewById(R.id.empty)
         count = view.findViewById(R.id.count)
 
-        adapter = PhotoAdapter { item, position ->
+        adapter = PhotoAdapter { item, _ ->
             PhotoViewerActivity.open(requireContext(), item.uri, item.name)
         }
 

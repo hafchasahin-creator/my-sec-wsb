@@ -72,6 +72,7 @@
             android:exported="false"
             android:theme="@style/Theme.Imran.Dark" />
 
+        <activity android:name=".ui.pro.ProActivity" android:exported="false" />
         <activity android:name=".ui.info.InfoActivity" android:exported="false" />
         <activity android:name=".ui.tools.TrimActivity" android:exported="false" />
         <activity android:name=".ui.tools.CompressActivity" android:exported="false" />

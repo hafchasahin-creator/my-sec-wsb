@@ -13,11 +13,14 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.imran.recorder.R
+import com.imran.recorder.billing.Pro
+import com.imran.recorder.billing.ProFeature
 import com.imran.recorder.data.MediaEntry
 import com.imran.recorder.data.MediaStoreRepo
 import com.imran.recorder.ui.MainActivity
 import com.imran.recorder.ui.SheetItem
 import com.imran.recorder.ui.Sheets
+import com.imran.recorder.ui.pro.ProActivity
 import com.imran.recorder.util.Format
 import com.imran.recorder.util.shareMultiple
 import com.imran.recorder.util.toast
@@ -48,10 +51,10 @@ class ToolsFragment : Fragment(R.layout.fragment_tools), MainActivity.Refreshabl
                 pickVideo { TrimActivity.open(requireContext(), it) }
             },
             Tool(R.drawable.ic_compress, R.string.tool_compress, R.string.tool_compress_sub) {
-                pickVideo { CompressActivity.open(requireContext(), it) }
+                gated(ProFeature.COMPRESS) { pickVideo { CompressActivity.open(requireContext(), it) } }
             },
             Tool(R.drawable.ic_gif, R.string.tool_gif, R.string.tool_gif_sub) {
-                pickVideo { GifActivity.open(requireContext(), it) }
+                gated(ProFeature.GIF_EXPORT) { pickVideo { GifActivity.open(requireContext(), it) } }
             },
             Tool(R.drawable.ic_pencil, R.string.tool_photo, R.string.tool_photo_sub) {
                 pickPhoto { PhotoEditActivity.open(requireContext(), it) }
@@ -69,6 +72,15 @@ class ToolsFragment : Fragment(R.layout.fragment_tools), MainActivity.Refreshabl
     }
 
     override fun refresh() = Unit
+
+    /** Runs [block], or routes to the paywall when the feature is not unlocked. */
+    private fun gated(feature: ProFeature, block: () -> Unit) {
+        if (Pro.isLocked(feature)) {
+            ProActivity.promptFor(requireContext(), feature)
+        } else {
+            block()
+        }
+    }
 
     // ---------------- pickers ----------------
 

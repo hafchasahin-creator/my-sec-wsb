@@ -37,6 +37,16 @@
             android:letterSpacing="-0.01" />
 
         <ImageView
+            android:id="@+id/topPro"
+            android:layout_width="@dimen/touch_min"
+            android:layout_height="@dimen/touch_min"
+            android:background="@drawable/rp_borderless"
+            android:padding="13dp"
+            android:src="@drawable/ic_crown"
+            android:contentDescription="@string/pro_title"
+            android:tint="#F5A623" />
+
+        <ImageView
             android:id="@+id/topShot"
             android:layout_width="@dimen/touch_min"
             android:layout_height="@dimen/touch_min"

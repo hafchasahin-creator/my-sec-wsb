@@ -69,6 +69,7 @@ class OverlayService : Service() {
     private var pulseAnimator: ValueAnimator? = null
 
     private var brushLayer: View? = null
+    private var brushBar: View? = null
     private var facecam: View? = null
     private var facecamController: FacecamController? = null
     private var countdown: View? = null
@@ -109,13 +110,18 @@ class OverlayService : Service() {
         else
             @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
 
+    /** Set on the app's own chrome so the compositor omits it from screen capture. */
+    private fun secureFlag() =
+        if (Prefs.keepOverlayOutOfVideo) WindowManager.LayoutParams.FLAG_SECURE else 0
+
     private fun collapsedParams() = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.WRAP_CONTENT,
         overlayType(),
         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+            secureFlag(),
         PixelFormat.TRANSLUCENT
     ).apply { gravity = Gravity.TOP or Gravity.START }
 
@@ -293,6 +299,7 @@ class OverlayService : Service() {
         params.height = WindowManager.LayoutParams.MATCH_PARENT
         params.x = 0
         params.y = 0
+        params.flags = params.flags or secureFlag()
         positionHolder()
         runCatching { wm.updateViewLayout(view, params) }
 
@@ -423,7 +430,6 @@ class OverlayService : Service() {
             val item = LayoutInflater.from(this).inflate(R.layout.overlay_fab_item, layer, false)
             val icon = item.findViewById<ImageView>(R.id.fabItemIcon)
             val label = item.findViewById<TextView>(R.id.fabItemLabel)
-            val link = item.findViewById<View>(R.id.fabItemLink)
 
             icon.setImageResource(action.icon)
             icon.setColorFilter(getColor(action.tint))
@@ -634,9 +640,30 @@ class OverlayService : Service() {
         view.findViewById<ImageView>(R.id.brushClear).setOnClickListener { brush.clearAll() }
         view.findViewById<ImageView>(R.id.brushExit).setOnClickListener { hideBrushInternal() }
 
+        // The toolbar is lifted into its own window so it can be marked secure while the
+        // strokes underneath stay part of the capture.
+        val bar = view.findViewById<View>(R.id.brushBar)
+        (bar.parent as? android.view.ViewGroup)?.removeView(bar)
+
         brushLayer = view
         runCatching { wm.addView(view, fullScreenParams(touchable = true)) }
             .onFailure { brushLayer = null; return }
+
+        val barParams = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            overlayType(),
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                secureFlag(),
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            y = dp(40f)
+        }
+        runCatching { wm.addView(bar, barParams) }
+            .onSuccess { brushBar = bar }
 
         RecorderBus.setBrush(true)
         view.alpha = 0f
@@ -644,6 +671,10 @@ class OverlayService : Service() {
     }
 
     private fun hideBrushInternal() {
+        brushBar?.let { bar ->
+            brushBar = null
+            runCatching { wm.removeView(bar) }
+        }
         val view = brushLayer ?: return
         brushLayer = null
         RecorderBus.setBrush(false)
@@ -767,7 +798,10 @@ class OverlayService : Service() {
         val view = countdown ?: run {
             val created = LayoutInflater.from(this).inflate(R.layout.overlay_countdown, null)
             val added = runCatching {
-                wm.addView(created, fullScreenParams(touchable = false))
+                wm.addView(
+                    created,
+                    fullScreenParams(touchable = false).apply { flags = flags or secureFlag() }
+                )
             }.isSuccess
             if (!added) return
             countdown = created
@@ -793,6 +827,7 @@ class OverlayService : Service() {
         val v = if (visible) View.VISIBLE else View.INVISIBLE
         fabRoot?.visibility = v
         brushLayer?.visibility = v
+        brushBar?.visibility = v
         facecam?.visibility = v
     }
 
@@ -806,6 +841,16 @@ class OverlayService : Service() {
                 if (expanded) refreshItemLabels()
             }
             .launchIn(scope)
+    }
+
+    /** Re-creates the chrome windows so a changed secure flag takes effect immediately. */
+    private fun reapplySecure() {
+        val hadBubble = fabRoot != null
+        val hadBrush = brushLayer != null
+        if (hadBubble) hideBubbleInternal()
+        if (hadBrush) hideBrushInternal()
+        if (hadBubble) showBubbleInternal()
+        if (hadBrush) showBrushInternal()
     }
 
     private fun stopIfEmpty() {
@@ -859,6 +904,8 @@ class OverlayService : Service() {
         fun hideFacecam() { instance?.hideFacecamInternal(); instance?.stopIfEmpty() }
         fun showCountdown(context: Context, n: Int) = send(context, ACTION_COUNTDOWN, n)
         fun hideCountdown() { instance?.hideCountdownInternal() }
+
+        fun reapplySecureFlag() { instance?.reapplySecure() }
 
         fun setOverlaysVisible(visible: Boolean) {
             instance?.setVisibleInternal(visible)

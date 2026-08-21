@@ -74,8 +74,8 @@
     <string name="group_video">Video</string>
     <string name="group_control">Control</string>
     <string name="group_about">About</string>
-    <string name="set_floating">Floating controls</string>
-    <string name="set_floating_sub">A draggable bubble to pause, stop and capture from any app</string>
+    <string name="set_floating">Show while recording</string>
+    <string name="set_floating_sub">Pause and stop from any app. Android cannot keep an overlay out of a full-screen capture, so the button appears in the video too.</string>
     <string name="set_audio">Audio source</string>
     <string name="set_resolution">Resolution</string>
     <string name="set_fps">Frame rate</string>
@@ -99,6 +99,30 @@
     <string name="share_app">Share Imran Recorder</string>
     <string name="privacy">Privacy</string>
     <string name="version">Version</string>
+
+    <!-- Pro -->
+    <string name="pro_title">Imran Recorder Pro</string>
+    <string name="pro_subtitle">Unlock the highest capture quality and the full toolset.</string>
+    <string name="pro_plans">Choose a plan</string>
+    <string name="pro_continue">Continue</string>
+    <string name="pro_restore">Restore a previous purchase</string>
+    <string name="pro_manage">Manage subscription</string>
+    <string name="pro_fine_print">Subscriptions renew automatically until cancelled. Manage or cancel any time in Google Play — Subscriptions. Payment is handled entirely by Google Play; this app never sees your card details.</string>
+    <string name="pro_active">Pro is active. Thank you.</string>
+    <string name="pro_locked_title">A Pro feature</string>
+    <string name="pro_locked_body">%1$s is part of Imran Recorder Pro.</string>
+    <string name="pro_see_plans">See plans</string>
+    <string name="pro_badge">PRO</string>
+    <string name="pro_unavailable">Google Play Billing is not available for this build. Purchases only work in a build installed from Google Play whose products are configured in Play Console.</string>
+    <string name="pro_debug_note">This is a debug build, so every Pro feature is already unlocked for testing. In a release build these stay behind the paywall.</string>
+    <string name="pro_connecting">Connecting to Google Play…</string>
+    <string name="settings_pro">Imran Recorder Pro</string>
+    <string name="settings_pro_sub_free">Unlock 60 FPS, native resolution and the full toolset</string>
+    <string name="settings_pro_sub_active">Active — thank you</string>
+    <string name="set_clean_capture">Keep controls out of the video</string>
+    <string name="set_clean_capture_sub">Marks the floating button, brush toolbar and countdown as secure so the compositor omits them from the recording. Turn off if a recording comes out black on your device.</string>
+    <string name="set_floating_persist">Keep after recording</string>
+    <string name="set_floating_persist_sub">Leave the button on screen once a recording ends</string>
 
     <!-- Audio dialog -->
     <string name="audio_title">Choose audio</string>

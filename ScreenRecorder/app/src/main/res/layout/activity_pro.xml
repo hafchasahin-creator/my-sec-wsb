@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="none"
+        android:clipToPadding="false"
+        android:paddingBottom="112dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/proHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:background="@drawable/bg_pro_header"
+                android:paddingTop="16dp"
+                android:paddingBottom="34dp">
+
+                <ImageView
+                    android:id="@+id/proClose"
+                    android:layout_width="@dimen/touch_min"
+                    android:layout_height="@dimen/touch_min"
+                    android:layout_gravity="start"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/rp_borderless"
+                    android:padding="13dp"
+                    android:src="@drawable/ic_close"
+                    android:contentDescription="@string/cancel"
+                    android:tint="@color/white" />
+
+                <ImageView
+                    android:layout_width="58dp"
+                    android:layout_height="58dp"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/bg_circle_white"
+                    android:padding="14dp"
+                    android:src="@drawable/ic_crown"
+                    android:contentDescription="@string/pro_title"
+                    android:tint="@color/brand_500" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/pro_title"
+                    android:textColor="@color/white"
+                    android:textSize="25sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="-0.02" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginStart="40dp"
+                    android:layout_marginEnd="40dp"
+                    android:alpha="0.92"
+                    android:gravity="center"
+                    android:lineSpacingExtra="2dp"
+                    android:text="@string/pro_subtitle"
+                    android:textColor="@color/white"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/proState"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/gutter"
+                android:layout_marginEnd="@dimen/gutter"
+                android:layout_marginTop="18dp"
+                android:background="@drawable/bg_card_sunken"
+                android:padding="14dp"
+                android:lineSpacingExtra="2dp"
+                android:visibility="gone"
+                style="@style/T.Sub" />
+
+            <LinearLayout
+                android:id="@+id/proFeatures"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/gutter"
+                android:paddingEnd="@dimen/gutter"
+                android:paddingTop="20dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/gutter"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="10dp"
+                android:text="@string/pro_plans"
+                style="@style/T.Group" />
+
+            <LinearLayout
+                android:id="@+id/proPlans"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/gutter"
+                android:paddingEnd="@dimen/gutter" />
+
+            <TextView
+                android:id="@+id/proFinePrint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/gutter"
+                android:layout_marginEnd="@dimen/gutter"
+                android:layout_marginTop="18dp"
+                android:lineSpacingExtra="2dp"
+                android:text="@string/pro_fine_print"
+                android:textColor="@color/text_tertiary"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:background="@color/surface"
+        android:elevation="12dp"
+        android:paddingStart="@dimen/gutter"
+        android:paddingEnd="@dimen/gutter"
+        android:paddingTop="12dp"
+        android:paddingBottom="16dp">
+
+        <LinearLayout
+            android:id="@+id/proBuy"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/pill_h"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@drawable/rp_pill_brand"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/proBuyLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/pro_continue"
+                android:textColor="@color/white"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/proRestore"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
+            android:background="@drawable/rp_borderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="@string/pro_restore"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</FrameLayout>

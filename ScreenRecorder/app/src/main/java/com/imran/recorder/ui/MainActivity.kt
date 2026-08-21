@@ -133,6 +133,10 @@ class MainActivity : AppCompatActivity() {
             it.pressBounce()
             showQuickSheet()
         }
+        findViewById<View>(R.id.topPro).setOnClickListener {
+            it.pressBounce()
+            com.imran.recorder.ui.pro.ProActivity.open(this)
+        }
         findViewById<View>(R.id.topShot).setOnClickListener { takeScreenshot() }
         findViewById<View>(R.id.topMenu).setOnClickListener { showMenuSheet() }
 
@@ -547,9 +551,15 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        com.imran.recorder.billing.Pro.refreshFromCache()
+        findViewById<ImageView>(R.id.topPro).alpha =
+            if (com.imran.recorder.billing.Pro.isPro) 1f else 0.85f
         bindRecordState(RecorderBus.state.value, RecorderBus.elapsedMs.value)
-        // The bubble can be dismissed from its own close button while we were away.
-        if (Prefs.floatingEnabled && !OverlayService.bubbleActive && Perms.overlay(this)) {
+        // Only bring the button back on its own when the user asked it to persist —
+        // otherwise it belongs to the recording and should stay gone afterwards.
+        if (Prefs.floatingEnabled && Prefs.floatingPersists &&
+            !OverlayService.bubbleActive && Perms.overlay(this)
+        ) {
             OverlayService.showBubble(this)
         }
     }

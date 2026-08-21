@@ -32,6 +32,9 @@ object Prefs {
     private const val K_HAPTICS = "haptics"
     private const val K_SORT = "library_sort"
     private const val K_OVERLAY_ASKED = "overlay_asked"
+    private const val K_FLOATING_PERSIST = "floating_persist"
+    private const val K_PRO = "pro_entitled"
+    private const val K_CLEAN_CAPTURE = "clean_capture"
 
     var onboarded: Boolean
         get() = sp.getBoolean(K_ONBOARDED, false)
@@ -68,6 +71,28 @@ object Prefs {
     var floatingEnabled: Boolean
         get() = sp.getBoolean(K_FLOATING, true)
         set(v) = sp.edit().putBoolean(K_FLOATING, v).apply()
+
+    /**
+     * Whether the floating controls stay on screen once a recording ends. Off by default:
+     * most people want the button only while capturing.
+     */
+    var floatingPersists: Boolean
+        get() = sp.getBoolean(K_FLOATING_PERSIST, false)
+        set(v) = sp.edit().putBoolean(K_FLOATING_PERSIST, v).apply()
+
+    /**
+     * Marks the app's own control overlays FLAG_SECURE so the compositor leaves them out
+     * of the screen capture. Brush strokes and the facecam are deliberately not marked,
+     * because those are meant to be in the recording.
+     */
+    var keepOverlayOutOfVideo: Boolean
+        get() = sp.getBoolean(K_CLEAN_CAPTURE, true)
+        set(v) = sp.edit().putBoolean(K_CLEAN_CAPTURE, v).apply()
+
+    /** Cached entitlement; the source of truth is the Play purchase BillingManager reports. */
+    var proEntitled: Boolean
+        get() = sp.getBoolean(K_PRO, false)
+        set(v) = sp.edit().putBoolean(K_PRO, v).apply()
 
     var facecamEnabled: Boolean
         get() = sp.getBoolean(K_FACECAM, false)
