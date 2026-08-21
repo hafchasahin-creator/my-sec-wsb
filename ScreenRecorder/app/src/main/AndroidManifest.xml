@@ -34,12 +34,22 @@
             android:exported="false"
             android:theme="@style/Theme.Imran" />
 
-        <!-- Single launch window: the cosmic intro renders inside this activity, so the
-             system splash hands straight over to it with nothing in between. -->
+        <!--
+             Single launch window: the cosmic intro renders inside this activity, so the
+             system splash hands straight over to it with nothing in between.
+
+             singleTop, not singleTask. The overlay's Home button and the recording
+             notification both start this activity with NEW_TASK, so under singleTask the
+             instance ends up owning a task whose root intent is not the launcher's; a
+             later tap on the app icon then resolves against that task instead of starting
+             cleanly, and the launch bounces straight back to the home screen. singleTop
+             still collapses duplicates, and NEW_TASK|CLEAR_TOP from the services keeps
+             reusing the existing instance.
+        -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
-            android:launchMode="singleTask"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.Imran.Launch">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

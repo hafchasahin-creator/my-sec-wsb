@@ -65,6 +65,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var intro: CosmicIntroView
     private var chromeRevealed = false
 
+    /** Set when onCreate hands a duplicate launch back; the view tree is never bound. */
+    private var bailed = false
+    private var onboardingLaunched = false
+
     private var pendingPermission: ((Boolean) -> Unit)? = null
     private var pendingOverlay: (() -> Unit)? = null
 
@@ -87,6 +91,21 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Sideloading opens the app straight from the installer, which leaves this
+        // activity sitting in a task it did not start. A later tap on the launcher icon
+        // then delivers a second ACTION_MAIN into that same task; letting it through
+        // stacks a duplicate on top of ourselves, which reads as the app reopening and
+        // immediately falling back to the home screen. Hand that one back instead.
+        if (!isTaskRoot &&
+            intent.hasCategory(Intent.CATEGORY_LAUNCHER) &&
+            intent.action == Intent.ACTION_MAIN
+        ) {
+            bailed = true
+            finish()
+            return
+        }
+
         setContentView(R.layout.activity_main)
 
         appRoot = findViewById(R.id.appRoot)
@@ -176,7 +195,7 @@ class MainActivity : AppCompatActivity() {
             appRoot.alpha = 1f
             chromeRevealed = true
             applySystemBars(dark = false)
-            if (!Prefs.onboarded) openOnboarding()
+            if (!Prefs.onboarded) appRoot.post { openOnboarding() }
             return
         }
 
@@ -201,6 +220,10 @@ class MainActivity : AppCompatActivity() {
         }
         intro.onFinished = { finishIntro() }
         intro.post { intro.start() }
+
+        // Belt and braces: whatever happens to the sequence, the app is on screen well
+        // inside a second of its budget rather than sitting on a black window.
+        intro.postDelayed({ if (intro.visibility == View.VISIBLE) abortIntro() }, 4_000)
     }
 
     private fun finishIntro() {
@@ -257,6 +280,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openOnboarding() {
+        // Guarded: the intro's finish path and the watchdog can both land here.
+        if (onboardingLaunched || isFinishing || isDestroyed) return
+        onboardingLaunched = true
         startActivity(Intent(this, OnboardingActivity::class.java))
         overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
     }
@@ -665,6 +691,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (bailed) return
         com.imran.recorder.billing.Pro.refreshFromCache()
         findViewById<ImageView>(R.id.topPro).alpha =
             if (com.imran.recorder.billing.Pro.isPro) 1f else 0.85f
@@ -680,10 +707,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
+        if (bailed) return
         // Nobody watches a launch animation from the background, and the frame loop would
         // keep posting against a window that has stopped drawing. Retire it so the app
         // returns to the home screen instead of a stale frame.
-        if (intro.visibility == View.VISIBLE) abortIntro()
+        if (::intro.isInitialized && intro.visibility == View.VISIBLE) abortIntro()
     }
 
     private fun abortIntro() {
@@ -699,7 +727,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        stopPulse()
+        if (!bailed) stopPulse()
         super.onDestroy()
     }
 

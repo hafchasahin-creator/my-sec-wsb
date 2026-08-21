@@ -356,6 +356,16 @@ class CosmicIntroView @JvmOverloads constructor(
     // ---------------- frame ----------------
 
     override fun onDraw(canvas: Canvas) {
+        // A launch animation is never worth taking the app down for. If a frame fails,
+        // retire the sequence and let the host reveal the UI it was covering.
+        try {
+            drawFrame(canvas)
+        } catch (t: Throwable) {
+            finish()
+        }
+    }
+
+    private fun drawFrame(canvas: Canvas) {
         val now = System.nanoTime()
         // Clamped so a dropped frame cannot teleport the field, and so a 120 Hz panel
         // advances the same distance per second as a 60 Hz one.
