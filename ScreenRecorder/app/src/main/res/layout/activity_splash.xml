@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/splashRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_brand_gradient">
+    android:background="@color/black"
+    android:clipChildren="true">
 
+    <!-- Intro clip. Sized to cover on prepare, so it fills any aspect ratio. -->
+    <VideoView
+        android:id="@+id/introVideo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
+    <!-- Fallback / pre-roll mark, also used if playback fails on the device. -->
     <LinearLayout
         android:id="@+id/splashMark"
         android:layout_width="wrap_content"
@@ -32,16 +43,58 @@
             android:letterSpacing="-0.01" />
     </LinearLayout>
 
+    <!-- Tagline lifts in once the logo has landed in the clip. -->
     <TextView
         android:id="@+id/splashTagline"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="56dp"
-        android:alpha="0.82"
+        android:layout_marginBottom="72dp"
+        android:alpha="0"
+        android:gravity="center"
+        android:paddingStart="40dp"
+        android:paddingEnd="40dp"
         android:text="@string/tagline"
         android:textColor="@color/white"
         android:textSize="14sp"
         android:textStyle="bold"
-        android:letterSpacing="0.03" />
+        android:letterSpacing="0.06"
+        android:shadowColor="#80000000"
+        android:shadowRadius="8"
+        android:shadowDx="0"
+        android:shadowDy="2" />
+
+    <!-- Hairline progress across the bottom edge. -->
+    <View
+        android:id="@+id/splashProgressTrack"
+        android:layout_width="match_parent"
+        android:layout_height="2.5dp"
+        android:layout_gravity="bottom"
+        android:background="#33FFFFFF" />
+
+    <View
+        android:id="@+id/splashProgress"
+        android:layout_width="match_parent"
+        android:layout_height="2.5dp"
+        android:layout_gravity="bottom|start"
+        android:background="@color/white"
+        android:scaleX="0"
+        android:transformPivotX="0dp" />
+
+    <TextView
+        android:id="@+id/splashSkip"
+        android:layout_width="wrap_content"
+        android:layout_height="38dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="18dp"
+        android:layout_marginEnd="16dp"
+        android:alpha="0"
+        android:background="@drawable/bg_skip_chip"
+        android:gravity="center"
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp"
+        android:text="@string/skip"
+        android:textColor="@color/white"
+        android:textSize="13sp"
+        android:textStyle="bold" />
 </FrameLayout>

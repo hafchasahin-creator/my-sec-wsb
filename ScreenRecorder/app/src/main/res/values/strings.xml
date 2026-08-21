@@ -119,6 +119,10 @@
     <string name="settings_pro">Imran Recorder Pro</string>
     <string name="settings_pro_sub_free">Unlock 60 FPS, native resolution and the full toolset</string>
     <string name="settings_pro_sub_active">Active — thank you</string>
+    <string name="set_intro">Intro animation</string>
+    <string name="set_intro_sub">Play the branded opening clip when the app launches</string>
+    <string name="set_intro_sound">Intro sound</string>
+    <string name="set_intro_sound_sub">Muted automatically when the phone is on silent or vibrate</string>
     <string name="set_clean_capture">Keep controls out of the video</string>
     <string name="set_clean_capture_sub">Marks the floating button, brush toolbar and countdown as secure so the compositor omits them from the recording. Turn off if a recording comes out black on your device.</string>
     <string name="set_floating_persist">Keep after recording</string>
