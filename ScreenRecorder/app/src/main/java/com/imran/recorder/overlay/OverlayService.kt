@@ -1,5 +1,6 @@
 package com.imran.recorder.overlay
 
+import android.animation.ValueAnimator
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -10,19 +11,20 @@ import android.os.IBinder
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
+import android.view.TextureView
 import android.view.View
 import android.view.WindowManager
-import android.view.TextureView
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
+import android.widget.FrameLayout
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import com.imran.recorder.R
 import com.imran.recorder.data.Prefs
 import com.imran.recorder.record.RecState
 import com.imran.recorder.record.RecorderBus
 import com.imran.recorder.record.RecorderService
-import com.imran.recorder.util.Format
+import com.imran.recorder.ui.MainActivity
 import com.imran.recorder.util.Perms
 import com.imran.recorder.util.visible
 import kotlinx.coroutines.CoroutineScope
@@ -30,14 +32,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlin.math.abs
 
 /**
- * Owns every window this app draws over other apps: the floating control capsule,
- * the annotation layer, the facecam preview and the pre-roll countdown.
+ * Owns every window this app draws over other apps: the floating record button and its
+ * arc menu, the annotation layer, the facecam preview and the pre-roll countdown.
  *
  * Not a foreground service — overlay windows only need SYSTEM_ALERT_WINDOW. The camera
  * is permitted because RecorderService is in the foreground with the camera type while
@@ -45,20 +46,31 @@ import kotlin.math.abs
  */
 class OverlayService : Service() {
 
+    private data class MenuAction(
+        val label: String,
+        val icon: Int,
+        val tint: Int,
+        val run: () -> Unit
+    )
+
     private lateinit var wm: WindowManager
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    private var bubble: View? = null
-    private var bubbleParams: WindowManager.LayoutParams? = null
+    private var fabRoot: View? = null
+    private var fabParams: WindowManager.LayoutParams? = null
     private var expanded = false
 
+    /** Button position in screen pixels (top-left of its 96dp holder). */
+    private var fabX = 0
+    private var fabY = 0
+
+    private val itemViews = ArrayList<View>()
+    private var appliedFanLeft: Boolean? = null
+    private var pulseAnimator: ValueAnimator? = null
+
     private var brushLayer: View? = null
-    private var brushView: BrushView? = null
-
     private var facecam: View? = null
-    private var facecamParams: WindowManager.LayoutParams? = null
     private var facecamController: FacecamController? = null
-
     private var countdown: View? = null
 
     private var stateJob: Job? = null
@@ -97,12 +109,13 @@ class OverlayService : Service() {
         else
             @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
 
-    private fun floatingParams(touchable: Boolean = true) = WindowManager.LayoutParams(
+    private fun collapsedParams() = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.WRAP_CONTENT,
         overlayType(),
         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-            (if (touchable) 0 else WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE),
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
         PixelFormat.TRANSLUCENT
     ).apply { gravity = Gravity.TOP or Gravity.START }
 
@@ -117,6 +130,14 @@ class OverlayService : Service() {
         PixelFormat.TRANSLUCENT
     )
 
+    private fun floatingParams() = WindowManager.LayoutParams(
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        overlayType(),
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+        PixelFormat.TRANSLUCENT
+    ).apply { gravity = Gravity.TOP or Gravity.START }
+
     private fun screenSize(): Pair<Int, Int> {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val b = wm.currentWindowMetrics.bounds
@@ -129,168 +150,112 @@ class OverlayService : Service() {
         }
     }
 
+    private fun dp(v: Float) = (v * resources.displayMetrics.density + 0.5f).toInt()
+
     private fun canDraw(): Boolean {
         if (Perms.overlay(this)) return true
         RecorderBus.say(getString(R.string.perm_overlay_body))
         return false
     }
 
-    // ---------------- floating capsule ----------------
+    // ---------------- floating button ----------------
 
     private fun showBubbleInternal() {
-        if (bubble != null) return
+        if (fabRoot != null) return
         if (!canDraw()) return
 
-        val view = LayoutInflater.from(this).inflate(R.layout.overlay_bubble, null)
-        val params = floatingParams()
+        val view = LayoutInflater.from(this).inflate(R.layout.overlay_fab, null)
+        val params = collapsedParams()
+
         val (sw, sh) = screenSize()
-        params.x = if (Prefs.bubbleX >= 0) Prefs.bubbleX else sw
-        params.y = if (Prefs.bubbleY >= 0) Prefs.bubbleY else (sh * 0.32f).toInt()
+        val holder = dp(96f)
+        fabX = if (Prefs.bubbleX >= 0) Prefs.bubbleX.coerceIn(0, sw - holder) else sw - holder
+        fabY = if (Prefs.bubbleY >= 0) Prefs.bubbleY.coerceIn(0, sh - holder) else (sh * 0.32f).toInt()
+        params.x = fabX
+        params.y = fabY
 
-        val handle = view.findViewById<View>(R.id.handle)
-        val actions = view.findViewById<LinearLayout>(R.id.actions)
+        // Collapsed the menu layers must not participate in measurement, or the
+        // wrap_content window would stretch to the full screen.
+        view.findViewById<View>(R.id.menuScrim).visibility = View.GONE
+        view.findViewById<View>(R.id.menuLayer).visibility = View.GONE
+        view.findViewById<View>(R.id.menuScrim).setOnClickListener { collapse() }
 
-        view.findViewById<ImageView>(R.id.btnRecord).setOnClickListener {
-            collapse()
-            RecorderService.requestStart(this)
-        }
-        view.findViewById<ImageView>(R.id.btnPause).setOnClickListener {
-            RecorderService.send(this, RecorderService.ACTION_TOGGLE_PAUSE)
-        }
-        view.findViewById<ImageView>(R.id.btnShot).setOnClickListener {
-            collapse()
-            RecorderService.requestScreenshot(this)
-        }
-        view.findViewById<ImageView>(R.id.btnBrush).setOnClickListener {
-            collapse()
-            if (brushLayer == null) showBrushInternal() else hideBrushInternal()
-        }
-        view.findViewById<ImageView>(R.id.btnStop).setOnClickListener {
-            collapse()
-            RecorderService.send(this, RecorderService.ACTION_STOP)
-        }
-        view.findViewById<ImageView>(R.id.btnClose).setOnClickListener {
-            Prefs.floatingEnabled = false
-            hideBubbleInternal()
-            stopIfEmpty()
-        }
+        attachFabDrag(view.findViewById(R.id.fab))
 
-        attachDrag(handle, params) { toggleExpanded(actions) }
-
-        bubble = view
-        bubbleParams = params
+        fabRoot = view
+        fabParams = params
         runCatching { wm.addView(view, params) }
-            .onFailure { bubble = null; bubbleParams = null; return }
+            .onFailure { fabRoot = null; fabParams = null; return }
 
         RecorderBus.setBubble(true)
-        renderBubble()
+        syncFabAppearance()
+
         view.alpha = 0f
-        view.animate().alpha(1f).setDuration(180).start()
-        // The capsule's width is only known after layout, so dock it once measured —
-        // otherwise the default x of "screen width" puts it entirely off-screen.
-        view.post { snapToEdge(animated = false) }
+        view.scaleX = 0.7f
+        view.scaleY = 0.7f
+        view.animate().alpha(1f).scaleX(1f).scaleY(1f)
+            .setDuration(260).setInterpolator(OvershootInterpolator(1.6f)).start()
     }
 
     private fun hideBubbleInternal() {
-        val view = bubble ?: return
-        bubble = null
-        bubbleParams = null
+        val view = fabRoot ?: return
+        stopPulse()
+        clearItems()
+        fabRoot = null
+        fabParams = null
         expanded = false
         RecorderBus.setBubble(false)
         runCatching { wm.removeView(view) }
     }
 
-    private fun toggleExpanded(actions: View) {
-        expanded = !expanded
-        if (expanded) {
-            actions.visible(true)
-            actions.alpha = 0f
-            actions.animate().alpha(1f).setDuration(160).start()
-        } else {
-            actions.animate().alpha(0f).setDuration(120).withEndAction {
-                actions.visible(false)
-            }.start()
-        }
-        renderBubble()
-        // Re-snap: the capsule got wider or narrower, so keep it against its edge.
-        bubble?.post { snapToEdge(animated = true) }
-    }
-
-    private fun collapse() {
-        if (!expanded) return
-        val actions = bubble?.findViewById<View>(R.id.actions) ?: return
-        expanded = false
-        actions.visible(false)
-        renderBubble()
-        bubble?.post { snapToEdge(animated = true) }
-    }
-
-    /** Shows only the controls that make sense for the current recorder state. */
-    private fun renderBubble() {
-        val view = bubble ?: return
-        val state = RecorderBus.state.value
-        val capturing = state == RecState.RECORDING || state == RecState.PAUSED
-
-        val icon = view.findViewById<ImageView>(R.id.handleIcon)
-        val time = view.findViewById<TextView>(R.id.handleTime)
-        icon.visible(!capturing)
-        time.visible(capturing)
-        if (capturing) time.text = Format.clock(RecorderBus.elapsedMs.value)
-
-        view.findViewById<ImageView>(R.id.btnRecord).visible(expanded && !capturing)
-        view.findViewById<ImageView>(R.id.btnPause).apply {
-            visible(expanded && capturing)
-            setImageResource(if (state == RecState.PAUSED) R.drawable.ic_play else R.drawable.ic_pause)
-        }
-        view.findViewById<ImageView>(R.id.btnStop).visible(expanded && capturing)
-        view.findViewById<ImageView>(R.id.btnBrush).apply {
-            visible(expanded && capturing)
-            setColorFilter(
-                ContextCompat.getColor(
-                    this@OverlayService,
-                    if (brushLayer != null) R.color.brand_500 else R.color.icon_idle
-                )
-            )
-        }
-        view.findViewById<ImageView>(R.id.btnShot).visible(expanded)
-        view.findViewById<ImageView>(R.id.btnClose).visible(expanded)
-    }
-
-    private fun attachDrag(handle: View, params: WindowManager.LayoutParams, onClick: () -> Unit) {
+    /** Drag anywhere; a tap that never moved opens the arc menu. */
+    private fun attachFabDrag(fab: View) {
         var downX = 0f
         var downY = 0f
         var startX = 0
         var startY = 0
         var dragging = false
-        val slop = (8 * resources.displayMetrics.density)
+        val slop = 10 * resources.displayMetrics.density
 
-        handle.setOnTouchListener { _, event ->
+        fab.setOnTouchListener { _, event ->
+            val params = fabParams ?: return@setOnTouchListener false
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    downX = event.rawX
-                    downY = event.rawY
-                    startX = params.x
-                    startY = params.y
+                    downX = event.rawX; downY = event.rawY
+                    startX = fabX; startY = fabY
                     dragging = false
+                    fab.animate().scaleX(0.9f).scaleY(0.9f).setDuration(90).start()
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - downX
                     val dy = event.rawY - downY
-                    if (!dragging && (abs(dx) > slop || abs(dy) > slop)) dragging = true
+                    if (!dragging && (abs(dx) > slop || abs(dy) > slop)) {
+                        dragging = true
+                        if (expanded) collapseImmediate()
+                    }
                     if (dragging) {
-                        params.x = startX + dx.toInt()
-                        params.y = startY + dy.toInt()
-                        clampToScreen(params)
-                        runCatching { wm.updateViewLayout(bubble, params) }
+                        val (sw, sh) = screenSize()
+                        val holder = dp(96f)
+                        fabX = (startX + dx.toInt()).coerceIn(0, (sw - holder).coerceAtLeast(0))
+                        fabY = (startY + dy.toInt()).coerceIn(0, (sh - holder).coerceAtLeast(0))
+                        if (expanded) {
+                            positionHolder()
+                        } else {
+                            params.x = fabX
+                            params.y = fabY
+                            runCatching { wm.updateViewLayout(fabRoot, params) }
+                        }
                     }
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    fab.animate().scaleX(1f).scaleY(1f).setDuration(140).start()
                     if (dragging) {
-                        snapToEdge(animated = true)
+                        Prefs.bubbleX = fabX
+                        Prefs.bubbleY = fabY
                     } else {
-                        onClick()
+                        if (expanded) collapse() else expand()
                     }
                     true
                 }
@@ -299,50 +264,349 @@ class OverlayService : Service() {
         }
     }
 
-    private fun clampToScreen(params: WindowManager.LayoutParams) {
-        val view = bubble ?: return
-        val (sw, sh) = screenSize()
-        val w = if (view.width > 0) view.width else view.measuredWidth
-        val h = if (view.height > 0) view.height else view.measuredHeight
-        params.x = params.x.coerceIn(0, (sw - w).coerceAtLeast(0))
-        params.y = params.y.coerceIn(0, (sh - h).coerceAtLeast(0))
+    /** Keeps the button under the finger while the window itself is full-screen. */
+    private fun positionHolder() {
+        val holder = fabRoot?.findViewById<View>(R.id.fabHolder) ?: return
+        val lp = holder.layoutParams as FrameLayout.LayoutParams
+        lp.gravity = Gravity.TOP or Gravity.START
+        lp.leftMargin = fabX
+        lp.topMargin = fabY
+        holder.layoutParams = lp
     }
 
-    /** Docks the capsule against the nearer side, the way a chat head behaves. */
-    private fun snapToEdge(animated: Boolean) {
-        val view = bubble ?: return
-        val params = bubbleParams ?: return
-        val (sw, _) = screenSize()
-        val w = if (view.width > 0) view.width else view.measuredWidth
-        val targetX = if (params.x + w / 2 < sw / 2) 0 else (sw - w).coerceAtLeast(0)
+    // ---------------- arc menu ----------------
 
-        if (!animated) {
-            params.x = targetX
-            clampToScreen(params)
+    private fun expand() {
+        val view = fabRoot ?: return
+        val params = fabParams ?: return
+        if (expanded) return
+        expanded = true
+
+        val scrim = view.findViewById<View>(R.id.menuScrim)
+        val layer = view.findViewById<FrameLayout>(R.id.menuLayer)
+        scrim.visibility = View.VISIBLE
+        layer.visibility = View.VISIBLE
+
+        // Grow the window to the whole screen so the arc is not clipped, and pin the
+        // button back to where the user left it.
+        params.width = WindowManager.LayoutParams.MATCH_PARENT
+        params.height = WindowManager.LayoutParams.MATCH_PARENT
+        params.x = 0
+        params.y = 0
+        positionHolder()
+        runCatching { wm.updateViewLayout(view, params) }
+
+        scrim.alpha = 0f
+        scrim.animate().alpha(1f).setDuration(180).start()
+
+        buildItems(layer)
+        view.post { layoutAndAnimateItems(entering = true) }
+    }
+
+    private fun collapse() {
+        val view = fabRoot ?: return
+        val params = fabParams ?: return
+        if (!expanded) return
+        expanded = false
+
+        val scrim = view.findViewById<View>(R.id.menuScrim)
+        scrim.animate().alpha(0f).setDuration(150).start()
+        layoutAndAnimateItems(entering = false)
+
+        view.postDelayed({
+            if (expanded) return@postDelayed
+            clearItems()
+            view.findViewById<View>(R.id.menuScrim).visibility = View.GONE
+            view.findViewById<View>(R.id.menuLayer).visibility = View.GONE
+
+            val holder = view.findViewById<View>(R.id.fabHolder)
+            val lp = holder.layoutParams as FrameLayout.LayoutParams
+            lp.leftMargin = 0
+            lp.topMargin = 0
+            holder.layoutParams = lp
+
+            params.width = WindowManager.LayoutParams.WRAP_CONTENT
+            params.height = WindowManager.LayoutParams.WRAP_CONTENT
+            params.x = fabX
+            params.y = fabY
             runCatching { wm.updateViewLayout(view, params) }
-            persistPosition(params)
+        }, 260)
+    }
+
+    /** Teardown with no animation, for when a drag interrupts the open menu. */
+    private fun collapseImmediate() {
+        val view = fabRoot ?: return
+        val params = fabParams ?: return
+        expanded = false
+        clearItems()
+        view.findViewById<View>(R.id.menuScrim).apply { alpha = 1f; visibility = View.GONE }
+        view.findViewById<View>(R.id.menuLayer).visibility = View.GONE
+
+        val holder = view.findViewById<View>(R.id.fabHolder)
+        val lp = holder.layoutParams as FrameLayout.LayoutParams
+        lp.leftMargin = 0
+        lp.topMargin = 0
+        holder.layoutParams = lp
+
+        params.width = WindowManager.LayoutParams.WRAP_CONTENT
+        params.height = WindowManager.LayoutParams.WRAP_CONTENT
+        params.x = fabX
+        params.y = fabY
+        runCatching { wm.updateViewLayout(view, params) }
+    }
+
+    private fun actionsForState(): List<MenuAction> {
+        val capturing = RecorderBus.isCapturing
+        val paused = RecorderBus.state.value == RecState.PAUSED
+        val list = ArrayList<MenuAction>(6)
+
+        if (capturing) {
+            list += MenuAction(
+                getString(if (paused) R.string.resume else R.string.pause),
+                if (paused) R.drawable.ic_play else R.drawable.ic_pause,
+                R.color.brand_500
+            ) {
+                RecorderService.send(this, RecorderService.ACTION_TOGGLE_PAUSE)
+                // Stay open so the label can flip in place, the way the reference shows it.
+                fabRoot?.postDelayed({ if (expanded) refreshItemLabels() }, 160)
+            }
+            list += MenuAction(getString(R.string.stop), R.drawable.ic_stop_square, R.color.record_red) {
+                collapse()
+                RecorderService.send(this, RecorderService.ACTION_STOP)
+            }
+        } else {
+            list += MenuAction(getString(R.string.record), R.drawable.ic_record_dot, R.color.record_red) {
+                collapse()
+                RecorderService.requestStart(this)
+            }
+        }
+
+        list += MenuAction(getString(R.string.tool_screenshot), R.drawable.ic_camera_frame, R.color.brand_500) {
+            collapse()
+            fabRoot?.postDelayed({ RecorderService.requestScreenshot(this) }, 240)
+        }
+        list += MenuAction(
+            getString(R.string.tool_brush), R.drawable.ic_brush,
+            if (brushLayer != null) R.color.ok_green else R.color.brand_500
+        ) {
+            collapse()
+            fabRoot?.postDelayed({
+                if (brushLayer == null) showBrushInternal() else hideBrushInternal()
+            }, 240)
+        }
+        list += MenuAction(
+            getString(R.string.tool_facecam), R.drawable.ic_facecam,
+            if (facecam != null) R.color.ok_green else R.color.brand_500
+        ) {
+            if (facecam == null) showFacecamInternal() else hideFacecamInternal()
+            fabRoot?.postDelayed({ if (expanded) refreshItemLabels() }, 200)
+        }
+        list += MenuAction(getString(R.string.home), R.drawable.ic_home, R.color.brand_500) {
+            collapse()
+            runCatching {
+                startActivity(
+                    Intent(this, MainActivity::class.java).addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    )
+                )
+            }
+        }
+        return list
+    }
+
+    private fun buildItems(layer: FrameLayout) {
+        clearItems()
+        appliedFanLeft = null
+        val actions = actionsForState()
+
+        for (action in actions) {
+            val item = LayoutInflater.from(this).inflate(R.layout.overlay_fab_item, layer, false)
+            val icon = item.findViewById<ImageView>(R.id.fabItemIcon)
+            val label = item.findViewById<TextView>(R.id.fabItemLabel)
+            val link = item.findViewById<View>(R.id.fabItemLink)
+
+            icon.setImageResource(action.icon)
+            icon.setColorFilter(getColor(action.tint))
+            label.text = action.label
+
+            val click = View.OnClickListener { action.run() }
+            icon.setOnClickListener(click)
+            label.setOnClickListener(click)
+
+            item.alpha = 0f
+            layer.addView(item)
+            itemViews += item
+        }
+    }
+
+    private fun refreshItemLabels() {
+        val layer = fabRoot?.findViewById<FrameLayout>(R.id.menuLayer) ?: return
+        buildItems(layer)
+        layoutAndAnimateItems(entering = true, stagger = 0L)
+    }
+
+    private fun clearItems() {
+        val layer = fabRoot?.findViewById<FrameLayout>(R.id.menuLayer)
+        for (v in itemViews) layer?.removeView(v)
+        itemViews.clear()
+    }
+
+    /** Mirrors each row so the icon always sits nearest the button. */
+    private fun applyMirror(fanLeft: Boolean) {
+        if (appliedFanLeft == fanLeft) return
+        appliedFanLeft = fanLeft
+        for (item in itemViews) {
+            val row = item as? android.widget.LinearLayout ?: continue
+            val icon = row.findViewById<View>(R.id.fabItemIcon)
+            val link = row.findViewById<View>(R.id.fabItemLink)
+            val label = row.findViewById<View>(R.id.fabItemLabel)
+            row.removeAllViews()
+            if (fanLeft) {
+                row.addView(label); row.addView(link); row.addView(icon)
+            } else {
+                row.addView(icon); row.addView(link); row.addView(label)
+            }
+        }
+    }
+
+    /**
+     * Lays the items on an arc centred on the button and animates them out from it.
+     * Angles run from above the button to below it, matching the reference's fan.
+     */
+    private fun layoutAndAnimateItems(entering: Boolean, stagger: Long = 32L) {
+        if (itemViews.isEmpty()) return
+        val (sw, sh) = screenSize()
+        val holder = dp(96f)
+        val cx = fabX + holder / 2
+        val cy = fabY + holder / 2
+        val radius = dp(124f).toFloat()
+        val n = itemViews.size
+
+        // Measure everything first: the fan side depends on whether a full row fits.
+        var widest = 0
+        for (item in itemViews) {
+            item.measure(
+                View.MeasureSpec.makeMeasureSpec(sw, View.MeasureSpec.AT_MOST),
+                View.MeasureSpec.makeMeasureSpec(sh, View.MeasureSpec.AT_MOST)
+            )
+            if (item.measuredWidth > widest) widest = item.measuredWidth
+        }
+        val fanLeft = ArcLayout.fanLeft(cx, sw, widest, radius)
+        applyMirror(fanLeft)
+
+        if (!entering) {
+            // Reuse the offsets recorded on the way in; re-measuring here would relayout
+            // the row underneath its own exit animation.
+            itemViews.forEachIndexed { index, item ->
+                val from = item.tag as? FloatArray ?: floatArrayOf(0f, 0f)
+                item.animate().cancel()
+                item.animate()
+                    .translationX(from[0]).translationY(from[1])
+                    .scaleX(0.35f).scaleY(0.35f).alpha(0f)
+                    .setStartDelay((itemViews.size - 1 - index) * 22L)
+                    .setDuration(180)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+            }
             return
         }
 
-        val from = params.x
-        val anim = android.animation.ValueAnimator.ofInt(from, targetX)
-        anim.duration = 200
-        anim.interpolator = android.view.animation.DecelerateInterpolator()
-        anim.addUpdateListener {
-            params.x = it.animatedValue as Int
-            runCatching { wm.updateViewLayout(view, params) }
-        }
-        anim.addListener(object : android.animation.AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: android.animation.Animator) {
-                persistPosition(params)
+        itemViews.forEachIndexed { index, item ->
+            val iw = item.measuredWidth
+            val ih = item.measuredHeight
+            val iconHalf = dp(23f)
+
+            val place = ArcLayout.place(
+                index = index, count = n, cx = cx, cy = cy, radius = radius,
+                fanLeft = fanLeft, itemWidth = iw, itemHeight = ih, iconHalf = iconHalf,
+                screenWidth = sw, screenHeight = sh
+            )
+
+            val lp = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                leftMargin = place.left
+                topMargin = place.top
             }
-        })
-        anim.start()
+            item.layoutParams = lp
+
+            item.pivotX = place.pivotX
+            item.pivotY = place.pivotY
+
+            val fromX = (cx - (lp.leftMargin + item.pivotX)).toFloat()
+            val fromY = (cy - (lp.topMargin + item.pivotY)).toFloat()
+
+            item.tag = floatArrayOf(fromX, fromY)
+            item.animate().cancel()
+            item.translationX = fromX
+            item.translationY = fromY
+            item.scaleX = 0.35f
+            item.scaleY = 0.35f
+            item.alpha = 0f
+            item.animate()
+                .translationX(0f).translationY(0f)
+                .scaleX(1f).scaleY(1f).alpha(1f)
+                .setStartDelay(index * stagger)
+                .setDuration(280)
+                .setInterpolator(OvershootInterpolator(1.1f))
+                .start()
+        }
     }
 
-    private fun persistPosition(params: WindowManager.LayoutParams) {
-        Prefs.bubbleX = params.x
-        Prefs.bubbleY = params.y
+    // ---------------- recording-state feedback ----------------
+
+    private fun syncFabAppearance() {
+        val view = fabRoot ?: return
+        val fab = view.findViewById<ImageView>(R.id.fab)
+        val capturing = RecorderBus.isCapturing
+        val paused = RecorderBus.state.value == RecState.PAUSED
+
+        fab.setImageResource(
+            when {
+                paused -> R.drawable.ic_play
+                capturing -> R.drawable.ic_video
+                else -> R.drawable.ic_record_dot
+            }
+        )
+        if (capturing && !paused) startPulse() else stopPulse()
+    }
+
+    /** Concentric rings breathe outward while capture is live. */
+    private fun startPulse() {
+        if (pulseAnimator?.isRunning == true) return
+        val view = fabRoot ?: return
+        val inner = view.findViewById<View>(R.id.ringInner)
+        val outer = view.findViewById<View>(R.id.ringOuter)
+        inner.visible(true)
+        outer.visible(true)
+
+        pulseAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 1_800
+            repeatCount = ValueAnimator.INFINITE
+            addUpdateListener { anim ->
+                val t = anim.animatedValue as Float
+                fun ring(v: View, phase: Float) {
+                    val p = (t + phase) % 1f
+                    val s = 0.85f + p * 0.5f
+                    v.scaleX = s
+                    v.scaleY = s
+                    v.alpha = (1f - p).coerceIn(0f, 1f) * 0.9f
+                }
+                ring(inner, 0f)
+                ring(outer, 0.5f)
+            }
+            start()
+        }
+    }
+
+    private fun stopPulse() {
+        pulseAnimator?.cancel()
+        pulseAnimator = null
+        fabRoot?.let {
+            it.findViewById<View>(R.id.ringInner).visible(false)
+            it.findViewById<View>(R.id.ringOuter).visible(false)
+        }
     }
 
     // ---------------- brush ----------------
@@ -371,12 +635,10 @@ class OverlayService : Service() {
         view.findViewById<ImageView>(R.id.brushExit).setOnClickListener { hideBrushInternal() }
 
         brushLayer = view
-        brushView = brush
         runCatching { wm.addView(view, fullScreenParams(touchable = true)) }
-            .onFailure { brushLayer = null; brushView = null; return }
+            .onFailure { brushLayer = null; return }
 
         RecorderBus.setBrush(true)
-        renderBubble()
         view.alpha = 0f
         view.animate().alpha(1f).setDuration(160).start()
     }
@@ -384,10 +646,8 @@ class OverlayService : Service() {
     private fun hideBrushInternal() {
         val view = brushLayer ?: return
         brushLayer = null
-        brushView = null
         RecorderBus.setBrush(false)
         runCatching { wm.removeView(view) }
-        renderBubble()
     }
 
     // ---------------- facecam ----------------
@@ -415,14 +675,12 @@ class OverlayService : Service() {
             stopIfEmpty()
         }
 
-        // Drag the frame; drag the corner grip to resize.
         attachFacecamDrag(frame, params)
         attachFacecamResize(view.findViewById(R.id.facecamResize), frame)
 
         facecam = view
-        facecamParams = params
         runCatching { wm.addView(view, params) }
-            .onFailure { facecam = null; facecamParams = null; return }
+            .onFailure { facecam = null; return }
 
         val controller = FacecamController(this)
         controller.onError = { msg ->
@@ -437,7 +695,6 @@ class OverlayService : Service() {
     private fun hideFacecamInternal() {
         val view = facecam ?: return
         facecam = null
-        facecamParams = null
         RecorderBus.setFacecam(false)
         runCatching { facecamController?.release() }
         facecamController = null
@@ -477,8 +734,8 @@ class OverlayService : Service() {
         var downX = 0f
         var startW = 0
         var startH = 0
-        val minW = (90 * resources.displayMetrics.density).toInt()
-        val maxW = (240 * resources.displayMetrics.density).toInt()
+        val minW = dp(90f)
+        val maxW = dp(240f)
 
         grip.setOnTouchListener { _, event ->
             when (event.actionMasked) {
@@ -491,7 +748,6 @@ class OverlayService : Service() {
                 MotionEvent.ACTION_MOVE -> {
                     val delta = (event.rawX - downX).toInt()
                     val newW = (startW + delta).coerceIn(minW, maxW)
-                    // Keep the 3:4 portrait ratio the preview is laid out for.
                     frame.layoutParams = frame.layoutParams.apply {
                         width = newW
                         height = (newW * (startH.toFloat() / startW)).toInt()
@@ -535,7 +791,7 @@ class OverlayService : Service() {
 
     private fun setVisibleInternal(visible: Boolean) {
         val v = if (visible) View.VISIBLE else View.INVISIBLE
-        bubble?.visibility = v
+        fabRoot?.visibility = v
         brushLayer?.visibility = v
         facecam?.visibility = v
     }
@@ -544,22 +800,16 @@ class OverlayService : Service() {
 
     private fun observeRecorder() {
         stateJob?.cancel()
-        stateJob = combine(RecorderBus.state, RecorderBus.elapsedMs) { s, ms -> s to ms }
-            .onEach { (state, ms) ->
-                val view = bubble ?: return@onEach
-                val capturing = state == RecState.RECORDING || state == RecState.PAUSED
-                view.findViewById<TextView>(R.id.handleTime).apply {
-                    visible(capturing)
-                    if (capturing) text = Format.clock(ms)
-                }
-                view.findViewById<ImageView>(R.id.handleIcon).visible(!capturing)
-                renderBubble()
+        stateJob = RecorderBus.state
+            .onEach {
+                syncFabAppearance()
+                if (expanded) refreshItemLabels()
             }
             .launchIn(scope)
     }
 
     private fun stopIfEmpty() {
-        if (bubble == null && brushLayer == null && facecam == null && countdown == null) {
+        if (fabRoot == null && brushLayer == null && facecam == null && countdown == null) {
             stopSelf()
         }
     }
@@ -616,6 +866,6 @@ class OverlayService : Service() {
 
         val brushActive: Boolean get() = instance?.brushLayer != null
         val facecamActive: Boolean get() = instance?.facecam != null
-        val bubbleActive: Boolean get() = instance?.bubble != null
+        val bubbleActive: Boolean get() = instance?.fabRoot != null
     }
 }

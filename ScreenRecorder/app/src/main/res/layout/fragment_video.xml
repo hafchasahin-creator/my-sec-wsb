@@ -151,6 +151,7 @@
 
     <!-- Section header + storage -->
     <LinearLayout
+        android:id="@+id/headerRow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -166,6 +167,17 @@
             android:layout_weight="1"
             android:text="@string/videos"
             style="@style/T.Display" />
+
+        <ImageView
+            android:id="@+id/sortButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/rp_borderless"
+            android:padding="9dp"
+            android:src="@drawable/ic_sort"
+            android:contentDescription="@string/sort"
+            android:tint="@color/icon_idle" />
 
         <LinearLayout
             android:id="@+id/storagePill"
@@ -205,6 +217,71 @@
                 android:contentDescription="@string/set_storage"
                 android:tint="@color/text_tertiary" />
         </LinearLayout>
+    </LinearLayout>
+
+    <!-- Contextual bar, swapped in for the header while items are selected -->
+    <LinearLayout
+        android:id="@+id/selectBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/brand_tint"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/selectClose"
+            android:layout_width="@dimen/touch_min"
+            android:layout_height="@dimen/touch_min"
+            android:background="@drawable/rp_borderless"
+            android:padding="13dp"
+            android:src="@drawable/ic_close"
+            android:contentDescription="@string/cancel"
+            android:tint="@color/brand_600" />
+
+        <TextView
+            android:id="@+id/selectCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:textColor="@color/brand_600"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/selectAll"
+            android:layout_width="@dimen/touch_min"
+            android:layout_height="@dimen/touch_min"
+            android:background="@drawable/rp_borderless"
+            android:padding="12dp"
+            android:src="@drawable/ic_check"
+            android:contentDescription="@string/select_all"
+            android:tint="@color/brand_600" />
+
+        <ImageView
+            android:id="@+id/selectShare"
+            android:layout_width="@dimen/touch_min"
+            android:layout_height="@dimen/touch_min"
+            android:background="@drawable/rp_borderless"
+            android:padding="12dp"
+            android:src="@drawable/ic_share"
+            android:contentDescription="@string/share"
+            android:tint="@color/brand_600" />
+
+        <ImageView
+            android:id="@+id/selectDelete"
+            android:layout_width="@dimen/touch_min"
+            android:layout_height="@dimen/touch_min"
+            android:background="@drawable/rp_borderless"
+            android:padding="12dp"
+            android:src="@drawable/ic_delete"
+            android:contentDescription="@string/delete"
+            android:tint="@color/record_red" />
     </LinearLayout>
 
     <FrameLayout

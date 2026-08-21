@@ -33,6 +33,25 @@
             android:contentDescription="@string/play"
             android:tint="@color/text_tertiary" />
 
+        <View
+            android:id="@+id/selectScrim"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#99FF5A1F"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/selectMark"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_circle_white"
+            android:padding="4dp"
+            android:src="@drawable/ic_check"
+            android:contentDescription="@string/select"
+            android:visibility="gone"
+            android:tint="@color/brand_600" />
+
         <TextView
             android:id="@+id/duration"
             android:layout_width="wrap_content"

@@ -31,6 +31,14 @@ object RecorderBus {
     private val _countdown = MutableStateFlow(0)
     val countdown = _countdown.asStateFlow()
 
+    /** Bytes written so far, read from the output descriptor while capturing. */
+    private val _bytes = MutableStateFlow(0L)
+    val bytes = _bytes.asStateFlow()
+
+    /** Short description of the running capture, e.g. "1080p · 30fps · Mic". */
+    private val _configLabel = MutableStateFlow("")
+    val configLabel = _configLabel.asStateFlow()
+
     private val _brushOn = MutableStateFlow(false)
     val brushOn = _brushOn.asStateFlow()
 
@@ -64,6 +72,8 @@ object RecorderBus {
     fun setState(s: RecState) { _state.value = s }
     fun setElapsed(ms: Long) { _elapsedMs.value = ms }
     fun setCountdown(n: Int) { _countdown.value = n }
+    fun setBytes(n: Long) { _bytes.value = n }
+    fun setConfigLabel(label: String) { _configLabel.value = label }
     fun setBrush(on: Boolean) { _brushOn.value = on }
     fun setFacecam(on: Boolean) { _facecamOn.value = on }
     fun setBubble(on: Boolean) { _bubbleOn.value = on }

@@ -99,6 +99,25 @@ class SettingsFragment : Fragment(R.layout.fragment_settings), MainActivity.Refr
         ) { pickCountdown() }
 
         row(
+            root, R.id.rowLimit, R.drawable.ic_speed,
+            getString(R.string.set_limit),
+            if (Prefs.maxMinutes == 0) getString(R.string.set_limit_sub)
+            else "After ${Prefs.maxMinutes} minutes"
+        ) { pickLimit() }
+
+        row(
+            root, R.id.rowShake, R.drawable.ic_swap,
+            getString(R.string.set_shake), getString(R.string.set_shake_sub),
+            switch = Prefs.shakeToStop
+        ) { Prefs.shakeToStop = !Prefs.shakeToStop; bindAll() }
+
+        row(
+            root, R.id.rowHaptics, R.drawable.ic_volume,
+            getString(R.string.set_haptics), getString(R.string.set_haptics_sub),
+            switch = Prefs.haptics
+        ) { Prefs.haptics = !Prefs.haptics; bindAll() }
+
+        row(
             root, R.id.rowStorage, R.drawable.ic_storage,
             getString(R.string.set_storage), MediaStoreRepo.VIDEO_DIR
         ) { showStorageInfo() }
@@ -327,6 +346,23 @@ class SettingsFragment : Fragment(R.layout.fragment_settings), MainActivity.Refr
             subtitle = { if (it == 0) "Start capturing immediately" else null },
             current = Prefs.countdown
         ) { Prefs.countdown = it; bindAll() }
+    }
+
+    private fun pickLimit() {
+        val ctx = context ?: return
+        Sheets.pick(
+            ctx, getString(R.string.set_limit),
+            listOf(0, 5, 15, 30, 60),
+            label = { if (it == 0) "No limit" else "$it minutes" },
+            subtitle = {
+                when (it) {
+                    0 -> "Record until you stop it"
+                    5 -> "Good for quick clips"
+                    else -> null
+                }
+            },
+            current = Prefs.maxMinutes
+        ) { Prefs.maxMinutes = it; bindAll() }
     }
 
     private fun toggleFacecam() {

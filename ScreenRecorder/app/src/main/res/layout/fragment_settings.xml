@@ -152,6 +152,21 @@
             <View android:layout_width="match_parent" android:layout_height="1dp"
                 android:layout_marginStart="66dp" android:background="@color/divider" />
 
+            <include android:id="@+id/rowLimit" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowShake" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
+            <include android:id="@+id/rowHaptics" layout="@layout/row_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginStart="66dp" android:background="@color/divider" />
+
             <include android:id="@+id/rowStorage" layout="@layout/row_setting" />
         </LinearLayout>
 

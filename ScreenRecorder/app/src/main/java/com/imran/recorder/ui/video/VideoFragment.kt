@@ -16,6 +16,7 @@ import com.imran.recorder.R
 import com.imran.recorder.data.MediaEntry
 import com.imran.recorder.data.MediaStoreRepo
 import com.imran.recorder.data.Prefs
+import com.imran.recorder.data.SortMode
 import com.imran.recorder.data.Thumbnails
 import com.imran.recorder.overlay.OverlayService
 import com.imran.recorder.record.RecorderBus
@@ -27,6 +28,7 @@ import com.imran.recorder.util.Format
 import com.imran.recorder.util.Perms
 import com.imran.recorder.util.pressBounce
 import com.imran.recorder.util.shareMedia
+import com.imran.recorder.util.shareMultiple
 import com.imran.recorder.util.toast
 import com.imran.recorder.util.visible
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +41,9 @@ class VideoFragment : Fragment(R.layout.fragment_video), MainActivity.Refreshabl
     private lateinit var list: RecyclerView
     private lateinit var empty: View
     private lateinit var adapter: VideoAdapter
+    private lateinit var headerRow: View
+    private lateinit var selectBar: View
+    private lateinit var selectCount: TextView
 
     private val host get() = activity as? MainActivity
 
@@ -48,7 +53,20 @@ class VideoFragment : Fragment(R.layout.fragment_video), MainActivity.Refreshabl
         list = view.findViewById(R.id.list)
         empty = view.findViewById(R.id.empty)
 
-        adapter = VideoAdapter(onOpen = ::openItem, onMore = ::showItemSheet)
+        headerRow = view.findViewById(R.id.headerRow)
+        selectBar = view.findViewById(R.id.selectBar)
+        selectCount = view.findViewById(R.id.selectCount)
+
+        adapter = VideoAdapter(
+            onOpen = ::openItem,
+            onMore = ::showItemSheet,
+            onToggleSelect = { adapter.toggle(it); syncSelectBar() },
+            onStartSelection = { item ->
+                adapter.setSelectionMode(true)
+                adapter.toggle(item)
+                syncSelectBar()
+            }
+        )
         list.layoutManager = LinearLayoutManager(requireContext())
         list.adapter = adapter
         list.layoutAnimation =
@@ -59,6 +77,14 @@ class VideoFragment : Fragment(R.layout.fragment_video), MainActivity.Refreshabl
         wireQuickTools(view)
 
         view.findViewById<View>(R.id.storagePill).setOnClickListener { showStorageSheet() }
+        view.findViewById<View>(R.id.sortButton).setOnClickListener { showSortSheet() }
+
+        view.findViewById<View>(R.id.selectClose).setOnClickListener { exitSelection() }
+        view.findViewById<View>(R.id.selectAll).setOnClickListener {
+            adapter.selectAll(); syncSelectBar()
+        }
+        view.findViewById<View>(R.id.selectShare).setOnClickListener { shareSelection() }
+        view.findViewById<View>(R.id.selectDelete).setOnClickListener { deleteSelection() }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -153,7 +179,9 @@ class VideoFragment : Fragment(R.layout.fragment_video), MainActivity.Refreshabl
     override fun refresh() {
         val view = view ?: return
         viewLifecycleOwner.lifecycleScope.launch {
-            val items = withContext(Dispatchers.IO) { MediaStoreRepo.videos(requireContext()) }
+            val items = withContext(Dispatchers.IO) {
+                sorted(MediaStoreRepo.videos(requireContext()))
+            }
             if (!isAdded) return@launch
 
             adapter.submitList(items) {
@@ -267,6 +295,74 @@ class VideoFragment : Fragment(R.layout.fragment_video), MainActivity.Refreshabl
                     R.drawable.ic_photo
                 ) {}
             ))
+        }
+    }
+
+    private fun sorted(items: List<MediaEntry>): List<MediaEntry> = when (Prefs.sort) {
+        SortMode.NEWEST -> items.sortedByDescending { it.dateAddedSec }
+        SortMode.OLDEST -> items.sortedBy { it.dateAddedSec }
+        SortMode.LARGEST -> items.sortedByDescending { it.sizeBytes }
+        SortMode.LONGEST -> items.sortedByDescending { it.durationMs }
+        SortMode.NAME -> items.sortedBy { it.name.lowercase() }
+    }
+
+    private fun showSortSheet() {
+        val ctx = context ?: return
+        Sheets.pick(
+            ctx, getString(R.string.sort),
+            SortMode.entries.toList(),
+            label = { it.label },
+            current = Prefs.sort
+        ) { Prefs.sort = it; refresh() }
+    }
+
+    // ---------------- multi-select ----------------
+
+    private fun syncSelectBar() {
+        val on = adapter.selectionMode
+        headerRow.visible(!on)
+        selectBar.visible(on)
+        if (on) selectCount.text = getString(R.string.selected_n, adapter.selectedCount)
+    }
+
+    private fun exitSelection() {
+        adapter.setSelectionMode(false)
+        syncSelectBar()
+    }
+
+    private fun shareSelection() {
+        val ctx = context ?: return
+        val picked = adapter.selectedItems()
+        if (picked.isEmpty()) {
+            toastSafe("Nothing selected")
+            return
+        }
+        ctx.shareMultiple(ArrayList(picked.map { it.uri }), "video/mp4")
+        exitSelection()
+    }
+
+    private fun deleteSelection() {
+        val ctx = context ?: return
+        val picked = adapter.selectedItems()
+        if (picked.isEmpty()) {
+            toastSafe("Nothing selected")
+            return
+        }
+        Sheets.confirm(
+            ctx,
+            getString(R.string.delete_n_title, picked.size),
+            getString(R.string.delete_body),
+            getString(R.string.delete)
+        ) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                val removed = withContext(Dispatchers.IO) {
+                    picked.count { MediaStoreRepo.delete(requireContext(), it) }
+                }
+                picked.forEach { Thumbnails.evict(it.uri) }
+                toastSafe("Deleted $removed of ${picked.size}")
+                exitSelection()
+                refresh()
+            }
         }
     }
 

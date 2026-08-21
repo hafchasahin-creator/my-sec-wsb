@@ -23,6 +23,11 @@ import com.imran.recorder.util.Format
 import com.imran.recorder.util.openExternally
 import com.imran.recorder.util.shareMedia
 import com.imran.recorder.util.toast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.lifecycle.lifecycleScope
+import java.io.BufferedOutputStream
 
 /** In-app playback with its own transport, so recordings open without leaving the app. */
 class PlayerActivity : AppCompatActivity() {
@@ -37,6 +42,8 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var uri: Uri
     private var displayName: String = ""
     private var chromeVisible = true
+    private var speed = 1f
+    private var mediaPlayer: android.media.MediaPlayer? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private val tick = object : Runnable {
@@ -71,6 +78,7 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<View>(R.id.playerMore).setOnClickListener { showMore() }
 
         video.setOnPreparedListener { player ->
+            mediaPlayer = player
             player.isLooping = false
             seek.max = video.duration.coerceAtLeast(1)
             duration.text = Format.clock(video.duration.toLong())
@@ -128,12 +136,99 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun showMore() {
         Sheets.show(this, displayName.substringBeforeLast('.'), listOf(
+            SheetItem(
+                getString(R.string.grab_frame),
+                "Save the current frame as an image",
+                R.drawable.ic_camera_frame
+            ) { grabFrame() },
+            SheetItem(getString(R.string.speed), speedLabel(), R.drawable.ic_speed) { pickSpeed() },
             SheetItem(getString(R.string.rename), null, R.drawable.ic_pencil) { rename() },
             SheetItem("Open with another app", null, R.drawable.ic_open_ext) {
                 openExternally(uri, "video/mp4")
             },
             SheetItem(getString(R.string.delete), null, R.drawable.ic_delete) { confirmDelete() }
         ))
+    }
+
+    // ---------------- frame grab ----------------
+
+    /**
+     * Pulls the frame at the playhead straight out of the file rather than off the
+     * VideoView, so the saved image is full resolution and free of any UI overlay.
+     */
+    private fun grabFrame() {
+        val atMs = video.currentPosition.toLong()
+        lifecycleScope.launch {
+            val saved = withContext(Dispatchers.IO) {
+                val retriever = android.media.MediaMetadataRetriever()
+                try {
+                    retriever.setDataSource(this@PlayerActivity, uri)
+                    val bmp = retriever.getFrameAtTime(
+                        atMs * 1000, android.media.MediaMetadataRetriever.OPTION_CLOSEST
+                    ) ?: return@withContext null
+
+                    val name = MediaStoreRepo.timestampName("Frame", "png")
+                    val target = MediaStoreRepo.createImage(this@PlayerActivity, name)
+                        ?: return@withContext null
+                    val ok = runCatching {
+                        contentResolver.openOutputStream(target)?.use { out ->
+                            BufferedOutputStream(out).use { bos ->
+                                bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, bos)
+                            }
+                        } != null
+                    }.getOrDefault(false)
+                    bmp.recycle()
+
+                    if (ok) {
+                        MediaStoreRepo.publish(this@PlayerActivity, target)
+                        target
+                    } else {
+                        MediaStoreRepo.discard(this@PlayerActivity, target)
+                        null
+                    }
+                } catch (t: Throwable) {
+                    null
+                } finally {
+                    runCatching { retriever.release() }
+                }
+            }
+            if (saved != null) {
+                RecorderBus.notifyMediaChanged()
+                toast(getString(R.string.frame_saved))
+            } else {
+                toast("Could not save that frame")
+            }
+        }
+    }
+
+    // ---------------- playback speed ----------------
+
+    private fun speedLabel() = "${speed}x"
+
+    private fun pickSpeed() {
+        Sheets.pick(
+            this, getString(R.string.speed),
+            listOf(0.5f, 1f, 1.5f, 2f),
+            label = { "${it}x" },
+            current = speed
+        ) { applySpeed(it) }
+    }
+
+    private fun applySpeed(value: Float) {
+        speed = value
+        // VideoView exposes no speed control, so the rate is set on the MediaPlayer the
+        // prepared-callback captured. Not every decoder honours it.
+        val player = mediaPlayer
+        if (player == null) {
+            toast("Speed is unavailable for this file")
+            return
+        }
+        runCatching {
+            val wasPlaying = video.isPlaying
+            player.playbackParams = player.playbackParams.setSpeed(value)
+            if (!wasPlaying) player.pause()
+            syncPlayIcon()
+        }.onFailure { toast("Speed is unavailable for this file") }
     }
 
     private fun currentEntry(): MediaEntry? =

@@ -27,6 +27,11 @@ object Prefs {
     private const val K_BUBBLE_Y = "bubble_y"
     private const val K_BRUSH_COLOR = "brush_color"
     private const val K_BRUSH_WIDTH = "brush_width"
+    private const val K_SHAKE_STOP = "shake_stop"
+    private const val K_MAX_MINUTES = "max_minutes"
+    private const val K_HAPTICS = "haptics"
+    private const val K_SORT = "library_sort"
+    private const val K_OVERLAY_ASKED = "overlay_asked"
 
     var onboarded: Boolean
         get() = sp.getBoolean(K_ONBOARDED, false)
@@ -61,7 +66,7 @@ object Prefs {
         set(v) = sp.edit().putInt(K_COUNTDOWN, v).apply()
 
     var floatingEnabled: Boolean
-        get() = sp.getBoolean(K_FLOATING, false)
+        get() = sp.getBoolean(K_FLOATING, true)
         set(v) = sp.edit().putBoolean(K_FLOATING, v).apply()
 
     var facecamEnabled: Boolean
@@ -83,6 +88,29 @@ object Prefs {
     var brushWidth: Float
         get() = sp.getFloat(K_BRUSH_WIDTH, 10f)
         set(v) = sp.edit().putFloat(K_BRUSH_WIDTH, v).apply()
+
+    /** Shake the device to end a capture without hunting for a control. */
+    var shakeToStop: Boolean
+        get() = sp.getBoolean(K_SHAKE_STOP, false)
+        set(v) = sp.edit().putBoolean(K_SHAKE_STOP, v).apply()
+
+    /** Auto-stop after this many minutes; 0 means no limit. */
+    var maxMinutes: Int
+        get() = sp.getInt(K_MAX_MINUTES, 0)
+        set(v) = sp.edit().putInt(K_MAX_MINUTES, v).apply()
+
+    var haptics: Boolean
+        get() = sp.getBoolean(K_HAPTICS, true)
+        set(v) = sp.edit().putBoolean(K_HAPTICS, v).apply()
+
+    /** Whether the overlay rationale has been shown, so it is asked once, not every capture. */
+    var overlayAsked: Boolean
+        get() = sp.getBoolean(K_OVERLAY_ASKED, false)
+        set(v) = sp.edit().putBoolean(K_OVERLAY_ASKED, v).apply()
+
+    var sort: SortMode
+        get() = SortMode.from(sp.getString(K_SORT, SortMode.NEWEST.key))
+        set(v) = sp.edit().putString(K_SORT, v.key).apply()
 
     fun bitrateFor(width: Int, height: Int, fps: Int): Int {
         // ~0.1 bits per pixel per frame at standard quality, clamped to sane encoder limits.
@@ -107,6 +135,18 @@ enum class AudioSource(val key: String, val label: String) {
 
     companion object {
         fun from(k: String?) = entries.firstOrNull { it.key == k } ?: MUTE
+    }
+}
+
+enum class SortMode(val key: String, val label: String) {
+    NEWEST("newest", "Newest first"),
+    OLDEST("oldest", "Oldest first"),
+    LARGEST("largest", "Largest first"),
+    LONGEST("longest", "Longest first"),
+    NAME("name", "Name A–Z");
+
+    companion object {
+        fun from(k: String?) = entries.firstOrNull { it.key == k } ?: NEWEST
     }
 }
 

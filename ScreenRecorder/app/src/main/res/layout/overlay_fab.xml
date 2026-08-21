@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One window serves both states. Collapsed it wraps the button; expanded it fills the
+  screen so the arc has room, with the button pinned back to its dragged position.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/fabRoot"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <View
+        android:id="@+id/menuScrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_menu_scrim"
+        android:visibility="gone" />
+
+    <!-- Arc items are added here at runtime so they can be positioned around the button -->
+    <FrameLayout
+        android:id="@+id/menuLayer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <FrameLayout
+        android:id="@+id/fabHolder"
+        android:layout_width="96dp"
+        android:layout_height="96dp">
+
+        <View
+            android:id="@+id/ringOuter"
+            android:layout_width="94dp"
+            android:layout_height="94dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_pulse_ring" />
+
+        <View
+            android:id="@+id/ringInner"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_pulse_ring" />
+
+        <ImageView
+            android:id="@+id/fab"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="center"
+            android:background="@drawable/rp_fab_orange"
+            android:padding="16dp"
+            android:src="@drawable/ic_video"
+            android:contentDescription="@string/app_name"
+            android:elevation="8dp"
+            android:tint="@color/white" />
+    </FrameLayout>
+</FrameLayout>

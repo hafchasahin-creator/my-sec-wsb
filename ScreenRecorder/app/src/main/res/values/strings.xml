@@ -15,6 +15,8 @@
     <string name="tool_facecam">Facecam</string>
     <string name="tool_screenshot">Screenshot</string>
     <string name="tool_floating">Floating</string>
+    <string name="home">Home</string>
+    <string name="collapse">Collapse</string>
 
     <!-- Recorder -->
     <string name="record">Record</string>
@@ -83,6 +85,12 @@
     <string name="set_countdown_sub">Delay before capture begins</string>
     <string name="set_storage">Storage location</string>
     <string name="set_facecam">Facecam</string>
+    <string name="set_shake">Shake to stop</string>
+    <string name="set_shake_sub">Give the phone a firm shake to end a recording</string>
+    <string name="set_limit">Auto-stop</string>
+    <string name="set_limit_sub">End the recording after a set time</string>
+    <string name="set_haptics">Haptics</string>
+    <string name="set_haptics_sub">Vibrate on record, pause and stop</string>
 
     <string name="faq">FAQ</string>
     <string name="tutorial">How it works</string>
@@ -142,5 +150,18 @@
     <string name="ob4_body">Stop from the bubble or the notification. Finished clips appear in your Video library, ready to play or share.</string>
 
     <string name="storage_free">%1$s free of %2$s</string>
+    <string name="sort">Sort</string>
+    <string name="select">Select</string>
+    <string name="select_all">Select all</string>
+    <string name="selected_n">%1$d selected</string>
+    <string name="delete_n_title">Delete %1$d files?</string>
+    <string name="low_storage_title">Low storage</string>
+    <string name="low_storage_body">Only %1$s left. A recording can fill that quickly and would be cut short. Free some space, or start anyway.</string>
+    <string name="start_anyway">Start anyway</string>
+    <string name="grab_frame">Save this frame</string>
+    <string name="speed">Speed</string>
+    <string name="mute">Mute</string>
+    <string name="unmute">Unmute</string>
+    <string name="frame_saved">Frame saved to Screenshots</string>
     <string name="content_desc_more">More options</string>
 </resources>

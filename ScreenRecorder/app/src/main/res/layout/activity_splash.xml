@@ -14,11 +14,11 @@
 
         <ImageView
             android:id="@+id/splashLogo"
-            android:layout_width="92dp"
-            android:layout_height="92dp"
-            android:src="@drawable/ic_logomark"
+            android:layout_width="150dp"
+            android:layout_height="113dp"
+            android:src="@drawable/logo_mark"
             android:contentDescription="@string/app_name"
-            android:tint="@color/white" />
+            android:adjustViewBounds="true" />
 
         <TextView
             android:id="@+id/splashName"

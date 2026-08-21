@@ -20,11 +20,10 @@
         android:background="@color/surface">
 
         <ImageView
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:src="@drawable/ic_logomark"
-            android:contentDescription="@string/app_name"
-            android:tint="@color/brand_500" />
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/logo_badge"
+            android:contentDescription="@string/app_name" />
 
         <TextView
             android:layout_width="0dp"
@@ -109,6 +108,100 @@
                 android:textColor="@color/white"
                 android:textSize="17sp"
                 android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Live transport, swapped in for the pill while a capture is running -->
+        <LinearLayout
+            android:id="@+id/liveBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_live_bar"
+            android:paddingStart="16dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:elevation="3dp"
+            android:visibility="gone">
+
+            <View
+                android:id="@+id/liveDot"
+                android:layout_width="11dp"
+                android:layout_height="11dp"
+                android:background="@drawable/bg_circle_red" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="11dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/liveTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="00:00"
+                    android:textColor="@color/text_primary"
+                    android:textSize="23sp"
+                    android:textStyle="bold"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="-0.03"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/liveMeta"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    style="@style/T.Sub" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/liveBrush"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/rp_circle_soft"
+                android:padding="11dp"
+                android:src="@drawable/ic_brush"
+                android:contentDescription="@string/tool_brush"
+                android:tint="@color/icon_idle" />
+
+            <ImageView
+                android:id="@+id/liveShot"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/rp_circle_soft"
+                android:padding="11dp"
+                android:src="@drawable/ic_screenshot"
+                android:contentDescription="@string/tool_screenshot"
+                android:tint="@color/icon_idle" />
+
+            <ImageView
+                android:id="@+id/livePause"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/rp_circle_tint"
+                android:padding="14dp"
+                android:src="@drawable/ic_pause"
+                android:contentDescription="@string/pause"
+                android:tint="@color/brand_600" />
+
+            <ImageView
+                android:id="@+id/liveStop"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/rp_circle_red"
+                android:padding="15dp"
+                android:src="@drawable/ic_stop_square"
+                android:contentDescription="@string/stop"
+                android:tint="@color/white" />
         </LinearLayout>
     </FrameLayout>
 

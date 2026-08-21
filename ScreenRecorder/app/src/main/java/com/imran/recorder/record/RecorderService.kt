@@ -9,6 +9,10 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
@@ -28,6 +32,7 @@ import com.imran.recorder.data.Prefs
 import com.imran.recorder.overlay.OverlayService
 import com.imran.recorder.ui.MainActivity
 import com.imran.recorder.util.Perms
+import kotlin.math.sqrt
 
 /**
  * Owns the MediaProjection for the whole app: the recording, and any screenshot taken
@@ -44,6 +49,7 @@ class RecorderService : Service() {
     private var outputUri: Uri? = null
     private var startedForeground = false
     private var shooting = false
+    private var sensors: SensorManager? = null
 
     private var countdownLeft = 0
     private var pendingResultCode = Activity.RESULT_CANCELED
@@ -59,9 +65,55 @@ class RecorderService : Service() {
     private val ticker = object : Runnable {
         override fun run() {
             val e = engine ?: return
-            RecorderBus.setElapsed(e.recordedMs())
+            val ms = e.recordedMs()
+            RecorderBus.setElapsed(ms)
+            // A cheap fstat, so the live bar shows the real file size rather than an estimate.
+            RecorderBus.setBytes(runCatching { pfd?.statSize ?: 0L }.getOrDefault(0L))
+
+            val limit = Prefs.maxMinutes
+            if (limit > 0 && ms >= limit * 60_000L) {
+                RecorderBus.say("Reached the $limit-minute limit — recording saved")
+                finishRecording()
+                return
+            }
             main.postDelayed(this, 250)
         }
+    }
+
+    /** Shake-to-stop: a firm shake ends the capture without hunting for a control. */
+    private val shakeListener = object : SensorEventListener {
+        private var lastTriggerAt = 0L
+
+        override fun onSensorChanged(event: SensorEvent) {
+            if (!RecorderBus.isCapturing) return
+            val x = event.values[0]
+            val y = event.values[1]
+            val z = event.values[2]
+            val gForce = sqrt(x * x + y * y + z * z) / SensorManager.GRAVITY_EARTH
+            if (gForce < SHAKE_G) return
+
+            val now = SystemClock.elapsedRealtime()
+            // Debounce: one shake is many samples, and starting a capture often jostles the phone.
+            if (now - lastTriggerAt < 1_500) return
+            lastTriggerAt = now
+            RecorderBus.say("Shake detected — recording saved")
+            finishRecording()
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+    }
+
+    private fun startShakeWatch() {
+        if (!Prefs.shakeToStop) return
+        val manager = getSystemService(SENSOR_SERVICE) as? SensorManager ?: return
+        val accelerometer = manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) ?: return
+        manager.registerListener(shakeListener, accelerometer, SensorManager.SENSOR_DELAY_UI)
+        sensors = manager
+    }
+
+    private fun stopShakeWatch() {
+        runCatching { sensors?.unregisterListener(shakeListener) }
+        sensors = null
     }
 
     private val countdownStep = object : Runnable {
@@ -207,11 +259,26 @@ class RecorderService : Service() {
 
         RecorderBus.setState(RecState.RECORDING)
         RecorderBus.setElapsed(0)
+        RecorderBus.setBytes(0)
+        RecorderBus.setConfigLabel(describe(cfg))
+        startShakeWatch()
         main.post(ticker)
         updateNotification()
 
-        if (Prefs.floatingEnabled) OverlayService.showBubble(this)
+        if (Prefs.floatingEnabled && Perms.overlay(this)) OverlayService.showBubble(this)
         if (Prefs.facecamEnabled && Perms.camera(this)) OverlayService.showFacecam(this)
+    }
+
+    /** e.g. "1080p · 30fps · Mic" — shown under the live timer. */
+    private fun describe(cfg: RecordConfig): String {
+        val shortEdge = minOf(cfg.width, cfg.height)
+        val audio = when (cfg.audio) {
+            AudioSource.MUTE -> "No audio"
+            AudioSource.MIC -> "Mic"
+            AudioSource.INTERNAL -> "Device audio"
+            AudioSource.INTERNAL_MIC -> "Device + mic"
+        }
+        return "${shortEdge}p · ${cfg.fps}fps · $audio"
     }
 
     private fun fail(message: String) {
@@ -278,6 +345,7 @@ class RecorderService : Service() {
     }
 
     private fun completeSave(recordedMs: Long) {
+        stopShakeWatch()
         val tooShort = recordedMs < 700
         closeOutput(discard = tooShort)
 
@@ -286,6 +354,8 @@ class RecorderService : Service() {
         OverlayService.hideFacecam()
 
         RecorderBus.setElapsed(0)
+        RecorderBus.setBytes(0)
+        RecorderBus.setConfigLabel("")
         RecorderBus.setState(RecState.IDLE)
         RecorderBus.notifyMediaChanged()
         if (tooShort) RecorderBus.say("Recording was too short to save")
@@ -531,6 +601,7 @@ class RecorderService : Service() {
     override fun onDestroy() {
         main.removeCallbacks(ticker)
         main.removeCallbacks(countdownStep)
+        stopShakeWatch()
 
         // The process is going away, so finalise inline rather than handing off to a worker
         // that would never get to post its result back.
@@ -552,6 +623,7 @@ class RecorderService : Service() {
         private const val TAG = "RecorderService"
         private const val CHANNEL_ID = "imran_recording"
         private const val NOTIF_ID = 4711
+        private const val SHAKE_G = 2.7f
 
         const val ACTION_START = "com.imran.recorder.START"
         const val ACTION_STOP = "com.imran.recorder.STOP"

@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -45,6 +46,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recordIcon: ImageView
     private lateinit var recordLabel: TextView
 
+    private lateinit var liveBar: View
+    private lateinit var liveDot: View
+    private lateinit var liveTime: TextView
+    private lateinit var liveMeta: TextView
+    private lateinit var livePause: ImageView
+    private lateinit var liveStop: ImageView
+    private lateinit var liveBrush: ImageView
+    private lateinit var liveShot: ImageView
+
+    private var pulse: android.animation.ObjectAnimator? = null
+    private var lastState: RecState? = null
+
     private var pendingPermission: ((Boolean) -> Unit)? = null
     private var pendingOverlay: (() -> Unit)? = null
 
@@ -79,6 +92,36 @@ class MainActivity : AppCompatActivity() {
         recordButton.setOnClickListener {
             it.pressBounce()
             onRecordPressed()
+        }
+
+        liveBar = findViewById(R.id.liveBar)
+        liveDot = findViewById(R.id.liveDot)
+        liveTime = findViewById(R.id.liveTime)
+        liveMeta = findViewById(R.id.liveMeta)
+        livePause = findViewById(R.id.livePause)
+        liveStop = findViewById(R.id.liveStop)
+        liveBrush = findViewById(R.id.liveBrush)
+        liveShot = findViewById(R.id.liveShot)
+
+        livePause.setOnClickListener {
+            it.pressBounce()
+            haptic()
+            RecorderService.send(this, RecorderService.ACTION_TOGGLE_PAUSE)
+        }
+        liveStop.setOnClickListener {
+            it.pressBounce()
+            haptic(strong = true)
+            RecorderService.send(this, RecorderService.ACTION_STOP)
+        }
+        liveShot.setOnClickListener {
+            it.pressBounce()
+            haptic()
+            RecorderService.requestScreenshot(this)
+        }
+        liveBrush.setOnClickListener {
+            it.pressBounce()
+            haptic()
+            ensureOverlay { OverlayService.toggleBrush(this) }
         }
 
         findViewById<View>(R.id.navVideo).setOnClickListener { select(Tab.VIDEO) }
@@ -153,6 +196,40 @@ class MainActivity : AppCompatActivity() {
 
     /** Collects the permissions this configuration needs, then hands off to the service. */
     fun startRecording() {
+        val free = com.imran.recorder.data.MediaStoreRepo.storage(this).first
+        if (free in 1 until LOW_STORAGE_BYTES) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.low_storage_title)
+                .setMessage(getString(R.string.low_storage_body, Format.size(free)))
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.start_anyway) { _, _ -> beginPermissionFlow() }
+                .show()
+            return
+        }
+        beginPermissionFlow()
+    }
+
+    private fun beginPermissionFlow() {
+        // The floating controls need the overlay grant, which lives in a settings screen
+        // rather than a runtime prompt. Ask once, then never nag — capture works either way.
+        if (Prefs.floatingEnabled && !Perms.overlay(this) && !Prefs.overlayAsked) {
+            Prefs.overlayAsked = true
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.perm_overlay_title)
+                .setMessage(R.string.perm_overlay_body)
+                .setNegativeButton(R.string.skip) { _, _ -> continuePermissionFlow() }
+                .setPositiveButton(R.string.grant) { _, _ ->
+                    pendingOverlay = { continuePermissionFlow() }
+                    runCatching { overlayLauncher.launch(Perms.overlayIntent(this)) }
+                        .onFailure { continuePermissionFlow() }
+                }
+                .show()
+            return
+        }
+        continuePermissionFlow()
+    }
+
+    private fun continuePermissionFlow() {
         ensureNotifications {
             val needsMic = Prefs.audioSource.needsMic
             if (needsMic && !Perms.mic(this)) {
@@ -176,34 +253,108 @@ class MainActivity : AppCompatActivity() {
         ensureNotifications { RecorderService.requestScreenshot(this) }
     }
 
+    /**
+     * Two presentations share the record slot: the call-to-action pill when idle, and the
+     * live transport (timer, pause, screenshot, brush, stop) while a capture is running.
+     */
     private fun bindRecordState(state: RecState, elapsed: Long) {
-        val (bg, label, icon) = when (state) {
-            RecState.RECORDING -> Triple(
-                R.drawable.rp_pill_record, Format.clock(elapsed), R.drawable.ic_stop_square
-            )
-            RecState.PAUSED -> Triple(
-                R.drawable.rp_pill_record,
-                "${getString(R.string.state_paused)} · ${Format.clock(elapsed)}",
-                R.drawable.ic_stop_square
-            )
-            RecState.COUNTDOWN -> Triple(
-                R.drawable.rp_pill_record, getString(R.string.starting), R.drawable.ic_close
-            )
-            RecState.STARTING -> Triple(
-                R.drawable.rp_pill_record, getString(R.string.starting), R.drawable.ic_record_dot
-            )
-            RecState.SAVING -> Triple(
-                R.drawable.rp_pill_brand, getString(R.string.saving), R.drawable.ic_record_dot
-            )
-            RecState.IDLE -> Triple(
-                R.drawable.rp_pill_brand, getString(R.string.record), R.drawable.ic_record_dot
+        val live = state == RecState.RECORDING || state == RecState.PAUSED
+
+        if (live != (liveBar.visibility == View.VISIBLE)) crossFadeToLive(live)
+
+        if (live) {
+            liveTime.text = Format.clock(elapsed)
+            liveMeta.text = liveMetaText(state)
+
+            val paused = state == RecState.PAUSED
+            livePause.setImageResource(if (paused) R.drawable.ic_play else R.drawable.ic_pause)
+            livePause.contentDescription =
+                getString(if (paused) R.string.resume else R.string.pause)
+            liveDot.alpha = if (paused) 0.3f else 1f
+            if (paused) stopPulse() else startPulse()
+        } else {
+            stopPulse()
+            val (bg, label, icon) = when (state) {
+                RecState.COUNTDOWN -> Triple(
+                    R.drawable.rp_pill_record, getString(R.string.starting), R.drawable.ic_close
+                )
+                RecState.STARTING -> Triple(
+                    R.drawable.rp_pill_record, getString(R.string.starting), R.drawable.ic_record_dot
+                )
+                RecState.SAVING -> Triple(
+                    R.drawable.rp_pill_brand, getString(R.string.saving), R.drawable.ic_record_dot
+                )
+                else -> Triple(
+                    R.drawable.rp_pill_brand, getString(R.string.record), R.drawable.ic_record_dot
+                )
+            }
+            recordButton.setBackgroundResource(bg)
+            recordLabel.text = label
+            recordIcon.setImageResource(icon)
+            recordButton.isEnabled = state != RecState.SAVING && state != RecState.STARTING
+            recordButton.alpha = if (recordButton.isEnabled) 1f else 0.7f
+        }
+
+        // A short buzz on each real transition, not on every timer tick.
+        if (lastState != state) {
+            when (state) {
+                RecState.RECORDING -> if (lastState == RecState.STARTING) haptic(strong = true)
+                RecState.IDLE -> if (lastState == RecState.SAVING) haptic()
+                else -> Unit
+            }
+            lastState = state
+        }
+    }
+
+    private fun liveMetaText(state: RecState): String {
+        val parts = ArrayList<String>(3)
+        if (state == RecState.PAUSED) parts += getString(R.string.state_paused)
+        RecorderBus.configLabel.value.takeIf { it.isNotEmpty() }?.let { parts += it }
+        RecorderBus.bytes.value.takeIf { it > 0 }?.let { parts += Format.size(it) }
+        return parts.joinToString(" · ")
+    }
+
+    private fun crossFadeToLive(live: Boolean) {
+        val appearing = if (live) liveBar else recordButton
+        val leaving = if (live) recordButton else liveBar
+
+        leaving.animate().alpha(0f).setDuration(120).withEndAction {
+            leaving.visibility = View.INVISIBLE
+        }.start()
+
+        appearing.alpha = 0f
+        appearing.scaleX = 0.96f
+        appearing.scaleY = 0.96f
+        appearing.visibility = View.VISIBLE
+        appearing.animate().alpha(1f).scaleX(1f).scaleY(1f)
+            .setStartDelay(70).setDuration(200).start()
+    }
+
+    private fun startPulse() {
+        if (pulse?.isRunning == true) return
+        pulse = android.animation.ObjectAnimator.ofFloat(liveDot, View.ALPHA, 1f, 0.25f).apply {
+            duration = 620
+            repeatMode = android.animation.ValueAnimator.REVERSE
+            repeatCount = android.animation.ValueAnimator.INFINITE
+            start()
+        }
+    }
+
+    private fun stopPulse() {
+        pulse?.cancel()
+        pulse = null
+        liveDot.alpha = 1f
+    }
+
+    private fun haptic(strong: Boolean = false) {
+        if (!Prefs.haptics) return
+        val effect = if (strong) HapticFeedbackConstants.LONG_PRESS
+        else HapticFeedbackConstants.VIRTUAL_KEY
+        runCatching {
+            recordButton.performHapticFeedback(
+                effect, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
             )
         }
-        recordButton.setBackgroundResource(bg)
-        recordLabel.text = label
-        recordIcon.setImageResource(icon)
-        recordButton.isEnabled = state != RecState.SAVING && state != RecState.STARTING
-        recordButton.alpha = if (recordButton.isEnabled) 1f else 0.7f
     }
 
     private fun observe() {
@@ -214,6 +365,23 @@ class MainActivity : AppCompatActivity() {
                 }
                 launch {
                     RecorderBus.elapsedMs.collectLatest { bindRecordState(RecorderBus.state.value, it) }
+                }
+                launch {
+                    RecorderBus.bytes.collectLatest {
+                        if (liveBar.visibility == View.VISIBLE) {
+                            liveMeta.text = liveMetaText(RecorderBus.state.value)
+                        }
+                    }
+                }
+                launch {
+                    RecorderBus.brushOn.collectLatest { on ->
+                        liveBrush.setColorFilter(
+                            androidx.core.content.ContextCompat.getColor(
+                                this@MainActivity,
+                                if (on) R.color.brand_600 else R.color.icon_idle
+                            )
+                        )
+                    }
                 }
                 launch {
                     RecorderBus.messages.collectLatest { toast(it) }
@@ -386,6 +554,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        stopPulse()
+        super.onDestroy()
+    }
+
     /** Fragments that keep list state fresh implement this. */
     interface Refreshable {
         fun refresh()
@@ -393,5 +566,8 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val KEY_TAB = "tab"
+
+        /** Below this, a capture is likely to be cut short, so warn before starting. */
+        private const val LOW_STORAGE_BYTES = 500L * 1024 * 1024
     }
 }
