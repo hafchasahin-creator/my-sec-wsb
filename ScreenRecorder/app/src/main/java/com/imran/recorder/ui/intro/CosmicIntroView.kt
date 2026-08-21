@@ -17,6 +17,7 @@ import android.util.AttributeSet
 import android.view.Choreographer
 import android.view.View
 import com.imran.recorder.R
+import com.imran.recorder.data.Prefs
 import com.imran.recorder.ui.intro.IntroTimeline.T_DRIFT_END
 import com.imran.recorder.ui.intro.IntroTimeline.T_TRAVEL_END
 import com.imran.recorder.ui.intro.IntroTimeline.T_RING_IN
@@ -69,6 +70,12 @@ class CosmicIntroView @JvmOverloads constructor(
     /** Progress of the final dive, 0..1 — the host uses it to reveal the UI underneath. */
     var onPortalProgress: ((Float) -> Unit)? = null
 
+    /**
+     * Calmer variant for devices that report animations as disabled: the same beats, with
+     * the travel speed and particle motion pulled right down. Set before [start].
+     */
+    var reducedMotion = false
+
     // ---------------- state ----------------
     private var startNanos = 0L
     private var lastFrameNanos = 0L
@@ -77,6 +84,7 @@ class CosmicIntroView @JvmOverloads constructor(
     private var skipFrom = -1f          // time at which a tap asked to cut it short
 
     private val random = Random(7)
+    private var lowMotion = false
     private val lite: Boolean = run {
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
         am?.isLowRamDevice == true
@@ -187,8 +195,22 @@ class CosmicIntroView @JvmOverloads constructor(
         ) == 0f
     }.getOrDefault(false)
 
+    /** Runs the sequence again from the top, rebuilding anything release() freed. */
+    fun replay() {
+        running = false
+        finished = false
+        skipFrom = -1f
+        if (particleCount == 0 && width > 0 && height > 0) {
+            runCatching { buildNebula(width, height) }
+            runCatching { buildLogoParticles() }
+        }
+        for (i in sHasPrev.indices) sHasPrev[i] = false
+        start()
+    }
+
     fun start() {
         lastFrameNanos = 0L
+        lowMotion = reducedMotion
         if (running || finished) return
         running = true
         startNanos = System.nanoTime()
@@ -242,8 +264,13 @@ class CosmicIntroView @JvmOverloads constructor(
         subPaint.textSize = unit * 0.046f
         subPaint.letterSpacing = 0.42f
 
-        buildNebula(w, h)
-        buildLogoParticles()
+        // Layout must not be able to throw on behalf of the animation.
+        runCatching { buildNebula(w, h) }.onFailure {
+            Prefs.introLastResult = "nebula failed: ${it.javaClass.simpleName}"
+        }
+        runCatching { buildLogoParticles() }.onFailure {
+            Prefs.introLastResult = "logo failed: ${it.javaClass.simpleName}"
+        }
     }
 
     /**
@@ -361,6 +388,10 @@ class CosmicIntroView @JvmOverloads constructor(
         try {
             drawFrame(canvas)
         } catch (t: Throwable) {
+            // Never take the app down for a launch animation — but do not lose the reason
+            // either, or a sequence that fails on frame one is indistinguishable from one
+            // that was never asked to play.
+            Prefs.introLastResult = "render failed: ${t.javaClass.simpleName}: ${t.message}"
             finish()
         }
     }
@@ -410,7 +441,7 @@ class CosmicIntroView @JvmOverloads constructor(
     }
 
     private fun stepAndDrawStars(canvas: Canvas, t: Float, veil: Float) {
-        val v = speedAt(t) * frameDelta
+        val v = speedAt(t) * frameDelta * (if (lowMotion) 0.35f else 1f)
         val appear = smooth(0f, T_DRIFT_END, t) * veil
         if (appear <= 0.004f) return
 

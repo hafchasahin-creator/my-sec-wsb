@@ -36,6 +36,7 @@ object Prefs {
     private const val K_PRO = "pro_entitled"
     private const val K_CLEAN_CAPTURE = "clean_capture"
     private const val K_INTRO = "intro_enabled"
+    private const val K_INTRO_RESULT = "intro_last_result"
 
     var onboarded: Boolean
         get() = sp.getBoolean(K_ONBOARDED, false)
@@ -94,6 +95,15 @@ object Prefs {
     var introEnabled: Boolean
         get() = sp.getBoolean(K_INTRO, true)
         set(v) = sp.edit().putBoolean(K_INTRO, v).apply()
+
+    /**
+     * What the launch sequence did last time, surfaced in Settings. A launch animation
+     * fails invisibly by nature — there is nothing left on screen to look at — so it
+     * says why rather than leaving the user guessing.
+     */
+    var introLastResult: String
+        get() = sp.getString(K_INTRO_RESULT, "not run yet") ?: "not run yet"
+        set(v) = sp.edit().putString(K_INTRO_RESULT, v).apply()
 
     /** Cached entitlement; the source of truth is the Play purchase BillingManager reports. */
     var proEntitled: Boolean

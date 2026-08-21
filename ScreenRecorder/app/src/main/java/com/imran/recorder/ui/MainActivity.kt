@@ -181,14 +181,27 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * The intro is a view over the real UI, so there is exactly one window and no second
-     * splash to hand off to. It plays once per process — not on rotation, and not when
-     * MainActivity comes back from a child screen.
+     * splash to hand off to.
+     *
+     * It plays on every launch from the app icon, including a warm one where the process
+     * outlived the last visit — opening the app and not getting the opening is the wrong
+     * surprise. It deliberately does not play on rotation, on the way back from a child
+     * screen, or when the notification or the overlay's Home button brings the app
+     * forward, since none of those are the app opening.
      */
     private fun setUpIntro(savedInstanceState: Bundle?) {
-        val shouldPlay = savedInstanceState == null &&
-            !introPlayedThisProcess &&
-            Prefs.introEnabled &&
-            !intro.animationsDisabled()
+        // The in-app switch is the authority. The system animation scale is deliberately
+        // not a veto here: phones sitting in battery saver, or with the developer-options
+        // scale turned off, report animations as disabled, and skipping outright meant
+        // the sequence simply never appeared. It selects the calmer, cheaper variant
+        // instead, so the setting still means something without silently winning.
+        val shouldPlay = savedInstanceState == null && Prefs.introEnabled
+
+        Prefs.introLastResult = when {
+            !Prefs.introEnabled -> "off in settings"
+            savedInstanceState != null -> "skipped: screen was restored"
+            else -> "playing"
+        }
 
         if (!shouldPlay) {
             intro.visibility = View.GONE
@@ -198,8 +211,6 @@ class MainActivity : AppCompatActivity() {
             if (!Prefs.onboarded) appRoot.post { openOnboarding() }
             return
         }
-
-        introPlayedThisProcess = true
 
         // Held back so the portal is what reveals it, then eased in behind the flash.
         appRoot.alpha = 0f
@@ -218,12 +229,49 @@ class MainActivity : AppCompatActivity() {
                 staggerChromeIn()
             }
         }
+        intro.reducedMotion = intro.animationsDisabled()
         intro.onFinished = { finishIntro() }
         intro.post { intro.start() }
 
         // Belt and braces: whatever happens to the sequence, the app is on screen well
         // inside a second of its budget rather than sitting on a black window.
         intro.postDelayed({ if (intro.visibility == View.VISIBLE) abortIntro() }, 4_000)
+    }
+
+    /**
+     * Replays the sequence over the live UI. Settings uses it so turning the switch on
+     * shows what it turns on, and so a launch that never animated can be told apart from
+     * one that animated into nothing.
+     */
+    fun playIntroPreview() {
+        if (intro.visibility == View.VISIBLE) return
+        intro.alpha = 1f
+        intro.visibility = View.VISIBLE
+        intro.isClickable = true
+        intro.setOnClickListener { intro.skip() }
+        intro.reducedMotion = intro.animationsDisabled()
+        applySystemBars(dark = true)
+
+        intro.onPortalProgress = { u ->
+            if (u >= 0.26f) applySystemBars(dark = false)
+        }
+        intro.onFinished = {
+            intro.animate().alpha(0f).setDuration(150).withLayer().withEndAction {
+                intro.visibility = View.GONE
+                intro.onFinished = null
+                intro.onPortalProgress = null
+                intro.release()
+            }.start()
+            applySystemBars(dark = false)
+        }
+        intro.post { intro.replay() }
+        intro.postDelayed({
+            if (intro.visibility == View.VISIBLE) {
+                intro.visibility = View.GONE
+                intro.release()
+                applySystemBars(dark = false)
+            }
+        }, 4_000)
     }
 
     private fun finishIntro() {
@@ -689,6 +737,20 @@ class MainActivity : AppCompatActivity() {
         startActivity(Intent.createChooser(intent, getString(R.string.share_app)))
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (bailed) return
+        // Only a genuine tap on the app icon replays the opening. The notification and the
+        // overlay's Home button also land here, and neither is the app being opened.
+        if (intent.action == Intent.ACTION_MAIN &&
+            intent.hasCategory(Intent.CATEGORY_LAUNCHER) &&
+            Prefs.introEnabled
+        ) {
+            playIntroPreview()
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         if (bailed) return
@@ -740,7 +802,6 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_TAB = "tab"
 
         /** Survives activity recreation, so the sequence is a launch event, not a screen event. */
-        private var introPlayedThisProcess = false
 
         /** Below this, a capture is likely to be cut short, so warn before starting. */
         private const val LOW_STORAGE_BYTES = 500L * 1024 * 1024

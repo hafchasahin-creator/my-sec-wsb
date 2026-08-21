@@ -143,11 +143,18 @@ class SettingsFragment : Fragment(R.layout.fragment_settings), MainActivity.Refr
             switch = Prefs.haptics
         ) { Prefs.haptics = !Prefs.haptics; bindAll() }
 
+        // The subtitle carries what the sequence actually did last launch, and switching
+        // it on plays it straight away, so "it never appeared" is answerable on the spot.
         row(
             root, R.id.rowIntro, R.drawable.ic_play,
-            getString(R.string.set_intro), getString(R.string.set_intro_sub),
+            getString(R.string.set_intro),
+            getString(R.string.set_intro_sub) + " \u00b7 last launch: " + Prefs.introLastResult,
             switch = Prefs.introEnabled
-        ) { Prefs.introEnabled = !Prefs.introEnabled; bindAll() }
+        ) {
+            Prefs.introEnabled = !Prefs.introEnabled
+            bindAll()
+            if (Prefs.introEnabled) (activity as? MainActivity)?.playIntroPreview()
+        }
 
         row(
             root, R.id.rowStorage, R.drawable.ic_storage,
