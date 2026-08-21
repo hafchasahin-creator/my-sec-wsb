@@ -1,0 +1,39 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "pack.name",
+    "description": "pack.description",
+    "uuid": "837b97e5-fb37-46ac-abc1-496b0005f1f6",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "d965509e-6450-46d4-b98a-c162c2618f7b",
+      "version": [1, 0, 0]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "402fe423-0bd1-4aa1-a86f-f3404c3139e8",
+      "version": [1, 0, 0]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "05ec89ab-2be0-4ded-b90c-041e54625857",
+      "version": [1, 0, 0]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.10.0"
+    }
+  ],
+  "metadata": {
+    "authors": ["Don't Look Behind You"],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

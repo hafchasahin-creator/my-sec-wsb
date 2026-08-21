@@ -1,0 +1,5 @@
+pack.name=Don't Look Behind You
+pack.description=The Follower - custom model, texture, animations and sound design.
+entity.dlby:follower.name=The Follower
+item.spawn_egg.entity.dlby:follower.name=Spawn The Follower
+item.dlby:followers_eye=Follower's Eye

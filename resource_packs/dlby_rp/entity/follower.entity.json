@@ -1,0 +1,26 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "dlby:follower",
+      "min_engine_version": "1.21.0",
+      "materials": { "default": "entity_alphatest" },
+      "textures": { "default": "textures/entity/follower" },
+      "geometry": { "default": "geometry.dlby_follower" },
+      "animations": {
+        "stare": "animation.dlby_follower.stare",
+        "stalk": "animation.dlby_follower.stalk",
+        "sprint": "animation.dlby_follower.sprint",
+        "attack": "animation.dlby_follower.attack"
+      },
+      "scripts": {
+        "animate": ["controller.animation.dlby_follower.main"]
+      },
+      "render_controllers": ["controller.render.dlby_follower"],
+      "spawn_egg": {
+        "base_color": "#0a0a0d",
+        "overlay_color": "#c9c3ba"
+      }
+    }
+  }
+}

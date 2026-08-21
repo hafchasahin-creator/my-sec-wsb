@@ -1,0 +1,54 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.dlby_follower.main": {
+      "initial_state": "frozen",
+      "states": {
+
+        "frozen": {
+          "animations": ["stare"],
+          "blend_transition": 0.06,
+          "transitions": [
+            { "attack": "query.mark_variant == 3" },
+            { "sprint": "query.mark_variant == 4" },
+            { "stalk": "query.mark_variant == 2" }
+          ]
+        },
+
+        "stalk": {
+          "animations": [
+            { "stalk": "math.min(query.modified_move_speed * 2.2, 1.0)" }
+          ],
+          "blend_transition": 0.14,
+          "transitions": [
+            { "attack": "query.mark_variant == 3" },
+            { "sprint": "query.mark_variant == 4" },
+            { "frozen": "query.mark_variant <= 1" }
+          ]
+        },
+
+        "sprint": {
+          "animations": [
+            { "sprint": "math.min(query.modified_move_speed * 2.2, 1.0)" }
+          ],
+          "blend_transition": 0.12,
+          "transitions": [
+            { "attack": "query.mark_variant == 3" },
+            { "stalk": "query.mark_variant == 2" },
+            { "frozen": "query.mark_variant <= 1" }
+          ]
+        },
+
+        "attack": {
+          "animations": ["attack"],
+          "blend_transition": 0.04,
+          "transitions": [
+            { "frozen": "query.mark_variant <= 1" },
+            { "stalk": "query.mark_variant == 2" },
+            { "sprint": "query.mark_variant == 4" }
+          ]
+        }
+      }
+    }
+  }
+}

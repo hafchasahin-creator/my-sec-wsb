@@ -1,5 +1,9 @@
 # Arcane Arsenal
 
+> This repository also contains **[Don't Look Behind You](DONT_LOOK_BEHIND_YOU.md)** —
+> a Bedrock horror add-on whose entity moves only while nobody is looking at it.
+> Deliverable: `dist/Dont_Look_Behind_You.mcaddon`.
+
 A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six
 legendary weapons with scripted magic effects.
 
