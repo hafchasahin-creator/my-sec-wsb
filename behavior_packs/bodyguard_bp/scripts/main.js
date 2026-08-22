@@ -99,8 +99,14 @@ const CONFIG = {
 const BUDGET = {
   /** Ticks between main-loop runs. */
   interval: 4,
-  /** Bodyguards updated per main-loop run. */
+  /** Bodyguards updated per main-loop run - the hard ceiling on cost. */
   perTick: 4,
+  /**
+   * Ticks between updates of any one bodyguard.  Without this the update rate
+   * would rise as the population fell, so regeneration and the stuck watchdog
+   * would run several times faster for a lone bodyguard than for a squad.
+   */
+  perGuard: 10,
   /** Ticks between full registry reconciles. */
   reconcile: 200,
 };
@@ -307,6 +313,7 @@ function state(id) {
       specialReadyAt: 0,
       regenCounter: 0,
       gearCounter: 0,
+      nextUpdateAt: 0,
       victoryPending: false,
       killedAt: 0,
       ranged: false,
@@ -797,8 +804,9 @@ function updateGuard(guard) {
 
     if (away > CONFIG.follow.teleportDistance) {
       recall(guard, owner, false);
-    } else if (away > CONFIG.follow.stuckDistance && moved < 0.4) {
-      // It should be closing the gap but has not moved: pathing is blocked.
+    } else if (away > CONFIG.follow.stuckDistance && moved < 0.4 && !inCombat(entry)) {
+      // It should be closing the gap but has not moved, and it is not busy
+      // fighting something: pathing is blocked.
       entry.stuckCount += 1;
       if (entry.stuckCount >= CONFIG.follow.stuckChecks) recall(guard, owner, true);
     } else {
@@ -844,7 +852,7 @@ function updateGuard(guard) {
     }
   } else {
     // --- Out of combat ---------------------------------------------------
-    if (entry.victoryPending && now - entry.killedAt < 200 && entry.killedAt > 0) {
+    if (entry.victoryPending && entry.killedAt > 0 && now - entry.killedAt < 400) {
       entry.victoryPending = false;
       safe(() => guard.triggerEvent("bg:victory_start"));
       playSound(guard, "random.levelup", 0.4, 1.6);
@@ -861,7 +869,7 @@ function updateGuard(guard) {
     }
 
     // Slow regeneration, roughly one point every three seconds.
-    entry.regenCounter = (entry.regenCounter + 1) % 4;
+    entry.regenCounter = (entry.regenCounter + 1) % 6;
     if (entry.regenCounter === 0 && now > entry.combatUntil + CONFIG.regen.delay * 20) {
       const health = getHealth(guard);
       if (health && health.currentValue < health.effectiveMax) {
@@ -912,17 +920,26 @@ system.runInterval(() => {
   if (!ids.length) return;
   if (cursor >= ids.length) cursor = 0;
 
-  const count = Math.min(BUDGET.perTick, ids.length);
-  for (let i = 0; i < count; i++) {
-    const id = ids[(cursor + i) % ids.length];
+  // Walk the registry round-robin, updating those that are due, and stop once
+  // the per-run budget is spent.  A large population simply updates less often
+  // rather than costing more per tick.
+  let done = 0;
+  for (let step = 0; step < ids.length && done < BUDGET.perTick; step++) {
+    const index = (cursor + step) % ids.length;
+    const id = ids[index];
     const guard = resolve(id);
     if (!guard) {
       forget(id);
       continue;
     }
+    const entry = state(id);
+    if (now < entry.nextUpdateAt) continue;
+    entry.nextUpdateAt = now + BUDGET.perGuard;
+    done += 1;
+    cursor = index + 1;
     safe(() => updateGuard(guard));
   }
-  cursor = (cursor + count) % ids.length;
+  if (done === 0) cursor = (cursor + BUDGET.perTick) % ids.length;
 }, BUDGET.interval);
 
 // --------------------------------------------------------------------------

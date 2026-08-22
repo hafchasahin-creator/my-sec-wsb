@@ -299,6 +299,36 @@ check(
   String(guardHealth.currentValue)
 );
 
+// The regeneration rate must not depend on how many bodyguards exist: the
+// update cadence is per-bodyguard, not "whatever is left of the tick budget".
+guardHealth.setCurrentValue(20);
+await advance(20 * 60);
+const soloGain = guardHealth.currentValue - 20;
+check(
+  "regeneration is slow, not a heal button",
+  soloGain >= 10 && soloGain <= 30,
+  soloGain + " health in 60s"
+);
+
+const crowd = [];
+for (let i = 0; i < 8; i++) {
+  const extra = overworld.spawnEntity("bg:bodyguard", { x: 700 + i, y: 64, z: 700 });
+  extra.setDynamicProperty("bg:ownerName", "Ripley");
+  extra.setDynamicProperty("bg:mode", 0);
+  crowd.push(extra);
+}
+await advance(20 * 12); // let the registry pick them up
+guardHealth.setCurrentValue(20);
+await advance(20 * 60);
+const crowdGain = guardHealth.currentValue - 20;
+check(
+  "the same rate holds with a crowd of bodyguards",
+  Math.abs(crowdGain - soloGain) <= 4,
+  "solo " + soloGain + " vs crowd " + crowdGain
+);
+for (const extra of crowd) extra.remove();
+await advance(20 * 12);
+
 // --- teleport-back and dimensions ------------------------------------------
 guard.location = { x: 500, y: 64, z: 500 };
 stats.teleports.length = 0;

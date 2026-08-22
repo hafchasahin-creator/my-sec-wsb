@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+
+# Optional Bedrock 1.21.0 reference tree (tools/fetch_reference.py)
+.bedrock-reference/
