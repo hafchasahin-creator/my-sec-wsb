@@ -70,9 +70,14 @@ shows each one's health, mode and distance.
 ### The rest of the panel
 
 * **Equipment** — hand over the item you are holding, or take everything back.
-* **Rename** — give them any codename you like.
+* **Post Settings** — for STAY and GUARD: move the post to where you are standing, and
+  set the guard radius anywhere from 4 to 32 blocks.
+* **Rename** — give them any codename you like. A **name tag** works too: whatever you
+  write on it becomes their codename, and the mode badge rebuilds around it.
 * **Come Here** — pull them to you.
 * **Dismiss** — retire them; their gear comes back to you.
+
+The panel also shows how many threats each bodyguard has stopped.
 
 ---
 
@@ -133,6 +138,10 @@ On top of the native melee:
 
 Out of combat it regenerates about 20 health per minute, starting 8 seconds after the
 last hit.
+
+If you go down, your escort stops what it is doing and marks the spot. When you respawn,
+everyone in an escort mode regroups on you — bodyguards on a STAY or GUARD post keep
+their post.
 
 ---
 

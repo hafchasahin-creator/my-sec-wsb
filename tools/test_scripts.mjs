@@ -82,6 +82,11 @@ function spawnPlayer(name, dimension, location) {
   return player;
 }
 
+/** Clear the badge so the next update rebuilds it from the dynamic property. */
+function refreshBadge(entity) {
+  entity.nameTag = "";
+}
+
 function spawnHostile(dimension, location, typeId = "minecraft:zombie") {
   const mob = new Entity(typeId, dimension, location);
   mob._families = ["monster", "mob", "zombie", "undead"];
@@ -151,7 +156,7 @@ check("panel opened for the owner", ui.forms.shown.length === 1, JSON.stringify(
 const panel = ui.forms.shown[0];
 check(
   "panel has five modes plus five actions",
-  panel && panel.buttons.length === 9,
+  panel && panel.buttons.length === 10,
   panel ? String(panel.buttons.length) : "no panel"
 );
 check("panel is addressed to the owner", panel && panel.player === "Ripley");
@@ -383,6 +388,42 @@ guard.remove();
 await advance(10);
 noErrors("post-death ticks");
 
+// --- the owner going down and coming back ---------------------------------
+const escort = overworld.spawnEntity("bg:bodyguard", { x: 5, y: 64, z: 5 });
+await advance(4);
+world.afterEvents.dataDrivenEntityTrigger._fire({ entity: escort, eventId: "bg:on_bind" });
+await advance(4);
+owner.location = { x: 5, y: 64, z: 5 };
+world.afterEvents.dataDrivenEntityTrigger._fire({ entity: escort, eventId: "bg:on_bind" });
+await advance(4);
+escort.setDynamicProperty("bg:ownerName", "Ripley");
+escort.setDynamicProperty("bg:ownerId", owner.id);
+escort.setDynamicProperty("bg:mode", 0);
+await advance(20);
+
+stats.particles.length = 0;
+world.afterEvents.entityDie._fire({
+  deadEntity: owner,
+  damageSource: { cause: "entityAttack", damagingEntity: zombie },
+});
+await advance(4);
+noErrors("owner death");
+check("the escort reacts to the owner going down", stats.particles.some((p) => p.id === "bg:alert_ping"));
+
+escort.location = { x: 900, y: 64, z: 900 };
+owner.location = { x: 0, y: 70, z: 0 };
+stats.teleports.length = 0;
+world.afterEvents.playerSpawn._fire({ player: owner, initialSpawn: false });
+await advance(40);
+noErrors("respawn regroup");
+check(
+  "the escort regroups on respawn",
+  stats.teleports.some((t) => t.id === escort.id),
+  JSON.stringify(escort.location)
+);
+escort.remove();
+await advance(20);
+
 // --- resilience ------------------------------------------------------------
 // Events that arrive for entities that are already gone must not throw.
 world.afterEvents.entityHurt._fire({ hurtEntity: guard, damage: 3, damageSource: { cause: "fall" } });
@@ -531,12 +572,50 @@ check("and the ranged goal is switched off", stats.triggered.some((t) => t.event
 // --- rename ----------------------------------------------------------------
 await advance(15);
 ui.resetForms();
-ui.answer("action", 6); // Rename
+ui.answer("action", 7); // Rename
 ui.answer("modal", undefined, ["Bishop"]);
 world.afterEvents.dataDrivenEntityTrigger._fire({ entity: guard2, eventId: "bg:command_panel" });
 await advance(8);
 check("renaming works", guard2.getDynamicProperty("bg:codename") === "Bishop");
 check("the new name shows on the badge", /Bishop/.test(guard2.nameTag), guard2.nameTag);
+
+// --- a name tag renames it, rather than fighting the badge -----------------
+guard2.nameTag = "Reyes";
+await advance(30);
+check("a name tag is adopted as the codename", guard2.getDynamicProperty("bg:codename") === "Reyes");
+check("and the badge comes back with it", /Reyes/.test(guard2.nameTag) && /\u00a78\|/.test(guard2.nameTag), guard2.nameTag);
+guard2.setDynamicProperty("bg:codename", "Bishop");
+refreshBadge(guard2);
+
+// --- post settings ---------------------------------------------------------
+await advance(15);
+ui.resetForms();
+ui.answer("action", 2); // GUARD
+world.afterEvents.dataDrivenEntityTrigger._fire({ entity: guard2, eventId: "bg:command_panel" });
+await advance(6);
+check("GUARD mode is set", guard2.getDynamicProperty("bg:mode") === 2);
+
+await advance(15);
+ui.resetForms();
+ui.answer("action", 6); // Post Settings
+ui.answer("modal", undefined, [true, 24]);
+world.afterEvents.dataDrivenEntityTrigger._fire({ entity: guard2, eventId: "bg:command_panel" });
+await advance(10);
+noErrors("post settings");
+check("the guard radius is applied", guard2.getDynamicProperty("bg:radius") === 24, String(guard2.getDynamicProperty("bg:radius")));
+const movedPost = guard2.getDynamicProperty("bg:anchor");
+check(
+  "the post moved to where the owner stood",
+  movedPost && Math.abs(movedPost.x - owner2.location.x) < 0.01,
+  JSON.stringify(movedPost)
+);
+
+// Back to FOLLOW so the remaining checks behave.
+await advance(15);
+ui.resetForms();
+ui.answer("action", 0);
+world.afterEvents.dataDrivenEntityTrigger._fire({ entity: guard2, eventId: "bg:command_panel" });
+await advance(6);
 
 // --- the squad panel -------------------------------------------------------
 await advance(15);
@@ -553,7 +632,7 @@ check(
 // --- dismissal returns the gear -------------------------------------------
 await advance(15);
 ui.resetForms();
-ui.answer("action", 8); // Dismiss
+ui.answer("action", 9); // Dismiss
 ui.answer("message", 0); // confirm
 world.afterEvents.dataDrivenEntityTrigger._fire({ entity: guard2, eventId: "bg:command_panel" });
 await advance(10);

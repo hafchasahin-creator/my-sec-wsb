@@ -11,4 +11,3 @@ item.spawn_egg.entity.bg:bodyguard.name=Spawn Bodyguard
 entity.bg:bodyguard.name=Bodyguard
 
 action.interact.bodyguard.command=Command
-action.hint.exit.bg:bodyguard=Command Bodyguard

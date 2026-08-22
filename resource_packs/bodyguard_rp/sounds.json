@@ -3,27 +3,103 @@
     "entities": {
       "bg:bodyguard": {
         "volume": 0.7,
-        "pitch": [0.85, 1.0],
+        "pitch": [
+          0.85,
+          1.0
+        ],
         "events": {
           "ambient": {
             "sound": "armor.equip_generic",
             "volume": 0.35,
-            "pitch": [0.7, 0.85]
+            "pitch": [
+              0.7,
+              0.85
+            ]
           },
           "hurt": {
             "sound": "mob.villager.hit",
             "volume": 0.8,
-            "pitch": [0.7, 0.85]
+            "pitch": [
+              0.7,
+              0.85
+            ]
           },
           "death": {
             "sound": "mob.villager.death",
             "volume": 0.9,
-            "pitch": [0.65, 0.75]
+            "pitch": [
+              0.65,
+              0.75
+            ]
           },
           "step": {
             "sound": "step.stone",
             "volume": 0.4,
-            "pitch": [0.8, 0.95]
+            "pitch": [
+              0.8,
+              0.95
+            ]
+          },
+          "fall.big": {
+            "sound": "damage.fallbig",
+            "volume": 0.6,
+            "pitch": 0.9
+          },
+          "fall.small": {
+            "sound": "damage.fallsmall",
+            "volume": 0.5,
+            "pitch": 0.9
+          },
+          "splash": {
+            "sound": "random.splash",
+            "volume": 0.5,
+            "pitch": 1.0
+          },
+          "swim": {
+            "sound": "random.swim",
+            "volume": 0.4,
+            "pitch": 1.0
+          }
+        }
+      },
+      "bodyguard": {
+        "volume": 0.7,
+        "pitch": [
+          0.85,
+          1.0
+        ],
+        "events": {
+          "ambient": {
+            "sound": "armor.equip_generic",
+            "volume": 0.35,
+            "pitch": [
+              0.7,
+              0.85
+            ]
+          },
+          "hurt": {
+            "sound": "mob.villager.hit",
+            "volume": 0.8,
+            "pitch": [
+              0.7,
+              0.85
+            ]
+          },
+          "death": {
+            "sound": "mob.villager.death",
+            "volume": 0.9,
+            "pitch": [
+              0.65,
+              0.75
+            ]
+          },
+          "step": {
+            "sound": "step.stone",
+            "volume": 0.4,
+            "pitch": [
+              0.8,
+              0.95
+            ]
           },
           "fall.big": {
             "sound": "damage.fallbig",

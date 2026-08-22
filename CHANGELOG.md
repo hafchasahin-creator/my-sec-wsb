@@ -35,6 +35,11 @@ published 1.21.0 data, script APIs against the `@minecraft/server` **1.11.0** ty
   recall-all and set-all-modes.
 * Three ways in, all reachable with one thumb: tap a bodyguard with the Contract, tap
   empty air with it, or use the **Command** button `minecraft:interact` puts on screen.
+* Post settings for STAY and GUARD: move the post to where you stand, and set the guard
+  radius between 4 and 32 blocks.
+* Name tags work: whatever you write becomes the codename, and the mode badge rebuilds
+  around it instead of fighting it.
+* Each bodyguard keeps a tally of threats stopped.
 * Each input path has its own de-duplication gate, so Bedrock delivering one press as
   several events cannot double-fire or cancel itself out.
 
@@ -78,6 +83,8 @@ published 1.21.0 data, script APIs against the `@minecraft/server` **1.11.0** ty
   immovable wall in a doorway.
 * `follow_range` trimmed to 32 so it stops chasing what it cannot catch.
 * Regenerates about 20 health per minute, starting 8 seconds after the last hit.
+* Reacts when the owner goes down, and the escort regroups on them when they respawn —
+  posted bodyguards keep their post.
 
 ### Look and feel
 
@@ -107,12 +114,13 @@ published 1.21.0 data, script APIs against the `@minecraft/server` **1.11.0** ty
 
 * `tools/build.py` validates and packages both add-ons, with deep cross-reference checks
   across manifests, items, recipes, entities, models, animations, controllers, textures,
-  sounds and scripts — including AI goal priority collisions and geometry UV coverage.
+  sounds and scripts — including AI goal priority collisions, geometry UV coverage, and
+  a per-file-type `format_version` table taken from Mojang's own 1.21.0 packs.
 * `tools/verify_bedrock.py` checks every component and field against Mojang's published
   1.21.0 data; `tools/fetch_reference.py` downloads it.
 * `tools/test_scripts.mjs` runs the pack scripts against a stand-in for the 1.21.0
-  scripting API — 78 checks covering hiring, modes, gear, combat, recovery, dimensions,
-  death, multiplayer refusal and the performance budget.
+  scripting API — 88 checks covering hiring, modes, posts, gear, combat, recovery,
+  dimensions, death, respawn, multiplayer refusal and the performance budget.
 * `tools/preview_model.py` renders the model to a PNG so the art can be reviewed without
   launching the game.
 

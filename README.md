@@ -65,6 +65,8 @@ is skipped in silence. So the build refuses to package when:
 * a script imports a module the manifest does not declare
 * an item icon does not resolve item → `item_texture.json` → a real PNG
 * an item uses the pre-1.20.60 flat `minecraft:icon` form, which the game ignores silently
+* a file uses a `format_version` its schema does not understand in 1.21.0 — the game
+  silently falls back to a different parse rather than complaining
 * a recipe produces an item that does not exist, or its pattern and key disagree
 * a custom item or entity has no display name in `en_US.lang`
 * a client entity references geometry, a texture, an animation, an animation controller

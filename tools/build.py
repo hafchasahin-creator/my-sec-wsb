@@ -25,6 +25,7 @@ white box, or a behaviour pack that refuses to load at all:
     cube face has non-transparent pixels behind it
   * every bg:* entity event a script triggers exists in the entity definition
   * every component group an event adds or removes exists
+  * every file uses a format_version its schema actually understands in 1.21.0
   * no two AI goals that can be active together share a priority
   * every custom particle a script spawns exists in the resource pack
 
@@ -137,6 +138,50 @@ def read_png(path):
         rows.append(line)
         previous = line
     return width, height, rows
+
+
+# --------------------------------------------------------------------------
+# format_version
+#
+# Bedrock does not reject an unknown format_version; it falls back to a
+# different parse, which shows up in-game as a component that quietly does
+# nothing.  These sets are what Mojang's own 1.21.0 packs use, plus the values
+# the 1.21.0 schemas document.  Anything else is a guess.
+# --------------------------------------------------------------------------
+FORMAT_VERSIONS = {
+    ("bp", "items"): {"1.10", "1.14", "1.16", "1.16.0", "1.20.50", "1.20.60", "1.20.80", "1.21.0"},
+    ("bp", "recipes"): {"1.12", "1.16", "1.17", "1.19", "1.20.10", "1.20.60"},
+    ("bp", "entities"): {
+        "1.8.0", "1.10.0", "1.12.0", "1.13.0", "1.14.0", "1.16.0", "1.17.0",
+        "1.18.10", "1.19.0", "1.20.0", "1.20.10", "1.20.60", "1.20.80", "1.21.0",
+    },
+    ("bp", "spawn_rules"): {"1.8.0", "1.11.0", "1.17.0"},
+    ("rp", "entity"): {"1.8.0", "1.10.0"},
+    ("rp", "animations"): {"1.8.0", "1.10.0"},
+    ("rp", "animation_controllers"): {"1.10.0"},
+    ("rp", "render_controllers"): {"1.8.0", "1.10", "1.10.0"},
+    ("rp", "particles"): {"1.10.0"},
+    ("rp", "models"): {"1.8.0", "1.10.0", "1.12.0", "1.16.0"},
+    ("rp", "sounds"): {"1.14.0", "1.20.20"},
+}
+
+
+def check_format_versions(addon, documents):
+    for path, doc in documents.items():
+        if not isinstance(doc, dict) or "format_version" not in doc:
+            continue
+        relative = os.path.relpath(path, addon["bp"] if path.startswith(addon["bp"]) else addon["rp"])
+        side = "bp" if path.startswith(addon["bp"]) else "rp"
+        folder = relative.replace(os.sep, "/").split("/")[0]
+        allowed = FORMAT_VERSIONS.get((side, folder))
+        if not allowed:
+            continue
+        version = str(doc["format_version"])
+        if version not in allowed:
+            fail(
+                "%s: format_version %s is not one Bedrock 1.21.0 uses for %s "
+                "(expected one of %s)" % (path, version, folder, ", ".join(sorted(allowed)))
+            )
 
 
 # --------------------------------------------------------------------------
@@ -759,6 +804,7 @@ def validate(reference):
     for addon in ADDONS:
         documents = addon["_documents"]
         total_files += len(documents)
+        check_format_versions(addon, documents)
         check_script_imports(addon)
         identifiers, _atlas = check_items(addon, documents)
         entity_ids, events_by_entity = check_bp_entities(addon, documents)

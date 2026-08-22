@@ -51,6 +51,9 @@ const CONFIG = {
   guard: {
     /** Default radius of a GUARD post, in blocks. */
     defaultRadius: 12,
+    /** Range the owner may choose from in the post settings. */
+    minRadius: 4,
+    maxRadius: 32,
     /** Extra drift allowed before the script returns it to its post. */
     leash: 6,
   },
@@ -443,7 +446,26 @@ function codenameOf(guard) {
   return name;
 }
 
+/** Strip formatting codes and clamp, for a name that came from a name tag. */
+function cleanName(raw) {
+  return String(raw || "")
+    .replace(/§./g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 24);
+}
+
 function refreshName(guard) {
+  // A name tag overwrites the badge.  Rather than fight the player for it,
+  // adopt whatever they wrote as the new codename.
+  const current = safe(() => guard.nameTag, "");
+  if (current && current.indexOf("§8|") < 0) {
+    const adopted = cleanName(current);
+    if (adopted && adopted !== "Bodyguard Recruit") {
+      safe(() => guard.setDynamicProperty("bg:codename", adopted));
+    }
+  }
+
   const mode = MODES[modeOf(guard)];
   const tier = tierOf(guard);
   const badge = tier > 0 ? " §8[" + TIER_NAMES[tier] + "]" : "";
@@ -676,7 +698,7 @@ function onMeleeLanded(guard, victim) {
   if (victim.typeId === "minecraft:creeper") strength += CONFIG.combat.creeperPunt;
   knockback(victim, guard, strength, finisher ? 0.42 : 0.16);
 
-  playSound(guard, "mob.villager.hit", 0.4, 1.35 + Math.random() * 0.2);
+  playSound(guard, "game.player.attack.strong", 0.35, 1.25 + Math.random() * 0.25);
 }
 
 function tryGuardBreaker(guard, entry) {
@@ -716,7 +738,7 @@ function raiseGuard(guard, entry) {
   entry.defendUntil = now + 40;
   safe(() => guard.triggerEvent("bg:defend_start"));
   safe(() => guard.addEffect("resistance", 40, { amplifier: 1, showParticles: false }));
-  playSound(guard, "armor.equip_iron", 0.6, 0.9);
+  playSound(guard, "item.shield.block", 0.7, 0.9);
 }
 
 function dodge(guard, attacker) {
@@ -1205,6 +1227,21 @@ world.afterEvents.entityDie.subscribe((event) => {
     entry.killedAt = system.currentTick;
     entry.comboTarget = undefined;
     entry.comboCount = 0;
+    const tally = safe(() => killer.getDynamicProperty("bg:kills"), 0);
+    safe(() => killer.setDynamicProperty("bg:kills", (typeof tally === "number" ? tally : 0) + 1));
+  }
+
+  // The owner going down is worth a reaction: the escort stops what it is
+  // doing and marks the spot.
+  if (dead && dead.typeId === "minecraft:player") {
+    for (const guard of guardsOf(dead)) {
+      const entry = state(guard.id);
+      entry.combatUntil = 0;
+      entry.victoryPending = false;
+      particle(guard, "bg:alert_ping", 2.1);
+      playSound(guard, "mob.wolf.whine", 0.6, 0.85);
+    }
+    return;
   }
 
   if (!dead || dead.typeId !== ENTITY_ID) return;
@@ -1342,14 +1379,18 @@ function statusLines(guard) {
   const tier = tierOf(guard);
   const main = equippable && safe(() => equippable.getEquipment(EquipmentSlot.Mainhand), undefined);
   const off = equippable && safe(() => equippable.getEquipment(EquipmentSlot.Offhand), undefined);
-  return [
+  const kills = safe(() => guard.getDynamicProperty("bg:kills"), 0);
+  const lines = [
     "§7Mode: " + mode.color + mode.label,
     "§7Gear: §f" + TIER_NAMES[tier],
     "§7Health: §f" +
       (health ? Math.ceil(health.currentValue) + " / " + Math.ceil(health.effectiveMax) : "?"),
     "§7Main hand: §f" + itemName(main),
     "§7Off hand: §f" + itemName(off),
-  ].join("\n");
+    "§7Threats stopped: §f" + (typeof kills === "number" ? kills : 0),
+  ];
+  if (modeOf(guard) === MODE_GUARD) lines.push("§7Guard radius: §f" + radiusOf(guard) + " blocks");
+  return lines.join("\n");
 }
 
 function openGuardPanel(player, guard) {
@@ -1361,7 +1402,9 @@ function openGuardPanel(player, guard) {
   for (const mode of MODES) {
     form.button(mode.color + mode.label);
   }
+  const posted = modeOf(guard) === MODE_STAY || modeOf(guard) === MODE_GUARD;
   form.button("§9Equipment");
+  form.button(posted ? "§9Post Settings" : "§8Post Settings");
   form.button("§9Rename");
   form.button("§9Come Here");
   form.button("§cDismiss");
@@ -1381,13 +1424,17 @@ function openGuardPanel(player, guard) {
           openEquipmentPanel(player, guard);
           break;
         case 1:
-          openRenamePanel(player, guard);
+          if (posted) openPostPanel(player, guard);
+          else actionBar(player, "§7Set STAY or GUARD first to place a post.");
           break;
         case 2:
+          openRenamePanel(player, guard);
+          break;
+        case 3:
           recall(guard, player, false);
           actionBar(player, "§7" + codenameOf(guard) + " is on you.");
           break;
-        case 3:
+        case 4:
           openDismissPanel(player, guard);
           break;
       }
@@ -1605,6 +1652,43 @@ function returnGear(player, guard) {
   actionBar(player, returned ? "§7Returned " + returned + " item(s)." : "§7Nothing to return.");
 }
 
+function openPostPanel(player, guard) {
+  const guarding = modeOf(guard) === MODE_GUARD;
+  const form = new ModalFormData().title("§lPost Settings");
+  form.toggle("§7Move the post to where I am standing", false);
+  if (guarding) {
+    form.slider(
+      "§7Guard radius (blocks)",
+      CONFIG.guard.minRadius,
+      CONFIG.guard.maxRadius,
+      2,
+      radiusOf(guard)
+    );
+  }
+  form
+    .show(player)
+    .then((response) => {
+      if (response.canceled || !response.formValues) return;
+      if (!alive(guard)) return;
+      const [movePost, radius] = response.formValues;
+      if (movePost) {
+        const spot = { ...player.location };
+        safe(() => guard.setDynamicProperty("bg:anchor", spot));
+        returnToPost(guard, spot);
+      }
+      if (guarding && typeof radius === "number") {
+        safe(() => guard.setDynamicProperty("bg:radius", radius));
+      }
+      refreshName(guard);
+      actionBar(
+        player,
+        "§7Post set" + (guarding ? " with a " + radiusOf(guard) + " block radius." : ".")
+      );
+      playSound(guard, "random.orb", 0.5, 1.2);
+    })
+    .catch(() => {});
+}
+
 function openRenamePanel(player, guard) {
   new ModalFormData()
     .title("§lRename")
@@ -1612,7 +1696,7 @@ function openRenamePanel(player, guard) {
     .show(player)
     .then((response) => {
       if (response.canceled || !response.formValues) return;
-      const raw = String(response.formValues[0] || "").trim().slice(0, 24);
+      const raw = cleanName(response.formValues[0]);
       if (!raw.length) return;
       safe(() => guard.setDynamicProperty("bg:codename", raw));
       refreshName(guard);
@@ -1644,10 +1728,26 @@ function openDismissPanel(player, guard) {
 
 // --------------------------------------------------------------------------
 world.afterEvents.playerSpawn.subscribe((event) => {
-  if (!event.initialSpawn) return;
-  safe(() =>
-    event.player.sendMessage(
-      "§6[Bodyguard] §7v2.0.0 ready. Craft a §eBodyguard Contract§7 or grab the spawn egg from Creative."
-    )
-  );
+  const player = event.player;
+  if (event.initialSpawn) {
+    safe(() =>
+      player.sendMessage(
+        "§6[Bodyguard] §7v2.0.0 ready. Craft a §eBodyguard Contract§7 or grab the spawn egg from Creative."
+      )
+    );
+    return;
+  }
+
+  // Respawning after a death: bring the escort back rather than leaving it
+  // standing over the spot where you died.  Posted bodyguards keep their post.
+  system.runTimeout(() => {
+    if (!alive(player)) return;
+    let recalled = 0;
+    for (const guard of guardsOf(player)) {
+      if (ESCORT_MODES.indexOf(modeOf(guard)) < 0) continue;
+      recall(guard, player, recalled > 0);
+      recalled += 1;
+    }
+    if (recalled) actionBar(player, "§7Your detail regrouped on you.");
+  }, 20);
 });
