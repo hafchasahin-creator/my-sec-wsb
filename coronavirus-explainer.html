@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coronavirus — a 30-second explainer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:#04060d;overflow:hidden;
+  font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+:root{font-size:12px}
+
+#app{position:fixed;inset:0;display:grid;place-items:center}
+
+#stage{position:relative;width:100rem;height:56.25rem;overflow:hidden;color:#eaf0ff;
+  border-radius:1rem;isolation:isolate;cursor:pointer;
+  background:
+    radial-gradient(110% 85% at 74% 8%,#182352 0%,rgba(24,35,82,0) 58%),
+    radial-gradient(95% 80% at 16% 96%,#33123c 0%,rgba(51,18,60,0) 55%),
+    linear-gradient(180deg,#080c1a 0%,#04060d 100%);
+  box-shadow:0 3rem 7rem rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.06)}
+
+/* ---------- overlays ---------- */
+.vignette{position:absolute;inset:0;pointer-events:none;z-index:60;
+  background:radial-gradient(115% 95% at 50% 45%,rgba(0,0,0,0) 45%,rgba(0,0,0,.55) 100%)}
+.grain{position:absolute;inset:-50%;pointer-events:none;z-index:61;opacity:.035;
+  background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.9) 0 1px,rgba(0,0,0,0) 1px 3px)}
+.bars{position:absolute;inset:0;pointer-events:none;z-index:62}
+.bars i{position:absolute;left:0;right:0;height:2.2rem;background:#04060d}
+.bars i:first-child{top:0}.bars i:last-child{bottom:0}
+
+/* ---------- ambient field ---------- */
+#field{position:absolute;inset:0;z-index:0}
+#field .fl{position:absolute}
+
+/* ---------- scenes ---------- */
+.scene{position:absolute;inset:0;opacity:0;z-index:10;will-change:opacity,transform}
+
+/* chapter tag */
+.chap{position:absolute;left:6rem;top:5.2rem;display:flex;align-items:center;gap:1.1rem;
+  font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:1.55rem;
+  letter-spacing:.34em;text-transform:uppercase;color:#93a0c8}
+.chap b{color:#ff5c6e;font-weight:700}
+.chap s{display:block;width:4rem;height:1px;transform-origin:left center;background:linear-gradient(90deg,#ff5c6e,rgba(255,92,110,0));text-decoration:none}
+
+/* captions */
+.cap{position:absolute;z-index:20;left:17rem;bottom:10rem;width:66rem;text-align:center;
+  font-size:2.55rem;line-height:1.4;font-weight:500;color:#dfe7ff;letter-spacing:-.005em}
+.cap em{font-style:normal;color:#ff7183;font-weight:700}
+.cap u{text-decoration:none;color:#4fe3cb;font-weight:700}
+.cap.small{font-size:2rem;color:#9aa6cc;bottom:6.6rem;font-weight:400}
+
+.mask{display:block;overflow:hidden;padding-bottom:.25rem}
+.line{display:block}
+
+/* ---------- scene A : title + anatomy ---------- */
+.heroWrap{position:absolute;left:68rem;top:27rem;width:0;height:0;z-index:12}
+.heroBob,.heroSpin,.heroScale{position:absolute;left:0;top:0;width:0;height:0}
+.virus{display:block;overflow:visible}
+.spike{transform-box:view-box;transform-origin:50% 50%}
+.rna{transform-box:view-box;transform-origin:50% 50%}
+
+.titleBlock{position:absolute;left:8rem;top:12rem;width:42rem;z-index:14}
+.kicker{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:1.6rem;
+  letter-spacing:.46em;text-transform:uppercase;color:#8f9cc6}
+.titleBlock h1{font-size:8.6rem;line-height:.92;font-weight:800;letter-spacing:-.035em;margin-top:1.4rem}
+.titleBlock h1 .hl{background:linear-gradient(100deg,#ff8a7a,#ff3d55 55%,#ff5c9e);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.rule{height:2px;width:100%;margin:2.6rem 0 2rem;transform-origin:left center;
+  background:linear-gradient(90deg,#ff4d5e,rgba(255,77,94,0))}
+.subline{font-size:2.05rem;color:#a9b4d8;letter-spacing:.02em}
+
+.lbl{position:absolute;left:56rem;width:31rem;z-index:15}
+.lbl .lead{position:absolute;right:100%;top:1rem;height:1px}
+.lbl .lead i{position:absolute;inset:0;transform-origin:right center;display:block;
+  background:linear-gradient(90deg,rgba(255,255,255,.15),rgba(255,255,255,.55))}
+.lbl .lead b{position:absolute;left:0;top:50%;width:.85rem;height:.85rem;border-radius:50%;
+  transform:translate(-50%,-50%);background:#fff;box-shadow:0 0 1.4rem currentColor}
+.lbl h3{font-size:2.05rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.lbl p{font-size:1.72rem;line-height:1.42;color:#9daad0;margin-top:.7rem}
+.lbl.c1{color:#ff7183}.lbl.c1 h3{color:#ff8a99}
+.lbl.c2{color:#ffd166}.lbl.c2 h3{color:#ffd97e}
+.lbl.c3{color:#4fe3cb}.lbl.c3 h3{color:#6ef0da}
+
+/* ---------- scene B : scale ---------- */
+.bigNum{position:absolute;left:50%;top:10.5rem;transform:translateX(-50%);text-align:center;z-index:14}
+.bigNum .n{font-size:13rem;font-weight:800;letter-spacing:-.05em;line-height:.9;
+  background:linear-gradient(180deg,#ffffff,#8fa0d8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bigNum .n s{text-decoration:none;font-size:5rem;vertical-align:.9rem;margin-left:.8rem;color:#ff5c6e;-webkit-text-fill-color:#ff5c6e}
+.bigNum .t{font-family:ui-monospace,Menlo,monospace;font-size:1.5rem;letter-spacing:.4em;color:#8b98c2;margin-top:1.4rem;text-transform:uppercase}
+.hair{position:absolute;left:-4rem;right:-4rem;top:35rem;height:7.4rem;border-radius:4.2rem;transform-origin:center;
+  background:linear-gradient(180deg,#4b3a2e,#8a6a4d 30%,#c9a276 50%,#7a5c42 72%,#3d2f25);
+  box-shadow:inset 0 0 3rem rgba(0,0,0,.55),0 1.4rem 3rem rgba(0,0,0,.4)}
+.hair::after{content:"";position:absolute;inset:0;border-radius:4.2rem;opacity:.35;
+  background:repeating-linear-gradient(97deg,rgba(255,255,255,.14) 0 2px,rgba(0,0,0,0) 2px 9px)}
+.hairTag{position:absolute;left:6rem;top:43.6rem;font-family:ui-monospace,Menlo,monospace;
+  font-size:1.5rem;letter-spacing:.32em;color:#c9a276;text-transform:uppercase}
+.tinyMark{position:absolute;left:50%;top:28.4rem;transform:translateX(-50%);z-index:15;text-align:center}
+.tinyMark .dot{width:.55rem;height:.55rem;border-radius:50%;background:#ff4d5e;margin:0 auto;
+  box-shadow:0 0 0 .5rem rgba(255,77,94,.18),0 0 3rem rgba(255,77,94,.9)}
+.tinyMark .ring{position:absolute;left:50%;top:50%;width:.55rem;height:.55rem;margin:-.275rem 0 0 -.275rem;
+  border-radius:50%;border:2px solid #ff4d5e}
+.tinyMark .dotwrap{position:relative;width:.55rem;height:.55rem;margin:0 auto}
+.tinyMark .tg{font-family:ui-monospace,Menlo,monospace;font-size:1.45rem;letter-spacing:.28em;
+  color:#ff8a99;margin-bottom:1.1rem;white-space:nowrap;text-transform:uppercase}
+
+/* ---------- scene C : transmission ---------- */
+.person{position:absolute;bottom:11rem;z-index:13}
+.person svg{display:block;filter:drop-shadow(0 1rem 3rem rgba(0,0,0,.5))}
+.dropLayer{position:absolute;inset:0;z-index:14}
+.drop{position:absolute;border-radius:50%;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.9),rgba(120,190,255,.45) 45%,rgba(60,120,220,.15));
+  box-shadow:0 0 1.6rem rgba(140,200,255,.45);display:grid;place-items:center}
+.drop i{display:block;width:42%;height:42%;border-radius:50%;background:#ff4d5e;box-shadow:0 0 .8rem #ff4d5e}
+.puff{position:absolute;border-radius:50%;border:2px solid rgba(150,205,255,.5)}
+
+/* ---------- scene D : infection ---------- */
+.cell{position:absolute;left:-14rem;right:-14rem;bottom:-30rem;height:54rem;z-index:11;
+  border-radius:50% 50% 0 0 / 30% 30% 0 0;
+  background:radial-gradient(80% 120% at 50% 100%,#123b52 0%,#0d2438 45%,#0a1830 100%);
+  box-shadow:inset 0 3rem 7rem rgba(79,227,203,.09)}
+.cell::before{content:"";position:absolute;left:0;right:0;top:0;height:.55rem;border-radius:50%;
+  background:linear-gradient(90deg,rgba(79,227,203,0),#4fe3cb 25%,#7cf0ff 50%,#4fe3cb 75%,rgba(79,227,203,0));
+  filter:blur(1px);opacity:.9}
+.recept{position:absolute;z-index:12;transform-origin:50% 100%}
+.flash{position:absolute;z-index:16;border-radius:50%;border:.3rem solid #7cf0ff;
+  box-shadow:0 0 4rem #7cf0ff,inset 0 0 3rem rgba(124,240,255,.5)}
+.rnaOut{position:absolute;z-index:15}
+
+/* ---------- scene E : replication ---------- */
+.factory{position:absolute;inset:0;z-index:12}
+.strand{position:absolute;left:50%;top:50%;z-index:13}
+.mult{position:absolute;left:50%;top:11.5rem;transform:translateX(-50%);z-index:16;text-align:center}
+.mult .x{font-size:9rem;font-weight:800;letter-spacing:-.04em;color:#fff;line-height:1;
+  text-shadow:0 0 5rem rgba(255,92,110,.6)}
+.mult .x s{text-decoration:none;color:#ff5c6e}
+.mult .t{font-family:ui-monospace,Menlo,monospace;font-size:1.45rem;letter-spacing:.36em;color:#93a0c8;margin-top:1rem;text-transform:uppercase}
+
+/* ---------- scene F : immunity ---------- */
+.abLayer{position:absolute;inset:0;z-index:14}
+.ab{position:absolute;left:50%;top:50%}
+.stamp{position:absolute;left:50%;top:41rem;transform:translateX(-50%);z-index:16;
+  border:.28rem solid #4fe3cb;color:#4fe3cb;padding:1rem 2.4rem;border-radius:.6rem;
+  font-family:ui-monospace,Menlo,monospace;font-size:2rem;letter-spacing:.42em;text-transform:uppercase;
+  box-shadow:0 0 4rem rgba(79,227,203,.35),inset 0 0 3rem rgba(79,227,203,.12)}
+
+/* ---------- scene G : protection + endcard ---------- */
+.cards{position:absolute;left:50%;top:17rem;transform:translateX(-50%);display:flex;gap:3.2rem;z-index:14}
+.card{width:26rem;padding:3.2rem 2.4rem;border-radius:1.4rem;text-align:center;
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.11);box-shadow:0 2rem 5rem rgba(0,0,0,.35)}
+.card .ic{height:9rem;display:grid;place-items:center;margin-bottom:1.6rem}
+.card h4{font-size:1.9rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
+.card p{font-size:1.62rem;line-height:1.4;color:#9daad0;margin-top:.9rem}
+.endCard{position:absolute;inset:0;display:grid;place-items:center;z-index:18;text-align:center}
+.endCard .inner{width:76rem}
+.endCard h2{font-size:6.4rem;font-weight:800;letter-spacing:-.03em;line-height:1}
+.endCard h2 span{background:linear-gradient(100deg,#ff8a7a,#ff3d55 60%,#ff5c9e);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.endCard .q{font-size:2.35rem;color:#b3bee0;line-height:1.45;margin-top:2.6rem}
+.endCard .rule2{height:2px;width:16rem;margin:2.8rem auto;transform-origin:center;
+  background:linear-gradient(90deg,rgba(255,77,94,0),#ff4d5e,rgba(255,77,94,0))}
+.endCard .fine{font-family:ui-monospace,Menlo,monospace;font-size:1.42rem;letter-spacing:.32em;
+  color:#6f7ca6;text-transform:uppercase}
+
+/* ---------- HUD ---------- */
+#hud{position:absolute;left:0;right:0;bottom:0;z-index:70;padding:1.6rem 2.4rem 1.4rem;
+  display:flex;align-items:center;gap:1.6rem;
+  background:linear-gradient(0deg,rgba(4,6,13,.85),rgba(4,6,13,0));
+  transition:opacity .35s ease;font-family:ui-monospace,Menlo,monospace}
+#hud.hide{opacity:0}
+#hud button{width:3.6rem;height:3.6rem;border-radius:50%;border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);color:#eaf0ff;cursor:pointer;display:grid;place-items:center;flex:0 0 auto}
+#hud button:hover{background:rgba(255,255,255,.16)}
+#hud button svg{width:1.5rem;height:1.5rem;fill:currentColor}
+#track{flex:1;height:1.2rem;display:flex;align-items:center;cursor:pointer}
+#track .bar{position:relative;width:100%;height:.35rem;border-radius:1rem;background:rgba(255,255,255,.16)}
+#track .fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:1rem;
+  background:linear-gradient(90deg,#ff4d5e,#ff8a7a)}
+#track .knob{position:absolute;top:50%;left:0;width:1.1rem;height:1.1rem;border-radius:50%;background:#fff;
+  transform:translate(-50%,-50%);box-shadow:0 0 1.2rem rgba(255,255,255,.6)}
+#tc{font-size:1.35rem;letter-spacing:.12em;color:#9aa6cc;flex:0 0 auto;min-width:9rem;text-align:right}
+#hint{position:absolute;left:50%;bottom:8.5rem;transform:translateX(-50%);z-index:69;
+  font-family:ui-monospace,Menlo,monospace;font-size:1.3rem;letter-spacing:.3em;color:#7b88b0;
+  text-transform:uppercase;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <div id="field"></div>
+
+    <!-- ===== SCENE A : title + anatomy ===== -->
+    <section class="scene" id="sA">
+      <div class="chap" id="chapA"><b>01</b><s></s><span>Anatomy</span></div>
+
+      <div class="heroWrap" id="heroWrap">
+        <div class="heroBob" id="heroBob">
+          <div class="heroSpin" id="heroSpin">
+            <div class="heroScale" id="heroScale" data-virus='{"size":36,"spikes":20,"center":true}'></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="titleBlock" id="titleBlock">
+        <span class="mask"><span class="line kicker">A 30-second explainer</span></span>
+        <h1><span class="mask"><span class="line">CORONA</span></span><span class="mask"><span class="line hl">VIRUS</span></span></h1>
+        <div class="rule"></div>
+        <span class="mask"><span class="line subline">What it is · how it spreads · how it stops</span></span>
+      </div>
+
+      <div class="lbl c1" id="lb1" style="top:14.6rem">
+        <span class="lead" style="width:18.5rem"><i></i><b></b></span>
+        <h3>Spike proteins</h3>
+        <p>Club-shaped keys ringing the shell like a crown — <em>corona</em> is Latin for crown.</p>
+      </div>
+      <div class="lbl c2" id="lb2" style="top:24.2rem">
+        <span class="lead" style="width:13.7rem"><i></i><b></b></span>
+        <h3>Lipid envelope</h3>
+        <p>A fatty bubble holding it together. It is not alive, and soap tears it apart.</p>
+      </div>
+      <div class="lbl c3" id="lb3" style="top:33rem">
+        <span class="lead" style="width:23rem"><i></i><b></b></span>
+        <h3>RNA genome</h3>
+        <p>About 30,000 letters of code. That is the whole virus: instructions in a shell.</p>
+      </div>
+    </section>
+
+    <!-- ===== SCENE B : scale ===== -->
+    <section class="scene" id="sB">
+      <div class="chap" id="chapB"><b>02</b><s></s><span>Scale</span></div>
+      <div class="bigNum" id="bigNum">
+        <div class="n"><span id="countNm">0</span><s>nm</s></div>
+        <div class="t">across — nanometres</div>
+      </div>
+      <div class="hair" id="hair"></div>
+      <div class="hairTag" id="hairTag">one human hair</div>
+      <div class="tinyMark" id="tinyMark">
+        <div class="tg">coronavirus — shown far larger than life</div>
+        <div class="dotwrap"><div class="dot"></div><div class="ring" id="tinyRing"></div></div>
+      </div>
+      <div class="cap" id="capB">Roughly <em>1,000 times</em> thinner than a single strand of hair.</div>
+    </section>
+
+    <!-- ===== SCENE C : transmission ===== -->
+    <section class="scene" id="sC">
+      <div class="chap" id="chapC"><b>03</b><s></s><span>Transmission</span></div>
+      <div class="person" id="pL" style="left:9rem"></div>
+      <div class="person" id="pR" style="right:9rem"></div>
+      <div class="dropLayer" id="dropLayer"></div>
+      <div class="cap" id="capC">It travels in the invisible spray of <em>breathing, talking, coughing</em> — and lingers in still indoor air.</div>
+    </section>
+
+    <!-- ===== SCENE D : infection ===== -->
+    <section class="scene" id="sD">
+      <div class="chap" id="chapD"><b>04</b><s></s><span>Infection</span></div>
+      <div class="cell" id="cell"></div>
+      <div id="receptors"></div>
+      <div class="heroWrap" id="invWrap" style="left:50rem;top:16rem">
+        <div class="heroSpin" id="invSpin">
+          <div class="heroScale" id="invScale" data-virus='{"size":22,"spikes":16,"center":true}'></div>
+        </div>
+      </div>
+      <div class="flash" id="flash" style="left:50rem;top:33.4rem;width:2rem;height:2rem;margin:-1rem 0 0 -1rem"></div>
+      <div class="rnaOut" id="rnaOut" style="left:50rem;top:43rem;margin-left:-8rem"></div>
+      <div class="cap" id="capD1">Its spike fits a receptor called <u>ACE2</u> — a key finding its lock.</div>
+      <div class="cap small" id="capD2">The shell fuses with the cell and drops its RNA inside.</div>
+    </section>
+
+    <!-- ===== SCENE E : replication ===== -->
+    <section class="scene" id="sE">
+      <div class="chap" id="chapE"><b>05</b><s></s><span>Replication</span></div>
+      <div class="factory" id="factory"></div>
+      <div class="mult" id="mult"><div class="x"><s>×</s><span id="countX">0</span></div><div class="t">copies from one cell</div></div>
+      <div class="cap" id="capE">Inside, it hijacks the cell's machinery and prints <em>copy after copy</em> — until the cell bursts.</div>
+    </section>
+
+    <!-- ===== SCENE F : immunity ===== -->
+    <section class="scene" id="sF">
+      <div class="chap" id="chapF"><b>06</b><s></s><span>Immunity</span></div>
+      <div class="heroWrap" id="immWrap" style="left:50rem;top:25rem">
+        <div class="heroSpin" id="immSpin">
+          <div class="heroScale" id="immScale" data-virus='{"size":30,"spikes":18,"center":true}'></div>
+        </div>
+      </div>
+      <div class="abLayer" id="abLayer"></div>
+      <div class="stamp" id="stamp">Neutralised</div>
+      <div class="cap" id="capF">Your immune system learns the shape of that spike — and jams it shut.</div>
+    </section>
+
+    <!-- ===== SCENE G : protection + end card ===== -->
+    <section class="scene" id="sG">
+      <div class="chap" id="chapG"><b>07</b><s></s><span>Protection</span></div>
+      <div class="cards" id="cards">
+        <div class="card"><div class="ic" data-icon="vaccine"></div><h4>Vaccines</h4><p>Teach the spike to your immune system before the virus ever shows up.</p></div>
+        <div class="card"><div class="ic" data-icon="air"></div><h4>Clean air</h4><p>Ventilation and masks thin out what is floating in the room.</p></div>
+        <div class="card"><div class="ic" data-icon="soap"></div><h4>Soap</h4><p>Plain soap dissolves the fatty envelope. No shell, no virus.</p></div>
+      </div>
+      <div class="endCard" id="endCard">
+        <div class="inner">
+          <h2>It is only information<br>in a <span>fatty shell</span>.</h2>
+          <div class="rule2"></div>
+          <div class="q">Understand how it works, and you already know how to stop it.</div>
+          <div class="fine">Coronavirus · 30-second explainer</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="vignette"></div>
+    <div class="grain"></div>
+    <div class="bars"><i></i><i></i></div>
+    <div id="hint">click or press space to pause</div>
+    <div id="hud">
+      <button id="btnPlay" title="Play / pause"><svg id="icPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+      <button id="btnReplay" title="Replay"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></button>
+      <div id="track"><div class="bar"><div class="fill" id="fill"></div><div class="knob" id="knob"></div></div></div>
+      <div id="tc">0:00 / 0:31</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   0 · responsive root unit  (stage is always 100rem x 56.25rem)
+   ========================================================= */
+function fit(){
+  var w = Math.min(window.innerWidth*0.965, window.innerHeight*0.965*(16/9));
+  document.documentElement.style.fontSize = (w/100)+'px';
+}
+fit(); window.addEventListener('resize', fit);
+
+var stage = document.getElementById('stage');
+var $  = function(s,r){ return (r||stage).querySelector(s); };
+var $$ = function(s,r){ return Array.prototype.slice.call((r||stage).querySelectorAll(s)); };
+var rnd = function(a,b){ return a + Math.random()*(b-a); };
+
+/* =========================================================
+   1 · artwork builders
+   ========================================================= */
+var _uid = 0;
+var TONE = {
+  hot  :{a:'#ffc4b8',b:'#ff4257',c:'#5e0a1f',head:'#ff7183',stalk:'#e6293f',halo:'#ff3d55',rna:'#ffd98a',mem:'#ffd0c6'},
+  ghost:{a:'#3f4a72',b:'#232c4c',c:'#0f1428',head:'#39436a',stalk:'#2b3455',halo:'#2b3560',rna:'#3f4a72',mem:'#48538050'}
+};
+
+function virusSVG(o){
+  o = o || {};
+  var size   = o.size || 30,
+      n      = o.spikes || 18,
+      t      = TONE[o.tone || 'hot'],
+      id     = 'v'+(++_uid),
+      R      = 58;
+
+  var pos = o.center ? ' style="position:absolute;left:0;top:0;margin:'+(-size/2)+'rem 0 0 '+(-size/2)+'rem"' : '';
+  var s = '<svg class="virus" width="'+size+'rem" height="'+size+'rem" viewBox="-100 -100 200 200"'+pos+'>';
+  s += '<defs>'
+     +   '<radialGradient id="b'+id+'" cx="34%" cy="28%" r="78%">'
+     +     '<stop offset="0" stop-color="'+t.a+'"/>'
+     +     '<stop offset="52%" stop-color="'+t.b+'"/>'
+     +     '<stop offset="100%" stop-color="'+t.c+'"/>'
+     +   '</radialGradient>'
+     +   '<radialGradient id="h'+id+'" cx="50%" cy="50%" r="50%">'
+     +     '<stop offset="45%" stop-color="'+t.halo+'" stop-opacity="0"/>'
+     +     '<stop offset="72%" stop-color="'+t.halo+'" stop-opacity="'+(o.tone==='ghost'?.20:.30)+'"/>'
+     +     '<stop offset="100%" stop-color="'+t.halo+'" stop-opacity="0"/>'
+     +   '</radialGradient>'
+     + '</defs>';
+
+  /* glow halo */
+  s += '<circle class="halo" r="97" fill="url(#h'+id+')"/>';
+
+  /* spikes */
+  s += '<g class="spikes">';
+  for (var i=0;i<n;i++){
+    var ang = (i*360/n) + (o.rot||0);
+    s += '<g transform="rotate('+ang.toFixed(2)+')">'
+       +   '<g class="spike" style="--i:'+i+'">'
+       +     '<path d="M0 -52 L0 -73" stroke="'+t.stalk+'" stroke-width="6.5" stroke-linecap="round"/>'
+       +     '<circle cx="0" cy="-80.5" r="9.2" fill="'+t.head+'"/>'
+       +     '<circle cx="-2.6" cy="-83" r="3" fill="#fff" opacity="'+(o.tone==='ghost'?.06:.28)+'"/>'
+       +   '</g>'
+       + '</g>';
+  }
+  s += '</g>';
+
+  /* envelope */
+  s += '<circle class="env" r="'+R+'" fill="url(#b'+id+')"/>';
+  s += '<circle r="'+R+'" fill="none" stroke="#fff" stroke-opacity="'+(o.tone==='ghost'?.07:.22)+'" stroke-width="1.4"/>';
+  s += '<ellipse cx="-19" cy="-22" rx="19" ry="12" transform="rotate(-28 -19 -22)" fill="#fff" opacity="'+(o.tone==='ghost'?.05:.15)+'"/>';
+
+  /* membrane proteins */
+  var pts=[[-33,-15],[10,-34],[36,4],[-10,35],[-41,16],[24,29],[-4,-5],[44,-22],[-24,-38]];
+  s += '<g class="mem" opacity="'+(o.tone==='ghost'?.25:.5)+'">';
+  for (var p=0;p<pts.length;p++){
+    s += '<ellipse cx="'+pts[p][0]+'" cy="'+pts[p][1]+'" rx="4.6" ry="3.1" transform="rotate('+(p*37)+' '+pts[p][0]+' '+pts[p][1]+')" fill="'+t.mem+'"/>';
+  }
+  s += '</g>';
+
+  /* RNA coil */
+  if (o.rna !== false){
+    s += '<g class="rna" opacity="'+(o.tone==='ghost'?.35:.95)+'">'
+       +   '<path d="M-36 12 C-30 -14 -14 -28 -2 -14 C10 0 4 24 -8 21 C-20 18 -16 -6 2 -8 C22 -10 32 8 37 -12" '
+       +     'fill="none" stroke="'+t.rna+'" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>'
+       +   '<circle cx="-36" cy="12" r="3.2" fill="'+t.rna+'"/><circle cx="37" cy="-12" r="3.2" fill="'+t.rna+'"/>'
+       + '</g>';
+  }
+  return s + '</svg>';
+}
+
+function rnaSVG(size, color){
+  return '<svg width="'+size+'rem" height="'+(size*0.55)+'rem" viewBox="-100 -55 200 110" style="overflow:visible">'
+       +  '<path d="M-88 6 C-70 -40 -46 44 -22 -2 C0 -44 20 40 44 -6 C62 -42 78 20 90 -4" fill="none" '
+       +   'stroke="'+(color||'#ffd98a')+'" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>'
+       + '</svg>';
+}
+
+function personSVG(flip){
+  return '<svg width="20rem" height="33rem" viewBox="0 0 120 200"'+(flip?' style="transform:scaleX(-1)"':'')+'>'
+   + '<defs><linearGradient id="pg'+(++_uid)+'" x1="0" y1="0" x2="1" y2="1">'
+   + '<stop offset="0" stop-color="#39456f"/><stop offset="1" stop-color="#141a33"/></linearGradient></defs>'
+   + '<circle cx="60" cy="34" r="20" fill="url(#pg'+_uid+')"/>'
+   + '<path d="M60 58c-22 0-34 16-37 38l-7 46c-1 9 3 13 10 13h68c7 0 11-4 10-13l-7-46c-3-22-15-38-37-38z" fill="url(#pg'+_uid+')"/>'
+   + '<path d="M40 22a20 20 0 0 1 30 -2" fill="none" stroke="#8ea0dc" stroke-opacity=".5" stroke-width="2.5" stroke-linecap="round"/>'
+   + '<path d="M25 100c-3 20-6 40-8 58" fill="none" stroke="#8ea0dc" stroke-opacity=".28" stroke-width="2.5" stroke-linecap="round"/>'
+   + '</svg>';
+}
+
+function receptorSVG(){
+  return '<svg width="4.6rem" height="5.2rem" viewBox="-22 -34 44 40" style="overflow:visible">'
+   + '<path d="M0 4 L0 -9" stroke="#3fbfae" stroke-width="5.5" stroke-linecap="round"/>'
+   + '<path d="M-11 -27 L-6 -11 L6 -11 L11 -27" fill="none" stroke="#4fe3cb" stroke-width="5.5" '
+   +   'stroke-linecap="round" stroke-linejoin="round"/>'
+   + '<circle cx="-11" cy="-27" r="2.6" fill="#7cf0ff"/><circle cx="11" cy="-27" r="2.6" fill="#7cf0ff"/>'
+   + '</svg>';
+}
+
+function antibodySVG(size){
+  return '<svg width="'+size+'rem" height="'+size+'rem" viewBox="-40 -40 80 80" style="overflow:visible">'
+   + '<path d="M0 30 L0 2" stroke="#8ad9ff" stroke-width="9" stroke-linecap="round"/>'
+   + '<path d="M0 4 L-19 -25 M0 4 L19 -25" fill="none" stroke="#bfeaff" stroke-width="9" '
+   +   'stroke-linecap="round" stroke-linejoin="round"/>'
+   + '<circle cx="-19" cy="-27" r="5.5" fill="#e8f8ff"/><circle cx="19" cy="-27" r="5.5" fill="#e8f8ff"/>'
+   + '</svg>';
+}
+
+var ICONS = {
+  vaccine:'<svg width="8rem" height="8rem" viewBox="0 0 64 64" fill="none" stroke="#ff7183" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">'
+    +'<path d="M42 8l14 14M50 14l-6-6M36 20L20 36l8 8 16-16zM20 36l-6 6 8 8 6-6M14 42L6 50l8 8 8-8"/>'
+    +'<path d="M30 26l6 6M26 30l6 6" stroke-opacity=".5"/></svg>',
+  air:'<svg width="8rem" height="8rem" viewBox="0 0 64 64" fill="none" stroke="#7cf0ff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">'
+    +'<path d="M6 20h28a7 7 0 1 0-7-7"/><path d="M6 32h38a7 7 0 1 1-7 7"/><path d="M6 44h24a6 6 0 1 1-6 6"/></svg>',
+  soap:'<svg width="8rem" height="8rem" viewBox="0 0 64 64" fill="none" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">'
+    +'<rect x="14" y="30" width="36" height="26" rx="9"/><path d="M24 30v-6a8 8 0 0 1 16 0v6"/>'
+    +'<circle cx="26" cy="16" r="4"/><circle cx="42" cy="10" r="3"/><circle cx="48" cy="20" r="2.4"/></svg>'
+};
+
+/* =========================================================
+   2 · populate the DOM
+   ========================================================= */
+$$('[data-virus]').forEach(function(el){
+  el.innerHTML = virusSVG(JSON.parse(el.getAttribute('data-virus')));
+});
+$$('[data-icon]').forEach(function(el){ el.innerHTML = ICONS[el.getAttribute('data-icon')]; });
+
+/* --- ambient background field --- */
+var field = document.getElementById('field'), ghosts = [], stars = [];
+for (var g=0; g<11; g++){
+  var d = document.createElement('div');
+  d.className = 'fl';
+  d.style.left = rnd(-6,102)+'rem';
+  d.style.top  = rnd(-6,58)+'rem';
+  d.style.opacity = rnd(.25,.7);
+  d.innerHTML = virusSVG({size: rnd(5,13), spikes: 12, tone:'ghost'});
+  field.appendChild(d); ghosts.push(d);
+}
+for (var st=0; st<46; st++){
+  var sd = document.createElement('div');
+  sd.className = 'fl';
+  sd.style.cssText = 'left:'+rnd(0,100)+'rem;top:'+rnd(0,56)+'rem;width:'+rnd(.12,.32)+'rem;height:'+rnd(.12,.32)
+    +'rem;border-radius:50%;background:#cfe0ff;opacity:'+rnd(.12,.5);
+  field.appendChild(sd); stars.push(sd);
+}
+
+/* --- scene C : people + droplets --- */
+document.getElementById('pL').innerHTML = personSVG(false);
+document.getElementById('pR').innerHTML = personSVG(true);
+
+var dropLayer = document.getElementById('dropLayer'), drops = [], puffs = [];
+var MOUTH = {x:21.5, y:19.6}, TARGET = {x:78.5, y:20.8};
+for (var i=0;i<22;i++){
+  var dd = document.createElement('div');
+  dd.className = 'drop';
+  var sz = rnd(.7, 2.6);
+  dd.style.cssText = 'left:'+MOUTH.x+'rem;top:'+MOUTH.y+'rem;width:'+sz+'rem;height:'+sz+'rem;margin:'+(-sz/2)+'rem 0 0 '+(-sz/2)+'rem';
+  if (sz > 1.5) dd.innerHTML = '<i></i>';
+  dropLayer.appendChild(dd);
+  drops.push({el:dd, big:sz>1.8, i:i});
+}
+for (var pf=0; pf<3; pf++){
+  var pe = document.createElement('div');
+  pe.className = 'puff';
+  pe.style.cssText = 'left:'+MOUTH.x+'rem;top:'+MOUTH.y+'rem;width:6rem;height:6rem;margin:-3rem 0 0 -3rem';
+  dropLayer.appendChild(pe); puffs.push(pe);
+}
+
+/* --- scene D : ACE2 receptors along the cell membrane --- */
+var recBox = document.getElementById('receptors'), receptors = [];
+var CELL = {cx:50, top:32.25, a:64, b:16.2};
+function membraneY(x){
+  var k = (x-CELL.cx)/CELL.a;
+  return CELL.top + CELL.b*(1 - Math.sqrt(Math.max(0,1-k*k)));
+}
+function membraneAngle(x){
+  var k = (x-CELL.cx)/CELL.a;
+  var slope = CELL.b*k/(CELL.a*Math.sqrt(Math.max(1e-4,1-k*k)));
+  return Math.atan(slope)*180/Math.PI;
+}
+[6,16,26,36,50,64,74,84,94].forEach(function(x){
+  var r = document.createElement('div');
+  r.className = 'recept';
+  r.style.cssText = 'left:'+x+'rem;top:'+(membraneY(x)-4.6)+'rem;margin-left:-2.3rem;'
+    + 'transform:rotate('+membraneAngle(x).toFixed(2)+'deg)';
+  r.innerHTML = receptorSVG();
+  recBox.appendChild(r); receptors.push(r);
+});
+document.getElementById('rnaOut').innerHTML = rnaSVG(16,'#ffd98a');
+
+/* --- scene E : replication factory --- */
+var factory = document.getElementById('factory'), strands = [], budded = [];
+var glow = document.createElement('div');
+glow.style.cssText = 'position:absolute;inset:0;background:radial-gradient(60% 70% at 50% 55%,rgba(79,227,203,.13),rgba(79,227,203,0) 70%)';
+factory.appendChild(glow);
+for (var sN=0; sN<9; sN++){
+  var sv = document.createElement('div');
+  var ang = (sN/9)*Math.PI*2, rad = sN===0?0:rnd(12,26);
+  sv.style.cssText = 'position:absolute;left:'+(50 + Math.cos(ang)*rad)+'rem;top:'+(29 + Math.sin(ang)*rad*0.52)
+    + 'rem;transform-origin:center;margin:-2rem 0 0 -7rem';
+  sv.innerHTML = rnaSVG(14, sN===0?'#ffd98a':'#ffe9b8');
+  factory.appendChild(sv); strands.push(sv);
+}
+for (var bN=0; bN<16; bN++){
+  var bv = document.createElement('div');
+  var ba = rnd(0, Math.PI*2), br = rnd(16, 44);
+  bv.dataset.tx = (Math.cos(ba)*br).toFixed(2);
+  bv.dataset.ty = (Math.sin(ba)*br*0.55).toFixed(2);
+  bv.style.cssText = 'position:absolute;left:50rem;top:29rem;margin:-3rem 0 0 -3rem;width:6rem;height:6rem';
+  bv.innerHTML = virusSVG({size:6, spikes:10, rna:false});
+  factory.appendChild(bv); budded.push(bv);
+}
+
+/* --- scene F : antibodies --- */
+var abLayer = document.getElementById('abLayer'), abs = [];
+for (var aN=0; aN<9; aN++){
+  var av = document.createElement('div');
+  var aa = (aN/9)*Math.PI*2 - Math.PI/2;
+  av.dataset.ang = aa;
+  av.style.cssText = 'position:absolute;left:50rem;top:25rem;margin:-3.5rem 0 0 -3.5rem;width:7rem;height:7rem';
+  av.innerHTML = antibodySVG(7);
+  abLayer.appendChild(av); abs.push(av);
+}
+
+/* =========================================================
+   3 · timeline engine
+   ========================================================= */
+var anims = [], touched = new WeakSet();
+var EASE = {
+  out :'cubic-bezier(.16,1,.3,1)',
+  io  :'cubic-bezier(.65,0,.35,1)',
+  back:'cubic-bezier(.34,1.56,.64,1)',
+  soft:'cubic-bezier(.4,0,.2,1)',
+  lin :'linear'
+};
+
+function A(target, frames, o){
+  o = o || {};
+  var els = (typeof target === 'string') ? $$(target)
+          : (target.nodeType ? [target] : Array.prototype.slice.call(target));
+  els.forEach(function(e, i){
+    var fill = o.fill || (touched.has(e) ? 'forwards' : 'both');
+    touched.add(e);
+    var a = e.animate(frames, {
+      delay:     ((o.at || 0) + (o.stagger || 0) * i) * 1000,
+      duration:  (o.dur || .8) * 1000,
+      easing:    o.ease || EASE.out,
+      fill:      fill,
+      iterations:o.rep || 1,
+      direction: o.dir || 'normal'
+    });
+    a.pause();
+    anims.push(a);
+  });
+}
+
+function scene(sel, s, e, fi, fo){
+  fi = (fi == null) ? .45 : fi;
+  fo = (fo == null) ? .45 : fo;
+  var d = e - s;
+  A(sel, [
+    {opacity:0, transform:'scale(1.05)', easing:EASE.out},
+    {opacity:1, transform:'scale(1)', offset:fi/d},
+    {opacity:1, transform:'scale(1)', offset:1-fo/d, easing:EASE.io},
+    {opacity:0, transform:'scale(.985)'}
+  ], {at:s, dur:d, ease:EASE.lin});
+}
+
+function chapIn(id, at){
+  A('#'+id, [{opacity:0, transform:'translateX(-1.4rem)'},{opacity:1, transform:'none'}], {at:at, dur:.8});
+  A('#'+id+' s', [{transform:'scaleX(0)'},{transform:'scaleX(1)'}], {at:at+.18, dur:.9});
+}
+
+function fadeUp(sel, at, dur, dist){
+  A(sel, [{opacity:0, transform:'translateY('+(dist||2.2)+'rem)'},{opacity:1, transform:'translateY(0)'}],
+     {at:at, dur:dur||.9});
+}
+
+/* ---------------- ambient (runs for the whole film) ---------------- */
+ghosts.forEach(function(el){
+  A(el, [
+    {transform:'translate(0,0) rotate(0deg)'},
+    {transform:'translate('+rnd(-7,7)+'rem,'+rnd(-6,6)+'rem) rotate('+rnd(-50,50)+'deg)'}
+  ], {at:0, dur:rnd(16,30), rep:Infinity, dir:'alternate', ease:EASE.io});
+});
+stars.forEach(function(el){
+  A(el, [{opacity:.08},{opacity:.55}], {at:0, dur:rnd(1.4,4.2), rep:Infinity, dir:'alternate', ease:EASE.io});
+});
+
+/* =========================================================
+   SCENE A — 0.0 → 8.4   title + anatomy
+   ========================================================= */
+scene('#sA', 0, 8.4, .012, .5);
+
+A('#heroScale', [{opacity:0, transform:'scale(.12) rotate(-45deg)'},
+                 {opacity:1, transform:'scale(1) rotate(0deg)'}], {at:.15, dur:1.5, ease:EASE.back});
+A('#heroScale .spike', [{transform:'scale(0)'},{transform:'scale(1)'}],
+   {at:.55, stagger:.038, dur:.75, ease:EASE.back});
+A('#heroScale .halo', [{opacity:.5},{opacity:1},{opacity:.5}], {at:0, dur:3.6, rep:Infinity, ease:EASE.io});
+A('#heroSpin', [{transform:'rotate(0deg)'},{transform:'rotate(360deg)'}], {at:0, dur:120, rep:Infinity, ease:EASE.lin});
+A('#heroBob',  [{transform:'translateY(-1.1rem)'},{transform:'translateY(1.1rem)'}],
+   {at:0, dur:5.4, rep:Infinity, dir:'alternate', ease:EASE.io});
+
+A('#titleBlock .kicker',  [{transform:'translateY(120%)'},{transform:'translateY(0)'}], {at:.85, dur:.95});
+A('#titleBlock h1 .line', [{transform:'translateY(120%)'},{transform:'translateY(0)'}], {at:1.05, stagger:.13, dur:1.05});
+A('#titleBlock .rule',    [{transform:'scaleX(0)'},{transform:'scaleX(1)'}], {at:1.65, dur:1.1});
+A('#titleBlock .subline', [{transform:'translateY(120%)'},{transform:'translateY(0)'}], {at:1.85, dur:.95});
+
+A('#titleBlock .kicker, #titleBlock h1 .line, #titleBlock .subline',
+  [{transform:'translateY(0)'},{transform:'translateY(-120%)'}], {at:3.1, stagger:.07, dur:.7, ease:EASE.io});
+A('#titleBlock .rule', [{transform:'scaleX(1)'},{transform:'scaleX(0)'}], {at:3.1, dur:.55, ease:EASE.io});
+
+A('#heroWrap', [{transform:'translate(0,0) scale(1)'},{transform:'translate(-36rem,2rem) scale(.95)'}],
+   {at:3.25, dur:1.6, ease:EASE.out});
+chapIn('chapA', 3.55);
+
+function labelIn(id, at){
+  A('#'+id+' .lead i', [{transform:'scaleX(0)'},{transform:'scaleX(1)'}], {at:at, dur:.75});
+  A('#'+id+' .lead b', [{opacity:0, transform:'translate(-50%,-50%) scale(0)'},
+                        {opacity:1, transform:'translate(-50%,-50%) scale(1)'}], {at:at+.5, dur:.5, ease:EASE.back});
+  A('#'+id+' h3', [{opacity:0, transform:'translateX(1.8rem)'},{opacity:1, transform:'none'}], {at:at+.22, dur:.75});
+  A('#'+id+' p',  [{opacity:0, transform:'translateX(1.8rem)'},{opacity:1, transform:'none'}], {at:at+.36, dur:.85});
+}
+labelIn('lb1', 4.05);
+labelIn('lb2', 5.30);
+labelIn('lb3', 6.55);
+
+A('#heroScale .spike', [{transform:'scale(1)'},{transform:'scale(1.16)'},{transform:'scale(1)'}],
+   {at:4.15, stagger:.022, dur:1.0, ease:EASE.io});
+A('#heroScale .rna', [{opacity:.95, transform:'scale(1)'},{opacity:1, transform:'scale(1.14)', offset:.35},
+                      {opacity:.8, transform:'scale(1)', offset:.7},{opacity:1, transform:'scale(1.06)'}],
+   {at:6.65, dur:1.5, ease:EASE.io});
+A('.lbl', [{opacity:1, transform:'none'},{opacity:0, transform:'translateX(2.4rem)'}],
+   {at:7.8, stagger:.06, dur:.55, ease:EASE.io});
+
+/* =========================================================
+   SCENE B — 8.4 → 11.8   scale
+   ========================================================= */
+scene('#sB', 8.4, 11.8);
+chapIn('chapB', 8.55);
+A('#bigNum .n', [{opacity:0, transform:'translateY(2.6rem) scale(.9)'},{opacity:1, transform:'none'}], {at:8.7, dur:1.0});
+fadeUp('#bigNum .t', 9.05, .8, 1.2);
+A('#hair', [{opacity:0, transform:'scaleY(0)'},{opacity:1, transform:'scaleY(1)'}], {at:9.0, dur:.95, ease:EASE.back});
+fadeUp('#hairTag', 9.45, .8, 1.2);
+A('#tinyMark', [{opacity:0, transform:'translateX(-50%) scale(.3)'},{opacity:1, transform:'translateX(-50%) scale(1)'}],
+   {at:9.75, dur:.8, ease:EASE.back});
+A('#tinyRing', [{transform:'scale(1)', opacity:.95},{transform:'scale(7)', opacity:0}],
+   {at:0, dur:2.4, rep:Infinity, ease:EASE.out});
+fadeUp('#capB', 10.15, .9);
+
+/* =========================================================
+   SCENE C — 11.8 → 15.6   transmission
+   ========================================================= */
+scene('#sC', 11.8, 15.6);
+chapIn('chapC', 11.95);
+A('#pL', [{opacity:0, transform:'translateY(3.5rem)'},{opacity:1, transform:'none'}], {at:11.95, dur:1.0});
+A('#pR', [{opacity:0, transform:'translateY(3.5rem)'},{opacity:1, transform:'none'}], {at:12.1,  dur:1.0});
+puffs.forEach(function(p, i){
+  A(p, [{opacity:.85, transform:'scale(.25)'},{opacity:0, transform:'scale(3.4)'}],
+     {at:12.5 + i*.2, dur:1.35, ease:EASE.out});
+});
+drops.forEach(function(d, i){
+  var far = d.big ? rnd(.22,.5) : rnd(.82,1.06);
+  var dx  = (TARGET.x - MOUTH.x) * far + rnd(-1.2,1.2);
+  var dy  = (TARGET.y - MOUTH.y) * far + rnd(-4,4) + (d.big ? rnd(13,24) : 0);
+  var mx  = dx * .52, my = dy * .42 - rnd(4.5,9.5);
+  A(d.el, [
+    {opacity:0,  transform:'translate(0,0) scale(.2)'},
+    {opacity:1,  transform:'translate('+(mx*.36).toFixed(2)+'rem,'+(my*.6).toFixed(2)+'rem) scale(1)', offset:.16},
+    {opacity:.95,transform:'translate('+mx.toFixed(2)+'rem,'+my.toFixed(2)+'rem) scale(1)', offset:.55},
+    {opacity:0,  transform:'translate('+dx.toFixed(2)+'rem,'+dy.toFixed(2)+'rem) scale('+(d.big?.55:.9)+')'}
+  ], {at:12.52 + i*.055, dur: d.big ? 2.0 : 2.7, ease:EASE.soft});
+});
+fadeUp('#capC', 13.4, .9);
+
+/* =========================================================
+   SCENE D — 15.6 → 20.2   infection
+   ========================================================= */
+scene('#sD', 15.6, 20.2);
+chapIn('chapD', 15.75);
+A('#cell', [{opacity:0, transform:'translateY(9rem)'},{opacity:1, transform:'none'}], {at:15.7, dur:1.2});
+receptors.forEach(function(r, i){
+  var rot = r.style.transform;
+  A(r, [{opacity:0, transform:rot+' translateY(1.4rem) scale(0)'},
+        {opacity:1, transform:rot+' translateY(0) scale(1)'}], {at:16.0 + i*.05, dur:.65, ease:EASE.back});
+});
+A('#invSpin', [{transform:'rotate(0deg)'},{transform:'rotate(360deg)'}], {at:0, dur:70, rep:Infinity, ease:EASE.lin});
+A('#invWrap', [
+  {opacity:0, transform:'translateY(-7rem)'},
+  {opacity:1, transform:'translateY(-3rem)', offset:.22},
+  {opacity:1, transform:'translateY(7.4rem)'}
+], {at:16.15, dur:2.2, ease:EASE.out});
+A('#invWrap', [{transform:'translateY(7.4rem)'},{transform:'translateY(8.5rem)'}], {at:18.25, dur:.32, ease:EASE.io});
+A('#invWrap', [{opacity:1, transform:'translateY(8.5rem) scale(1)'},
+               {opacity:0, transform:'translateY(13.5rem) scale(.72)'}], {at:18.85, dur:.95, ease:EASE.io});
+A('#flash', [{opacity:0, transform:'scale(.2)'},{opacity:1, transform:'scale(1.4)', offset:.22},
+             {opacity:0, transform:'scale(11)'}], {at:18.28, dur:1.1, ease:EASE.out});
+A(receptors[4], [{transform:receptors[4].style.transform+' scale(1)'},
+                 {transform:receptors[4].style.transform+' scale(1.35)'},
+                 {transform:receptors[4].style.transform+' scale(1)'}], {at:18.28, dur:.8, ease:EASE.io});
+A('#rnaOut', [{opacity:0, transform:'translateY(-2rem) scale(.4)'},{opacity:1, transform:'none'}],
+   {at:19.05, dur:.9, ease:EASE.back});
+A('#rnaOut', [{transform:'translateY(0)'},{transform:'translateY(1.2rem)'}],
+   {at:19.9, dur:2.4, rep:Infinity, dir:'alternate', ease:EASE.io});
+fadeUp('#capD1', 16.6, .9);
+fadeUp('#capD2', 19.15, .8, 1.4);
+
+/* =========================================================
+   SCENE E — 20.2 → 24.4   replication
+   ========================================================= */
+scene('#sE', 20.2, 24.4);
+chapIn('chapE', 20.35);
+A(glow, [{opacity:0},{opacity:1}], {at:20.3, dur:1.2});
+strands.forEach(function(sv, i){
+  var dx = 50 - parseFloat(sv.style.left), dy = 29 - parseFloat(sv.style.top);
+  if (i === 0){
+    A(sv, [{opacity:0, transform:'scale(.4)'},{opacity:1, transform:'scale(1)'}], {at:20.45, dur:.8, ease:EASE.back});
+  } else {
+    A(sv, [{opacity:0, transform:'translate('+dx+'rem,'+dy+'rem) scale(.35) rotate(0deg)'},
+           {opacity:.92, transform:'translate(0,0) scale(1) rotate('+rnd(-22,22).toFixed(1)+'deg)'}],
+       {at:20.95 + i*.11, dur:1.0, ease:EASE.out});
+  }
+});
+budded.forEach(function(b, i){
+  A(b, [
+    {opacity:0, transform:'translate(0,0) scale(0)'},
+    {opacity:1, transform:'translate('+(b.dataset.tx*.5)+'rem,'+(b.dataset.ty*.5)+'rem) scale(1)', offset:.42},
+    {opacity:1, transform:'translate('+b.dataset.tx+'rem,'+b.dataset.ty+'rem) scale(1.08)'}
+  ], {at:21.55 + i*.072, dur:2.3, ease:EASE.out});
+});
+A('#mult', [{opacity:0, transform:'translateX(-50%) scale(.7)'},{opacity:1, transform:'translateX(-50%) scale(1)'}],
+   {at:21.5, dur:.8, ease:EASE.back});
+fadeUp('#capE', 21.0, .9);
+
+/* =========================================================
+   SCENE F — 24.4 → 27.6   immunity
+   ========================================================= */
+scene('#sF', 24.4, 27.6);
+chapIn('chapF', 24.55);
+A('#immScale', [{opacity:0, transform:'scale(.55)'},{opacity:1, transform:'scale(1)'}], {at:24.55, dur:.9, ease:EASE.back});
+A('#immSpin', [{transform:'rotate(0deg)'},{transform:'rotate(-360deg)'}], {at:0, dur:90, rep:Infinity, ease:EASE.lin});
+abs.forEach(function(el, i){
+  var a = parseFloat(el.dataset.ang), deg = (a*180/Math.PI - 90).toFixed(1);
+  var rx = Math.cos(a), ry = Math.sin(a);
+  A(el, [
+    {opacity:0, transform:'translate('+(rx*36).toFixed(2)+'rem,'+(ry*36).toFixed(2)+'rem) rotate('+deg+'deg) scale(.5)'},
+    {opacity:1, transform:'translate('+(rx*15.6).toFixed(2)+'rem,'+(ry*15.6).toFixed(2)+'rem) rotate('+deg+'deg) scale(1)'}
+  ], {at:25.05 + i*.075, dur:.95, ease:EASE.back});
+});
+A('#immScale', [{filter:'saturate(1) brightness(1)'},{filter:'saturate(.1) brightness(.72)'}], {at:26.15, dur:1.0});
+A('#stamp', [{opacity:0, transform:'translateX(-50%) scale(1.35) rotate(-3deg)'},
+             {opacity:1, transform:'translateX(-50%) scale(1) rotate(-3deg)'}], {at:26.5, dur:.6, ease:EASE.back});
+fadeUp('#capF', 25.0, .9);
+
+/* =========================================================
+   SCENE G — 27.6 → 31.4   protection + end card
+   ========================================================= */
+scene('#sG', 27.6, 31.4, .45, .012);
+chapIn('chapG', 27.75);
+A('.card', [{opacity:0, transform:'translateY(4.5rem) scale(.94)'},{opacity:1, transform:'none'}],
+   {at:27.9, stagger:.15, dur:.95, ease:EASE.back});
+A('.card .ic', [{opacity:0, transform:'scale(.45) rotate(-14deg)'},{opacity:1, transform:'none'}],
+   {at:28.15, stagger:.15, dur:.85, ease:EASE.back});
+A('#cards', [{opacity:1, transform:'translateX(-50%) translateY(0)'},
+             {opacity:0, transform:'translateX(-50%) translateY(-4.5rem)'}], {at:29.8, dur:.75, ease:EASE.io});
+A('#chapG', [{opacity:1},{opacity:0}], {at:29.8, dur:.5});
+A('#endCard', [{opacity:0},{opacity:1}], {at:30.0, dur:.5});
+A('#endCard h2', [{opacity:0, transform:'translateY(2.6rem) scale(.965)'},{opacity:1, transform:'none'}], {at:30.0, dur:1.1});
+A('#endCard .rule2', [{transform:'scaleX(0)'},{transform:'scaleX(1)'}], {at:30.45, dur:.9});
+fadeUp('#endCard .q', 30.55, 1.0, 1.6);
+fadeUp('#endCard .fine', 30.9, .9, 1.2);
+
+/* =========================================================
+   4 · transport / player
+   ========================================================= */
+var TOTAL = 31400;
+var clockEl = document.createElement('div');
+clockEl.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none';
+stage.appendChild(clockEl);
+var clock = clockEl.animate([{opacity:0},{opacity:0}], {duration:TOTAL, fill:'both', easing:'linear'});
+clock.pause();
+anims.push(clock);
+
+var playing = false;
+var elFill  = document.getElementById('fill'),
+    elKnob  = document.getElementById('knob'),
+    elTc    = document.getElementById('tc'),
+    hud     = document.getElementById('hud'),
+    hint    = document.getElementById('hint'),
+    icPlay  = document.getElementById('icPlay');
+var PLAY_D  = 'M8 5v14l11-7z', PAUSE_D = 'M6 5h4v14H6zm8 0h4v14h-4z';
+
+function getT(){ var t = clock.currentTime; return Math.max(0, Math.min(TOTAL, (t && t.value != null) ? t.value : (t||0))); }
+function applyAll(t){ for (var i=0;i<anims.length;i++) anims[i].currentTime = t; }
+
+function play(){
+  var t = getT();
+  if (t >= TOTAL - 20) t = 0;
+  playing = true;
+  for (var i=0;i<anims.length;i++){ anims[i].play(); anims[i].currentTime = t; }
+  icPlay.firstChild.setAttribute('d', PAUSE_D);
+  hint.style.opacity = 0;
+}
+function pause(){
+  playing = false;
+  for (var i=0;i<anims.length;i++) anims[i].pause();
+  icPlay.firstChild.setAttribute('d', PLAY_D);
+}
+function seek(t){
+  t = Math.max(0, Math.min(TOTAL, t));
+  for (var i=0;i<anims.length;i++){ if (playing) anims[i].play(); anims[i].currentTime = t; }
+}
+function toggle(){ playing ? pause() : play(); }
+function replay(){ pause(); applyAll(0); play(); }
+
+/* counters */
+var cNm = document.getElementById('countNm'), cX = document.getElementById('countX');
+function clamp01(v){ return v < 0 ? 0 : (v > 1 ? 1 : v); }
+function eo(p){ return 1 - Math.pow(1 - p, 3); }
+function commas(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function counters(t){
+  var p1 = clamp01((t - 8.70) / 1.25);
+  cNm.textContent = Math.round(eo(p1) * 100);
+  var p2 = clamp01((t - 21.55) / 2.05);
+  cX.textContent = commas(Math.round(eo(p2) * 10000)) + (p2 >= 1 ? '+' : '');
+}
+function fmtTime(ms){
+  var s = Math.floor(ms/1000);
+  return Math.floor(s/60) + ':' + ('0' + (s % 60)).slice(-2);
+}
+
+var idle = 0;
+function tick(){
+  var t = getT(), p = (t/TOTAL*100);
+  elFill.style.width = p + '%';
+  elKnob.style.left  = p + '%';
+  elTc.textContent   = fmtTime(t) + ' / ' + fmtTime(TOTAL);
+  counters(t/1000);
+  if (playing && t >= TOTAL - 24){ pause(); hud.classList.remove('hide'); }
+  if (playing && ++idle > 110) hud.classList.add('hide'); else if (!playing) hud.classList.remove('hide');
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* controls */
+document.getElementById('btnPlay').addEventListener('click', function(e){ e.stopPropagation(); toggle(); });
+document.getElementById('btnReplay').addEventListener('click', function(e){ e.stopPropagation(); replay(); });
+stage.addEventListener('click', function(e){ if (!e.target.closest('#hud')) toggle(); });
+window.addEventListener('keydown', function(e){
+  if (e.code === 'Space'){ e.preventDefault(); toggle(); }
+  else if (e.code === 'ArrowRight') seek(getT() + 1500);
+  else if (e.code === 'ArrowLeft')  seek(getT() - 1500);
+  else if (e.key === 'r' || e.key === 'R') replay();
+});
+var track = document.getElementById('track'), dragging = false;
+function fromEvent(e){
+  var r = track.getBoundingClientRect();
+  seek(((e.clientX - r.left) / r.width) * TOTAL);
+}
+track.addEventListener('pointerdown', function(e){ e.stopPropagation(); dragging = true; track.setPointerCapture(e.pointerId); fromEvent(e); });
+track.addEventListener('pointermove', function(e){ if (dragging) fromEvent(e); });
+track.addEventListener('pointerup',   function(e){ dragging = false; });
+stage.addEventListener('mousemove', function(){ idle = 0; hud.classList.remove('hide'); });
+
+/* start */
+applyAll(0);
+setTimeout(function(){ play(); }, 240);
+setTimeout(function(){ hint.style.transition = 'opacity .6s'; hint.style.opacity = 0; }, 4200);
+})();
+</script>
+</body>
+</html>
