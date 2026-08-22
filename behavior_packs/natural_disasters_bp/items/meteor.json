@@ -1,0 +1,33 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "nd:meteor",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "nd_meteor"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Meteor Strike"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:glint": true,
+      "minecraft:can_destroy_in_creative": false,
+      "minecraft:cooldown": {
+        "category": "nd_meteor",
+        "duration": 3.0
+      },
+      "minecraft:tags": {
+        "tags": [
+          "nd:disaster"
+        ]
+      }
+    }
+  }
+}

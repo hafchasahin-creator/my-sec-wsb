@@ -1,0 +1,16 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "nd:fog_blizzard"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 2.0,
+        "fog_end": 28.0,
+        "fog_color": "#E6F2FB",
+        "render_distance_type": "fixed"
+      }
+    }
+  }
+}

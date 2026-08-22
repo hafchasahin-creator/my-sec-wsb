@@ -1,0 +1,39 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Natural Disasters BP",
+    "description": "11 natural disasters as creative items. Hold one and tap a block! Behavior Pack.",
+    "uuid": "d46c7f7a-8b2d-40bb-b004-84f4cb7c83fe",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "a02bc6d0-68eb-4681-8157-6f20a60afcbc",
+      "version": [1, 0, 0]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "8bff7486-a892-4e66-ae87-d00bb03d85ec",
+      "version": [1, 0, 0]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "4d2d34d0-d80c-46f7-b70c-b2faeb3127d7",
+      "version": [1, 0, 0]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": ["Natural Disasters"],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

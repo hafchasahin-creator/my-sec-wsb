@@ -1,0 +1,22 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Natural Disasters RP",
+    "description": "Visuals, sounds and particles for the Natural Disasters add-on. Resource Pack.",
+    "uuid": "4d2d34d0-d80c-46f7-b70c-b2faeb3127d7",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "ebd1c6a1-b38f-4a68-8136-0db2e28ae63c",
+      "version": [1, 0, 0]
+    }
+  ],
+  "metadata": {
+    "authors": ["Natural Disasters"],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

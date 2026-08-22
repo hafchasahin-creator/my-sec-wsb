@@ -1,0 +1,53 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.nd_tornado.spin": {
+      "loop": true,
+      "bones": {
+        "seg0": {
+          "rotation": [0, "query.life_time * -1200", 0]
+        },
+        "seg1": {
+          "rotation": [0, "query.life_time * -1030", 0],
+          "position": [
+            "math.sin(query.life_time * 300) * 1.5",
+            0,
+            "math.cos(query.life_time * 300) * 1.5"
+          ]
+        },
+        "seg2": {
+          "rotation": [0, "query.life_time * -880", 0],
+          "position": [
+            "math.sin(query.life_time * 260 + 60) * 3",
+            0,
+            "math.cos(query.life_time * 260 + 60) * 3"
+          ]
+        },
+        "seg3": {
+          "rotation": [0, "query.life_time * -760", 0],
+          "position": [
+            "math.sin(query.life_time * 230 + 120) * 4.5",
+            0,
+            "math.cos(query.life_time * 230 + 120) * 4.5"
+          ]
+        },
+        "seg4": {
+          "rotation": [0, "query.life_time * -650", 0],
+          "position": [
+            "math.sin(query.life_time * 200 + 180) * 6",
+            0,
+            "math.cos(query.life_time * 200 + 180) * 6"
+          ]
+        },
+        "seg5": {
+          "rotation": [0, "query.life_time * -560", 0],
+          "position": [
+            "math.sin(query.life_time * 180 + 240) * 7",
+            0,
+            "math.cos(query.life_time * 180 + 240) * 7"
+          ]
+        }
+      }
+    }
+  }
+}

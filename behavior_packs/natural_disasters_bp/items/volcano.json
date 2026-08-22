@@ -1,0 +1,33 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "nd:volcano",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "nd_volcano"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Volcano"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:glint": true,
+      "minecraft:can_destroy_in_creative": false,
+      "minecraft:cooldown": {
+        "category": "nd_volcano",
+        "duration": 5.0
+      },
+      "minecraft:tags": {
+        "tags": [
+          "nd:disaster"
+        ]
+      }
+    }
+  }
+}

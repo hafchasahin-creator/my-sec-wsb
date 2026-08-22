@@ -1,14 +1,179 @@
-# Arcane Arsenal
+# Minecraft Bedrock add-ons
 
-A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six
-legendary weapons with scripted magic effects.
+Two self-contained **Bedrock Edition** add-ons, both built and tested against the format
+versions available in **Bedrock 1.21.0** (the `1.21.0.26` beta build, Android / Pocket
+Edition). Both use only **stable** JSON formats and the **stable** `@minecraft/server`
+scripting module, so **no experimental toggles are required** and they work on phones and
+tablets.
 
-Built and tested against the format versions available in **Bedrock 1.21.0** — the build
-running in the attached screenshot (`1.21.0.26`, Android / Pocket Edition). It uses only
-**stable** item components and the **stable** `@minecraft/server 1.11.0` scripting module,
-so **no experimental toggles are required** and it works on phones and tablets.
+| Add-on | Package | What it does |
+| --- | --- | --- |
+| **Natural Disasters** | `dist/NaturalDisasters.mcaddon` | 11 disasters as creative items — hold one, tap a block, watch the world get wrecked |
+| **Arcane Arsenal** | `dist/ArcaneArsenal.mcaddon` | 6 legendary weapons with scripted magic effects |
 
 ---
+
+# Natural Disasters
+
+Eleven natural disasters, each one an **item in the creative inventory** (Items tab, with
+its own hand-drawn icon and an enchant glint). No `/function` commands, no chat commands:
+**hold the item and tap any block** — the disaster spawns right there. Tapping into the
+air works too and targets the block you are aiming at (up to 64 blocks away).
+
+Every disaster physically affects the world — blocks are broken, burned, buried, frozen
+or flooded, and entities are pulled, launched, damaged and set on fire. Nothing here is
+just a particle show.
+
+## The disasters
+
+| Item | Duration | What actually happens |
+| --- | --- | --- |
+| 🌪️ **Tornado** | 60s | A spinning 15-block funnel (custom model + animation) **wanders around**, sucks in mobs/players/items from 20 blocks, spins and **launches** anything that gets close, **rips blocks out of the ground** (the drops become flying debris), with swirling dust and wind roar |
+| 🌊 **Tsunami** | ~20s | A 15-wide, 4-tall **wall of water** races 64 blocks in the direction you were facing, riding the terrain, **sweeping entities along** and battering them; the flood then drains itself |
+| 🌎 **Earthquake** | 25s | **Camera shake**, rumbling, entities stumble and take rubble damage, and real **fissures tear open** in the ground — some with lava at the bottom |
+| ☄️ **Meteor Strike** | ~6s | Three burning meteors streak in from the sky and **explode on impact** (fire + block damage), leaving craters dressed with magma, fire and obsidian; nearby entities are burned and launched |
+| 🌋 **Volcano** | 90s | A rock cone **builds itself layer by layer**, carves a lava-filled crater, then **erupts**: ballistic lava bombs that explode where they land, lava spills down the flanks, ash and ember columns. The mountain stays forever |
+| 🌊 **Flash Flood** | 45s | Rain sets in and water **rises one layer at a time** (only filling open space, so builds survive), a churning current drags entities in circles, then the water **recedes on its own** |
+| 🌀 **Hurricane** | 60s | Thunderstorm + a 30-block cyclone: calm eye, violent eyewall that **lifts entities**, rotating winds across the whole area, **vegetation shredded off the terrain**, and random lightning |
+| ⚡ **Super Thunderstorm** | 40s | Targeted **lightning barrage** — bolts prefer to strike near mobs, some detonate on impact, shocked entities are damaged and thrown |
+| ❄️ **Blizzard** | 50s | Whiteout **fog**, driving snow around every player, **snow layers pile up and water freezes to ice**, entities are slowed, weakened and take frost damage |
+| 🔥 **Wildfire** | 45s | Fire **spreads from block to block** through anything flammable (up to ~260 ignitions), embers and smoke rise, and anything wandering the burn zone catches fire |
+| 🏜️ **Sandstorm** | 45s | Sand-colored **fog** and driving grit, a constant gale that shoves everything downwind, blindness in the thick of it, and **dunes of real sand** creeping over the terrain |
+
+Up to **5 disasters** can run at once (a 6th tap tells you to wait). Each item has a short
+visible cooldown so touch taps do not double-fire.
+
+## Installing on mobile (Android / Pocket Edition)
+
+1. Download **`dist/NaturalDisasters.mcaddon`** onto the device.
+2. Tap the file. Minecraft opens and imports both packs automatically.
+3. Create or edit a world → **Behavior Packs** → activate **Natural Disasters BP**.
+   The resource pack is pulled in automatically as a dependency; if it is not, activate
+   **Natural Disasters RP** under **Resource Packs** too.
+4. Leave every experimental toggle **off** — none are needed.
+
+If tapping the file does not open Minecraft, rename it to `NaturalDisasters.zip`, then use
+a file manager to copy the two inner folders into:
+
+```
+Android/data/com.mojang.minecraftpe/files/games/com.mojang/behavior_packs/natural_disasters_bp
+Android/data/com.mojang.minecraftpe/files/games/com.mojang/resource_packs/natural_disasters_rp
+```
+
+On Windows the same folders live under
+`%localappdata%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang\`.
+
+### Checking it is actually working
+
+When you spawn into a world with the behaviour pack active, chat shows:
+
+```
+[Disasters] v1.0.0 loaded - 11 disasters armed. Hold a disaster item and tap a block!
+```
+
+If that line does **not** appear, the behaviour pack's scripts are not running and no
+disaster will fire. If it does appear but something looks wrong, the problem is on the
+resource-pack side. To see exactly what the game thinks is wrong, turn on
+**Settings → Creator → Content Log GUI**.
+
+### Finding the items
+
+Open the creative inventory and search for the disaster by name (Tornado, Tsunami,
+Earthquake, Meteor Strike, Volcano, Flash Flood, Hurricane, Super Thunderstorm, Blizzard,
+Wildfire, Sandstorm) — or scroll to the end of the **Items** tab. In survival they also
+work and can be given with `/give @s nd:tornado`, `/give @s nd:meteor`, etc. (ids:
+`nd:tornado`, `nd:tsunami`, `nd:earthquake`, `nd:meteor`, `nd:volcano`, `nd:flash_flood`,
+`nd:hurricane`, `nd:thunderstorm`, `nd:blizzard`, `nd:wildfire`, `nd:sandstorm`).
+
+### Touch tips
+
+- **Tap a block** = spawn the disaster on top of that block (the exact flow from the item
+  description: take Tornado → hold it → tap the ground → tornado).
+- Aim at distant terrain and tap = the disaster lands where you are looking.
+- The items never break blocks in creative (`can_destroy_in_creative` is off), so a tap
+  can't accidentally mine the block you aimed at.
+
+### Fair warning
+
+These are disasters. The tornado, earthquake, meteors, volcano, wildfire, blizzard and
+sandstorm **permanently modify terrain** (that is the point). The tsunami and flash flood
+clean their own water up. Don't fire a meteor at your own base and file a bug about it.
+
+## Repository layout (Natural Disasters)
+
+```
+behavior_packs/natural_disasters_bp/
+  manifest.json           BP manifest, min_engine_version 1.21.0, script module
+  items/*.json            11 item definitions, format_version 1.21.0
+  entities/tornado.json   invisible-to-damage tornado marker entity (with a
+                          90s failsafe despawn timer)
+  scripts/main.js         the whole disaster engine (@minecraft/server 1.11.0)
+  texts/                  pack name strings
+resource_packs/natural_disasters_rp/
+  manifest.json
+  textures/items/*.png    11 icons, drawn at 64px and downsampled to 32px
+  textures/item_texture.json
+  textures/entity/tornado.png     alpha-tested funnel streaks
+  textures/particle/*.png         6 particle sprites
+  models/entity/tornado.geo.json  6-segment funnel, ~15 blocks tall
+  animations/tornado.animation.json   per-segment spin + wobble (Molang)
+  render_controllers/
+  entity/tornado.entity.json      client entity wiring
+  particles/*.json        dust, ember, snowfall, sand gust, splash, wind streak
+  fogs/*.json             blizzard + sandstorm fog settings
+  sounds/sound_definitions.json
+  sounds/nd/*.wav         5 procedurally synthesized effects (wind, rumble,
+                          whoosh, wave, fire crackle - 16-bit mono PCM)
+  texts/en_US.lang        item display names
+tools/
+  gen_disaster_assets.py  regenerates every texture, sound, item JSON and lang
+                          file (stdlib only - no Pillow, no audio libs)
+  build_disasters.py      validates everything and writes the .mcaddon
+dist/NaturalDisasters.mcaddon
+```
+
+## Rebuilding
+
+```bash
+python3 tools/gen_disaster_assets.py   # regenerate icons, textures, sounds, item JSONs
+python3 tools/build_disasters.py       # validate + repackage dist/NaturalDisasters.mcaddon
+```
+
+`build_disasters.py` is the 1.21.0.26 compatibility gate. It fails loudly if any JSON is
+malformed or uses a `format_version` newer than 1.21.0, if manifest UUIDs collide (also
+against the Arcane Arsenal packs), if the BP loses its RP dependency, if
+`@minecraft/server` is bumped past 1.11.0, if an item uses a component outside the vetted
+stable set or the deprecated flat icon syntax, if the script references a particle /
+sound / fog / entity / block / effect that is not defined by the packs or hand-verified to
+exist in vanilla 1.21.0, if the tornado's geometry, animation, render controller and
+texture wiring do not line up, or if any PNG/WAV is malformed.
+
+## Compatibility notes (Natural Disasters)
+
+- **Target:** Bedrock **1.21.0** (`min_engine_version [1, 21, 0]`), matching beta
+  `1.21.0.26`. Every `format_version` in both packs is at or below `1.21.0` — nothing
+  from a later update is used.
+- **Scripting:** stable `@minecraft/server 1.11.0` only (the version that ships in
+  1.21.0). Events: `itemUse`, `itemUseOn`, `playerSpawn`; APIs: `runInterval`,
+  `getBlock`, `getEntities`, `spawnEntity`, `createExplosion`, `applyKnockback`,
+  `applyDamage`, `addEffect`, `setOnFire`, `teleport`, `triggerEvent`,
+  `spawnParticle`/`playSound` (each with a `runCommandAsync` fallback). No beta APIs, no
+  experiments.
+- **Items in creative:** the 1.20.50+ data-driven item format with `menu_category`, and
+  the post-1.20.60 icon shape `{"textures": {"default": ...}}` (the flat form renders an
+  invisible icon on 1.21.0 — the build fails if it reappears).
+- **Defensive scripting:** every cosmetic call is individually wrapped and every disaster
+  tick runs inside a try/catch with an error budget, so one bad id or unloaded chunk
+  degrades a single effect instead of killing the add-on.
+- **Commands used** (`fill`/`setblock` with `[]` block-state syntax, `weather`,
+  `camerashake`, `fog`, `summon`, `playsound`, `particle`) and every vanilla id they
+  reference are all present in 1.21.0.
+
+---
+
+# Arcane Arsenal
+
+Six legendary weapons with scripted magic effects.
 
 ## The weapons
 
@@ -40,54 +205,16 @@ Every weapon is also repairable (Frostbite: diamond, Emberfang/Meteor Staff: bla
 Stormcaller: prismarine shard, Voidreaper/Cataclysm: netherite ingot) and enchantable.
 They all appear in the creative **Equipment** tab next to the swords.
 
----
+## Installing
 
-## Installing on mobile (Android / Pocket Edition)
+Same flow as Natural Disasters, with **`dist/ArcaneArsenal.mcaddon`** and the
+`arcane_arsenal_bp` / `arcane_arsenal_rp` folders. On spawn, chat shows
+`[Arcane Arsenal] v1.0.1 loaded - 6 weapons armed.` — if it does not, the scripts are not
+running.
 
-1. Download **`dist/ArcaneArsenal.mcaddon`** onto the device.
-2. Tap the file. Minecraft opens and imports both packs automatically.
-3. Create or edit a world → **Behavior Packs** → activate **Arcane Arsenal BP**.
-   The resource pack is pulled in automatically as a dependency; if it is not, activate
-   **Arcane Arsenal RP** under **Resource Packs** too.
-4. Leave every experimental toggle **off** — none are needed.
-
-If tapping the file does not open Minecraft, rename it to `ArcaneArsenal.zip`, then use a
-file manager to copy the two inner folders into:
-
-```
-Android/data/com.mojang.minecraftpe/files/games/com.mojang/behavior_packs/arcane_arsenal_bp
-Android/data/com.mojang.minecraftpe/files/games/com.mojang/resource_packs/arcane_arsenal_rp
-```
-
-On Windows the same folders live under
-`%localappdata%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang\`.
-
-### Updating from v1.0.0
-
-v1.0.0 shipped with invisible item icons. If you already installed it:
-
-1. In Minecraft go to **Settings → Storage → Resource Packs / Behavior Packs** (or the
-   global **Profile → Packs** screen), find the two Arcane Arsenal packs and **delete**
-   both. This matters — the old copy is cached, and importing over it can keep the broken
-   textures.
-2. Import the new `ArcaneArsenal.mcaddon` (now version 1.0.1).
-3. Re-activate both packs on your world.
-
-### Checking it is actually working
-
-When you spawn into a world with the behaviour pack active, chat shows:
-
-```
-[Arcane Arsenal] v1.0.1 loaded - 6 weapons armed.
-```
-
-If that line does **not** appear, the behaviour pack's scripts are not running, and no
-weapon effect will fire. If it does appear but a weapon looks wrong, the problem is on the
-resource-pack side instead.
-
-To see exactly what the game thinks is wrong, turn on
-**Settings → Creator → Content Log GUI** (and "Content Log File"). It names the pack and
-file for any load error.
+> **Updating from v1.0.0:** v1.0.0 shipped with invisible item icons. Delete both cached
+> Arcane Arsenal packs under **Settings → Storage** before importing v1.0.1, then
+> re-activate them on your world.
 
 ### Getting the weapons quickly
 
@@ -106,39 +233,12 @@ Both the Stormcaller and the Meteor Staff carry a use duration, so holding one m
 **use button** appear on the right of the HUD. Aim at a block or mob and tap it. If nothing
 is in range the spell lands where your view meets the ground, up to 40–48 blocks out.
 
----
-
-## Repository layout
-
-```
-behavior_packs/arcane_arsenal_bp/
-  manifest.json          BP manifest, min_engine_version 1.21.0
-  items/*.json           6 item definitions, format_version 1.21.0
-  recipes/*.json         6 shaped recipes
-  scripts/main.js        all weapon logic (@minecraft/server 1.11.0)
-  texts/                 pack name strings
-resource_packs/arcane_arsenal_rp/
-  manifest.json          RP manifest
-  textures/item_texture.json
-  textures/items/*.png   6 hand-made 16x16 icons
-  texts/en_US.lang       item display names
-tools/
-  gen_textures.py        regenerates every icon (stdlib only)
-  build.py               validates the packs and writes the .mcaddon
-dist/ArcaneArsenal.mcaddon
-```
-
 ## Rebuilding
 
 ```bash
 python3 tools/gen_textures.py      # redraw the icons (add --preview for ASCII art)
 python3 tools/build.py             # validate + repackage dist/ArcaneArsenal.mcaddon
 ```
-
-`build.py` fails loudly if any JSON is malformed, if manifest UUIDs collide, if the
-behaviour pack loses its resource-pack dependency, if an item icon does not resolve to a
-real PNG, if a recipe produces an item that does not exist, or if an item has no name in
-`en_US.lang`.
 
 ## Tuning
 
@@ -149,7 +249,7 @@ ranges, cooldowns — sits in the `CONFIG` object at the top of
 To stop the Cataclysm Hammer and Meteor Staff from destroying terrain, set
 `hammer.breaksBlocks` and `staff.breaksBlocks` to `false`.
 
-## Compatibility notes
+## Compatibility notes (Arcane Arsenal)
 
 - **Version floor:** `min_engine_version` is `1.21.0`. Item components, recipe format and
   script APIs were all chosen to exist in that release, so nothing here depends on a later
@@ -161,8 +261,8 @@ To stop the Cataclysm Hammer and Meteor Staff from destroying terrain, set
 - **Icon syntax:** `minecraft:icon` must use `{"textures": {"default": "<key>"}}` at
   `format_version` 1.20.60 and above. The older flat `{"texture": "<key>"}` field is
   deprecated, and the game ignores it silently — the item still loads and still shows its
-  name, but the icon renders as nothing at all. `tools/build.py` now fails the build if
-  that form reappears.
+  name, but the icon renders as nothing at all. Both build scripts fail if that form
+  reappears.
 - **Defensive scripting:** particle and sound calls are individually wrapped, and each
   effect handler is guarded, so a device or build that lacks one cosmetic id degrades that
   single effect instead of breaking the add-on.

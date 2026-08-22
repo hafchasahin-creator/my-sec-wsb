@@ -1,0 +1,39 @@
+{
+  "resource_pack_name": "natural_disasters",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "nd_tornado": {
+      "textures": "textures/items/tornado"
+    },
+    "nd_tsunami": {
+      "textures": "textures/items/tsunami"
+    },
+    "nd_earthquake": {
+      "textures": "textures/items/earthquake"
+    },
+    "nd_meteor": {
+      "textures": "textures/items/meteor"
+    },
+    "nd_volcano": {
+      "textures": "textures/items/volcano"
+    },
+    "nd_flash_flood": {
+      "textures": "textures/items/flash_flood"
+    },
+    "nd_hurricane": {
+      "textures": "textures/items/hurricane"
+    },
+    "nd_thunderstorm": {
+      "textures": "textures/items/thunderstorm"
+    },
+    "nd_blizzard": {
+      "textures": "textures/items/blizzard"
+    },
+    "nd_wildfire": {
+      "textures": "textures/items/wildfire"
+    },
+    "nd_sandstorm": {
+      "textures": "textures/items/sandstorm"
+    }
+  }
+}

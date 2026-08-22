@@ -1,0 +1,50 @@
+{
+  "format_version": "1.14.0",
+  "sound_definitions": {
+    "nd.wind": {
+      "category": "weather",
+      "sounds": [
+        {
+          "name": "sounds/nd/wind",
+          "volume": 1.0
+        }
+      ]
+    },
+    "nd.rumble": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/nd/rumble",
+          "volume": 1.0
+        }
+      ]
+    },
+    "nd.whoosh": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/nd/whoosh",
+          "volume": 1.0
+        }
+      ]
+    },
+    "nd.wave": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/nd/wave",
+          "volume": 1.0
+        }
+      ]
+    },
+    "nd.fire_crackle": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/nd/fire_crackle",
+          "volume": 1.0
+        }
+      ]
+    }
+  }
+}

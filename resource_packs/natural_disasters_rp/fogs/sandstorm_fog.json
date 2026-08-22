@@ -1,0 +1,16 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "nd:fog_sandstorm"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 2.0,
+        "fog_end": 24.0,
+        "fog_color": "#C9A46A",
+        "render_distance_type": "fixed"
+      }
+    }
+  }
+}
