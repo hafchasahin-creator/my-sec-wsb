@@ -1,0 +1,66 @@
+{
+  "format_version": "1.16.0",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "bg:bullet",
+      "is_spawnable": false,
+      "is_summonable": true,
+      "is_experimental": false
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "bg_projectile"
+        ]
+      },
+      "minecraft:collision_box": {
+        "width": 0.2,
+        "height": 0.2
+      },
+      "minecraft:projectile": {
+        "on_hit": {
+          "impact_damage": {
+            "damage": 3,
+            "knockback": true,
+            "semi_random_diff_damage": false,
+            "destroy_on_hit": true
+          },
+          "remove_on_hit": {},
+          "particle_on_hit": {
+            "particle_type": "smoke",
+            "num_particles": 4,
+            "on_entity_hit": true,
+            "on_other_hit": true
+          }
+        },
+        "hit_sound": "random.bowhit",
+        "power": 3.6,
+        "gravity": 0.008,
+        "inertia": 1.0,
+        "liquid_inertia": 0.55,
+        "anchor": 2,
+        "offset": [
+          0,
+          -0.2,
+          0
+        ],
+        "uncertainty_base": 4,
+        "uncertainty_multiplier": 1,
+        "should_bounce": false,
+        "reflect_on_hurt": false
+      },
+      "minecraft:physics": {},
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": true
+      },
+      "minecraft:conditional_bandwidth_optimization": {
+        "default_values": {
+          "max_optimized_distance": 96,
+          "max_dropped_ticks": 7,
+          "use_motion_prediction_hints": true
+        }
+      }
+    }
+  }
+}

@@ -5,9 +5,14 @@ pack.description=Model, textures, animations and sounds for the Bodyguard compan
 
 item.bg:contract=Bodyguard Contract
 item.bg:contract.name=Bodyguard Contract
+item.bg:sidearm=Guard Sidearm
+item.bg:sidearm.name=Guard Sidearm
+item.bg:carbine=Guard Carbine
+item.bg:carbine.name=Guard Carbine
 item.spawn_egg.entity.bg:bodyguard=Spawn Bodyguard
 item.spawn_egg.entity.bg:bodyguard.name=Spawn Bodyguard
 
 entity.bg:bodyguard.name=Bodyguard
+entity.bg:bullet.name=Bullet
 
 action.interact.bodyguard.command=Command

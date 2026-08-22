@@ -8,7 +8,7 @@ play.
 
 | Add-on | What it adds | Download |
 | --- | --- | --- |
-| **[Bodyguard](docs/bodyguard.md)** | A companion that follows, protects and fights for you: five command modes, real gear progression, a touch-friendly command panel. | `dist/Bodyguard.mcaddon` |
+| **[Bodyguard](docs/bodyguard.md)** | An armed companion that follows, protects and shoots for you: five command modes, firearms, real gear progression, a touch-friendly command panel. | `dist/Bodyguard.mcaddon` |
 | **[Arcane Arsenal](docs/arcane-arsenal.md)** | Six legendary weapons with scripted magic effects. | `dist/ArcaneArsenal.mcaddon` |
 
 ---
@@ -69,8 +69,8 @@ is skipped in silence. So the build refuses to package when:
   silently falls back to a different parse rather than complaining
 * a recipe produces an item that does not exist, or its pattern and key disagree
 * a custom item or entity has no display name in `en_US.lang`
-* a client entity references geometry, a texture, an animation, an animation controller
-  or a render controller that is not defined
+* a client entity or an attachable references geometry, a texture, an animation, an
+  animation controller or a render controller that is not defined
 * an animation controller plays an animation the client entity does not map, or
   transitions to a state that does not exist
 * a render controller references a `Texture.`/`Geometry.`/`Material.` the entity does not map
@@ -104,6 +104,7 @@ tools/
   mock/                     the stand-in @minecraft/server modules
   gen_entity.py             generate the bodyguard entity definition
   gen_bodyguard_art.py      draw every bodyguard texture
+  gen_guns.py               draw the firearm models, textures and icons
   gen_textures.py           draw every Arcane Arsenal icon
   preview_model.py          render the bodyguard model to a PNG
   preview_pose.py           render a frame of any animation, posed, to a PNG

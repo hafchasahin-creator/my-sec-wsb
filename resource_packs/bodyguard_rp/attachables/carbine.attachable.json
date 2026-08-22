@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:attachable": {
+    "description": {
+      "identifier": "bg:carbine",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/bodyguard/carbine"
+      },
+      "geometry": {
+        "default": "geometry.bg_carbine"
+      },
+      "animations": {
+        "wield": "animation.bg_carbine.wield"
+      },
+      "scripts": {
+        "animate": [
+          "wield"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.bg_gun"
+      ]
+    }
+  }
+}

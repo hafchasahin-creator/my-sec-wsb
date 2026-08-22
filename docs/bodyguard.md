@@ -80,6 +80,42 @@ The panel also shows how many threats each bodyguard has stopped.
 
 ---
 
+## Firearms
+
+Every bodyguard reports for duty carrying a **Guard Sidearm**, and shoots anyone who
+attacks you. Guns need no ammunition and never run dry in a bodyguard's hands.
+
+| Weapon | In a bodyguard's hands | In yours |
+| --- | --- | --- |
+| **Guard Sidearm** | Fires every 0.55–0.95 s out to 16 blocks | 5 damage, 26 blocks, 0.45 s between shots |
+| **Guard Carbine** | Fires every 1.0–1.5 s out to 26 blocks, hits harder | 9 damage, 40 blocks, 0.95 s between shots |
+
+A bodyguard raises the weapon into a two-handed stance as it lines up a shot, kicks with
+the recoil on every round, and drops back to a low carry when the fight is over. Each shot
+flashes the muzzle, cracks, and throws sparks off whatever it hits.
+
+Swap a bodyguard onto a carbine — or back onto a sword, an axe or a bow — from the
+Equipment panel; the shooting AI re-arms itself to match whatever is actually in its hand,
+so it can never fire arrows out of a carbine.
+
+You can carry and fire the guns yourself. A player's shot is a hitscan raycast, so it
+lands the instant you tap, and it stops at walls. Guns wear out in a player's hands
+(around 900 shots for the sidearm) and can be repaired with iron on an anvil.
+
+**Crafting**
+
+```
+Guard Sidearm        Guard Carbine        I = Iron Ingot
+  I I I                I I I              C = Copper Ingot
+  C R                  I R D              R = Redstone
+  C                    C C                D = Diamond
+```
+
+A bodyguard's bullets can never hurt its own owner: if one somehow lands, the damage is
+refunded on the spot.
+
+---
+
 ## Gear
 
 Bodyguards use **real vanilla equipment**, rendered through the game's own attachable
@@ -90,9 +126,9 @@ system — not a painted-on approximation.
   changes health, damage, knockback resistance, movement speed *and* the uniform they
   wear.
 * **Shields** — go in the off hand.
-* **Bows and crossbows** — a bodyguard with a bow in its off hand draws it when a fight
-  stalls out of reach, and holsters it again when things close in. Put a bow in its main
-  hand instead and you have a dedicated marksman.
+* **Bows, crossbows and firearms** — see [Firearms](#firearms). A melee bodyguard with a
+  bow in its off hand draws it when a fight stalls out of reach and holsters it again when
+  things close in; a bodyguard already holding a gun has no need to swap.
 
 | Tier | Armour points | Health | Attack | Knockback resist |
 | --- | --- | --- | --- | --- |
@@ -133,6 +169,8 @@ On top of the native melee:
 * **Raised guard** — below 38% health it braces, gaining Resistance II for a moment.
 * **Dodging** — a heavy hit makes it step sideways out of the arc.
 * **Sprinting** — it runs, not walks, whenever it has a target.
+* **Gunfire** — a bodyguard with a firearm shoots from cover distance, closing to melee
+  only when something gets inside its minimum range.
 * **Victory** — after a fight it kills, it takes a beat to sheathe and salute.
 
 Out of combat it regenerates about 20 health per minute, starting 8 seconds after the
@@ -205,7 +243,16 @@ These are real constraints of the target version, not things left undone.
   This is why the tame item is gold and not the Contract.
 * **No custom audio.** Shipping new sounds means shipping `.ogg` files. Every sound here
   is an existing Bedrock sound event chosen to fit, referenced by name — so nothing can
-  be missing on any device, and the pack stays under 45 KB.
+  be missing on any device, and the pack stays small. The gunshot is not a sample:
+  Bedrock has no gunfire sound, so one is assembled per shot from the firework and click
+  events, layered at different volumes and pitches for each weapon.
+* **Both guns fire the same projectile.** `minecraft:shooter` picks a projectile entity,
+  not a damage value, so the bullet carries a low base impact and the script adds the rest
+  based on which weapon fired it. Bullet spread is therefore shared between the two guns;
+  the carbine's advantages are range and damage, not accuracy.
+* **`minecraft:behavior.ranged_attack` has no on-shoot trigger.** The report, muzzle flash
+  and recoil hang off the bullet entity appearing, which is the only reliable signal that
+  a shot happened.
 * **A script cannot read or set a mob's current target.** All targeting is data-driven.
   The script influences fights by marking combat, granting Speed, pulling a straggler
   back, and toggling the ranged goal — not by pointing the mob at an entity.
@@ -230,8 +277,11 @@ These are real constraints of the target version, not things left undone.
 behavior_packs/bodyguard_bp/
   manifest.json                 min_engine_version 1.21.0, server 1.11.0, server-ui 1.1.0
   entities/bodyguard.json       16 component groups, 22 events
+  entities/bullet.json          bg:bullet
   items/contract.json           bg:contract
-  recipes/contract.json
+  items/sidearm.json            bg:sidearm
+  items/carbine.json            bg:carbine
+  recipes/*.json
   scripts/main.js               ownership, modes, UI, combat, recovery, gear
   texts/
 resource_packs/bodyguard_rp/
@@ -241,7 +291,9 @@ resource_packs/bodyguard_rp/
   animations/bodyguard.animation.json            15 animations
   animation_controllers/…                        3 controllers
   render_controllers/…
-  particles/                    oath_seal, guard_slam, alert_ping
+  attachables/                  3D firearm models bound into the hand
+  particles/                    oath_seal, guard_slam, alert_ping,
+                                muzzle_flash, bullet_impact
   sounds.json
   textures/entity/bodyguard/    5 gear-tier skins
   textures/items/               contract + spawn egg icons
@@ -253,6 +305,7 @@ resource_packs/bodyguard_rp/
 ```bash
 python3 tools/gen_entity.py           # regenerate the entity definition
 python3 tools/gen_bodyguard_art.py    # redraw every texture (--preview for ASCII)
+python3 tools/gen_guns.py             # regenerate the firearm models, textures and icons
 python3 tools/preview_model.py        # render the model to dist/ for art review
 python3 tools/preview_pose.py         # render posed frames of any animation
 python3 tools/preview_pose.py --list  # list the animations it can pose
@@ -269,5 +322,12 @@ BEDROCK_REFERENCE=.bedrock-reference python3 tools/verify_bedrock.py
 Every number lives in the `CONFIG` object at the top of
 `behavior_packs/bodyguard_bp/scripts/main.js` (combat, regeneration, leashes, caps) and
 in the tables at the top of `tools/gen_entity.py` (tier stats, threat ladder, mode
-loadouts). Edit, re-run `tools/gen_entity.py` if you touched the entity, then
-`tools/build.py`.
+loadouts, firearm rates of fire). Edit, re-run `tools/gen_entity.py` if you touched the
+entity, then `tools/build.py`.
+
+To see a weapon in a bodyguard's hand without launching the game:
+
+```bash
+python3 tools/preview_pose.py --poses idle,aim --gun geometry.bg_carbine \
+        --wield "0.5,-1.5,0.5,-8,0,180" --out dist/carbine.png
+```

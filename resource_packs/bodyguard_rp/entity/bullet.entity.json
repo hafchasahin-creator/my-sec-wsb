@@ -1,0 +1,21 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "bg:bullet",
+      "min_engine_version": "1.21.0",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/bodyguard/bullet"
+      },
+      "geometry": {
+        "default": "geometry.bg_bullet"
+      },
+      "render_controllers": [
+        "controller.render.bg_bullet"
+      ]
+    }
+  }
+}

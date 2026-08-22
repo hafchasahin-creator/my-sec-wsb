@@ -1,5 +1,34 @@
 # Changelog
 
+## Bodyguard 2.1.0 - Firearms
+
+Bodyguards now carry guns and shoot whoever attacks their owner.
+
+* **Guard Sidearm** and **Guard Carbine**, both craftable, both real 3D models rendered in
+  hand through the game's own attachable system rather than flat item sprites.
+* Every bodyguard is issued a sidearm the moment it is hired. Guns need no ammunition.
+* A new `bg:bullet` projectile: fast, near-flat trajectory, tracer, impact sparks and an
+  impact sound.
+* A **two-handed aiming stance** driven by `query.facing_target_to_range_attack`, so the
+  weapon comes up as the shot is lined up and drops back to a low carry afterwards, plus a
+  **recoil kick** on every round.
+* A **gunshot assembled per shot** from layered firework and click events at weapon-specific
+  volumes and pitches - Bedrock ships no gunfire sample, and shipping one would mean
+  shipping audio files.
+* **Muzzle flash** and **bullet impact** particles, both short one-shot bursts.
+* The shooting AI re-arms itself from whatever is actually in the bodyguard's main hand, so
+  it can never fire arrows out of a carbine, and a bodyguard holding a gun no longer does
+  the melee bodyguard's bow-holster dance.
+* Bullets that somehow reach the owner are refunded, closing the last friendly-fire gap.
+* **Players can fire the guns too.** A player's shot is a hitscan raycast - it lands the
+  instant you tap and stops at walls - with a visible item cooldown, durability wear and a
+  weapon that breaks when it is spent.
+* Tooling: `tools/gen_guns.py` generates the firearm models, textures and icons from one
+  description so their UVs cannot drift; `tools/preview_pose.py` gained a `--gun` flag that
+  binds an attachable into the hand, which is how the carbine was caught clipping through
+  the ground when carried muzzle-down. The build now validates attachables end to end.
+* 115 scripted behaviour checks, up from 94.
+
 ## Bodyguard 2.0.0
 
 The bodyguard rebuilt as a full companion rather than a reskinned mob. Everything below

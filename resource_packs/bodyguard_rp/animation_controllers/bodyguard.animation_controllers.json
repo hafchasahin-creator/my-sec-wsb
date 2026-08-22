@@ -207,6 +207,30 @@
           "blend_transition": 0.1
         }
       }
+    },
+    "controller.animation.bodyguard.aim": {
+      "initial_state": "sights_down",
+      "states": {
+        "sights_down": {
+          "blend_transition": 0.25,
+          "transitions": [
+            {
+              "sights_up": "query.facing_target_to_range_attack"
+            }
+          ]
+        },
+        "sights_up": {
+          "animations": [
+            "aim"
+          ],
+          "blend_transition": 0.18,
+          "transitions": [
+            {
+              "sights_down": "!query.facing_target_to_range_attack"
+            }
+          ]
+        }
+      }
     }
   }
 }

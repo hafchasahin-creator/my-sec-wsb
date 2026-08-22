@@ -147,6 +147,119 @@ check("starts in FOLLOW", guard.getDynamicProperty("bg:mode") === 0);
 check("name badge shows the mode", /FOLLOW/.test(guard.nameTag), guard.nameTag);
 check("hiring plays the oath particle", stats.particles.some((p) => p.id === "bg:oath_seal"));
 
+// --- standard issue --------------------------------------------------------
+const issued = guard.getComponent("minecraft:equippable").getEquipment(EquipmentSlot.Mainhand);
+check("a hired bodyguard is issued a sidearm", issued?.typeId === "bg:sidearm", issued?.typeId);
+check(
+  "and the sidearm arms the matching shooting AI",
+  stats.triggered.some((t) => t.event === "bg:arm_gun_sidearm")
+);
+
+// --- firing ----------------------------------------------------------------
+stats.sounds.length = 0;
+stats.particles.length = 0;
+stats.animations.length = 0;
+const bullet = overworld.spawnEntity("bg:bullet", {
+  x: guard.location.x + 0.4,
+  y: guard.location.y + 1.5,
+  z: guard.location.z,
+});
+await advance(3);
+noErrors("shot fired");
+check("a shot makes a report", stats.sounds.some((s) => s.id === "firework.blast"));
+check("a shot flashes the muzzle", stats.particles.some((p) => p.id === "bg:muzzle_flash"));
+check(
+  "and the shooter recoils",
+  stats.animations.some((a) => a.id === guard.id && a.name === "animation.bodyguard.fire"),
+  JSON.stringify(stats.animations)
+);
+check("the bullet is not tracked as a bodyguard", !overworld.getEntities({ type: "bg:bodyguard" }).includes(bullet));
+
+// A bullet from a bodyguard carries its weapon's damage.
+const shotVictim = spawnHostile(overworld, { x: guard.location.x + 2, y: guard.location.y, z: guard.location.z });
+stats.damages.length = 0;
+world.afterEvents.entityHurt._fire({
+  hurtEntity: shotVictim,
+  damage: 3,
+  damageSource: { cause: "projectile", damagingEntity: guard, damagingProjectile: bullet },
+});
+await advance(2);
+noErrors("bullet damage");
+check("a bullet adds the weapon's damage on top", stats.damages.length === 1, String(stats.damages.length));
+check("the impact sparks", stats.particles.some((p) => p.id === "bg:bullet_impact"));
+
+// Swapping to a carbine re-arms the AI and raises the bullet damage.
+stats.triggered.length = 0;
+stats.damages.length = 0;
+guard.getComponent("minecraft:equippable").setEquipment(EquipmentSlot.Mainhand, new ItemStack("bg:carbine"));
+await advance(20);
+check("a carbine re-arms the AI", stats.triggered.some((t) => t.event === "bg:arm_gun_carbine"));
+world.afterEvents.entityHurt._fire({
+  hurtEntity: shotVictim,
+  damage: 3,
+  damageSource: { cause: "projectile", damagingEntity: guard, damagingProjectile: bullet },
+});
+await advance(2);
+check("the carbine hits harder", stats.damages[0]?.amount > 3, JSON.stringify(stats.damages[0]));
+
+// A bullet that somehow reaches the owner costs the owner nothing.
+const beforeStray = owner.getComponent("minecraft:health").currentValue;
+owner.getComponent("minecraft:health").setCurrentValue(12);
+world.afterEvents.entityHurt._fire({
+  hurtEntity: owner,
+  damage: 6,
+  damageSource: { cause: "projectile", damagingEntity: guard, damagingProjectile: bullet },
+});
+await advance(2);
+check(
+  "a stray bullet from your own bodyguard is refunded",
+  owner.getComponent("minecraft:health").currentValue >= 18,
+  String(owner.getComponent("minecraft:health").currentValue)
+);
+bullet.remove();
+shotVictim.remove();
+guard.getComponent("minecraft:equippable").setEquipment(EquipmentSlot.Mainhand, new ItemStack("bg:sidearm"));
+await advance(20);
+
+// --- the player pulling the trigger ---------------------------------------
+const mark = spawnHostile(overworld, { x: owner.location.x, y: owner.location.y, z: owner.location.z + 6 });
+const markHealth = mark.getComponent("minecraft:health");
+markHealth.setCurrentValue(40);
+const pistol = new ItemStack("bg:sidearm");
+owner.getComponent("minecraft:equippable").setEquipment(EquipmentSlot.Mainhand, pistol);
+stats.sounds.length = 0;
+stats.particles.length = 0;
+stats.damages.length = 0;
+stats.cooldowns.length = 0;
+world.afterEvents.itemUse._fire({ source: owner, itemStack: pistol });
+await advance(2);
+noErrors("player fire");
+check("a player's shot hits what they are looking at", stats.damages.length === 1, String(stats.damages.length));
+check("it hurts", markHealth.currentValue < 40, String(markHealth.currentValue));
+check("it draws a tracer", stats.particles.filter((p) => p.id === "minecraft:basic_crit_particle").length >= 2);
+check("it starts a cooldown", stats.cooldowns.length === 1, JSON.stringify(stats.cooldowns));
+
+// Firing again inside the cooldown does nothing.
+stats.damages.length = 0;
+world.afterEvents.itemUse._fire({ source: owner, itemStack: pistol });
+await advance(2);
+check("and the cooldown blocks the next shot", stats.damages.length === 0);
+
+// Durability is spent, and the weapon eventually breaks.
+const held = owner.getComponent("minecraft:equippable").getEquipment(EquipmentSlot.Mainhand);
+check("a shot costs durability", held?.getComponent("minecraft:durability").damage >= 1);
+held.getComponent("minecraft:durability").damage = 899;
+owner.getComponent("minecraft:equippable").setEquipment(EquipmentSlot.Mainhand, held);
+await advance(20);
+world.afterEvents.itemUse._fire({ source: owner, itemStack: held });
+await advance(3);
+check(
+  "a worn-out weapon breaks",
+  !owner.getComponent("minecraft:equippable").getEquipment(EquipmentSlot.Mainhand)
+);
+mark.remove();
+await advance(10);
+
 // --- the command panel -----------------------------------------------------
 await advance(15); // clear the input de-duplication windows
 ui.resetForms();
@@ -591,7 +704,7 @@ check(
   gear2.getEquipment(EquipmentSlot.Mainhand)?.typeId === "minecraft:bow",
   gear2.getEquipment(EquipmentSlot.Mainhand)?.typeId
 );
-check("drawing the bow enables the ranged goal", stats.triggered.some((t) => t.event === "bg:ranged_on"));
+check("drawing the bow arms the bow goal", stats.triggered.some((t) => t.event === "bg:arm_ranged"));
 sniper.remove();
 
 // It holsters again once the fight is over.
@@ -602,7 +715,7 @@ check(
   gear2.getEquipment(EquipmentSlot.Mainhand)?.typeId === "minecraft:iron_sword",
   gear2.getEquipment(EquipmentSlot.Mainhand)?.typeId
 );
-check("and the ranged goal is switched off", stats.triggered.some((t) => t.event === "bg:ranged_off"));
+check("and it goes back to melee", stats.triggered.some((t) => t.event === "bg:arm_melee"));
 
 // --- rename ----------------------------------------------------------------
 await advance(15);

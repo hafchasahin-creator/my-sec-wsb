@@ -51,6 +51,8 @@ export const stats = {
   actionBars: [],
   triggered: [],
   errors: [],
+  animations: [],
+  cooldowns: [],
 };
 
 export function resetStats() {
@@ -66,19 +68,45 @@ export function resetStats() {
   stats.messages.length = 0;
   stats.actionBars.length = 0;
   stats.triggered.length = 0;
+  stats.animations.length = 0;
+  stats.cooldowns.length = 0;
 }
 
 let nextId = 1;
+
+class DurabilityComponent {
+  constructor(maxDurability) {
+    this.damage = 0;
+    this.maxDurability = maxDurability;
+  }
+}
+
+/** Items the mock knows have durability, mirroring the pack's item JSON. */
+const DURABILITY = {
+  "bg:sidearm": 900,
+  "bg:carbine": 1400,
+};
 
 export class ItemStack {
   constructor(typeId, amount = 1) {
     this.typeId = typeId.includes(":") ? typeId : "minecraft:" + typeId;
     this.amount = amount;
     this.nameTag = undefined;
+    this._components = new Map();
+    if (DURABILITY[this.typeId]) {
+      this._components.set("minecraft:durability", new DurabilityComponent(DURABILITY[this.typeId]));
+    }
+  }
+  getComponent(id) {
+    return this._components.get(id);
+  }
+  hasComponent(id) {
+    return this._components.has(id);
   }
   clone() {
     const copy = new ItemStack(this.typeId, this.amount);
     copy.nameTag = this.nameTag;
+    for (const [id, component] of this._components) copy._components.set(id, component);
     return copy;
   }
 }
@@ -245,8 +273,26 @@ export class Entity {
   getViewDirection() {
     return { x: 0, y: 0, z: 1 };
   }
-  getEntitiesFromViewDirection() {
-    return [];
+  getEntitiesFromViewDirection(options = {}) {
+    // Straight-line hits along +Z from this entity, which is what the mock's
+    // getViewDirection reports.
+    const max = options.maxDistance ?? 16;
+    const hits = [];
+    for (const other of world._entities.values()) {
+      if (other === this || !other.isValid() || other.dimension !== this.dimension) continue;
+      const dx = other.location.x - this.location.x;
+      const dz = other.location.z - this.location.z;
+      if (Math.abs(dx) > 0.75 || dz <= 0 || dz > max) continue;
+      hits.push({ entity: other, distance: dz });
+    }
+    hits.sort((a, b) => a.distance - b.distance);
+    return hits;
+  }
+  getBlockFromViewDirection() {
+    return undefined;
+  }
+  getHeadLocation() {
+    return { x: this.location.x, y: this.location.y + 1.6, z: this.location.z };
   }
   getRotation() {
     return { x: 0, y: 0 };
@@ -268,7 +314,12 @@ export class Entity {
     this._valid = false;
     return true;
   }
-  playAnimation() {}
+  playAnimation(name, options) {
+    if (typeof name !== "string" || !name.startsWith("animation.")) {
+      throw new Error("playAnimation needs an animation identifier, got " + name);
+    }
+    stats.animations.push({ id: this.id, name, options });
+  }
   matches() {
     return true;
   }
@@ -288,6 +339,15 @@ export class Player extends Entity {
   }
   getGameMode() {
     return this._gameMode;
+  }
+  getItemCooldown(category) {
+    const until = this._cooldowns?.get(category) ?? 0;
+    return Math.max(0, until - system.currentTick);
+  }
+  startItemCooldown(category, ticks) {
+    if (!this._cooldowns) this._cooldowns = new Map();
+    this._cooldowns.set(category, system.currentTick + ticks);
+    stats.cooldowns.push({ name: this.name, category, ticks });
   }
   setGameMode(mode) {
     this._gameMode = mode;

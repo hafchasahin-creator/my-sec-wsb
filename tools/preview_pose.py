@@ -259,6 +259,8 @@ def main():
     parser.add_argument("--out", default=os.path.join("dist", "bodyguard_poses.png"))
     parser.add_argument("--scale", type=int, default=7)
     parser.add_argument("--list", action="store_true")
+    parser.add_argument("--gun", default="", help="attachable geometry id, e.g. geometry.bg_sidearm")
+    parser.add_argument("--wield", default="0,0,0,0,0,0", help="gun position x,y,z and rotation x,y,z")
     args = parser.parse_args()
 
     with open(GEO, encoding="utf-8") as handle:
@@ -272,6 +274,24 @@ def main():
         return 0
 
     tex_w, tex_h, texels = read_png(TEXTURE)
+
+    # An attachable is a separate model bound into the hand bone, so the pose
+    # renderer has to do the same to show a gun where it will actually appear.
+    gun_bones, gun_texels, gun_offset, gun_angles = [], None, [0, 0, 0], [0, 0, 0]
+    if args.gun:
+        with open(os.path.join(RP, "models", "entity", "bg_guns.geo.json"), encoding="utf-8") as handle:
+            for entry in json.load(handle)["minecraft:geometry"]:
+                if entry["description"]["identifier"] == args.gun:
+                    gun_bones = entry["bones"]
+        if not gun_bones:
+            print("unknown gun geometry: %s" % args.gun, file=sys.stderr)
+            return 1
+        name = args.gun.replace("geometry.bg_", "")
+        _gw, _gh, gun_texels = read_png(
+            os.path.join(RP, "textures", "entity", "bodyguard", name + ".png")
+        )
+        numbers = [float(v) for v in args.wield.split(",")]
+        gun_offset, gun_angles = numbers[:3], numbers[3:6]
 
     names = [n.strip() for n in args.poses.split(",") if n.strip()]
     scale = args.scale
@@ -303,10 +323,26 @@ def main():
         origin_x = slot * cell + cell // 2
 
         drawn = []
-        for bone in bones:
+        renderables = [(bone, cube, False) for bone in bones for cube in bone.get("cubes", [])]
+        # The gun rides the hand bone, offset and rotated by its wield transform.
+        hand_pivot = next((b["pivot"] for b in bones if b["name"] == "rightItem"), [0, 0, 0])
+        for bone in gun_bones:
             for cube in bone.get("cubes", []):
-                for corners, (fu, fv, fw, fh), shade in faces_of(cube):
+                renderables.append(({"name": "rightItem", "_gun": True}, cube, True))
+
+        for bone, cube, is_gun in renderables:
+            for corners, (fu, fv, fw, fh), shade in faces_of(cube):
+                if is_gun:
+                    posed = []
+                    for corner in corners:
+                        # Same axis convention as a bone, so the numbers typed
+                        # here are the numbers that go in the wield animation.
+                        local = rotate(list(corner), [-gun_angles[0], -gun_angles[1], gun_angles[2]])
+                        local = [local[i] + gun_offset[i] + hand_pivot[i] for i in range(3)]
+                        posed.append(transform("rightItem", local))
+                else:
                     posed = [transform(bone["name"], list(c)) for c in corners]
+                if True:
                     view = []
                     for x, y, z in posed:
                         vx = x * math.cos(yaw) + z * math.sin(yaw)
@@ -314,9 +350,10 @@ def main():
                         vy = y * math.cos(pitch) - vz * math.sin(pitch)
                         vz = y * math.sin(pitch) + vz * math.cos(pitch)
                         view.append((vx, vy, vz))
-                    drawn.append((view, (fu, fv, fw, fh), shade))
+                    drawn.append((view, (fu, fv, fw, fh), shade, is_gun))
 
-        for view, (fu, fv, fw, fh), shade in drawn:
+        for view, (fu, fv, fw, fh), shade, is_gun in drawn:
+            sheet = gun_texels if is_gun else texels
             xs = [v[0] for v in view]
             ys = [v[1] for v in view]
             screen = [
@@ -353,7 +390,7 @@ def main():
                         tx = min(fw - 1, max(0, int(us * fw)))
                         ty = min(fh - 1, max(0, int(vs * fh)))
                         px_index = (fu + tx) * 4
-                        texel = texels[fv + ty][px_index : px_index + 4]
+                        texel = sheet[fv + ty][px_index : px_index + 4]
                         if texel[3] == 0:
                             continue
                         depth[py][px] = z

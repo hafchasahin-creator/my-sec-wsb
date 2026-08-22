@@ -1,0 +1,40 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.bg_sidearm.wield": {
+      "loop": true,
+      "bones": {
+        "gun": {
+          "position": [
+            "c.is_first_person ? -4.5 : 0.5",
+            "c.is_first_person ? -1.5 : -1.0",
+            "c.is_first_person ? -4.0 : 0.0"
+          ],
+          "rotation": [
+            "c.is_first_person ? -78.0 : -15.0",
+            "c.is_first_person ? -8.0 : 0.0",
+            180.0
+          ],
+          "scale": "c.is_first_person ? 1.0 : 1.0"
+        }
+      }
+    },
+    "animation.bg_carbine.wield": {
+      "loop": true,
+      "bones": {
+        "gun": {
+          "position": [
+            "c.is_first_person ? -4.0 : 0.5",
+            "c.is_first_person ? -2.0 : -1.5",
+            "c.is_first_person ? -5.5 : 0.5"
+          ],
+          "rotation": [
+            "c.is_first_person ? -80.0 : -8.0",
+            "c.is_first_person ? -6.0 : 0.0",
+            180.0
+          ]
+        }
+      }
+    }
+  }
+}

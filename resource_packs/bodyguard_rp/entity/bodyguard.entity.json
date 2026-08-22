@@ -44,6 +44,7 @@
         "animate": [
           "look_at_target",
           "move",
+          "sights",
           "combat",
           "holding",
           "hurt",
@@ -69,7 +70,10 @@
         "death": "animation.bodyguard.death",
         "move": "controller.animation.bodyguard.move",
         "combat": "controller.animation.bodyguard.combat",
-        "state": "controller.animation.bodyguard.state"
+        "state": "controller.animation.bodyguard.state",
+        "aim": "animation.bodyguard.aim",
+        "fire": "animation.bodyguard.fire",
+        "sights": "controller.animation.bodyguard.aim"
       },
       "render_controllers": [
         "controller.render.bodyguard"

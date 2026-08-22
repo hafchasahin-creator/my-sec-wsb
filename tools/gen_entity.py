@@ -432,20 +432,38 @@ for name, comps in MODES.items():
 for i in range(len(TIERS)):
     groups["bg:tier_%d" % i] = tier_group(i)
 
-# ---- Ranged fallback: used when a target cannot be reached in melee. ------
-groups["bg:ranged"] = {
-    "minecraft:shooter": {"def": "minecraft:arrow", "sound": "bow"},
-    "minecraft:behavior.ranged_attack": {
-        "priority": 5,
-        "attack_interval_min": 1.4,
-        "attack_interval_max": 2.4,
-        "attack_radius": 16.0,
-        "attack_radius_min": 4.0,
-        "speed_multiplier": 1.1,
-        "target_in_sight_time": 0.2,
-        "ranged_fov": 120.0,
-    },
-}
+# ---- Armaments -----------------------------------------------------------
+# Exactly one of these is ever active, chosen by the script from whatever is
+# actually in the bodyguard's main hand.  A bow is the fallback for a melee
+# bodyguard that cannot reach its target; the firearms are the real ranged
+# loadouts.
+def ranged(projectile, power, interval, radius, minimum, fov, sight, sound=None):
+    shooter = {"def": projectile, "power": power}
+    if sound:
+        shooter["sound"] = sound
+    return {
+        "minecraft:shooter": shooter,
+        "minecraft:behavior.ranged_attack": {
+            "priority": 5,
+            "attack_interval_min": interval[0],
+            "attack_interval_max": interval[1],
+            "attack_radius": radius,
+            "attack_radius_min": minimum,
+            "speed_multiplier": 1.05,
+            "target_in_sight_time": sight,
+            "ranged_fov": fov,
+            "swing": True,
+        },
+    }
+
+
+groups["bg:ranged"] = ranged(
+    "minecraft:arrow", 1.6, (1.4, 2.4), 16.0, 4.0, 120.0, 0.2, sound="bow"
+)
+# Sidearm: quick, short-ranged, keeps working while backing away.
+groups["bg:gun_sidearm"] = ranged("bg:bullet", 3.4, (0.55, 0.95), 16.0, 2.5, 130.0, 0.1)
+# Carbine: slower, reaches much further, wants a clear line of sight.
+groups["bg:gun_carbine"] = ranged("bg:bullet", 4.4, (1.0, 1.5), 26.0, 3.5, 100.0, 0.25)
 
 # ---- Short flag states that the resource pack animates. ------------------
 # query.timer_flag_N is readable on the client, so these drive the special
@@ -506,8 +524,13 @@ for i, name in enumerate(TIER_GROUPS):
         "add": {"component_groups": [name]},
     }
 
-events["bg:ranged_on"] = {"add": {"component_groups": ["bg:ranged"]}}
-events["bg:ranged_off"] = {"remove": {"component_groups": ["bg:ranged"]}}
+ARMS = ["bg:ranged", "bg:gun_sidearm", "bg:gun_carbine"]
+for name in ARMS:
+    events["bg:arm_" + name.split(":")[1]] = {
+        "remove": {"component_groups": [a for a in ARMS if a != name]},
+        "add": {"component_groups": [name]},
+    }
+events["bg:arm_melee"] = {"remove": {"component_groups": ARMS}}
 
 events["bg:special_start"] = {"add": {"component_groups": ["bg:flag_special"]}}
 events["bg:special_end"] = {"remove": {"component_groups": ["bg:flag_special"]}}

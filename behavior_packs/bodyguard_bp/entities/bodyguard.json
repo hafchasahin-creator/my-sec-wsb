@@ -2022,6 +2022,7 @@
       "bg:ranged": {
         "minecraft:shooter": {
           "def": "minecraft:arrow",
+          "power": 1.6,
           "sound": "bow"
         },
         "minecraft:behavior.ranged_attack": {
@@ -2030,9 +2031,44 @@
           "attack_interval_max": 2.4,
           "attack_radius": 16.0,
           "attack_radius_min": 4.0,
-          "speed_multiplier": 1.1,
+          "speed_multiplier": 1.05,
           "target_in_sight_time": 0.2,
-          "ranged_fov": 120.0
+          "ranged_fov": 120.0,
+          "swing": true
+        }
+      },
+      "bg:gun_sidearm": {
+        "minecraft:shooter": {
+          "def": "bg:bullet",
+          "power": 3.4
+        },
+        "minecraft:behavior.ranged_attack": {
+          "priority": 5,
+          "attack_interval_min": 0.55,
+          "attack_interval_max": 0.95,
+          "attack_radius": 16.0,
+          "attack_radius_min": 2.5,
+          "speed_multiplier": 1.05,
+          "target_in_sight_time": 0.1,
+          "ranged_fov": 130.0,
+          "swing": true
+        }
+      },
+      "bg:gun_carbine": {
+        "minecraft:shooter": {
+          "def": "bg:bullet",
+          "power": 4.4
+        },
+        "minecraft:behavior.ranged_attack": {
+          "priority": 5,
+          "attack_interval_min": 1.0,
+          "attack_interval_max": 1.5,
+          "attack_radius": 26.0,
+          "attack_radius_min": 3.5,
+          "speed_multiplier": 1.05,
+          "target_in_sight_time": 0.25,
+          "ranged_fov": 100.0,
+          "swing": true
         }
       },
       "bg:flag_special": {
@@ -2453,17 +2489,51 @@
           ]
         }
       },
-      "bg:ranged_on": {
+      "bg:arm_ranged": {
+        "remove": {
+          "component_groups": [
+            "bg:gun_sidearm",
+            "bg:gun_carbine"
+          ]
+        },
         "add": {
           "component_groups": [
             "bg:ranged"
           ]
         }
       },
-      "bg:ranged_off": {
+      "bg:arm_gun_sidearm": {
         "remove": {
           "component_groups": [
-            "bg:ranged"
+            "bg:ranged",
+            "bg:gun_carbine"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "bg:gun_sidearm"
+          ]
+        }
+      },
+      "bg:arm_gun_carbine": {
+        "remove": {
+          "component_groups": [
+            "bg:ranged",
+            "bg:gun_sidearm"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "bg:gun_carbine"
+          ]
+        }
+      },
+      "bg:arm_melee": {
+        "remove": {
+          "component_groups": [
+            "bg:ranged",
+            "bg:gun_sidearm",
+            "bg:gun_carbine"
           ]
         }
       },

@@ -23,6 +23,7 @@
 import {
   world,
   system,
+  ItemStack,
   GameMode,
   EquipmentSlot,
   EntityDamageCause,
@@ -91,6 +92,24 @@ const CONFIG = {
     rangedStallTicks: 60,
   },
 
+  firearms: {
+    /** Damage added on top of the bullet's own impact, per weapon. */
+    sidearmBonus: 2,
+    carbineBonus: 5,
+    /** What a player's shot does, and how far it reaches. */
+    playerSidearmDamage: 5,
+    playerCarbineDamage: 9,
+    playerSidearmRange: 26,
+    playerCarbineRange: 40,
+    /** Ticks of cooldown after a player's shot. */
+    playerSidearmCooldown: 9,
+    playerCarbineCooldown: 19,
+    /** Durability spent per player shot. A bodyguard's weapon never wears. */
+    playerWear: 1,
+    /** Every hired bodyguard is issued this unless it already has a weapon. */
+    issue: "bg:sidearm",
+  },
+
   regen: {
     /** Seconds out of combat before regeneration starts. */
     delay: 8,
@@ -155,7 +174,43 @@ const WEAPON_BONUS = {
   "minecraft:netherite_axe": 5,
   "minecraft:trident": 4,
 };
-const RANGED_WEAPONS = ["minecraft:bow", "minecraft:crossbow"];
+const BOWS = ["minecraft:bow", "minecraft:crossbow"];
+/**
+ * The firearms.  `group` is the entity event that arms the matching
+ * shooter/ranged_attack pair, `bonus` is the damage the script adds on top of
+ * the bullet's own impact damage, and the sound layers are what a gunshot is
+ * built from - Bedrock has no gunfire sample, so one is assembled from the
+ * firework and click events, which every device already has.
+ */
+const FIREARMS = {
+  "bg:sidearm": {
+    name: "sidearm",
+    event: "bg:arm_gun_sidearm",
+    bonus: "sidearmBonus",
+    playerDamage: "playerSidearmDamage",
+    playerRange: "playerSidearmRange",
+    playerCooldown: "playerSidearmCooldown",
+    report: [
+      { id: "firework.blast", volume: 0.55, pitch: 1.85 },
+      { id: "random.click", volume: 0.45, pitch: 1.95 },
+    ],
+  },
+  "bg:carbine": {
+    name: "carbine",
+    event: "bg:arm_gun_carbine",
+    bonus: "carbineBonus",
+    playerDamage: "playerCarbineDamage",
+    playerRange: "playerCarbineRange",
+    playerCooldown: "playerCarbineCooldown",
+    report: [
+      { id: "firework.blast", volume: 0.95, pitch: 1.2 },
+      { id: "firework.large_blast", volume: 0.35, pitch: 1.9 },
+      { id: "random.click", volume: 0.35, pitch: 1.6 },
+    ],
+  },
+};
+const BULLET_ID = "bg:bullet";
+const RANGED_WEAPONS = BOWS.concat(Object.keys(FIREARMS));
 
 // Armour points, matching vanilla values, used to derive the gear tier.
 const ARMOR_POINTS = {
@@ -319,8 +374,9 @@ function state(id) {
       nextUpdateAt: 0,
       victoryPending: false,
       killedAt: 0,
-      ranged: false,
+      armament: undefined,
       alertedAt: 0,
+      firedAt: 0,
       rangedCheckAt: 0,
       defendUntil: 0,
     };
@@ -581,18 +637,26 @@ function weaponBonus(guard) {
   return WEAPON_BONUS[held.typeId] || 0;
 }
 
-function heldIsRanged(guard) {
+function heldId(guard, slot) {
   const equippable = getEquippable(guard);
-  if (!equippable) return false;
-  const held = safe(() => equippable.getEquipment(EquipmentSlot.Mainhand), undefined);
-  return !!held && RANGED_WEAPONS.indexOf(held.typeId) >= 0;
+  if (!equippable) return undefined;
+  const stack = safe(() => equippable.getEquipment(slot), undefined);
+  return stack ? stack.typeId : undefined;
 }
 
-function offhandIsRanged(guard) {
-  const equippable = getEquippable(guard);
-  if (!equippable) return false;
-  const off = safe(() => equippable.getEquipment(EquipmentSlot.Offhand), undefined);
-  return !!off && RANGED_WEAPONS.indexOf(off.typeId) >= 0;
+function heldIsRanged(guard) {
+  const id = heldId(guard, EquipmentSlot.Mainhand);
+  return !!id && RANGED_WEAPONS.indexOf(id) >= 0;
+}
+
+function heldFirearm(guard) {
+  const id = heldId(guard, EquipmentSlot.Mainhand);
+  return id ? FIREARMS[id] : undefined;
+}
+
+function offhandIsBow(guard) {
+  const id = heldId(guard, EquipmentSlot.Offhand);
+  return !!id && BOWS.indexOf(id) >= 0;
 }
 
 /** Swap main hand and off hand.  Used to draw or holster a bow. */
@@ -608,20 +672,28 @@ function swapHands(guard) {
   return ok;
 }
 
-function setRanged(guard, on) {
-  const entry = state(guard.id);
-  if (entry.ranged === on) return;
-  entry.ranged = on;
-  safe(() => guard.triggerEvent(on ? "bg:ranged_on" : "bg:ranged_off"));
-}
-
 /**
- * Keep the ranged component group in sync with what is actually in the
- * bodyguard's hands.  A bow in the main hand means it should be allowed to
- * shoot; anything else means melee only.
+ * Keep the shooting AI in sync with what is actually in the bodyguard's main
+ * hand.  Exactly one armament group is ever active, so a bodyguard cannot end
+ * up firing arrows out of a carbine.
  */
-function syncRangedGroup(guard) {
-  setRanged(guard, heldIsRanged(guard));
+function syncArmament(guard) {
+  const held = heldId(guard, EquipmentSlot.Mainhand);
+  const firearm = held ? FIREARMS[held] : undefined;
+  let armament = "melee";
+  let event = "bg:arm_melee";
+  if (firearm) {
+    armament = firearm.name;
+    event = firearm.event;
+  } else if (held && BOWS.indexOf(held) >= 0) {
+    armament = "bow";
+    event = "bg:arm_ranged";
+  }
+  const entry = state(guard.id);
+  if (entry.armament === armament) return armament;
+  entry.armament = armament;
+  safe(() => guard.triggerEvent(event));
+  return armament;
 }
 
 // --------------------------------------------------------------------------
@@ -647,6 +719,38 @@ function hostilesNear(entity, radius) {
       }),
     []
   );
+}
+
+/** Assemble a gunshot from the sound events every Bedrock device already has. */
+function report(dimension, location, firearm) {
+  for (const layer of firearm.report) {
+    safe(() =>
+      dimension.playSound(layer.id, location, {
+        volume: layer.volume,
+        pitch: layer.pitch * (0.96 + Math.random() * 0.08),
+      })
+    );
+  }
+}
+
+function muzzleFlash(dimension, location) {
+  safe(() => dimension.spawnParticle("bg:muzzle_flash", location));
+}
+
+/** A short line of impact sparks, so a shot reads as a shot at any distance. */
+function tracer(dimension, from, to, steps) {
+  const dx = (to.x - from.x) / steps;
+  const dy = (to.y - from.y) / steps;
+  const dz = (to.z - from.z) / steps;
+  for (let i = 1; i < steps; i++) {
+    safe(() =>
+      dimension.spawnParticle("minecraft:basic_crit_particle", {
+        x: from.x + dx * i,
+        y: from.y + dy * i,
+        z: from.z + dz * i,
+      })
+    );
+  }
 }
 
 function knockback(target, from, strength, lift) {
@@ -815,7 +919,7 @@ function updateGuard(guard) {
   // Keep the name badge in sync; a reload or a name tag can clear it.
   if (!guard.nameTag || guard.nameTag.indexOf("§8|") < 0) refreshName(guard);
 
-  syncRangedGroup(guard);
+  syncArmament(guard);
 
   // Gear can also change outside the command panel - a command, another
   // add-on, or a pickup - so the tier is re-derived on a slow cadence rather
@@ -865,8 +969,10 @@ function updateGuard(guard) {
 
     // A melee bodyguard carrying a bow in its off hand draws it when the fight
     // has stalled out of reach, and holsters it again once things close in.
+    // A bodyguard already holding a firearm has nothing to swap to.
     if (
-      offhandIsRanged(guard) &&
+      !heldFirearm(guard) &&
+      offhandIsBow(guard) &&
       now - entry.lastMeleeHit > CONFIG.combat.rangedStallTicks &&
       now >= entry.rangedCheckAt
     ) {
@@ -875,10 +981,10 @@ function updateGuard(guard) {
       let nearest = Infinity;
       for (const target of targets) nearest = Math.min(nearest, dist(target.location, here));
       if (nearest > CONFIG.combat.rangedSwapDistance && nearest < Infinity) {
-        if (swapHands(guard)) syncRangedGroup(guard);
+        if (swapHands(guard)) syncArmament(guard);
       }
-    } else if (heldIsRanged(guard) && now - entry.lastMeleeHit < 40) {
-      if (swapHands(guard)) syncRangedGroup(guard);
+    } else if (heldIsRanged(guard) && !heldFirearm(guard) && now - entry.lastMeleeHit < 40) {
+      if (swapHands(guard)) syncArmament(guard);
     }
   } else {
     // --- Out of combat ---------------------------------------------------
@@ -892,10 +998,10 @@ function updateGuard(guard) {
 
     // A drawn bow goes back to the off hand once the fight is over, but only
     // if there is a melee weapon waiting there to take its place.
-    if (heldIsRanged(guard)) {
+    if (heldIsRanged(guard) && !heldFirearm(guard)) {
       const equippable = getEquippable(guard);
       const off = equippable && safe(() => equippable.getEquipment(EquipmentSlot.Offhand), undefined);
-      if (off && WEAPON_BONUS[off.typeId] && swapHands(guard)) syncRangedGroup(guard);
+      if (off && WEAPON_BONUS[off.typeId] && swapHands(guard)) syncArmament(guard);
     }
 
     // Slow regeneration, roughly one point every three seconds.
@@ -983,8 +1089,50 @@ system.runInterval(() => {
 // Events
 // --------------------------------------------------------------------------
 world.afterEvents.entitySpawn.subscribe((event) => {
-  track(event.entity);
+  const entity = event.entity;
+  if (alive(entity) && entity.typeId === BULLET_ID) {
+    onShotFired(entity);
+    return;
+  }
+  track(entity);
 });
+
+/**
+ * A bullet appearing is the only reliable signal that a shot was fired -
+ * minecraft:behavior.ranged_attack has no on-shoot trigger - so the report,
+ * the muzzle flash and the recoil all hang off it.
+ */
+function onShotFired(bullet) {
+  const dimension = bullet.dimension;
+  const location = bullet.location;
+
+  // Find the shooter to pick the right report and play the recoil. The search
+  // is tiny and only runs on an actual shot.
+  const nearby = safe(
+    () => dimension.getEntities({ location, maxDistance: 3, type: ENTITY_ID }),
+    []
+  );
+  let shooter;
+  let firearm;
+  for (const candidate of nearby) {
+    const held = heldFirearm(candidate);
+    if (held) {
+      shooter = candidate;
+      firearm = held;
+      break;
+    }
+  }
+
+  report(dimension, location, firearm || FIREARMS["bg:sidearm"]);
+  muzzleFlash(dimension, location);
+
+  if (!shooter) return;
+  const entry = state(shooter.id);
+  markCombat(shooter, entry);
+  if (system.currentTick - entry.firedAt < 4) return;
+  entry.firedAt = system.currentTick;
+  safe(() => shooter.playAnimation("animation.bodyguard.fire", { blendOutTime: 0.2 }));
+}
 
 world.afterEvents.entityLoad.subscribe((event) => {
   track(event.entity);
@@ -1043,6 +1191,14 @@ function completeHire(guard) {
   safe(() => guard.setDynamicProperty("bg:summonedBy", undefined));
   state(guard.id);
   safe(() => guard.setDynamicProperty("bg:mode", MODE_FOLLOW));
+
+  // Every bodyguard reports for duty armed.  An empty hand gets the standard
+  // issue sidearm; anything already in hand is left alone.
+  if (!heldId(guard, EquipmentSlot.Mainhand)) {
+    const issued = safe(() => new ItemStack(CONFIG.firearms.issue, 1), undefined);
+    if (issued) setEquipment(guard, EquipmentSlot.Mainhand, issued);
+  }
+  syncArmament(guard);
   recomputeTier(guard);
   refreshName(guard);
   particle(guard, "bg:oath_seal", 1.0);
@@ -1183,7 +1339,31 @@ world.afterEvents.entityHurt.subscribe((event) => {
   const source = event.damageSource;
   const attacker = source ? source.damagingEntity : undefined;
 
-  // Friendly fire from a bodyguard - most likely one of its own arrows -
+  // A bullet's own impact damage is deliberately low; the weapon that fired
+  // it decides the rest, so both guns share one projectile entity.
+  const projectile = source ? source.damagingProjectile : undefined;
+  if (
+    projectile &&
+    projectile.typeId === BULLET_ID &&
+    attacker &&
+    alive(attacker) &&
+    attacker.typeId === ENTITY_ID &&
+    victim.typeId !== "minecraft:player"
+  ) {
+    const firearm = heldFirearm(attacker);
+    if (firearm) {
+      const bonus = CONFIG.firearms[firearm.bonus] + tierOf(attacker);
+      safe(() =>
+        victim.applyDamage(bonus, {
+          cause: EntityDamageCause.projectile,
+          damagingEntity: attacker,
+        })
+      );
+    }
+    safe(() => victim.dimension.spawnParticle("bg:bullet_impact", victim.location));
+  }
+
+  // Friendly fire from a bodyguard - most likely one of its own bullets -
   // is refunded immediately.
   if (
     victim.typeId === "minecraft:player" &&
@@ -1338,6 +1518,10 @@ world.afterEvents.itemUse.subscribe((event) => {
     goldUseAt.set(player.id, system.currentTick);
     return;
   }
+  if (FIREARMS[stack.typeId]) {
+    system.run(() => safe(() => playerFire(player, FIREARMS[stack.typeId])));
+    return;
+  }
   if (stack.typeId !== CONTRACT_ID) return;
   if (!gate(useAt, player.id, 10)) return;
 
@@ -1364,6 +1548,106 @@ world.afterEvents.itemUse.subscribe((event) => {
     openSquadPanel(player);
   }, 3);
 });
+
+/**
+ * A player pulling the trigger.  Bedrock items cannot shoot on their own, so
+ * the shot is a raycast: it resolves instantly, which is what a bullet should
+ * feel like, and it cannot be dodged by a laggy projectile.
+ */
+function playerFire(player, firearm) {
+  if (!alive(player)) return;
+  if (safe(() => player.getItemCooldown("bg_firearm"), 0) > 0) return;
+
+  const cooldown = CONFIG.firearms[firearm.playerCooldown];
+  safe(() => player.startItemCooldown("bg_firearm", cooldown));
+
+  const dimension = player.dimension;
+  const range = CONFIG.firearms[firearm.playerRange];
+  const origin = safe(() => player.getHeadLocation(), player.location);
+  const view = safe(() => player.getViewDirection(), { x: 0, y: 0, z: 1 });
+
+  report(dimension, origin, firearm);
+  muzzleFlash(dimension, {
+    x: origin.x + view.x * 0.9,
+    y: origin.y + view.y * 0.9 - 0.15,
+    z: origin.z + view.z * 0.9,
+  });
+  safe(() => player.playSound("random.click", { volume: 0.3, pitch: 1.4 }));
+
+  // Nearest entity along the line of sight, ignoring the shooter.
+  let target;
+  let distance = range;
+  for (const hit of safe(() => player.getEntitiesFromViewDirection({ maxDistance: range }), [])) {
+    const candidate = hit.entity;
+    if (!alive(candidate) || candidate.id === player.id) continue;
+    if (candidate.typeId === BULLET_ID || candidate.typeId === "minecraft:item") continue;
+    target = candidate;
+    distance = hit.distance;
+    break;
+  }
+
+  // A wall stops the shot short of anything behind it.
+  const blockHit = safe(() => player.getBlockFromViewDirection({ maxDistance: range }), undefined);
+  if (blockHit && blockHit.block) {
+    const face = blockHit.faceLocation || { x: 0.5, y: 0.5, z: 0.5 };
+    const point = {
+      x: blockHit.block.location.x + face.x,
+      y: blockHit.block.location.y + face.y,
+      z: blockHit.block.location.z + face.z,
+    };
+    const blockDistance = dist(origin, point);
+    if (!target || blockDistance < distance) {
+      target = undefined;
+      distance = blockDistance;
+    }
+  }
+
+  const impact = {
+    x: origin.x + view.x * distance,
+    y: origin.y + view.y * distance,
+    z: origin.z + view.z * distance,
+  };
+  tracer(dimension, origin, impact, Math.min(10, Math.max(3, Math.round(distance / 2.5))));
+  safe(() => dimension.spawnParticle("bg:bullet_impact", impact));
+
+  if (target) {
+    const damage = CONFIG.firearms[firearm.playerDamage];
+    safe(() =>
+      target.applyDamage(damage, {
+        cause: EntityDamageCause.projectile,
+        damagingEntity: player,
+      })
+    );
+    knockback(target, player, 0.35, 0.1);
+    safe(() => dimension.playSound("random.bowhit", impact, { volume: 0.6, pitch: 1.2 }));
+  }
+
+  wearWeapon(player, firearm);
+}
+
+/** Spend one point of durability, and break the weapon when it runs out. */
+function wearWeapon(player) {
+  const creative = safe(() => player.getGameMode(), undefined) === GameMode.creative;
+  if (creative) return;
+  const equippable = safe(
+    () => player.getComponent(EntityComponentTypes.Equippable),
+    undefined
+  );
+  if (!equippable) return;
+  const stack = safe(() => equippable.getEquipment(EquipmentSlot.Mainhand), undefined);
+  if (!stack) return;
+  const durability = safe(() => stack.getComponent("minecraft:durability"), undefined);
+  if (!durability) return;
+  const spent = durability.damage + CONFIG.firearms.playerWear;
+  if (spent >= durability.maxDurability) {
+    safe(() => equippable.setEquipment(EquipmentSlot.Mainhand, undefined));
+    safe(() => player.playSound("random.break", { volume: 0.9, pitch: 1.0 }));
+    actionBar(player, "§cYour weapon is out of service.");
+    return;
+  }
+  durability.damage = spent;
+  safe(() => equippable.setEquipment(EquipmentSlot.Mainhand, stack));
+}
 
 const FACE_OFFSET = {
   Up: { x: 0, y: 1, z: 0 },
@@ -1554,6 +1838,7 @@ function openSquadModePanel(player, owned) {
 
 function slotForItem(stack) {
   if (!stack) return undefined;
+  if (FIREARMS[stack.typeId]) return EquipmentSlot.Mainhand;
   const id = stack.typeId.replace(/^minecraft:/, "");
   if (WEAPON_BONUS["minecraft:" + id] || RANGED_WEAPONS.indexOf("minecraft:" + id) >= 0) {
     return EquipmentSlot.Mainhand;
@@ -1666,7 +1951,7 @@ function giveGear(player, guard, stack, slot) {
   }
 
   recomputeTier(guard);
-  syncRangedGroup(guard);
+  syncArmament(guard);
   refreshName(guard);
   playSound(guard, "armor.equip_generic", 0.9, 1);
   particle(guard, "bg:oath_seal", 1.2);
@@ -1688,7 +1973,7 @@ function returnGear(player, guard) {
     if (leftover) safe(() => player.dimension.spawnItem(leftover, player.location));
   }
   recomputeTier(guard);
-  syncRangedGroup(guard);
+  syncArmament(guard);
   refreshName(guard);
   actionBar(player, returned ? "§7Returned " + returned + " item(s)." : "§7Nothing to return.");
 }
@@ -1773,7 +2058,7 @@ world.afterEvents.playerSpawn.subscribe((event) => {
   if (event.initialSpawn) {
     safe(() =>
       player.sendMessage(
-        "§6[Bodyguard] §7v2.0.0 ready. Craft a §eBodyguard Contract§7 or grab the spawn egg from Creative."
+        "§6[Bodyguard] §7v2.1.0 ready. Craft a §eBodyguard Contract§7 or grab the spawn egg from Creative."
       )
     );
     return;

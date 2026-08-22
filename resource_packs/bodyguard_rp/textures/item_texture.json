@@ -7,6 +7,12 @@
     },
     "bodyguard_spawn_egg": {
       "textures": "textures/items/bodyguard_spawn_egg"
+    },
+    "bodyguard_sidearm": {
+      "textures": "textures/items/bodyguard_sidearm"
+    },
+    "bodyguard_carbine": {
+      "textures": "textures/items/bodyguard_carbine"
     }
   }
 }

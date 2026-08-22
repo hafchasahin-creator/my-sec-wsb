@@ -27,6 +27,8 @@ white box, or a behaviour pack that refuses to load at all:
   * every component group an event adds or removes exists
   * every file uses a format_version its schema actually understands in 1.21.0
   * no two AI goals that can be active together share a priority
+  * attachables name a real item and resolve their geometry, texture,
+    animations and render controller
   * every animation controller state is reachable and can be left again
   * every Molang expression parses, and *(with a reference tree)* every
     query.* it names exists in 1.21.0 and is not experimental
@@ -334,7 +336,7 @@ def check_items(addon, documents):
     return identifiers, texture_data
 
 
-def check_language(addon, identifiers, entity_ids):
+def check_language(addon, identifiers, entity_ids, projectiles):
     lang_path = os.path.join(addon["rp"], "texts", "en_US.lang")
     text = ""
     if os.path.isfile(lang_path):
@@ -348,6 +350,8 @@ def check_language(addon, identifiers, entity_ids):
     for identifier in entity_ids:
         if ("entity.%s.name=" % identifier) not in text:
             fail("%s: no entity name entry for %s" % (lang_path, identifier))
+        if identifier in projectiles:
+            continue
         if ("item.spawn_egg.entity.%s=" % identifier) not in text:
             warn("%s: no spawn egg name for %s" % (lang_path, identifier))
 
@@ -407,17 +411,22 @@ def check_goal_priorities(path, entity):
     # Groups that are mutually exclusive by construction: one mode, one tier.
     modes = sorted(g for g in groups if g.startswith("bg:mode_"))
     tiers = sorted(g for g in groups if g.startswith("bg:tier_"))
-    always = sorted(g for g in groups if g.startswith("bg:flag_") or g == "bg:ranged")
+    always = sorted(g for g in groups if g.startswith("bg:flag_"))
+    # Only one armament is ever active, so each is tested on its own.
+    arms = sorted(g for g in groups if g == "bg:ranged" or g.startswith("bg:gun_")) or [None]
     if not modes:
         return
 
     for mode in modes:
+      for arm in arms:
         combo = list(base)
         if "bg:bound" in groups:
             collect_goals(groups["bg:bound"], combo)
         collect_goals(groups[mode], combo)
         for extra in always:
             collect_goals(groups[extra], combo)
+        if arm:
+            collect_goals(groups[arm], combo)
         for tier in tiers[:1]:
             collect_goals(groups[tier], combo)
 
@@ -428,13 +437,13 @@ def check_goal_priorities(path, entity):
                     continue
                 if priority in seen and seen[priority] != name:
                     fail(
-                        "%s: with %s active, %s and %s both sit at priority %s"
-                        % (path, mode, seen[priority], name, priority)
+                        "%s: with %s%s active, %s and %s both sit at priority %s"
+                        % (path, mode, " + " + arm if arm else "", seen[priority], name, priority)
                     )
                 seen[priority] = name
 
 
-def check_bp_entities(addon, documents):
+def check_bp_entities(addon, documents, projectiles):
     entity_ids = []
     events_by_entity = {}
     for path, doc in documents.items():
@@ -494,8 +503,11 @@ def check_bp_entities(addon, documents):
 
         check_goal_priorities(path, entity)
 
-        if description.get("is_spawnable") is not True:
+        is_projectile = "minecraft:projectile" in json.dumps(entity.get("components", {}))
+        if description.get("is_spawnable") is not True and not is_projectile:
             warn("%s: %s is not spawnable, so it gets no creative spawn egg" % (path, identifier))
+        if is_projectile:
+            projectiles.add(identifier)
 
     return entity_ids, events_by_entity
 
@@ -769,6 +781,51 @@ def check_geometry(addon, geometries, documents):
                         )
 
 
+def check_attachables(addon, documents, item_ids):
+    """An attachable that does not resolve renders as nothing at all - the item
+    is simply invisible in hand, with no error anywhere."""
+    animations = collect_named(addon, documents, "animations", "animations")
+    controllers = collect_named(addon, documents, "animation_controllers", "animation_controllers")
+    renderers = collect_named(addon, documents, "render_controllers", "render_controllers")
+    geometries = collect_geometries(addon, documents)
+
+    for path, doc in documents.items():
+        if not path.startswith(os.path.join(addon["rp"], "attachables")) or doc is None:
+            continue
+        description = doc.get("minecraft:attachable", {}).get("description", {})
+        identifier = description.get("identifier")
+        if not identifier:
+            fail("%s: attachable has no identifier" % path)
+            continue
+        if identifier.startswith(addon["namespace"] + ":") and identifier not in item_ids:
+            fail("%s: attachable '%s' has no matching item" % (path, identifier))
+
+        for name, geometry in description.get("geometry", {}).items():
+            if geometry not in geometries:
+                fail("%s: geometry '%s' (%s) is not defined in this pack" % (path, geometry, name))
+        for name, texture in description.get("textures", {}).items():
+            if texture.startswith("textures/misc/"):
+                continue  # vanilla glint sheets
+            png = os.path.join(addon["rp"], texture + ".png")
+            if not os.path.isfile(png):
+                fail("%s: texture '%s' -> missing %s" % (path, name, png))
+
+        mapped = description.get("animations", {})
+        for _short, target in mapped.items():
+            pool = controllers if target.startswith("controller.") else animations
+            if target not in pool:
+                fail("%s: animation '%s' is not defined" % (path, target))
+        for short in description.get("scripts", {}).get("animate", []):
+            name = short if isinstance(short, str) else list(short.keys())[0]
+            if name not in mapped:
+                fail("%s: scripts.animate references '%s' which is not in animations" % (path, name))
+        for controller in description.get("render_controllers", []):
+            name = controller if isinstance(controller, str) else list(controller.keys())[0]
+            if name.startswith("controller.render.") and name not in renderers:
+                if not name.startswith("controller.render.item_"):
+                    fail("%s: render controller '%s' is not defined" % (path, name))
+
+
 # --------------------------------------------------------------------------
 # Animation controllers and Molang
 # --------------------------------------------------------------------------
@@ -952,11 +1009,13 @@ def validate(reference):
         check_format_versions(addon, documents)
         check_script_imports(addon)
         identifiers, _atlas = check_items(addon, documents)
-        entity_ids, events_by_entity = check_bp_entities(addon, documents)
+        projectiles = set()
+        entity_ids, events_by_entity = check_bp_entities(addon, documents, projectiles)
         particles = collect_particles(addon, documents)
         check_script_events(addon, events_by_entity, particles, identifiers, entity_ids)
-        check_language(addon, identifiers, entity_ids)
+        check_language(addon, identifiers, entity_ids, projectiles)
         geometries = check_rp_entities(addon, documents, entity_ids)
+        check_attachables(addon, documents, identifiers)
         check_geometry(addon, geometries, documents)
         check_controller_graphs(addon, documents)
         molang = check_molang(addon, documents, reference)
