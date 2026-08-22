@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Clawd Sleep</string>
+    <string name="channel_name">Playback</string>
+    <string name="channel_desc">Shows what is playing while you sleep.</string>
+</resources>

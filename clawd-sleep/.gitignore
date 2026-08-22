@@ -1,0 +1,8 @@
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.kotlin/
+tools/visual/node_modules/
+tools/visual/package-lock.json
+__pycache__/

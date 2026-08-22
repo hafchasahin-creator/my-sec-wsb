@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clawd Sleep</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
+<meta name="description" content="One screen, one button, and a sound to sleep to.">
+<meta name="theme-color" content="#06070A">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<canvas id="sky" aria-hidden="true"></canvas>
+
+<!-- ───────────────────────────────────────────────── idle chrome ── -->
+<div id="chrome" class="chrome">
+  <header class="topbar">
+    <button id="clock" class="clock tabular" type="button" aria-live="off">
+      <span id="clock-time">—</span>
+    </button>
+    <button id="about-open" class="linkish" type="button">about</button>
+  </header>
+
+  <div class="stage" aria-hidden="true"></div>
+
+  <div class="dock">
+    <p id="now-line" class="now-line" aria-live="polite">choose a sound</p>
+
+    <button id="sounds-open" class="pill pill--quiet" type="button" aria-haspopup="dialog">
+      sounds
+    </button>
+
+    <!-- Shown once, ever, in place of the first sleep press. Not a modal. -->
+    <div id="notice" class="notice" hidden>
+      <p>sleep mode keeps the screen on until you wake up.</p>
+      <p>leave the phone charging. the screen dims right down and the picture drifts
+         slowly so nothing burns into the display.</p>
+      <div class="notice-actions">
+        <button id="notice-ok" class="linkish linkish--accent" type="button">ok</button>
+        <button id="notice-alt" class="linkish" type="button">keep the screen off instead</button>
+      </div>
+    </div>
+
+    <button id="sleep-btn" class="pill pill--sleep" type="button">sleep</button>
+  </div>
+</div>
+
+<!-- ───────────────────────────────────────────────────── sheets ── -->
+<div id="scrim" class="scrim" hidden></div>
+
+<section id="sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabindex="-1" hidden>
+  <div class="handle" aria-hidden="true"></div>
+  <div class="sheet-head">
+    <h2 id="sheet-title" class="title">sounds</h2>
+    <button id="sheet-close" class="icon-btn" type="button" aria-label="close">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg>
+    </button>
+  </div>
+
+  <div class="sheet-body">
+    <!-- sounds tab -->
+    <div id="tab-sounds">
+      <h3 class="section">ambience</h3>
+      <ul id="ambience-list" class="rows"></ul>
+
+      <h3 class="section">your audio</h3>
+      <ul class="rows">
+        <li>
+          <button id="pick-file" class="row" type="button">
+            <span class="row-main"><span class="row-name">add a file</span>
+            <span class="row-meta">mp3, m4a, flac, ogg, wav, opus</span></span>
+          </button>
+        </li>
+      </ul>
+      <ul id="track-list" class="rows"></ul>
+
+      <h3 class="section">favourites</h3>
+      <ul id="fav-list" class="rows"></ul>
+      <div class="sheet-foot">
+        <button id="fav-save" class="linkish" type="button">save this combination</button>
+      </div>
+    </div>
+
+    <!-- mixer tab -->
+    <div id="tab-mix" hidden>
+      <div class="mix-head">
+        <span id="mix-track" class="row-name">—</span>
+        <button id="playpause" class="icon-btn" type="button" aria-label="play">
+          <svg id="ico-play" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3.5l11 6.5-11 6.5z" fill="currentColor" stroke="none"/></svg>
+          <svg id="ico-pause" viewBox="0 0 20 20" aria-hidden="true" hidden><path d="M6.5 3.5h3v13h-3zM10.5 3.5h3v13h-3z" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </div>
+
+      <div id="seek-wrap" class="field" hidden>
+        <input id="seek" class="slider slider--seek" type="range" min="0" max="1000" value="0"
+               aria-label="seek">
+        <div class="times tabular">
+          <span id="t-now">0:00</span><span id="t-left">0:00</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-head"><label for="vol-music">music</label>
+          <output id="vol-music-out" class="tabular" for="vol-music">70</output></div>
+        <input id="vol-music" class="slider" type="range" min="0" max="100" value="70">
+      </div>
+
+      <div class="field">
+        <div class="field-head"><label for="vol-amb">ambience</label>
+          <output id="vol-amb-out" class="tabular" for="vol-amb">50</output></div>
+        <input id="vol-amb" class="slider" type="range" min="0" max="100" value="50">
+      </div>
+
+      <div class="field field--ruled">
+        <div class="field-head"><span id="timer-label">stop after</span>
+          <output id="timer-left" class="tabular"></output></div>
+        <div id="timer-chips" class="chips" role="group" aria-labelledby="timer-label"></div>
+      </div>
+
+      <div class="field field--ruled">
+        <div class="field-head">
+          <label for="loop">repeat all night</label>
+          <input id="loop" class="switch" type="checkbox" checked>
+        </div>
+      </div>
+    </div>
+
+    <!-- about tab -->
+    <div id="tab-about" hidden>
+      <p class="prose">one screen, one button, and a sound to sleep to.
+         no account, no tracking, no ads. nothing leaves your phone.</p>
+
+      <div class="field field--ruled">
+        <div class="field-head"><label for="opt-amoled">true black</label>
+          <input id="opt-amoled" class="switch" type="checkbox"></div>
+        <p class="row-meta">for oled screens — uses less power and cannot burn in</p>
+      </div>
+      <div class="field">
+        <div class="field-head"><label for="opt-clock">show the clock</label>
+          <input id="opt-clock" class="switch" type="checkbox" checked></div>
+      </div>
+      <div class="field">
+        <div class="field-head"><label for="opt-screen">keep the screen on</label>
+          <input id="opt-screen" class="switch" type="checkbox" checked></div>
+        <p class="row-meta">off means audio only — the display sleeps as usual</p>
+      </div>
+      <div class="field">
+        <div class="field-head"><label for="opt-dim">screen dimming</label>
+          <output id="opt-dim-out" class="tabular">35</output></div>
+        <input id="opt-dim" class="slider" type="range" min="0" max="85" value="35">
+        <p class="row-meta">how far the screen darkens in sleep mode</p>
+      </div>
+      <div class="field field--ruled">
+        <div class="field-head"><label for="opt-alarm">alarm</label>
+          <input id="opt-alarm" class="switch" type="checkbox"></div>
+        <div class="field-head"><label for="alarm-time" class="row-meta">wake me at</label>
+          <input id="alarm-time" class="timeinput tabular" type="time" value="07:00"></div>
+        <p id="alarm-note" class="row-meta"></p>
+      </div>
+
+      <p id="wake-note" class="row-meta prose"></p>
+      <p class="row-meta prose">clawd sleep 1.0</p>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────────────────────── sleep mode ── -->
+<div id="sleep-layer" class="sleep-layer" hidden>
+  <div id="sleep-clock" class="sleep-clock tabular">—</div>
+  <p id="sleep-hint" class="sleep-hint">tap twice to wake</p>
+  <div class="sleep-foot">
+    <p id="sleep-now" class="sleep-now"></p>
+    <button id="sleep-mark" class="mark" type="button" aria-label="wake up">
+      <span class="mark-dot"></span>
+      <svg class="mark-ring" viewBox="0 0 44 44" aria-hidden="true">
+        <circle id="mark-arc" cx="22" cy="22" r="19"/>
+      </svg>
+    </button>
+  </div>
+</div>
+<div id="sleep-scrim" class="sleep-scrim" aria-hidden="true"></div>
+<button id="sleep-catch" class="sleep-catch" hidden aria-label="wake up"></button>
+
+<!-- ───────────────────────────────────────────────────── morning ── -->
+<section id="morning" class="morning" hidden aria-labelledby="morning-title">
+  <div class="morning-inner">
+    <h2 id="morning-title" class="title">good morning</h2>
+    <p id="morning-sub" class="prose"></p>
+    <dl id="morning-rows" class="stats"></dl>
+    <button id="morning-done" class="pill pill--quiet" type="button">done</button>
+  </div>
+</section>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<input id="file" type="file" accept="audio/*,.mp3,.m4a,.flac,.ogg,.wav,.opus,.aac" hidden>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

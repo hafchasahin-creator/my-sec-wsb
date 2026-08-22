@@ -1,0 +1,122 @@
+# Builds the Clawd Sleep debug APK.
+#
+# The agent container that authors this repo cannot reach dl.google.com (blocked by
+# egress policy), so the Android SDK, AGP and AndroidX/Media3 artifacts are fetched
+# here instead — GitHub's runner image already ships the SDK. The finished APK is
+# both uploaded as a run artifact and committed to clawd-sleep/dist/ so it can be
+# downloaded straight from the repo.
+name: Clawd Sleep APK
+
+on:
+  push:
+    branches: ["claude/clawd-sleep-app-oblu28"]
+    paths:
+      - "clawd-sleep/android/**"
+      - ".github/workflows/clawd-sleep-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clawd-sleep-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Show toolchain
+        working-directory: clawd-sleep/android
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME/platforms" || true
+          ls "$ANDROID_HOME/build-tools" || true
+          java -version
+          ./gradlew --version
+
+      - name: Lint (Kotlin compile + Android lint)
+        working-directory: clawd-sleep/android
+        run: ./gradlew --no-daemon lintDebug
+
+      - name: Unit tests
+        working-directory: clawd-sleep/android
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Assemble debug APK
+        working-directory: clawd-sleep/android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Verify the APK is a real, well-formed Android package
+        working-directory: clawd-sleep/android
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -f "$APK" || { echo "::error::no APK produced"; exit 1; }
+
+          echo "--- size ---"
+          ls -l "$APK"
+          SIZE=$(stat -c%s "$APK")
+          [ "$SIZE" -gt 300000 ] || { echo "::error::APK suspiciously small ($SIZE bytes)"; exit 1; }
+
+          echo "--- zip entries (must contain classes.dex + AndroidManifest.xml + resources.arsc) ---"
+          unzip -l "$APK" | tee /tmp/entries.txt
+          grep -q "classes.dex"          /tmp/entries.txt || { echo "::error::no classes.dex — this is not a compiled Android app"; exit 1; }
+          grep -q "AndroidManifest.xml"  /tmp/entries.txt || { echo "::error::no AndroidManifest.xml"; exit 1; }
+          grep -q "resources.arsc"       /tmp/entries.txt || { echo "::error::no compiled resources"; exit 1; }
+
+          BT=$(ls -1 "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+          echo "--- badging (build-tools $BT) ---"
+          "$ANDROID_HOME/build-tools/$BT/aapt2" dump badging "$APK" | head -40
+          "$ANDROID_HOME/build-tools/$BT/aapt2" dump badging "$APK" | grep -q "package: name='sleep.clawd'" \
+            || { echo "::error::unexpected package id"; exit 1; }
+
+          echo "--- signature ---"
+          "$ANDROID_HOME/build-tools/$BT/apksigner" verify --print-certs -v "$APK"
+
+      - name: Stage the APK into dist/
+        run: |
+          set -euo pipefail
+          mkdir -p clawd-sleep/dist
+          cp clawd-sleep/android/app/build/outputs/apk/debug/app-debug.apk \
+             clawd-sleep/dist/ClawdSleep-debug.apk
+          cd clawd-sleep/dist
+          sha256sum ClawdSleep-debug.apk > ClawdSleep-debug.apk.sha256
+          ls -l
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClawdSleep-debug-apk
+          path: clawd-sleep/dist/ClawdSleep-debug.apk
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Commit the APK back to the branch
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f clawd-sleep/dist/ClawdSleep-debug.apk clawd-sleep/dist/ClawdSleep-debug.apk.sha256
+          if git diff --cached --quiet; then
+            echo "APK unchanged — nothing to commit."
+            exit 0
+          fi
+          git commit -m "Build Clawd Sleep debug APK [skip ci]"
+          for i in 1 2 3 4; do
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            echo "push attempt $i failed; retrying"; sleep $((2 ** i))
+          done
+          echo "::error::could not push the APK"; exit 1

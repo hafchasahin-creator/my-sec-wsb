@@ -1,0 +1,489 @@
+/* ==========================================================================
+   Clawd Sleep
+   --------------------------------------------------------------------------
+   Every value here is chosen against one constraint: this screen is the only
+   light source in a dark room, and it will be on for eight hours.
+
+   Text is tuned to sit just above the 4.5:1 contrast floor rather than well
+   above it. Conventional dark-mode body text (#E6E6E6) runs at ~12:1 and emits
+   five times the light for no legibility gain. Every excess candela is glare
+   the user pays for at 3am.
+   ========================================================================== */
+
+:root {
+  --void:        #06070A;
+  --horizon:     #0E1524;
+  --surface:     #0B0E16;
+  --hairline:    #1B2231;
+
+  --text-1:      #7C8598;   /* 5.43:1 on void, 4.92:1 on the horizon's brightest point */
+  --text-2:      #626B7C;
+  --text-3:      #454C5A;
+
+  /* Clawd's coral, hue held exactly, saturation cut 48%: the same family, but a
+     coral object rather than a coral light source. Deliberately dimmer than
+     --text-1, so the accent is never the brightest thing on screen. */
+  --accent:      #BF665A;
+  --accent-dim:  #864539;
+
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI",
+          Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --s-2: 4px;  --s-3: 8px;  --s-4: 12px; --s-5: 16px; --s-6: 20px;
+  --s-7: 24px; --s-8: 32px; --s-9: 40px; --s-10: 56px;
+
+  --r-chip: 8px; --r-sheet: 14px; --r-pill: 999px;
+
+  --hairline-w: 0.5px;      /* replaced with 1/dpr at runtime */
+  --rule-w: 1px;
+
+  /* Four curves, every control point inside [0,1]. Nothing can overshoot,
+     so nothing can bounce. */
+  --ease-out:    cubic-bezier(0.16, 0.84, 0.24, 1.00);
+  --ease-in-out: cubic-bezier(0.45, 0.05, 0.25, 1.00);
+  --ease-in:     cubic-bezier(0.40, 0.00, 1.00, 1.00);
+  --ease-sleep:  cubic-bezier(0.25, 0.10, 0.15, 1.00);
+
+  --dur-tap: 90ms; --dur-reveal: 240ms; --dur-hide: 400ms;
+  --dur-sheet-in: 340ms; --dur-sheet-out: 280ms;
+  --dur-sleep-in: 1100ms; --dur-sleep-out: 260ms;
+
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+}
+
+/* On OLED a #000 pixel is an off pixel: no emission, no power, no burn-in. */
+html[data-amoled="1"] {
+  --void: #000000;
+  --surface: #000000;
+  --horizon: #04070C;
+  --hairline: #141A26;
+  --text-1: #707988;
+  --text-2: #58606F;
+  --text-3: #3C4250;
+  --accent: #B25F54;
+}
+
+* { box-sizing: border-box; }
+
+/* The `hidden` attribute is a UA `display:none`, and any author `display` rule
+   beats it. Several elements here are flex/grid, so state this once and loudly
+   rather than remembering it at every call site. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0; height: 100%; overflow: hidden;
+  background: var(--void);
+  color: var(--text-1);
+  font-family: var(--font);
+  font-size: 16px; line-height: 24px; font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+body { user-select: none; -webkit-user-select: none; }
+
+.tabular { font-variant-numeric: tabular-nums lining-nums;
+           font-feature-settings: "tnum" 1, "lnum" 1; }
+
+button, input, output, label { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+
+/* A bright focus ring in a dark room is worse than no ring. One hairline of
+   --text-1, offset, is visible to a keyboard user and invisible to everyone. */
+:focus { outline: none; }
+:focus-visible {
+  outline: var(--rule-w) solid var(--text-1);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────── scene ── */
+#sky {
+  position: fixed; inset: 0; z-index: 0;
+  width: 100%; height: 100%; display: block;
+  background: var(--void);
+}
+
+/* ────────────────────────────────────────────────────────── chrome ── */
+.chrome {
+  position: fixed; inset: 0; z-index: 20;
+  display: flex; flex-direction: column;
+  padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+  transition: opacity var(--dur-hide) var(--ease-in-out),
+              transform var(--dur-hide) var(--ease-in-out);
+  pointer-events: none;
+}
+.chrome > * { pointer-events: auto; }
+.chrome .stage { pointer-events: none; }
+.chrome[data-hidden="1"] { opacity: 0; transform: translateY(6px); }
+.chrome[data-sleeping="1"] {
+  opacity: 0; transform: translateY(6px);
+  transition: opacity 520ms var(--ease-in-out), transform 520ms var(--ease-in-out);
+  pointer-events: none;
+}
+
+.topbar {
+  height: 44px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding-inline: var(--s-7);
+}
+.clock {
+  font-size: 15px; line-height: 20px; font-weight: 300; letter-spacing: 0.6px;
+  color: var(--text-3);
+  min-height: 44px; display: flex; align-items: center;
+  margin-inline-start: -8px; padding-inline: 8px;
+}
+.clock[data-off="1"] { visibility: hidden; }
+
+.linkish {
+  font-size: 13px; line-height: 18px; letter-spacing: 0.2px;
+  color: var(--text-3);
+  min-height: 48px; display: inline-flex; align-items: center;
+  padding-inline: 12px; margin-inline: -12px;
+  transition: color var(--dur-tap) var(--ease-out);
+}
+.linkish:active { color: var(--text-2); }
+.linkish--accent { color: var(--accent); }
+
+.stage { flex: 1 1 auto; min-height: 200px; }
+
+.dock {
+  flex: 0 0 auto;
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--s-5);
+  padding: 0 var(--s-7) calc(var(--s-5) + 8px);
+  width: 100%; max-width: 480px; margin-inline: auto;
+}
+
+.now-line {
+  margin: 0; font-size: 13px; line-height: 18px; letter-spacing: 0.2px;
+  color: var(--text-3); text-align: center;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.pill {
+  min-height: 48px; display: inline-flex; align-items: center; justify-content: center;
+  padding-inline: var(--s-6);
+  border-radius: var(--r-pill);
+  border: var(--rule-w) solid var(--hairline);
+  color: var(--text-1);
+  transition: background-color var(--dur-tap) var(--ease-out),
+              transform var(--dur-tap) var(--ease-out),
+              border-color var(--dur-reveal) var(--ease-out),
+              opacity var(--dur-reveal) var(--ease-out);
+}
+.pill:active { transform: scale(0.985); background: rgba(124,133,152,0.06); }
+.pill--quiet { min-width: 160px; }
+.pill--sleep {
+  height: 56px; width: min(232px, 100%);
+  border-color: rgba(191,102,90,0.55);
+  color: var(--accent);
+  font-weight: 500; letter-spacing: 0.6px;
+}
+.pill--sleep:active { background: rgba(191,102,90,0.10); }
+.pill[disabled] { opacity: 0.4; pointer-events: none; }
+
+/* The screen-on notice: not a modal, it grows in place above the button and is
+   never seen again. */
+.notice {
+  width: 100%;
+  border-top: var(--hairline-w) solid var(--hairline);
+  padding-top: var(--s-5);
+  animation: notice-in var(--dur-reveal) var(--ease-out) both;
+}
+@keyframes notice-in { from { opacity: 0; transform: translateY(6px); } }
+.notice p {
+  margin: 0 0 var(--s-3); color: var(--text-2);
+  font-size: 15px; line-height: 22px;
+}
+.notice-actions { display: flex; gap: var(--s-7); align-items: center; }
+
+/* ─────────────────────────────────────────────────────────── sheet ── */
+.scrim {
+  position: fixed; inset: 0; z-index: 30;
+  background: rgba(0,0,0,0.55);
+  animation: fade-in var(--dur-sheet-out) var(--ease-out) both;
+}
+@keyframes fade-in { from { opacity: 0; } }
+.scrim[data-closing="1"] { animation: fade-out var(--dur-sheet-out) var(--ease-in) both; }
+@keyframes fade-out { to { opacity: 0; } }
+
+.sheet:focus-visible { outline: none; }   /* the container takes focus, not a ring */
+.sheet {
+  position: fixed; z-index: 40;
+  left: 50%; transform: translateX(-50%);
+  bottom: 0; width: 100%; max-width: 480px;
+  height: min(78vh, 620px);
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border-top: var(--hairline-w) solid var(--hairline);
+  border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+  padding-bottom: var(--safe-b);
+  /* No shadow. Separation is the hairline and the surface/void delta — a drop
+     shadow on a near-black background is just a grey smear. */
+  animation: sheet-in var(--dur-sheet-in) var(--ease-out) both;
+}
+@keyframes sheet-in { from { opacity: 0; transform: translateX(-50%) translateY(24px); } }
+.sheet[data-closing="1"] { animation: sheet-out var(--dur-sheet-out) var(--ease-in) both; }
+@keyframes sheet-out { to { opacity: 0; transform: translateX(-50%) translateY(16px); } }
+
+.handle {
+  width: 32px; height: 3px; border-radius: 2px;
+  background: var(--text-3); opacity: 0.5;
+  margin: 10px auto 0;
+}
+.sheet-head {
+  height: 48px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding-inline: var(--s-7);
+}
+.title { margin: 0; font-size: 22px; line-height: 28px; font-weight: 400; letter-spacing: -0.2px; }
+.sheet-body { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
+              padding-bottom: var(--s-5); }
+.sheet-foot { padding: var(--s-3) var(--s-7) var(--s-5); }
+
+.icon-btn {
+  width: 48px; height: 48px; margin-inline-end: -12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-1);
+}
+.icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor;
+                stroke-width: 1.4; stroke-linecap: round; }
+
+.section {
+  margin: var(--s-5) 0 0; padding: 0 var(--s-7);
+  height: 32px; display: flex; align-items: flex-end;
+  font-size: 13px; line-height: 18px; font-weight: 500; letter-spacing: 0.2px;
+  color: var(--text-2);
+}
+.rows { list-style: none; margin: 0; padding: 0; }
+.rows li + li .row { border-top: var(--hairline-w) solid var(--hairline); }
+
+.row {
+  width: 100%; min-height: 64px;
+  display: grid; grid-template-columns: 1fr auto; gap: var(--s-5); align-items: center;
+  padding: var(--s-3) var(--s-7);
+  text-align: start;
+  transition: background-color var(--dur-tap) var(--ease-out);
+}
+.row:active { background: rgba(124,133,152,0.05); }
+.row-main { min-width: 0; display: block; }
+.row-name { display: block; font-size: 16px; line-height: 20px; color: var(--text-1);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-meta { display: block; margin-top: 2px; font-size: 13px; line-height: 18px;
+            letter-spacing: 0.2px; color: var(--text-3); }
+.row[aria-selected="true"] .row-name { color: var(--accent); }
+/* Selected rows get a mark. Unselected rows render nothing at all — no empty
+   circle, no ghost checkbox. */
+.row[aria-selected="true"] .row-dot { width: 6px; height: 6px; background: var(--accent); }
+.row-dot { width: 6px; height: 6px; }
+.row-x { color: var(--text-2); font-size: 13px; padding: 15px 0 15px var(--s-5); }
+
+/* ──────────────────────────────────────────────────────── controls ── */
+.field { padding: var(--s-4) var(--s-7) 0; }
+.field--ruled { margin-top: var(--s-6); padding-top: var(--s-5);
+                border-top: var(--hairline-w) solid var(--hairline); }
+.field-head {
+  min-height: 20px; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s-4);
+  font-size: 13px; line-height: 18px; letter-spacing: 0.2px; color: var(--text-2);
+}
+.field-head output { color: var(--text-3); }
+.mix-head { display: flex; align-items: center; justify-content: space-between;
+            gap: var(--s-4); padding: var(--s-3) var(--s-7) 0; min-height: 56px; }
+
+/* Sliders: a 2px track with a 48px invisible grab area. A thin line is the
+   right look; a thin hit target is not. */
+.slider {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 48px; margin: 0; background: none;
+}
+.slider::-webkit-slider-runnable-track { height: 2px; background: var(--hairline); border-radius: 2px; }
+.slider::-moz-range-track { height: 2px; background: var(--hairline); border-radius: 2px; }
+.slider::-moz-range-progress { height: 2px; background: rgba(191,102,90,0.70); border-radius: 2px; }
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 24px; height: 24px; margin-top: -11px;
+  border-radius: var(--r-pill); background: var(--text-2); border: 0;
+  transition: width var(--dur-tap) var(--ease-out), height var(--dur-tap) var(--ease-out),
+              margin-top var(--dur-tap) var(--ease-out);
+}
+.slider::-moz-range-thumb {
+  width: 24px; height: 24px; border: 0; border-radius: var(--r-pill); background: var(--text-2);
+}
+.slider:active::-webkit-slider-thumb { width: 28px; height: 28px; margin-top: -13px; }
+.slider--seek::-webkit-slider-thumb { width: 12px; height: 12px; margin-top: -5px; }
+.slider--seek::-moz-range-thumb { width: 12px; height: 12px; }
+.slider:active::-webkit-slider-thumb.slider--seek { width: 16px; height: 16px; }
+.times { display: flex; justify-content: space-between; margin-top: -6px;
+         font-size: 13px; letter-spacing: 0.2px; color: var(--text-3); }
+
+.chips { display: flex; flex-wrap: wrap; gap: var(--s-3); padding-top: var(--s-3);
+         padding-bottom: var(--s-2); }
+.chip {
+  flex: 1 1 calc(33.333% - 6px); min-width: 56px; height: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--r-chip); border: var(--rule-w) solid var(--hairline);
+  font-size: 13px; letter-spacing: 0.2px; color: var(--text-2);
+  transition: border-color var(--dur-tap) var(--ease-out), color var(--dur-tap) var(--ease-out);
+}
+.chip[aria-pressed="true"] { border-color: rgba(191,102,90,0.55); color: var(--accent); }
+
+/* A switch, not a checkbox: 40x24, no colour change, just a moving dot. */
+.switch {
+  -webkit-appearance: none; appearance: none;
+  width: 40px; height: 24px; border-radius: var(--r-pill);
+  border: var(--rule-w) solid var(--hairline); background: none;
+  position: relative; flex: 0 0 auto; cursor: pointer;
+  transition: border-color var(--dur-reveal) var(--ease-out);
+}
+.switch::after {
+  content: ""; position: absolute; inset: 3px auto 3px 3px;
+  width: 16px; border-radius: var(--r-pill); background: var(--text-3);
+  transition: transform var(--dur-reveal) var(--ease-out), background-color var(--dur-reveal) var(--ease-out);
+}
+.switch:checked { border-color: rgba(191,102,90,0.45); }
+.switch:checked::after { transform: translateX(16px); background: var(--accent); }
+
+.timeinput {
+  background: none; border: 0; color: var(--text-1);
+  font-size: 15px; letter-spacing: 0.4px; padding: 6px 0; min-height: 44px;
+}
+.prose { color: var(--text-2); font-size: 15px; line-height: 22px;
+         padding: var(--s-3) var(--s-7); margin: 0; }
+
+/* ─────────────────────────────────────────────────────── sleep mode ── */
+/* Three elements and a scrim. The scrim sits above everything so dimming is one
+   composite op rather than per-element alpha bookkeeping. */
+.sleep-layer {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; flex-direction: column; align-items: center;
+  padding: calc(var(--safe-t) + 8vh) var(--s-7) calc(var(--safe-b) + var(--s-7));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-sleep-in) var(--ease-sleep);
+  will-change: transform;
+}
+.sleep-layer[data-on="1"] { opacity: 1; }
+.sleep-clock {
+  font-size: clamp(44px, 15vw, 64px); line-height: 1; font-weight: 200; letter-spacing: -1.6px;
+  color: var(--text-3); opacity: 0.55;
+  transition: opacity var(--dur-reveal) var(--ease-out);
+}
+.sleep-clock[data-off="1"] { opacity: 0; }
+.sleep-hint {
+  margin: var(--s-8) 0 0; font-size: 13px; letter-spacing: 0.2px;
+  color: var(--text-3); opacity: 0; transition: opacity 700ms var(--ease-out);
+}
+.sleep-hint[data-on="1"] { opacity: 0.5; }
+.sleep-foot { margin-top: auto; display: flex; flex-direction: column;
+              align-items: center; gap: var(--s-5); }
+.sleep-now { margin: 0; font-size: 13px; letter-spacing: 0.2px; color: var(--text-3);
+             opacity: 0.42; text-align: center; max-width: 80vw;
+             overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.mark {
+  position: relative; width: 56px; height: 56px; pointer-events: auto;
+  display: grid; place-items: center;
+  opacity: 0.10; transition: opacity var(--dur-reveal) var(--ease-out);
+}
+.mark[data-lit="1"] { opacity: 0.85; }
+.mark-dot { width: 6px; height: 6px; background: var(--accent); }
+.mark-ring { position: absolute; inset: 6px; width: 44px; height: 44px;
+             transform: rotate(-90deg); pointer-events: none; }
+.mark-ring circle {
+  fill: none; stroke: var(--accent); stroke-width: 1;
+  stroke-dasharray: 119.38; stroke-dashoffset: 119.38;
+}
+
+.sleep-scrim {
+  position: fixed; inset: 0; z-index: 90;
+  background: #000; opacity: 0; pointer-events: none;
+  transition: opacity var(--dur-sleep-in) var(--ease-sleep);
+}
+/* Above the scrim: a full-screen catcher so no stray touch can reach a control.
+   Inset 12px from every edge so system gestures still work. */
+.sleep-catch { position: fixed; inset: 12px; z-index: 95; background: none; }
+
+/* ───────────────────────────────────────────────────────── morning ── */
+.morning {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center; padding: var(--s-7);
+  background: var(--void);
+  animation: fade-in 320ms var(--ease-out) both;
+}
+.morning-inner { width: 100%; max-width: 420px; text-align: center;
+                 display: flex; flex-direction: column; align-items: center; }
+.morning .title { margin-bottom: var(--s-3); }
+.stats { width: 100%; margin: var(--s-8) 0 var(--s-9); padding: 0;
+         border-top: var(--hairline-w) solid var(--hairline); }
+.stats > div {
+  height: 56px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: var(--hairline-w) solid var(--hairline);
+}
+.stats dt { font-size: 14px; font-weight: 500; letter-spacing: 0.1px; color: var(--text-2); }
+.stats dd { margin: 0; font-size: 15px; letter-spacing: 0.2px; color: var(--text-1); }
+
+/* ─────────────────────────────────────────────────────────── toast ── */
+/* No error colour anywhere. A red toast at 3am is an assault. */
+.toast {
+  position: fixed; z-index: 80;
+  left: 50%; transform: translateX(-50%) translateY(8px);
+  bottom: calc(var(--safe-b) + 96px);
+  max-width: min(420px, calc(100vw - 48px));
+  padding: var(--s-4) var(--s-6);
+  border: var(--hairline-w) solid var(--hairline); border-radius: var(--r-chip);
+  background: var(--surface); color: var(--text-1);
+  font-size: 14px; line-height: 20px; text-align: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--dur-reveal) var(--ease-out), transform var(--dur-reveal) var(--ease-out);
+}
+.toast[data-on="1"] { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ─────────────────────────────────────────────────────── landscape ── */
+@media (orientation: landscape) and (max-height: 560px) {
+  .chrome { flex-direction: row; }
+  .topbar {
+    order: 2; height: auto; width: min(360px, 42%);
+    flex-direction: column; align-items: stretch; justify-content: space-between;
+    padding: var(--s-7) var(--s-7) 0;
+    border-left: var(--hairline-w) solid var(--hairline);
+  }
+  .stage { order: 1; }
+  .dock {
+    order: 3; width: min(360px, 42%); justify-content: flex-end;
+    padding: 0 var(--s-7) var(--s-7);
+  }
+  .topbar { border: 0; }
+  .sheet {
+    left: auto; right: 0; transform: none; top: 0; bottom: 0;
+    width: min(460px, 52%); max-width: none; height: 100%;
+    border-radius: 0; border-left: var(--hairline-w) solid var(--hairline); border-top: 0;
+    animation: panel-in var(--dur-sheet-in) var(--ease-out) both;
+  }
+  @keyframes panel-in { from { opacity: 0; transform: translateX(24px); } }
+  .sheet[data-closing="1"] { animation: panel-out var(--dur-sheet-out) var(--ease-in) both; }
+  @keyframes panel-out { to { opacity: 0; transform: translateX(16px); } }
+  .handle { display: none; }
+  .sleep-layer { padding-top: calc(var(--safe-t) + 4vh); }
+  .morning-inner { max-width: 620px; }
+}
+
+/* ────────────────────────────────────────────── reduced motion ── */
+/* Clawd keeps breathing in opacity but stops translating. The burn-in drift
+   stays on — it is hardware protection, not decoration. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 120ms !important;
+    transition-duration: 120ms !important;
+  }
+  .sleep-layer, .sleep-scrim { transition-duration: 600ms !important; }
+}
+
+@media (prefers-contrast: more) {
+  :root { --text-1: #AEB7C8; --text-2: #8B94A6; --text-3: #6B7385; --hairline: #2A3243; }
+}
