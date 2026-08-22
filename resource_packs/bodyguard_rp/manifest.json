@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "pack.name",
+    "description": "pack.description",
+    "uuid": "e614a0b1-8a63-4fd7-aa8d-b64eab4fb5be",
+    "version": [
+      2,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "45cc3418-3421-447e-9613-9b8c491343be",
+      "version": [
+        2,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Bodyguard"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "resource_pack_name": "bodyguard",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "bodyguard_contract": {
+      "textures": "textures/items/bodyguard_contract"
+    },
+    "bodyguard_spawn_egg": {
+      "textures": "textures/items/bodyguard_spawn_egg"
+    }
+  }
+}

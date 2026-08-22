@@ -1,0 +1,80 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "bg:bodyguard",
+      "min_engine_version": "1.21.0",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "tier0": "textures/entity/bodyguard/bodyguard_t0",
+        "tier1": "textures/entity/bodyguard/bodyguard_t1",
+        "tier2": "textures/entity/bodyguard/bodyguard_t2",
+        "tier3": "textures/entity/bodyguard/bodyguard_t3",
+        "tier4": "textures/entity/bodyguard/bodyguard_t4"
+      },
+      "geometry": {
+        "default": "geometry.bodyguard"
+      },
+      "spawn_egg": {
+        "texture": "bodyguard_spawn_egg",
+        "texture_index": 0
+      },
+      "scripts": {
+        "initialize": [
+          "variable.is_holding_right = 0.0;",
+          "variable.is_holding_left = 0.0;",
+          "variable.moving = 0.0;",
+          "variable.sprinting = 0.0;",
+          "variable.tcos0 = 0.0;"
+        ],
+        "pre_animation": [
+          "variable.helmet_layer_visible = 1.0;",
+          "variable.chest_layer_visible = 1.0;",
+          "variable.leg_layer_visible = 1.0;",
+          "variable.boot_layer_visible = 1.0;",
+          "variable.gliding_speed_value = 1.0;",
+          "variable.tcos0 = (math.cos(query.modified_distance_moved * 38.17) * query.modified_move_speed / variable.gliding_speed_value) * 57.3;",
+          "variable.is_holding_right = query.is_item_equipped('main_hand') ? 1.0 : 0.0;",
+          "variable.is_holding_left = query.is_item_equipped('off_hand') ? 1.0 : 0.0;",
+          "variable.moving = query.ground_speed > 0.25;",
+          "variable.sprinting = query.ground_speed > 4.6;"
+        ],
+        "animate": [
+          "look_at_target",
+          "move",
+          "combat",
+          "holding",
+          "hurt",
+          "layers",
+          "state"
+        ]
+      },
+      "animations": {
+        "look_at_target": "animation.bodyguard.look_at_target",
+        "layers": "animation.bodyguard.layers",
+        "holding": "animation.bodyguard.holding",
+        "hurt": "animation.bodyguard.hurt",
+        "idle": "animation.bodyguard.idle",
+        "idle_alert": "animation.bodyguard.idle_alert",
+        "at_ease": "animation.bodyguard.at_ease",
+        "walk": "animation.bodyguard.walk",
+        "run": "animation.bodyguard.run",
+        "attack_a": "animation.bodyguard.attack_a",
+        "attack_b": "animation.bodyguard.attack_b",
+        "special": "animation.bodyguard.special",
+        "defend": "animation.bodyguard.defend",
+        "victory": "animation.bodyguard.victory",
+        "death": "animation.bodyguard.death",
+        "move": "controller.animation.bodyguard.move",
+        "combat": "controller.animation.bodyguard.combat",
+        "state": "controller.animation.bodyguard.state"
+      },
+      "render_controllers": [
+        "controller.render.bodyguard"
+      ],
+      "enable_attachables": true
+    }
+  }
+}

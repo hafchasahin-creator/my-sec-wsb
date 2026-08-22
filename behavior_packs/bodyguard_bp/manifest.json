@@ -1,0 +1,65 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "pack.name",
+    "description": "pack.description",
+    "uuid": "e88dd8a4-8d94-400b-8db2-6ca8b11b0399",
+    "version": [
+      2,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "ed0196ab-ac8e-4460-9704-efceed278e67",
+      "version": [
+        2,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "8b8ec176-0e8b-4f7a-945e-a11fc8f76477",
+      "version": [
+        2,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "e614a0b1-8a63-4fd7-aa8d-b64eab4fb5be",
+      "version": [
+        2,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "1.1.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Bodyguard"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

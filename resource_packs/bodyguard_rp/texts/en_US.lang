@@ -1,0 +1,14 @@
+## Bodyguard - English (US)
+
+pack.name=Bodyguard RP
+pack.description=Model, textures, animations and sounds for the Bodyguard companion.
+
+item.bg:contract=Bodyguard Contract
+item.bg:contract.name=Bodyguard Contract
+item.spawn_egg.entity.bg:bodyguard=Spawn Bodyguard
+item.spawn_egg.entity.bg:bodyguard.name=Spawn Bodyguard
+
+entity.bg:bodyguard.name=Bodyguard
+
+action.interact.bodyguard.command=Command
+action.hint.exit.bg:bodyguard=Command Bodyguard
