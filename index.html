@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Imran Mind — Ship software at the speed of thought</title>
-<meta name="description" content="Imran Mind is the complete AI build environment — every tool you need to ship software with AI, under one subscription." />
+<meta name="description" content="Imran Mind runs AI agents on your repo. They read the code, make the change, run the tests and open the pull request." />
 <meta name="theme-color" content="#05070c" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -642,20 +642,20 @@ p.sub{
 .ftr__about p{margin:14px 0 0;max-width:34ch;font-size:.9rem;color:var(--muted-2);line-height:1.6}
 .ftr h5{margin:0 0 14px;font-size:.74rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2)}
 .ftr ul{margin:0;padding:0;list-style:none;display:grid;gap:11px}
-.ftr ul a{font-size:.92rem;color:var(--muted);transition:color .22s var(--ease)}
-.ftr ul a:hover{color:var(--text)}
+.ftr ul a,.ftr ul button{font-size:.92rem;color:var(--muted);transition:color .22s var(--ease);text-align:left;padding:0}
+.ftr ul a:hover,.ftr ul button:hover{color:var(--text)}
 .ftr__bot{
   margin-top:clamp(34px,6vw,50px);padding-top:22px;border-top:1px solid var(--line-soft);
   display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;
   font-size:.82rem;color:var(--muted-2);
 }
 .socials{display:flex;gap:9px}
-.socials a{
+.socials a,.socials button{
   width:36px;height:36px;border-radius:10px;display:grid;place-items:center;
   border:1px solid var(--line);background:var(--surface);color:var(--muted);
   transition:color .25s,border-color .25s,transform .25s var(--ease),background .25s;
 }
-.socials a:hover{color:var(--text);border-color:rgba(120,170,255,.35);transform:translateY(-2px);background:var(--surface-2)}
+.socials a:hover,.socials button:hover{color:var(--text);border-color:rgba(120,170,255,.35);transform:translateY(-2px);background:var(--surface-2)}
 .socials svg{width:16px;height:16px}
 
 /* ============================================================
@@ -827,6 +827,391 @@ p.sub{
 }
 
 /* ============================================================
+   Copy-to-clipboard command strip
+   ============================================================ */
+.cmd{
+  display:flex;align-items:center;gap:10px;
+  margin-top:clamp(20px,4vw,26px);padding:10px 10px 10px 16px;
+  border:1px solid var(--line);border-radius:13px;
+  background:rgba(255,255,255,.03);max-width:430px;
+  font-family:var(--mono);font-size:.82rem;
+}
+@media(min-width:760px){.cmd{max-width:400px}}
+.cmd__p{color:var(--muted-2);flex:none}
+.cmd code{flex:1;min-width:0;color:#cfdaea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmd__btn{
+  flex:none;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;
+  border:1px solid var(--line);background:rgba(255,255,255,.05);
+  font-family:var(--font);font-size:.76rem;font-weight:600;color:var(--muted);
+  transition:color .2s,border-color .2s,background .2s;
+}
+.cmd__btn:hover{color:var(--text);border-color:rgba(120,170,255,.4);background:rgba(29,125,252,.14)}
+.cmd__btn svg{width:13px;height:13px}
+.cmd__btn.is-done{color:var(--mint);border-color:rgba(61,220,151,.45);background:rgba(61,220,151,.12)}
+
+/* ============================================================
+   Workspace tabs (the rail actually switches panes)
+   ============================================================ */
+.rail__btn{cursor:pointer;-webkit-appearance:none;appearance:none;padding:0}
+.rail__btn[aria-selected="true"]{
+  color:#cfe4ff;border-color:rgba(29,125,252,.5);background:rgba(29,125,252,.14);
+  box-shadow:-11px 0 0 -9px var(--blue),0 0 22px -8px var(--glow);
+}
+.rail__btn[aria-selected="true"].rail__btn--vi{
+  color:#e8ccff;border-color:rgba(160,110,255,.5);background:rgba(139,107,255,.14);
+  box-shadow:-11px 0 0 -9px var(--violet),0 0 22px -8px rgba(139,107,255,.9);
+}
+.rail__btn[aria-selected="true"].rail__btn--mi{
+  color:#c6f7e2;border-color:rgba(61,220,151,.45);background:rgba(61,220,151,.12);
+  box-shadow:-11px 0 0 -9px var(--mint),0 0 22px -8px rgba(61,220,151,.8);
+}
+.panes{flex:1;min-width:0;display:grid}
+.tpane{grid-area:1/1;min-width:0;opacity:0;visibility:hidden;transform:translateY(6px);
+  transition:opacity .3s var(--ease),transform .3s var(--ease),visibility .3s}
+.tpane[data-on]{opacity:1;visibility:visible;transform:none}
+
+/* ============================================================
+   Pricing
+   ============================================================ */
+.toggle{
+  display:inline-flex;align-items:center;gap:4px;padding:5px;border-radius:99px;
+  border:1px solid var(--line);background:rgba(255,255,255,.03);margin-top:26px;
+}
+.toggle button{
+  padding:9px 18px;border-radius:99px;font-size:.85rem;font-weight:600;color:var(--muted);
+  transition:color .25s var(--ease),background .25s var(--ease);
+}
+.toggle button[aria-pressed="true"]{color:#fff;background:rgba(29,125,252,.9);box-shadow:0 4px 18px -6px var(--glow)}
+.toggle .save{font-size:.7rem;font-weight:700;color:var(--mint);margin-left:6px}
+
+.plans{display:grid;gap:14px;margin-top:clamp(26px,5vw,38px)}
+@media(min-width:900px){.plans{grid-template-columns:repeat(3,1fr);align-items:start}}
+.plan{
+  position:relative;padding:clamp(24px,4.4vw,32px);border-radius:var(--radius);
+  border:1px solid var(--line);background:linear-gradient(165deg,rgba(255,255,255,.045),rgba(255,255,255,.012));
+  display:flex;flex-direction:column;min-width:0;
+  transition:border-color .35s var(--ease),transform .35s var(--ease),box-shadow .35s var(--ease);
+}
+.plan:hover{border-color:rgba(120,170,255,.28);transform:translateY(-3px)}
+.plan--hero{
+  border-color:rgba(29,125,252,.45);
+  background:linear-gradient(165deg,rgba(29,125,252,.13),rgba(255,255,255,.02) 55%,rgba(255,255,255,.012));
+  box-shadow:0 30px 70px -40px rgba(0,0,0,.95),0 0 70px -40px var(--glow);
+}
+.plan__flag{
+  position:absolute;top:-11px;left:clamp(24px,4.4vw,32px);padding:4px 11px;border-radius:99px;
+  background:var(--blue);color:#fff;font-size:.66rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+}
+.plan h4{margin:0;font-size:1.05rem;font-weight:700;letter-spacing:-.02em}
+.plan__note{margin:6px 0 0;font-size:.85rem;color:var(--muted-2)}
+.plan__price{display:flex;align-items:baseline;gap:6px;margin:20px 0 0}
+.plan__price b{font-size:clamp(2.1rem,7vw,2.7rem);font-weight:800;letter-spacing:-.045em;line-height:1}
+.plan__price span{font-size:.86rem;color:var(--muted-2)}
+.plan__list{margin:22px 0 26px;padding:0;list-style:none;display:grid;gap:11px}
+.plan__list li{display:flex;gap:10px;font-size:.9rem;color:var(--muted);line-height:1.45}
+.plan__list svg{width:16px;height:16px;flex:none;margin-top:2px;color:var(--blue-hi)}
+.plan .btn{margin-top:auto;width:100%}
+
+/* ============================================================
+   FAQ
+   ============================================================ */
+.faq{margin-top:clamp(26px,5vw,38px);border-top:1px solid var(--line-soft)}
+.qa{border-bottom:1px solid var(--line-soft)}
+.qa__q{
+  width:100%;display:flex;align-items:flex-start;justify-content:space-between;gap:18px;
+  padding:clamp(18px,3.4vw,24px) 0;text-align:left;
+  font-size:clamp(1rem,3.9vw,1.1rem);font-weight:600;letter-spacing:-.02em;color:var(--text);
+  transition:color .25s var(--ease);
+}
+.qa__q:hover{color:var(--blue-hi)}
+.qa__ico{flex:none;width:22px;height:22px;margin-top:2px;position:relative}
+.qa__ico::before,.qa__ico::after{
+  content:"";position:absolute;left:50%;top:50%;width:13px;height:1.7px;border-radius:2px;
+  background:currentColor;transform:translate(-50%,-50%);transition:transform .35s var(--ease),opacity .25s
+}
+.qa__ico::after{transform:translate(-50%,-50%) rotate(90deg)}
+.qa__q[aria-expanded="true"] .qa__ico::after{transform:translate(-50%,-50%) rotate(0);opacity:0}
+.qa__a{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s var(--ease)}
+.qa__a>div{overflow:hidden;min-height:0}
+.qa__q[aria-expanded="true"]+.qa__a{grid-template-rows:1fr}
+.qa__a p{margin:0 0 clamp(20px,3.4vw,26px);max-width:62ch;font-size:.97rem;line-height:1.65;color:var(--muted)}
+
+/* ============================================================
+   Dialog (sign-up) + toast + back-to-top
+   ============================================================ */
+.sheet[hidden],.totop[hidden]{display:none}
+.sheet{
+  position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:20px;
+  opacity:0;visibility:hidden;transition:opacity .3s var(--ease),visibility .3s;
+}
+.sheet.is-open{opacity:1;visibility:visible}
+.sheet__veil{position:absolute;inset:0;background:rgba(3,5,9,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.sheet__box{
+  position:relative;width:100%;max-width:440px;padding:clamp(24px,5vw,34px);
+  border-radius:22px;border:1px solid var(--line);
+  background:linear-gradient(168deg,#0e131c,#080b12);
+  box-shadow:0 50px 110px -50px #000,0 0 90px -60px var(--glow);
+  transform:translateY(14px) scale(.97);transition:transform .35s var(--ease);
+  max-height:90vh;overflow-y:auto;
+}
+.sheet.is-open .sheet__box{transform:none}
+.sheet__x{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:10px;
+  display:grid;place-items:center;color:var(--muted-2);border:1px solid transparent;transition:color .2s,background .2s}
+.sheet__x:hover{color:var(--text);background:var(--surface)}
+.sheet__x svg{width:16px;height:16px}
+.sheet h3{margin:0;font-size:1.42rem;font-weight:800;letter-spacing:-.035em}
+.sheet p.sheet__sub{margin:9px 0 22px;font-size:.94rem;color:var(--muted);line-height:1.55}
+.field{display:grid;gap:7px;margin-bottom:14px}
+.field[hidden]{display:none}
+.field label{font-size:.78rem;font-weight:600;color:var(--muted-2);letter-spacing:.02em}
+.field input,.field select{
+  width:100%;padding:14px 15px;border-radius:12px;font:inherit;font-size:.95rem;color:var(--text);
+  background:rgba(255,255,255,.04);border:1px solid var(--line);
+  transition:border-color .25s var(--ease),background .25s var(--ease);
+}
+.field input::placeholder{color:var(--muted-2)}
+.field input:focus,.field select:focus{outline:none;border-color:rgba(29,125,252,.6);background:rgba(29,125,252,.07)}
+.field select{appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2393a1b6' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;background-size:16px;padding-right:40px}
+.field.is-bad input{border-color:rgba(255,95,87,.7);background:rgba(255,95,87,.07)}
+.err{font-size:.78rem;color:#ff8078;min-height:1em}
+.sheet__fine{margin:14px 0 0;font-size:.76rem;color:var(--muted-2);text-align:center}
+.done{text-align:center;padding:8px 0 4px}
+.done__ico{width:56px;height:56px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(61,220,151,.14);color:var(--mint);box-shadow:0 0 40px -12px rgba(61,220,151,.8)}
+.done__ico svg{width:26px;height:26px}
+.done b{display:block;font-size:1.2rem;font-weight:700;letter-spacing:-.03em}
+.done p{margin:10px 0 0;font-size:.92rem;color:var(--muted)}
+.done code{color:var(--blue-hi);font-family:var(--mono);font-size:.88rem;word-break:break-all}
+
+.toast{
+  position:fixed;left:50%;bottom:26px;z-index:90;transform:translate(-50%,18px);
+  padding:13px 20px;border-radius:13px;max-width:min(92vw,440px);
+  border:1px solid var(--line);background:rgba(12,16,24,.95);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  box-shadow:0 24px 60px -30px #000;
+  font-size:.88rem;color:var(--text);
+  opacity:0;visibility:hidden;transition:opacity .3s var(--ease),transform .3s var(--ease),visibility .3s;
+}
+.toast.is-on{opacity:1;visibility:visible;transform:translate(-50%,0)}
+
+.totop{
+  position:fixed;right:clamp(16px,3vw,26px);bottom:calc(22px + env(safe-area-inset-bottom));z-index:50;
+  width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
+  border:1px solid var(--line);background:rgba(10,14,22,.86);color:var(--muted);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  opacity:0;visibility:hidden;transform:translateY(10px);
+  transition:opacity .3s var(--ease),transform .3s var(--ease),visibility .3s,color .2s,border-color .2s;
+}
+.totop.is-on{opacity:1;visibility:visible;transform:none}
+.totop:hover{color:var(--text);border-color:rgba(120,170,255,.4)}
+.totop svg{width:18px;height:18px}
+
+/* active section in the desktop nav */
+.nav a[aria-current="true"]{color:var(--text);background:var(--surface)}
+
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip{
+  position:absolute;left:-9999px;top:0;z-index:100;padding:12px 18px;border-radius:0 0 12px 0;
+  background:var(--blue);color:#fff;font-weight:700;font-size:.9rem;
+}
+.skip:focus{left:0}
+
+/* ============================================================
+   Model carousel
+   ============================================================ */
+.car{position:relative;margin-top:clamp(20px,4vw,28px)}
+.car__track{
+  display:flex;gap:clamp(14px,3vw,22px);align-items:stretch;
+  overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
+  scrollbar-width:none;-ms-overflow-style:none;
+  padding-bottom:4px;
+}
+.car__track::-webkit-scrollbar{display:none}
+@media (prefers-reduced-motion:reduce){.car__track{scroll-behavior:auto}}
+.car__slide{flex:0 0 100%;min-width:0;scroll-snap-align:center;display:flex}
+.car__slide>*{width:100%}
+
+.car__bar{display:flex;align-items:center;gap:14px;margin-top:clamp(16px,3vw,22px)}
+.car__dots{display:flex;gap:8px;margin-right:auto}
+.car__dot{
+  width:34px;height:4px;border-radius:99px;background:rgba(255,255,255,.16);
+  transition:background .3s var(--ease),width .3s var(--ease);
+}
+.car__dot[aria-current="true"]{background:var(--blue);width:52px;box-shadow:0 0 14px -2px var(--glow)}
+.car__btn{
+  width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none;
+  border:1px solid var(--line);background:var(--surface);color:var(--muted);
+  transition:color .2s,border-color .2s,background .2s,transform .2s var(--ease);
+}
+.car__btn:hover:not(:disabled){color:var(--text);border-color:rgba(120,170,255,.4);background:var(--surface-2)}
+.car__btn:disabled{opacity:.35;cursor:default}
+.car__btn svg{width:17px;height:17px}
+
+/* ============================================================
+   Grok Bot banner
+   ============================================================ */
+.gk{
+  --gk-a:#eaf2ff;
+  --gk-b:#4ea2ff;
+  position:relative;overflow:hidden;
+  border-radius:clamp(22px,4.6vw,34px);
+  border:1px solid rgba(160,200,255,.22);
+  background:
+    radial-gradient(115% 120% at 74% 40%,rgba(78,162,255,.11),transparent 58%),
+    linear-gradient(150deg,#070a10 0%,#05070c 55%,#04050a 100%);
+  box-shadow:0 40px 100px -50px rgba(0,0,0,.95),0 0 90px -60px rgba(78,162,255,.5);
+  padding:clamp(26px,5.4vw,54px);
+  display:grid;gap:clamp(26px,5vw,40px);align-items:center;
+  transform:perspective(1300px) rotateX(var(--gk-rx,0deg)) rotateY(var(--gk-ry,0deg));
+  transform-style:preserve-3d;
+  transition:transform .7s var(--ease),border-color .6s var(--ease),box-shadow .6s var(--ease);
+}
+.gk:hover{border-color:rgba(160,200,255,.38);box-shadow:0 46px 110px -50px #000,0 0 120px -55px rgba(78,162,255,.6)}
+@media(min-width:860px){
+  .gk{grid-template-columns:1fr 1.05fr;gap:clamp(30px,4vw,56px);padding:clamp(40px,4.4vw,64px)}
+}
+.gk>*{min-width:0}
+
+.gk__copy{position:relative;z-index:2;transform:translate3d(0,0,42px)}
+.gk__mark{
+  width:clamp(62px,15vw,88px);aspect-ratio:1;border-radius:clamp(16px,3.6vw,22px);
+  display:grid;place-items:center;
+  border:1px solid rgba(160,200,255,.28);
+  background:linear-gradient(155deg,rgba(120,180,255,.14),rgba(255,255,255,.02));
+  box-shadow:0 0 34px -14px rgba(78,162,255,.9),inset 0 1px 0 rgba(220,235,255,.2);
+}
+.gk__name{
+  margin:clamp(18px,3.4vw,26px) 0 0;
+  font-size:clamp(2.5rem,10vw,4.1rem);font-weight:500;letter-spacing:-.035em;line-height:1;
+  background:linear-gradient(180deg,#fff 12%,#c3d6ef 96%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+}
+.gk__by{display:block;margin-top:clamp(10px,2vw,14px);
+  font-size:clamp(.68rem,2.4vw,.8rem);font-weight:600;letter-spacing:.36em;text-transform:uppercase;color:var(--gk-b)}
+.gk__desc{margin:clamp(20px,4vw,30px) 0 0;max-width:38ch;
+  font-size:clamp(.95rem,3.6vw,1.06rem);line-height:1.65;color:var(--muted)}
+
+/* --- the workspace behind the bot --- */
+.gk__art{position:relative;aspect-ratio:1/.86;width:100%;max-width:560px;margin-inline:auto;perspective:1200px}
+.gk__stage{position:absolute;inset:0;transform-style:preserve-3d;
+  transform:rotateX(var(--gk-px,0deg)) rotateY(var(--gk-py,0deg));transition:transform .8s var(--ease)}
+.gk__glow{
+  position:absolute;left:56%;top:50%;width:78%;aspect-ratio:1;transform:translate(-50%,-50%);
+  border-radius:50%;pointer-events:none;filter:blur(28px);opacity:.5;
+  background:radial-gradient(50% 50% at 50% 50%,rgba(78,162,255,.4),rgba(78,162,255,.1) 46%,transparent 72%);
+}
+.gk.is-live .gk__glow{animation:gkBreathe 10s ease-in-out infinite}
+@keyframes gkBreathe{0%,100%{opacity:.36;transform:translate(-50%,-50%) scale(.95)}50%{opacity:.62;transform:translate(-50%,-50%) scale(1.05)}}
+
+.win{
+  position:absolute;border-radius:14px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.1);
+  background:linear-gradient(165deg,rgba(18,24,34,.96),rgba(8,11,17,.97));
+  box-shadow:0 26px 50px -26px rgba(0,0,0,.95),inset 0 1px 0 rgba(190,220,255,.12);
+  font-family:var(--mono);font-size:.62rem;line-height:1.75;color:#a9b8cd;
+}
+@media(min-width:560px){.win{font-size:.68rem}}
+.win__bar{display:flex;align-items:center;gap:6px;padding:7px 9px;border-bottom:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.035);font-size:.62rem;color:#6f7f95}
+.win__bar i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.22);flex:none}
+.win__body{padding:9px 10px}
+.win__body p{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.win .b{color:var(--gk-b)}.win .w{color:#f2f6fc}.win .g{color:var(--mint)}.win .d{color:#5b6a80}
+
+.win--browser{left:0;top:2%;width:56%;transform:translateZ(10px)}
+.win--browser .url{flex:1;min-width:0;padding:3px 8px;border-radius:99px;background:rgba(255,255,255,.06);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.win--term{left:0;bottom:2%;width:52%;transform:translateZ(28px)}
+.win--files{right:0;top:0;width:36%;transform:translateZ(4px)}
+.win--tasks{left:17%;top:41%;width:42%;transform:translateZ(20px)}
+.row{display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.row .dot{width:5px;height:5px;border-radius:50%;flex:none;background:var(--gk-b)}
+.row .dot.ok{background:var(--mint)}
+.row .dot.wait{background:#5b6a80}
+.row .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row em{font-style:normal;margin-left:auto;padding-left:8px;color:#5b6a80;flex:none}
+.pbar{height:2px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden;margin-top:5px}
+.pbar span{display:block;height:100%;background:linear-gradient(90deg,var(--gk-b),#a8d0ff);width:0}
+.gk.in .pbar span{animation:fill 2.4s var(--ease) forwards;animation-delay:.4s}
+.gk.is-live .win--term .cur{animation:caret 1.05s steps(1) infinite}
+.cur{display:inline-block;width:6px;height:.95em;background:var(--gk-b);vertical-align:-1px}
+
+/* narrow screens: lay the workspace out as a stack, with the bot below it */
+@media(max-width:859px){
+  .gk__art{aspect-ratio:auto;max-width:none}
+  .gk__stage{position:relative;inset:auto;display:grid;grid-template-columns:1fr 1fr;
+    gap:9px;padding-bottom:clamp(84px,24vw,120px)}
+  .win{position:relative;left:auto;right:auto;top:auto;bottom:auto;width:auto;transform:none}
+  .win--browser,.win--term{grid-column:1/-1}
+  .win--browser{order:1}.win--files{order:2}.win--tasks{order:3}.win--term{order:4}
+  .gk__glow{left:72%;top:auto;bottom:2%;width:64%;transform:translate(-50%,0)}
+  .gk.is-live .gk__glow{animation:none}
+  .gk__botwrap{right:2%;bottom:0;width:46%;max-width:168px}
+}
+
+/* --- the bot --- */
+.gk__botwrap{position:absolute;right:0;bottom:1%;top:auto;width:39%;max-width:200px;aspect-ratio:240/250;
+  transform:translateZ(120px) scale(.86);opacity:0;
+  transition:transform 1.2s var(--ease),opacity 1.2s var(--ease)}
+.gk.in .gk__botwrap{transform:translateZ(120px) scale(1);opacity:1}
+.gk__bot{position:absolute;inset:0;width:100%;height:100%;overflow:visible;
+  filter:drop-shadow(0 0 38px rgba(78,162,255,.26))}
+.gk.is-live .gk__botwrap{animation:gkFloat 20s ease-in-out infinite}
+@keyframes gkFloat{
+  0%  {transform:translateZ(120px) translateY(0) rotate(0)}
+  25% {transform:translateZ(120px) translateY(-3.2%) rotate(1deg)}
+  50% {transform:translateZ(120px) translateY(-1%) rotate(-.7deg)}
+  75% {transform:translateZ(120px) translateY(-3.8%) rotate(.5deg)}
+  100%{transform:translateZ(120px) translateY(0) rotate(0)}
+}
+.gk__eyes{
+  transform-box:fill-box;transform-origin:50% 50%;
+  transform:translate(var(--ex,0px),var(--ey,0px));
+  transition:transform .5s var(--ease);
+}
+.gk__eye{
+  fill:#fff;transform-box:fill-box;transform-origin:50% 50%;transform:rotate(-8deg);
+  filter:drop-shadow(0 0 9px rgba(200,228,255,.8));
+}
+.gk__bot--sm{position:relative;width:100%;height:auto}
+.gk__mark{overflow:hidden}
+.gk__trails{opacity:.92}
+.gk.is-live .gk__trails{animation:gkTrail 11s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 0%}
+@keyframes gkTrail{
+  0%,100%{transform:rotate(0) translateX(0)}
+  50%{transform:rotate(-2.4deg) translateX(-3px)}
+}
+.gk.is-live .gk__eye{animation:gkBlink 6.4s ease-in-out infinite}
+.gk.is-live .gk__eye:last-child{animation-delay:.02s}
+@keyframes gkBlink{
+  0%,10%,12.6%,58%,60.4%,64%,66.4%,100%{transform:rotate(-8deg) scaleY(1)}
+  11.3%,59.2%,65.2%{transform:rotate(-8deg) scaleY(.05)}
+}
+/* no pointer: the bot looks around by itself */
+@media(hover:none){
+  .gk.is-live .gk__eyes{animation:gkLook 13s ease-in-out infinite}
+  @keyframes gkLook{
+    0%,100%{transform:translate(-50%,-50%) translate(0,0)}
+    18%{transform:translate(-50%,-50%) translate(9%,-4%)}
+    38%{transform:translate(-50%,-50%) translate(-8%,3%)}
+    58%{transform:translate(-50%,-50%) translate(6%,5%)}
+    78%{transform:translate(-50%,-50%) translate(-4%,-5%)}
+  }
+  .gk.is-live .gk__stage{animation:gkSway 21s ease-in-out infinite}
+  @keyframes gkSway{
+    0%,100%{transform:rotateX(2deg) rotateY(-3deg)}
+    33%{transform:rotateX(-1.6deg) rotateY(2.4deg)}
+    66%{transform:rotateX(1deg) rotateY(3deg)}
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  .gk,.gk__stage{transform:none !important}
+  .gk__botwrap{opacity:1 !important;transform:translateZ(120px) scale(1) !important}
+}
+
+/* ============================================================
    Scroll reveal + misc motion
    ============================================================ */
 .reveal{opacity:0;transform:translateY(26px);filter:blur(7px);
@@ -861,6 +1246,8 @@ p.sub{
 
 <div class="progress" id="progress" aria-hidden="true"></div>
 
+<a class="skip" href="#top">Skip to content</a>
+
 <header class="hdr" id="hdr">
   <div class="wrap hdr__in">
     <a class="brand" href="#top" aria-label="Imran Mind — home">
@@ -873,12 +1260,13 @@ p.sub{
       <a href="#agents">Agents</a>
       <a href="#automation">Automation</a>
       <a href="#tools">Tools</a>
+      <a href="#pricing">Pricing</a>
     </nav>
 
-    <a class="btn btn--primary btn--sm hdr__cta" href="#start">
+    <button class="btn btn--primary btn--sm hdr__cta" type="button" data-signup="Team">
       Get Started
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-    </a>
+    </button>
 
     <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="menu">
       <span></span><span></span><span></span>
@@ -892,13 +1280,14 @@ p.sub{
   <a class="menu__link" href="#agents" style="--i:3">Agents <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
   <a class="menu__link" href="#automation" style="--i:4">Automation <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
   <a class="menu__link" href="#testing" style="--i:5">Testing <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
-  <a class="menu__link" href="#tools" style="--i:6">Tools <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+  <a class="menu__link" href="#pricing" style="--i:6">Pricing <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+  <a class="menu__link" href="#faq" style="--i:7">Questions <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
   <div class="menu__foot">
-    <a class="btn btn--primary btn--block" href="#start">
+    <button class="btn btn--primary btn--block" type="button" data-signup="Team">
       Get Started
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-    </a>
-    <a class="btn btn--ghost btn--block" href="#start">Sign in</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    </button>
+    <button class="btn btn--ghost btn--block" type="button" data-signup="signin">Sign in</button>
   </div>
 </div>
 
@@ -907,7 +1296,7 @@ p.sub{
   <!-- ================= HERO ================= -->
   <section class="hero">
     <div class="wrap hero__in">
-      <span class="pill reveal reveal--sm" style="--d:.05s"><b><i></i>New</b> Agent Mesh v3 is live</span>
+      <span class="pill reveal reveal--sm" style="--d:.05s"><b><i></i>New</b> Agent Mesh v3 is out</span>
 
       <h1 class="reveal" style="--d:.12s">
         <span class="ln">Ship software</span>
@@ -916,8 +1305,8 @@ p.sub{
       </h1>
 
       <p class="lede reveal" style="--d:.2s">
-        Imran Mind is the complete AI build environment — every tool you need to
-        design, code, test and ship software with AI, under one subscription.
+        Imran Mind runs AI agents on your repo. They read the code, make the change,
+        run the tests, and open the pull request. One subscription, nothing to wire up.
       </p>
 
       <div class="hero__actions">
@@ -930,15 +1319,24 @@ p.sub{
             <path d="M3 12l14 10-11 4 15 11"/>
             <path d="M5 40l11 7-9 3 11 8"/>
           </svg>
-          <a class="btn btn--primary" href="#start">
+          <button class="btn btn--primary" type="button" data-signup="Team">
             Get Started
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </a>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
         </span>
-        <a class="btn btn--ghost reveal" href="#workspace" style="--d:.34s">Join 14,600+ builders</a>
+        <a class="btn btn--ghost reveal" href="#pricing" style="--d:.34s">Join 14,600+ builders</a>
       </div>
 
-      <div class="hero__meta reveal reveal--sm" style="--d:.42s">
+      <div class="cmd reveal reveal--sm" style="--d:.38s">
+        <span class="cmd__p" aria-hidden="true">$</span>
+        <code id="cmdText">npx imran-mind@latest init</code>
+        <button class="cmd__btn" type="button" data-copy="#cmdText">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          <span>Copy</span>
+        </button>
+      </div>
+
+      <div class="hero__meta reveal reveal--sm" style="--d:.44s">
         <span class="avatars" aria-hidden="true">
           <span style="background:linear-gradient(140deg,#4ea2ff,#0b5ed7)"></span>
           <span style="background:linear-gradient(140deg,#ffb457,#ff6b3d)"></span>
@@ -946,7 +1344,7 @@ p.sub{
           <span style="background:linear-gradient(140deg,#3ddc97,#0f9f6e)"></span>
         </span>
         <span class="stars" aria-hidden="true">★★★★★</span>
-        <span>Trusted by teams at 900+ companies</span>
+        <span>4.8 out of 5 from 1,240 reviews</span>
       </div>
     </div>
   </section>
@@ -981,42 +1379,78 @@ p.sub{
         </div>
 
         <div class="mock__body">
-          <nav class="rail" aria-label="Workspace sessions">
-            <span class="rail__btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>
-            <span class="rail__btn is-on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6M12 19h8"/></svg><i class="badge">4</i></span>
-            <span class="rail__btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6M12 19h8"/></svg><i class="badge">2</i></span>
-            <span class="rail__btn is-on--blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg></span>
-            <span class="rail__btn is-on--mint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M6 8.5v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3M12 13.5v2"/></svg></span>
-          </nav>
+          <div class="rail" role="tablist" aria-label="Workspace sessions" aria-orientation="vertical">
+            <button class="rail__btn" type="button" data-soon="A new session opens in the app.">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              <span class="sr">New session</span>
+            </button>
+            <button class="rail__btn rail__btn--vi" type="button" role="tab" id="tab-build" aria-controls="pane-build" aria-selected="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6M12 19h8"/></svg>
+              <i class="badge">4</i><span class="sr">Builder session</span>
+            </button>
+            <button class="rail__btn" type="button" role="tab" id="tab-review" aria-controls="pane-review" aria-selected="false" tabindex="-1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6M12 19h8"/></svg>
+              <i class="badge badge--blue">2</i><span class="sr">Reviewer session</span>
+            </button>
+            <button class="rail__btn rail__btn--mi" type="button" role="tab" id="tab-test" aria-controls="pane-test" aria-selected="false" tabindex="-1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M6 8.5v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3M12 13.5v2"/></svg>
+              <span class="sr">Test session</span>
+            </button>
+          </div>
 
           <div class="pane">
             <div class="tabs">
-              <span class="tab"><i></i>agent · imran-mind</span>
+              <span class="tab"><i></i><span id="paneTitle">builder &middot; imran-mind</span></span>
               <span class="chip">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="8" r="2.5"/><path d="M6 8.5v7M18 10.5c0 4-6 2.5-6 7.5"/></svg>
-                main
+                <span id="paneBranch">main</span>
               </span>
               <span class="tabs__end" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/></svg>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </span>
             </div>
 
-            <div class="term" data-type>
-              <p class="dim">› Agent is working — queue the next prompt</p>
-              <p><span class="pr">›</span> <span data-typed="refactor the billing module and add tests"></span><span class="caret"></span></p>
-              <p class="dim">&nbsp;</p>
-              <p class="ok">✓ read 14 files · 2.1s</p>
-              <p class="vi">◆ planning 6 edits across 4 packages</p>
-              <p class="wr">▸ running test suite …</p>
-              <p class="dim">› Reviewer is working — 1 comment queued</p>
+            <div class="panes">
+              <div class="tpane" id="pane-build" role="tabpanel" aria-labelledby="tab-build" data-on data-title="builder &middot; imran-mind" data-branch="main" tabindex="0">
+                <div class="term">
+                  <p class="dim">&rsaquo; Builder is working. Queue the next prompt.</p>
+                  <p><span class="pr">&rsaquo;</span> <span data-typed="refactor the billing module and add tests"></span><span class="caret"></span></p>
+                  <p class="dim">&nbsp;</p>
+                  <p class="ok">&check; read 14 files &middot; 2.1s</p>
+                  <p class="vi">&loz; planning 6 edits across 4 packages</p>
+                  <p class="wr">&rsaquo; writing ledger/commit.ts</p>
+                  <p class="dim">&rsaquo; 2 files staged, nothing pushed yet</p>
+                </div>
+              </div>
+
+              <div class="tpane" id="pane-review" role="tabpanel" aria-labelledby="tab-review" data-title="reviewer &middot; imran-mind" data-branch="pr/482" tabindex="0" hidden>
+                <div class="term">
+                  <p class="dim">&rsaquo; Reviewing 6 changed files on pr/482.</p>
+                  <p class="ok">&check; ledger/commit.ts &mdash; idempotency key looks right</p>
+                  <p class="wr">! billing/invoice.ts:26 &mdash; retry path can double-charge</p>
+                  <p class="dim">&nbsp;&nbsp;suggested: pass order.id as the ledger key</p>
+                  <p class="ok">&check; 2 comments posted, 1 blocking</p>
+                  <p class="dim">&rsaquo; waiting on the builder to push a fix</p>
+                </div>
+              </div>
+
+              <div class="tpane" id="pane-test" role="tabpanel" aria-labelledby="tab-test" data-title="tests &middot; imran-mind" data-branch="pr/482" tabindex="0" hidden>
+                <div class="term">
+                  <p class="dim">&rsaquo; npm test &mdash; 248 specs</p>
+                  <p class="ok">&check; checkout &middot; applies tax by region</p>
+                  <p class="ok">&check; invoice &middot; rejects empty orders</p>
+                  <p class="wr">&times; ledger &middot; retries stay idempotent</p>
+                  <p class="dim">&nbsp;&nbsp;expected 1 charge, got 2</p>
+                  <p class="ok">&check; re-run after fix &middot; 248 passed in 4.2s</p>
+                </div>
+              </div>
             </div>
 
             <div class="split">
               <div class="tabs" style="padding:0;border:0">
-                <span class="tab tab--mint"><i></i>reviewer · imran-mind</span>
-                <span class="chip">main</span>
+                <span class="tab tab--mint"><i></i>3 sessions on this repo</span>
+                <span class="chip">2 agents idle</span>
               </div>
             </div>
           </div>
@@ -1066,13 +1500,14 @@ p.sub{
           <span class="eyebrow reveal reveal--sm">AI Coding</span>
           <h2 class="title reveal" style="--d:.06s">Describe the outcome.<br><span class="grad">Get the diff.</span></h2>
           <p class="sub reveal" style="--d:.12s">
-            Imran Mind reads your whole repository before it writes a line — conventions,
-            types, tests and history. You review a clean diff, not a wall of guesses.
+            It indexes the repo before writing a line, so it follows the conventions you
+            already have instead of inventing new ones. What comes back is a diff to
+            review, not a pile of new files.
           </p>
           <ul class="bullets reveal" style="--d:.18s">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Repo-wide context.</b> Millions of tokens indexed, retrieved in milliseconds.</span></li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Inline review.</b> Accept, refine or reject every hunk before it lands.</span></li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Your style, kept.</b> Learns the patterns already in your codebase.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Whole-repo index.</b> Two million tokens searchable, warm in about 300ms.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Hunk-level review.</b> Keep the parts you want, send the rest back.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Matches your code.</b> Picks up the patterns already in the file it is editing.</span></li>
           </ul>
         </div>
 
@@ -1112,13 +1547,14 @@ p.sub{
           <span class="eyebrow reveal reveal--sm">Agent Mesh</span>
           <h2 class="title reveal" style="--d:.06s">A team of agents,<br><span class="grad">working in parallel.</span></h2>
           <p class="sub reveal" style="--d:.12s">
-            Split a feature into tracks and hand each one to a specialist agent. They
-            work in isolated branches, hand off cleanly, and report back when the work is real.
+            Break a feature into tracks and give each track its own agent. Each one works
+            in its own branch, so they never overwrite each other, and you watch all of
+            them from one screen.
           </p>
           <ul class="bullets reveal" style="--d:.18s">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Isolated worktrees.</b> No agent ever stomps another's changes.</span></li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Live handoff.</b> Builder → reviewer → fixer, without you in the middle.</span></li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Full audit trail.</b> Every decision, command and diff is replayable.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Separate worktrees.</b> Two agents can edit the same file without a conflict.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Handoff built in.</b> The builder finishes, the reviewer starts, you stay out of it.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Everything replayable.</b> Each command, file read and diff is kept.</span></li>
           </ul>
         </div>
 
@@ -1173,13 +1609,13 @@ p.sub{
           <span class="eyebrow reveal reveal--sm">Automation</span>
           <h2 class="title reveal" style="--d:.06s">The boring half<br><span class="grad">runs itself.</span></h2>
           <p class="sub reveal" style="--d:.12s">
-            Wire triggers to outcomes — a push, an issue, a failing check, a schedule.
-            Imran Mind picks it up, does the work, and opens the pull request for you.
+            Point a trigger at a job: a push, a new issue, a red build, a Tuesday morning.
+            Imran Mind picks it up and opens a PR once it has something worth reading.
           </p>
           <ul class="bullets reveal" style="--d:.18s">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Event triggers.</b> Git, CI, issue trackers, webhooks and cron.</span></li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Self-healing CI.</b> Red build in, root-caused fix out.</span></li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Guardrails.</b> Approval gates on anything that touches production.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Triggers.</b> Git pushes, CI results, issue trackers, webhooks, cron.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Red builds.</b> It reads the failure, finds the cause, pushes the fix.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Approval gates.</b> Nothing reaches production without a name on it.</span></li>
           </ul>
         </div>
 
@@ -1231,13 +1667,13 @@ p.sub{
           <span class="eyebrow reveal reveal--sm">Testing</span>
           <h2 class="title reveal" style="--d:.06s">Proof it works,<br><span class="grad">before you merge.</span></h2>
           <p class="sub reveal" style="--d:.12s">
-            Every change arrives with tests that actually run. Imran Mind reproduces the bug
-            first, then fixes it — so a green suite means something again.
+            Every change lands with tests that actually run. Bugs get a failing test first
+            and the fix second, so a green suite means something.
           </p>
           <ul class="bullets reveal" style="--d:.18s">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Failing test first.</b> No fix ships without a reproduction.</span></li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Browser &amp; API coverage.</b> Unit, integration and end-to-end in one run.</span></li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Flake detection.</b> Quarantine and root-cause, never blind retries.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Reproduction first.</b> Nothing ships until a test fails for the right reason.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>One command.</b> Unit, integration and browser tests in a single report.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Flakes get fixed.</b> A rerun is for confirming, not for hiding.</span></li>
           </ul>
         </div>
 
@@ -1271,8 +1707,8 @@ p.sub{
         <span class="eyebrow reveal reveal--sm">The toolbelt</span>
         <h2 class="title reveal" style="--d:.06s">Everything else you'd otherwise <span class="grad">pay for twice.</span></h2>
         <p class="sub reveal" style="--d:.12s">
-          One subscription, one login, one bill. No stitching six vendors together
-          to get from an idea to production.
+          Sandboxes, search, models, previews. The pieces you would otherwise buy from
+          four vendors and spend a quarter wiring together.
         </p>
       </div>
 
@@ -1280,40 +1716,40 @@ p.sub{
         <article class="card reveal" data-spot style="--d:.04s">
           <span class="card__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6M12 19h8"/></svg></span>
           <h4>Cloud sandboxes</h4>
-          <p>Boot a full dev machine per task in under two seconds. Nothing to install, nothing to clean up.</p>
+          <p>A clean machine per task, up in about two seconds. Nothing to install locally, nothing to tear down after.</p>
         </article>
         <article class="card reveal" data-spot style="--d:.08s">
           <span class="card__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 8.5 12 14l10-5.5L12 3Z"/><path d="m2 15.5 10 5.5 10-5.5"/><path d="M2 12l10 5.5L22 12"/></svg></span>
           <h4>Context engine</h4>
-          <p>Your docs, tickets, designs and schemas indexed together, so answers cite the real source.</p>
+          <p>Docs, tickets, designs and schemas sit in the same index as your code, so every answer comes back with a source you can open.</p>
         </article>
         <article class="card reveal" data-spot style="--d:.12s">
           <span class="card__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="3"/><path d="M12 8V4M8 14h.01M16 14h.01"/><path d="M9 4h6"/></svg></span>
           <h4>Model router</h4>
-          <p>Frontier models on hard reasoning, fast ones on the rest. Routed per task, billed as one plan.</p>
+          <p>Big models for the hard parts, small ones for everything else. Routed per task, and it all lands on one bill.</p>
           <span class="card__tag">Included</span>
         </article>
         <article class="card reveal" data-spot style="--d:.04s">
           <span class="card__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></span>
           <h4>Policy &amp; guardrails</h4>
-          <p>SOC 2 controls, secret scanning and per-repo permissions. Your code never trains a model.</p>
+          <p>SOC 2 controls, secret scanning, per-repo permissions. Your code is never used as training data.</p>
         </article>
         <article class="card reveal" data-spot style="--d:.08s">
           <span class="card__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13H11l-1 9 8.5-11H12l1-9Z"/></svg></span>
           <h4>Instant previews</h4>
-          <p>Every branch gets a shareable URL with logs, traces and a live console attached.</p>
+          <p>Every branch gets a URL you can send someone, with logs, traces and a console attached to it.</p>
         </article>
         <article class="card reveal" data-spot style="--d:.12s">
           <span class="card__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z"/></svg></span>
           <h4>Open protocol</h4>
-          <p>Bring any MCP server, CLI or internal API. If your team already uses it, Imran Mind can drive it.</p>
+          <p>Any MCP server, CLI or internal API. If your team already runs it, Imran Mind can drive it.</p>
         </article>
       </div>
     </div>
   </section>
 
-  <!-- ================= CLAUDE ================= -->
-  <section class="sec sec--tight" id="claude">
+  <!-- ================= MODELS ================= -->
+  <section class="sec sec--tight" id="models">
     <div class="wrap">
       <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
         <defs>
@@ -1327,6 +1763,19 @@ p.sub{
         </defs>
       </svg>
 
+      <div class="sec__head reveal reveal--sm">
+        <div class="sec__brand">
+          <span class="logo-mark" aria-hidden="true"></span>
+          <h3>Runs on models you know</h3>
+        </div>
+        <a class="sec__more" href="#pricing">All models are included
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+      <div class="car" id="models-car">
+        <div class="car__track" id="carTrack" tabindex="0" role="group" aria-label="Model banners, use the arrow keys">
+          <div class="car__slide" role="group" aria-roledescription="slide" aria-label="1 of 2: Claude">
       <article class="cl reveal reveal--scale" id="claudeCard">
         <div class="cl__copy">
           <span class="cl__mark reveal reveal--sm" style="--d:.08s"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#clMark"/></svg></span>
@@ -1362,6 +1811,123 @@ p.sub{
           </div>
         </div>
       </article>
+          </div>
+          <div class="car__slide" role="group" aria-roledescription="slide" aria-label="2 of 2: Grok Bot">
+      <article class="gk reveal reveal--scale" id="grokCard">
+        <div class="gk__copy">
+          <span class="gk__mark reveal reveal--sm" style="--d:.08s">
+              <svg class="gk__bot gk__bot--sm" viewBox="0 0 240 240" aria-hidden="true">
+                <circle cx="120" cy="120" r="104" fill="#05070b"/>
+                <circle cx="120" cy="120" r="103.2" fill="none" stroke="#b9d6ff" stroke-opacity=".3" stroke-width="2"/>
+                <g class="gk__eyes">
+                  <rect class="gk__eye" x="88" y="82" width="22" height="58" rx="11"/>
+                  <rect class="gk__eye" x="130" y="82" width="22" height="58" rx="11"/>
+                </g>
+              </svg>
+          </span>
+          <h2 class="gk__name reveal" style="--d:.16s">Grok Bot</h2>
+          <span class="gk__by reveal reveal--sm" style="--d:.24s">by xAI</span>
+          <p class="gk__desc reveal" style="--d:.32s">
+            Signs in to the tools you already use, does the work in a real browser,
+            and comes back when it needs a decision.
+          </p>
+        </div>
+
+        <div class="gk__art" aria-hidden="true">
+          <div class="gk__stage">
+            <span class="gk__glow"></span>
+
+            <div class="win win--browser">
+              <div class="win__bar"><i></i><i></i><span class="url">app.linear.dev/issues/IM-482</span></div>
+              <div class="win__body">
+                <p class="w">Reading issue IM-482</p>
+                <p class="d">3 linked PRs &middot; 2 comments</p>
+                <p class="b">&rsaquo; opening the failing build</p>
+              </div>
+            </div>
+
+            <div class="win win--files">
+              <div class="win__bar"><span>files</span></div>
+              <div class="win__body">
+                <p class="row"><span class="dot ok"></span><span class="lbl">ledger.ts</span><em>+18</em></p>
+                <p class="row"><span class="dot ok"></span><span class="lbl">invoice.ts</span><em>+6</em></p>
+                <p class="row"><span class="dot"></span><span class="lbl">retry.test.ts</span><em>new</em></p>
+                <p class="row"><span class="dot wait"></span><span class="lbl">README</span><em>&mdash;</em></p>
+              </div>
+            </div>
+
+            <div class="win win--term">
+              <div class="win__bar"><span>terminal</span></div>
+              <div class="win__body">
+                <p class="d">$ npm test -- ledger</p>
+                <p class="g">&check; 248 passed in 4.2s</p>
+                <p class="b">$ git push origin pr/482<span class="cur"></span></p>
+              </div>
+            </div>
+
+            <div class="win win--tasks">
+              <div class="win__bar"><span>tasks</span></div>
+              <div class="win__body">
+                <p class="row"><span class="dot"></span><span class="lbl">Fix double charge</span><em>running</em></p>
+                <div class="pbar"><span style="--w:72%"></span></div>
+                <p class="row" style="margin-top:6px"><span class="dot wait"></span><span class="lbl">Draft release note</span><em>queued</em></p>
+              </div>
+            </div>
+
+            <div class="gk__botwrap">
+              <svg class="gk__bot" viewBox="0 0 240 250" aria-hidden="true">
+              <defs>
+                <radialGradient id="gkBody" cx="34%" cy="26%" r="82%">
+                  <stop offset="0" stop-color="#0d1119"/><stop offset="55%" stop-color="#05070c"/>
+                  <stop offset="100%" stop-color="#000"/>
+                </radialGradient>
+                <radialGradient id="gkSheen" cx="50%" cy="50%" r="50%">
+                  <stop offset="0" stop-color="#d8e9ff" stop-opacity=".55"/><stop offset="100%" stop-color="#d8e9ff" stop-opacity="0"/>
+                </radialGradient>
+                <filter id="gkSoft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="7"/></filter>
+                <filter id="gkDrop" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="10"/></filter>
+              </defs>
+
+              <g class="gk__trails" fill="none" stroke-linecap="round" stroke-width="9">
+                <path d="M84 160C56 176 22 178 -14 168" stroke="#45d97a"/>
+                <path d="M94 172C64 192 26 196 -12 186" stroke="#a35cff"/>
+                <path d="M104 182C72 206 32 212 -8 206" stroke="#35c9c2"/>
+                <path d="M116 190C86 216 44 226 4 224" stroke="#4a7dff"/>
+                <path d="M128 196C102 226 62 240 24 242" stroke="#ff5cc0"/>
+                <path d="M140 200C120 230 90 246 56 252" stroke="#ffb020"/>
+              </g>
+
+              <ellipse cx="130" cy="216" rx="64" ry="10" fill="#000" opacity=".6" filter="url(#gkDrop)"/>
+
+              <circle cx="128" cy="114" r="92" fill="url(#gkBody)"/>
+              <circle cx="128" cy="114" r="91.2" fill="none" stroke="#b9d6ff" stroke-opacity=".34" stroke-width="1.6"/>
+              <ellipse cx="90" cy="62" rx="30" ry="19" fill="url(#gkSheen)" filter="url(#gkSoft)" opacity=".2"/>
+
+              <g class="gk__eyes">
+                <rect class="gk__eye" x="99" y="80" width="20" height="52" rx="10"/>
+                <rect class="gk__eye" x="137" y="80" width="20" height="52" rx="10"/>
+              </g>
+            </svg>
+            </div>
+          </div>
+        </div>
+      </article>
+          </div>
+        </div>
+
+        <div class="car__bar">
+          <div class="car__dots" role="tablist" aria-label="Choose a model">
+            <button class="car__dot" type="button" role="tab" aria-current="true" aria-label="Claude"></button>
+            <button class="car__dot" type="button" role="tab" aria-current="false" aria-label="Grok Bot"></button>
+          </div>
+          <button class="car__btn" type="button" id="carPrev" aria-label="Previous model" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <button class="car__btn" type="button" id="carNext" aria-label="Next model">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1369,10 +1935,90 @@ p.sub{
   <section class="sec sec--tight">
     <div class="wrap">
       <div class="stats reveal reveal--sm">
-        <div class="stat"><b data-count="14600" data-suffix="+">0</b><span>Builders shipping</span></div>
+        <div class="stat"><b data-count="14600" data-suffix="+">0</b><span>Builders on the platform</span></div>
         <div class="stat"><b data-count="3.4" data-suffix="M">0</b><span>Agent hours run</span></div>
-        <div class="stat"><b data-count="62" data-suffix="%">0</b><span>Less time in review</span></div>
-        <div class="stat"><b data-count="99.98" data-suffix="%">0</b><span>Platform uptime</span></div>
+        <div class="stat"><b data-count="41" data-suffix=" min">0</b><span>Median time to a green PR</span></div>
+        <div class="stat"><b data-count="99.98" data-suffix="%">0</b><span>Uptime over 12 months</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PRICING ================= -->
+  <section class="sec" id="pricing">
+    <div class="wrap">
+      <div style="max-width:620px">
+        <span class="eyebrow reveal reveal--sm">Pricing</span>
+        <h2 class="title reveal" style="--d:.06s">One bill, <span class="grad">no seat math.</span></h2>
+        <p class="sub reveal" style="--d:.12s">Sandboxes, models and automation are in the price. The only thing that changes is how many agents you can run at once.</p>
+        <div class="toggle reveal reveal--sm" style="--d:.18s" role="group" aria-label="Billing period">
+          <button type="button" data-bill="m" aria-pressed="true">Monthly</button>
+          <button type="button" data-bill="y" aria-pressed="false">Yearly <span class="save">&minus;20%</span></button>
+        </div>
+      </div>
+
+      <div class="plans reveal" style="--d:.1s">
+        <article class="plan">
+          
+          <h4>Solo</h4>
+          <p class="plan__note">For one person and one repo.</p>
+          <div class="plan__price"><b>$<span data-m="19" data-y="15">19</span></b><span>per user / month</span></div>
+          <ul class="plan__list"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>1 repo, unlimited sessions</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>2 agents at a time</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Cloud sandboxes, 40 hours a month</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Community support</span></li></ul>
+          <button class="btn btn--primary" type="button" data-signup="Solo">Start free trial <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
+        </article>
+        <article class="plan plan--hero">
+          <span class="plan__flag">Most picked</span>
+          <h4>Team</h4>
+          <p class="plan__note">Where most teams land.</p>
+          <div class="plan__price"><b>$<span data-m="49" data-y="39">49</span></b><span>per user / month</span></div>
+          <ul class="plan__list"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Unlimited repos</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>8 agents at a time</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Unlimited sandbox hours</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Automation triggers and approval gates</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Shared context index</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Priority support, 4 hour response</span></li></ul>
+          <button class="btn btn--primary" type="button" data-signup="Team">Start free trial <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
+        </article>
+        <article class="plan">
+          
+          <h4>Company</h4>
+          <p class="plan__note">When procurement gets involved.</p>
+          <div class="plan__price"><b>Custom</b></div>
+          <ul class="plan__list"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Everything in Team</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>SSO, SCIM and audit export</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Self-hosted runners</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Custom model routing</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Named engineer, 99.9% SLA</span></li></ul>
+          <button class="btn btn--ghost" type="button" data-signup="Company">Talk to us <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FAQ ================= -->
+  <section class="sec sec--tight" id="faq">
+    <div class="wrap">
+      <div style="max-width:620px">
+        <span class="eyebrow reveal reveal--sm">Questions</span>
+        <h2 class="title reveal" style="--d:.06s">The things people ask <span class="grad">before signing up.</span></h2>
+      </div>
+      <div class="faq reveal" style="--d:.1s">
+        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="true" id="q0" aria-controls="a0">
+            <span>Does my code leave my machine?</span><span class="qa__ico" aria-hidden="true"></span>
+          </button>
+          <div class="qa__a" id="a0" role="region" aria-labelledby="q0"><div><p>It goes to a sandbox we run, and nothing else. Your code is not used as training data, it is not shared between accounts, and you can point Imran Mind at a self-hosted runner if it must stay inside your network.</p></div></div>
+        </div>        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="false" id="q1" aria-controls="a1">
+            <span>What happens when an agent gets it wrong?</span><span class="qa__ico" aria-hidden="true"></span>
+          </button>
+          <div class="qa__a" id="a1" role="region" aria-labelledby="q1"><div><p>You see a diff, not a merge. Nothing lands on a protected branch without a review, and every session keeps the commands it ran and the files it read, so you can work out what it was thinking.</p></div></div>
+        </div>        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="false" id="q2" aria-controls="a2">
+            <span>Which models does it use?</span><span class="qa__ico" aria-hidden="true"></span>
+          </button>
+          <div class="qa__a" id="a2" role="region" aria-labelledby="q2"><div><p>Whichever fits the task. Long reasoning goes to a frontier model, small edits go to a fast one, and the routing shows up on a single bill. You can pin a model per repo if you would rather decide yourself.</p></div></div>
+        </div>        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="false" id="q3" aria-controls="a3">
+            <span>Do I have to change how my team works?</span><span class="qa__ico" aria-hidden="true"></span>
+          </button>
+          <div class="qa__a" id="a3" role="region" aria-labelledby="q3"><div><p>No. It reads your existing repo, respects your CI, and opens ordinary pull requests. If you turn it off tomorrow, what is left behind is normal git history.</p></div></div>
+        </div>        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="false" id="q4" aria-controls="a4">
+            <span>Can I cancel?</span><span class="qa__ico" aria-hidden="true"></span>
+          </button>
+          <div class="qa__a" id="a4" role="region" aria-labelledby="q4"><div><p>Yes, from the billing page, and you keep access until the end of the period you paid for. No call, no retention flow.</p></div></div>
+        </div>
       </div>
     </div>
   </section>
@@ -1382,16 +2028,16 @@ p.sub{
     <div class="wrap">
       <div class="cta reveal reveal--scale">
         <h2>Start shipping<br><span class="grad">this afternoon.</span></h2>
-        <p>Free for 14 days. Bring one repository, point an agent at your oldest issue,
-           and see what lands by the end of the day.</p>
+        <p>Free for 14 days. Connect one repo, point an agent at the oldest issue in your
+           backlog, and see what it opens by tonight.</p>
         <div class="cta__actions">
-          <a class="btn btn--primary" href="#start">
+          <button class="btn btn--primary" type="button" data-signup="Team">
             Get Started
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </a>
-          <a class="btn btn--ghost" href="#workspace">Book a walkthrough</a>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+          <button class="btn btn--ghost" type="button" data-signup="demo">Book a walkthrough</button>
         </div>
-        <p class="cta__note">No card required · Cancel any time · Your code stays yours</p>
+        <p class="cta__note">No card up front. Cancel whenever. Your code stays yours.</p>
       </div>
     </div>
   </section>
@@ -1404,7 +2050,7 @@ p.sub{
         <a class="brand brand--ftr" href="#top" aria-label="Imran Mind — home">
           <span class="logo-full" aria-hidden="true"></span>
         </a>
-        <p>The complete AI build environment. Think it, describe it, review it, ship it — all in one place.</p>
+        <p>AI agents that work on your repo the way a good teammate would: read first, write second, prove it works.</p>
       </div>
       <div>
         <h5>Product</h5>
@@ -1417,21 +2063,21 @@ p.sub{
         </ul>
       </div>
       <div>
-        <h5>Company</h5>
+        <h5>Plans</h5>
         <ul>
-          <li><a href="#top">About</a></li>
-          <li><a href="#top">Careers</a></li>
-          <li><a href="#top">Changelog</a></li>
-          <li><a href="#top">Blog</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#faq">Questions</a></li>
+          <li><button type="button" data-signup="Team">Start free trial</button></li>
+          <li><button type="button" data-signup="demo">Book a walkthrough</button></li>
         </ul>
       </div>
       <div>
         <h5>Resources</h5>
         <ul>
-          <li><a href="#top">Documentation</a></li>
-          <li><a href="#top">Community</a></li>
-          <li><a href="#top">Status</a></li>
-          <li><a href="#top">Support</a></li>
+          <li><button type="button" data-soon="Docs live inside the app.">Documentation</button></li>
+          <li><button type="button" data-soon="The changelog lives inside the app.">Changelog</button></li>
+          <li><button type="button" data-soon="Status page opens at status.imranmind.dev.">Status</button></li>
+          <li><button type="button" data-signup="signin">Support</button></li>
         </ul>
       </div>
     </div>
@@ -1439,14 +2085,62 @@ p.sub{
     <div class="ftr__bot">
       <span>© 2026 Imran Mind. All rights reserved.</span>
       <div class="socials">
-        <a href="#top" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 2H21l-6.5 7.4L22 22h-6l-4.7-6.2L5.9 22H3l7-8-7.3-12h6.2l4.3 5.7L18.2 2Zm-1 18h1.6L7.9 3.7H6.1L17.2 20Z"/></svg></a>
-        <a href="#top" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.5c.5.08.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.1-1.47-1.1-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.9.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.57.69.48A10 10 0 0 0 12 2Z"/></svg></a>
-        <a href="#top" aria-label="Discord"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.3 5.3A16.7 16.7 0 0 0 15.2 4l-.3.6a12.6 12.6 0 0 1 3.6 1.8A15.9 15.9 0 0 0 12 5.3c-2.4 0-4.6.4-6.5 1.1a12.6 12.6 0 0 1 3.6-1.8L8.8 4a16.7 16.7 0 0 0-4.1 1.3C2.1 9.2 1.4 13 1.7 16.7A16.6 16.6 0 0 0 6.8 19l1-1.7a10.8 10.8 0 0 1-1.7-.8l.4-.3a11.9 11.9 0 0 0 11 0l.4.3c-.5.3-1.1.6-1.7.8l1 1.7a16.6 16.6 0 0 0 5.1-2.3c.4-4.3-.7-8.1-3-11.4ZM8.6 14.6c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Zm6.8 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Z"/></svg></a>
-        <a href="#top" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9h4v12H3V9Zm7 0h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05C21.6 8.65 22 11 22 14.2V21h-4v-6c0-1.5-.03-3.4-2.1-3.4-2.1 0-2.4 1.6-2.4 3.3V21h-4V9Z"/></svg></a>
+        <button type="button" aria-label="X" data-soon="X is linked from the app footer."><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 2H21l-6.5 7.4L22 22h-6l-4.7-6.2L5.9 22H3l7-8-7.3-12h6.2l4.3 5.7L18.2 2Zm-1 18h1.6L7.9 3.7H6.1L17.2 20Z"/></svg></button>
+        <button type="button" aria-label="GitHub" data-soon="GitHub is linked from the app footer."><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.5c.5.08.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.1-1.47-1.1-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.9.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.57.69.48A10 10 0 0 0 12 2Z"/></svg></button>
+        <button type="button" aria-label="Discord" data-soon="Discord is linked from the app footer."><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.3 5.3A16.7 16.7 0 0 0 15.2 4l-.3.6a12.6 12.6 0 0 1 3.6 1.8A15.9 15.9 0 0 0 12 5.3c-2.4 0-4.6.4-6.5 1.1a12.6 12.6 0 0 1 3.6-1.8L8.8 4a16.7 16.7 0 0 0-4.1 1.3C2.1 9.2 1.4 13 1.7 16.7A16.6 16.6 0 0 0 6.8 19l1-1.7a10.8 10.8 0 0 1-1.7-.8l.4-.3a11.9 11.9 0 0 0 11 0l.4.3c-.5.3-1.1.6-1.7.8l1 1.7a16.6 16.6 0 0 0 5.1-2.3c.4-4.3-.7-8.1-3-11.4ZM8.6 14.6c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Zm6.8 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Z"/></svg></button>
+        <button type="button" aria-label="LinkedIn" data-soon="LinkedIn is linked from the app footer."><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9h4v12H3V9Zm7 0h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05C21.6 8.65 22 11 22 14.2V21h-4v-6c0-1.5-.03-3.4-2.1-3.4-2.1 0-2.4 1.6-2.4 3.3V21h-4V9Z"/></svg></a>
       </div>
     </div>
   </div>
 </footer>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+  <div class="sheet__veil" data-close></div>
+  <div class="sheet__box">
+    <button class="sheet__x" type="button" data-close aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+
+    <form id="sheetForm" novalidate>
+      <h3 id="sheetTitle">Start your free trial</h3>
+      <p class="sheet__sub" id="sheetSub">Fourteen days, no card. We will send a setup link to your inbox.</p>
+
+      <div class="field" id="fEmail">
+        <label for="inEmail">Work email</label>
+        <input id="inEmail" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@company.com" required>
+        <span class="err" id="errEmail" role="alert"></span>
+      </div>
+
+      <div class="field" id="fPlan">
+        <label for="inPlan">Plan</label>
+        <select id="inPlan" name="plan">
+          <option value="Solo">Solo &mdash; $19 per user / month</option>
+          <option value="Team" selected>Team &mdash; $49 per user / month</option>
+          <option value="Company">Company &mdash; custom</option>
+        </select>
+      </div>
+
+      <button class="btn btn--primary btn--block" type="submit" id="sheetGo">
+        Create account
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </button>
+      <p class="sheet__fine">This is a demo page. Nothing is sent anywhere.</p>
+    </form>
+
+    <div class="done" id="sheetDone" hidden>
+      <span class="done__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <b>Check your inbox</b>
+      <p>We would have sent a setup link to <code id="doneMail"></code> for the <span id="donePlan">Team</span> plan.</p>
+      <p class="sheet__fine" style="margin-top:16px">Demo page, so no mail actually left the building.</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<button class="totop" id="totop" type="button" aria-label="Back to top">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg>
+</button>
 
 <script>
 (function(){
@@ -1630,6 +2324,316 @@ p.sub{
       clCard.addEventListener("pointerleave", function(){
         tx = ty = 0;
         if (!raf) raf = requestAnimationFrame(apply);
+      });
+    }
+  }
+
+  /* ---------- toast ---------- */
+  var toastEl = document.getElementById("toast"), toastT = 0;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("is-on");
+    clearTimeout(toastT);
+    toastT = setTimeout(function(){ toastEl.classList.remove("is-on"); }, 3200);
+  }
+  document.addEventListener("click", function(e){
+    var el = e.target.closest("[data-soon]");
+    if (el) toast(el.dataset.soon);
+  });
+
+  /* ---------- copy to clipboard ---------- */
+  document.addEventListener("click", function(e){
+    var btn = e.target.closest("[data-copy]");
+    if (!btn) return;
+    var src = document.querySelector(btn.dataset.copy);
+    if (!src) return;
+    var text = src.textContent.trim(), label = btn.querySelector("span");
+    function ok(){
+      btn.classList.add("is-done");
+      if (label) label.textContent = "Copied";
+      setTimeout(function(){
+        btn.classList.remove("is-done");
+        if (label) label.textContent = "Copy";
+      }, 1800);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(ok, fallback);
+    } else fallback();
+    function fallback(){
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.setAttribute("readonly","");
+      ta.style.cssText = "position:fixed;top:-1000px";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); ok(); }
+      catch(_){ toast("Copy failed. The command is: " + text); }
+      document.body.removeChild(ta);
+    }
+  });
+
+  /* ---------- workspace rail: real tabs ---------- */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.rail [role="tab"]'));
+  var paneTitle = document.getElementById("paneTitle");
+  var paneBranch = document.getElementById("paneBranch");
+  function selectTab(tab, focus){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute("aria-selected", String(on));
+      t.tabIndex = on ? 0 : -1;
+      var pane = document.getElementById(t.getAttribute("aria-controls"));
+      if (!pane) return;
+      if (on){
+        pane.hidden = false;
+        pane.setAttribute("data-on","");
+        if (paneTitle) paneTitle.innerHTML = pane.dataset.title || "";
+        if (paneBranch) paneBranch.textContent = pane.dataset.branch || "main";
+      } else {
+        pane.removeAttribute("data-on");
+        setTimeout(function(){ if (t.getAttribute("aria-selected") === "false") pane.hidden = true; }, 320);
+      }
+    });
+    if (focus) tab.focus();
+  }
+  tabs.forEach(function(tab, i){
+    tab.addEventListener("click", function(){ selectTab(tab); });
+    tab.addEventListener("keydown", function(e){
+      var d = e.key === "ArrowDown" || e.key === "ArrowRight" ? 1
+            : e.key === "ArrowUp"   || e.key === "ArrowLeft"  ? -1 : 0;
+      if (d){ e.preventDefault(); selectTab(tabs[(i + d + tabs.length) % tabs.length], true); }
+      else if (e.key === "Home"){ e.preventDefault(); selectTab(tabs[0], true); }
+      else if (e.key === "End"){ e.preventDefault(); selectTab(tabs[tabs.length-1], true); }
+    });
+  });
+
+  /* ---------- pricing: billing period ---------- */
+  var billBtns = document.querySelectorAll("[data-bill]");
+  billBtns.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var period = btn.dataset.bill;
+      billBtns.forEach(function(b){ b.setAttribute("aria-pressed", String(b === btn)); });
+      document.querySelectorAll("[data-m]").forEach(function(n){
+        var to = parseInt(period === "y" ? n.dataset.y : n.dataset.m, 10);
+        var from = parseInt(n.textContent, 10) || to, t0 = performance.now();
+        (function step(now){
+          var p = Math.min((now - t0) / 420, 1);
+          n.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+          if (p < 1) requestAnimationFrame(step);
+        })(t0);
+      });
+      var sel = document.getElementById("inPlan");
+      if (sel){
+        sel.options[0].textContent = period === "y" ? "Solo — $15 per user / month" : "Solo — $19 per user / month";
+        sel.options[1].textContent = period === "y" ? "Team — $39 per user / month" : "Team — $49 per user / month";
+      }
+    });
+  });
+
+  /* ---------- FAQ ---------- */
+  document.querySelectorAll(".qa__q").forEach(function(q){
+    q.addEventListener("click", function(){
+      var open = q.getAttribute("aria-expanded") === "true";
+      document.querySelectorAll('.qa__q[aria-expanded="true"]').forEach(function(o){
+        if (o !== q) o.setAttribute("aria-expanded","false");
+      });
+      q.setAttribute("aria-expanded", String(!open));
+    });
+  });
+
+  /* ---------- sign-up dialog ---------- */
+  var sheet = document.getElementById("sheet");
+  var sheetForm = document.getElementById("sheetForm");
+  var sheetDone = document.getElementById("sheetDone");
+  var sheetTitle = document.getElementById("sheetTitle");
+  var sheetSub = document.getElementById("sheetSub");
+  var inEmail = document.getElementById("inEmail");
+  var inPlan = document.getElementById("inPlan");
+  var fEmail = document.getElementById("fEmail");
+  var errEmail = document.getElementById("errEmail");
+  var lastFocus = null;
+
+  var COPY = {
+    demo:   ["Book a walkthrough", "Thirty minutes, your repo on screen. Tell us where to send the invite."],
+    signin: ["Sign in", "We will email you a one-time link. No password to remember."],
+    def:    ["Start your free trial", "Fourteen days, no card. We will send a setup link to your inbox."]
+  };
+
+  function openSheet(mode){
+    lastFocus = document.activeElement;
+    var c = COPY[mode] || COPY.def;
+    sheetTitle.textContent = c[0];
+    sheetSub.textContent = c[1];
+    document.getElementById("fPlan").hidden = (mode === "signin" || mode === "demo");
+    document.getElementById("sheetGo").firstChild.nodeValue =
+      mode === "signin" ? "\n        Send me a link\n        " :
+      mode === "demo"   ? "\n        Request a time\n        " :
+                          "\n        Create account\n        ";
+    if (inPlan && COPY[mode] === undefined && mode) {
+      for (var i = 0; i < inPlan.options.length; i++)
+        if (inPlan.options[i].value === mode) inPlan.selectedIndex = i;
+    }
+    sheetForm.hidden = false; sheetDone.hidden = true;
+    fEmail.classList.remove("is-bad"); errEmail.textContent = ""; inEmail.value = "";
+    sheet.hidden = false;
+    requestAnimationFrame(function(){
+      sheet.classList.add("is-open");
+      document.body.classList.add("is-locked");
+      setTimeout(function(){ inEmail.focus(); }, 220);
+    });
+  }
+  function closeSheet(){
+    sheet.classList.remove("is-open");
+    document.body.classList.remove("is-locked");
+    setTimeout(function(){ sheet.hidden = true; }, 320);
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  document.addEventListener("click", function(e){
+    var open = e.target.closest("[data-signup]");
+    if (open){ e.preventDefault(); openSheet(open.dataset.signup); return; }
+    if (e.target.closest("[data-close]")) closeSheet();
+  });
+  document.addEventListener("keydown", function(e){
+    if (!sheet.classList.contains("is-open")) return;
+    if (e.key === "Escape"){ closeSheet(); return; }
+    if (e.key !== "Tab") return;
+    var f = sheet.querySelectorAll('button,input,select,a[href]');
+    f = Array.prototype.filter.call(f, function(n){ return n.offsetParent !== null; });
+    if (!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  });
+  sheetForm.addEventListener("submit", function(e){
+    e.preventDefault();
+    var v = inEmail.value.trim();
+    if (!v){ fail("Enter your email address."); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){ fail("That does not look like an email address."); return; }
+    fEmail.classList.remove("is-bad"); errEmail.textContent = "";
+    document.getElementById("doneMail").textContent = v;
+    document.getElementById("donePlan").textContent =
+      document.getElementById("fPlan").hidden ? "Team" : inPlan.value;
+    sheetForm.hidden = true; sheetDone.hidden = false;
+    setTimeout(function(){ sheet.querySelector(".sheet__x").focus(); }, 80);
+    function fail(msg){
+      fEmail.classList.add("is-bad"); errEmail.textContent = msg; inEmail.focus();
+    }
+  });
+  inEmail.addEventListener("input", function(){
+    if (fEmail.classList.contains("is-bad")){ fEmail.classList.remove("is-bad"); errEmail.textContent = ""; }
+  });
+
+  /* ---------- back to top ---------- */
+  var toTop = document.getElementById("totop");
+  toTop.addEventListener("click", function(){
+    window.scrollTo({top: 0, behavior: reduced ? "auto" : "smooth"});
+  });
+
+  /* ---------- scrollspy ---------- */
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll('.nav a[href^="#"]'));
+  var spySections = navLinks.map(function(a){ return document.querySelector(a.getAttribute("href")); });
+  function spy(){
+    toTop.classList.toggle("is-on", window.scrollY > 700);
+    var y = window.scrollY + (window.innerHeight * 0.32), best = -1;
+    spySections.forEach(function(sec, i){ if (sec && sec.offsetTop <= y) best = i; });
+    navLinks.forEach(function(a, i){
+      if (i === best) a.setAttribute("aria-current","true");
+      else a.removeAttribute("aria-current");
+    });
+  }
+  window.addEventListener("scroll", function(){
+    if (!spyTick){ spyTick = true; requestAnimationFrame(function(){ spy(); spyTick = false; }); }
+  }, {passive:true});
+  var spyTick = false;
+  spy();
+
+  /* ---------- close the mobile menu when we grow past it ---------- */
+  window.addEventListener("resize", function(){
+    if (window.innerWidth >= 980 && menu.classList.contains("is-open")) setMenu(false);
+  });
+
+  /* ---------- model carousel ---------- */
+  var track = document.getElementById("carTrack");
+  if (track){
+    var slides = Array.prototype.slice.call(track.children);
+    var dots   = Array.prototype.slice.call(document.querySelectorAll(".car__dot"));
+    var prev   = document.getElementById("carPrev");
+    var next   = document.getElementById("carNext");
+    var at = 0;
+
+    function goTo(i){
+      at = Math.max(0, Math.min(slides.length - 1, i));
+      track.scrollTo({left: slides[at].offsetLeft - track.offsetLeft, behavior: reduced ? "auto" : "smooth"});
+      sync();
+    }
+    function sync(){
+      dots.forEach(function(d, i){ d.setAttribute("aria-current", String(i === at)); });
+      prev.disabled = at === 0;
+      next.disabled = at === slides.length - 1;
+    }
+    prev.addEventListener("click", function(){ goTo(at - 1); });
+    next.addEventListener("click", function(){ goTo(at + 1); });
+    dots.forEach(function(d, i){ d.addEventListener("click", function(){ goTo(i); }); });
+    track.addEventListener("keydown", function(e){
+      if (e.key === "ArrowRight"){ e.preventDefault(); goTo(at + 1); }
+      if (e.key === "ArrowLeft"){ e.preventDefault(); goTo(at - 1); }
+    });
+    var scrollT = 0;
+    track.addEventListener("scroll", function(){
+      clearTimeout(scrollT);
+      scrollT = setTimeout(function(){
+        var mid = track.scrollLeft + track.clientWidth / 2, best = 0, dist = Infinity;
+        slides.forEach(function(sl, i){
+          var c = sl.offsetLeft - track.offsetLeft + sl.offsetWidth / 2;
+          if (Math.abs(c - mid) < dist){ dist = Math.abs(c - mid); best = i; }
+        });
+        if (best !== at){ at = best; sync(); }
+      }, 90);
+    }, {passive:true});
+    sync();
+  }
+
+  /* ---------- Grok Bot: gaze, blink gating, parallax ---------- */
+  var gkCard = document.getElementById("grokCard");
+  if (gkCard){
+    var gkStage = gkCard.querySelector(".gk__stage");
+    var gkEyes  = gkCard.querySelector(".gk__botwrap .gk__eyes");
+    var gkBot   = gkCard.querySelector(".gk__botwrap");
+
+    if ("IntersectionObserver" in window && !reduced){
+      var gio = new IntersectionObserver(function(en){
+        en.forEach(function(x){ gkCard.classList.toggle("is-live", x.isIntersecting); });
+      }, {rootMargin:"120px 0px", threshold:0});
+      gio.observe(gkCard);
+    } else if (!reduced){
+      gkCard.classList.add("is-live");
+    }
+
+    if (window.matchMedia("(hover:hover) and (pointer:fine)").matches && !reduced){
+      var gRaf = 0, gx = 0, gy = 0, ex = 0, ey = 0;
+      function gApply(){
+        gRaf = 0;
+        gkCard.style.setProperty("--gk-rx", (gy * 1.6).toFixed(2) + "deg");
+        gkCard.style.setProperty("--gk-ry", (gx * 1.6).toFixed(2) + "deg");
+        gkStage.style.setProperty("--gk-px", (gy * 4).toFixed(2) + "deg");
+        gkStage.style.setProperty("--gk-py", (gx * 5).toFixed(2) + "deg");
+        /* the bot follows the cursor with its eyes */
+        gkEyes.style.setProperty("--ex", ex.toFixed(1) + "px");
+        gkEyes.style.setProperty("--ey", ey.toFixed(1) + "px");
+      }
+      gkCard.addEventListener("pointermove", function(e){
+        var r = gkCard.getBoundingClientRect();
+        gx = (e.clientX - r.left) / r.width - 0.5;
+        gy = -((e.clientY - r.top) / r.height - 0.5);
+        var b = gkBot.getBoundingClientRect();
+        var dx = e.clientX - (b.left + b.width / 2);
+        var dy = e.clientY - (b.top + b.height / 2);
+        var d = Math.hypot(dx, dy) || 1;
+        var reach = 15;
+        ex = dx / d * reach * Math.min(d / 220, 1);
+        ey = dy / d * reach * Math.min(d / 220, 1);
+        if (!gRaf) gRaf = requestAnimationFrame(gApply);
+      });
+      gkCard.addEventListener("pointerleave", function(){
+        gx = gy = ex = ey = 0;
+        if (!gRaf) gRaf = requestAnimationFrame(gApply);
       });
     }
   }
