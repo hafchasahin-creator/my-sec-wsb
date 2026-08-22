@@ -254,6 +254,8 @@ resource_packs/bodyguard_rp/
 python3 tools/gen_entity.py           # regenerate the entity definition
 python3 tools/gen_bodyguard_art.py    # redraw every texture (--preview for ASCII)
 python3 tools/preview_model.py        # render the model to dist/ for art review
+python3 tools/preview_pose.py         # render posed frames of any animation
+python3 tools/preview_pose.py --list  # list the animations it can pose
 python3 tools/build.py                # validate + package both add-ons
 node    tools/test_scripts.mjs        # run the pack scripts against a mock 1.21.0 API
 

@@ -500,38 +500,59 @@ def check_bp_entities(addon, documents):
     return entity_ids, events_by_entity
 
 
-def check_script_events(addon, events_by_entity, particles):
+def check_script_events(addon, events_by_entity, particles, item_ids, entity_ids):
+    """Every namespaced string literal in a script must name something real.
+
+    Checking only `triggerEvent("...")` misses the ways a script actually
+    reaches for an event: a table of modes, a ternary, a built-up tier name.
+    So instead every "<namespace>:..." literal in the file is classified, and
+    anything that matches nothing at all is a typo.
+    """
     source = addon.get("_source")
     if not source:
         return
     namespace = addon["namespace"]
+    script = addon["_script"]
+
     known_events = set()
     for events in events_by_entity.values():
         known_events |= events
 
-    # Entity events the script fires by name, e.g. triggerEvent("bg:set_stay"),
-    # and the concatenated forms like triggerEvent("bg:set_tier_" + tier).
-    for match in re.finditer(r'triggerEvent\(\s*"([^"]+)"(\s*\+)?', source):
-        name, concatenated = match.group(1), match.group(2)
-        if not name.startswith(namespace + ":"):
+    # Dynamic property keys are namespaced too, but they are storage, not ids.
+    property_keys = set(
+        re.findall(r'[gs]etDynamicProperty\(\s*"([^"]+)"', source)
+    )
+
+    # Prefixes built up at runtime, e.g. triggerEvent("bg:set_tier_" + tier).
+    prefixes = set(re.findall(r'"([^"]*)"\s*\+', source))
+    for prefix in sorted(p for p in prefixes if p.startswith(namespace + ":")):
+        if not any(event.startswith(prefix) for event in known_events):
+            fail("%s: builds event name from '%s' but no event matches" % (script, prefix))
+
+    valid = known_events | set(particles) | set(item_ids) | set(entity_ids) | property_keys
+    for literal in sorted(set(re.findall(r'"(%s:[A-Za-z_0-9]+)"' % namespace, source))):
+        if literal in valid:
             continue
-        if concatenated:
-            if not any(event.startswith(name) for event in known_events):
-                fail("%s: script triggers unknown event prefix '%s'" % (addon["_script"], name))
-        elif name not in known_events:
-            fail("%s: script triggers unknown entity event '%s'" % (addon["_script"], name))
+        if any(literal.startswith(prefix) for prefix in prefixes):
+            continue
+        fail(
+            "%s: '%s' matches no entity event, particle, item, entity or dynamic "
+            "property in this add-on" % (script, literal)
+        )
 
-    for match in re.finditer(r'eventId === "([^"]+)"', source):
-        name = match.group(1)
-        if name.startswith(namespace + ":") and name not in known_events:
-            fail("%s: script listens for unknown entity event '%s'" % (addon["_script"], name))
-
-    # Custom particles the script spawns must exist in the resource pack.
-    for match in re.finditer(r'"(%s:[a-z_0-9]+)"' % namespace, source):
-        name = match.group(1)
-        if name.endswith("_ping") or name.endswith("_seal") or name.endswith("_slam"):
-            if name not in particles:
-                fail("%s: script spawns unknown particle '%s'" % (addon["_script"], name))
+    # The other direction: an event nothing can ever fire is dead configuration.
+    literals = set(re.findall(r'"(%s:[A-Za-z_0-9]+)"' % namespace, source))
+    for path, doc in addon["_documents"].items():
+        if not path.startswith(os.path.join(addon["bp"], "entities")) or doc is None:
+            continue
+        entity = doc.get("minecraft:entity", {})
+        fired = set(re.findall(r'"event":\s*"([^"]+)"', json.dumps(entity)))
+        for name in sorted(set(entity.get("events", {})) - fired - literals):
+            if name.startswith("minecraft:"):
+                continue
+            if any(name.startswith(prefix) for prefix in prefixes):
+                continue
+            warn("%s: event '%s' is never fired by the pack or its scripts" % (path, name))
 
 
 # --------------------------------------------------------------------------
@@ -933,7 +954,7 @@ def validate(reference):
         identifiers, _atlas = check_items(addon, documents)
         entity_ids, events_by_entity = check_bp_entities(addon, documents)
         particles = collect_particles(addon, documents)
-        check_script_events(addon, events_by_entity, particles)
+        check_script_events(addon, events_by_entity, particles, identifiers, entity_ids)
         check_language(addon, identifiers, entity_ids)
         geometries = check_rp_entities(addon, documents, entity_ids)
         check_geometry(addon, geometries, documents)

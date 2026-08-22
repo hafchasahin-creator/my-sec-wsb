@@ -126,7 +126,9 @@ published 1.21.0 data, script APIs against the `@minecraft/server` **1.11.0** ty
   dimensions, death, respawn, multiplayer refusal, the performance budget, and that the
   update sweep reaches every bodyguard in a crowd.
 * `tools/preview_model.py` renders the model to a PNG so the art can be reviewed without
-  launching the game.
+  launching the game; `tools/preview_pose.py` goes further and rasterises a posed frame
+  of any animation, which is how the shoulder pads were caught swinging round to the
+  elbow during an attack.
 
 ---
 
