@@ -5,117 +5,205 @@
       "initial_state": "idle",
       "states": {
         "idle": {
-          "animations": ["idle"],
+          "animations": [
+            "idle"
+          ],
           "blend_transition": 0.3,
           "transitions": [
-            { "at_ease": "query.mark_variant == 1 && !variable.moving && !query.has_target" },
-            { "walk": "variable.moving" },
-            { "alert": "query.has_target" }
+            {
+              "at_ease": "query.mark_variant == 1 && !variable.moving && !query.has_target"
+            },
+            {
+              "run": "variable.moving && (query.has_target || variable.sprinting)"
+            },
+            {
+              "walk": "variable.moving"
+            },
+            {
+              "alert": "query.has_target"
+            }
           ]
         },
         "alert": {
-          "animations": ["idle_alert"],
+          "animations": [
+            "idle_alert"
+          ],
           "blend_transition": 0.25,
           "transitions": [
-            { "at_ease": "query.mark_variant == 1 && !variable.moving && !query.has_target" },
-            { "walk": "variable.moving" },
-            { "idle": "!query.has_target" }
+            {
+              "at_ease": "query.mark_variant == 1 && !variable.moving && !query.has_target"
+            },
+            {
+              "run": "variable.moving && (query.has_target || variable.sprinting)"
+            },
+            {
+              "walk": "variable.moving"
+            },
+            {
+              "idle": "!query.has_target"
+            }
           ]
         },
         "walk": {
-          "animations": ["walk"],
+          "animations": [
+            "walk"
+          ],
           "blend_transition": 0.2,
           "transitions": [
-            { "at_ease": "query.mark_variant == 1 && !variable.moving && !query.has_target" },
-            { "run": "variable.sprinting" },
-            { "alert": "!variable.moving && query.has_target" },
-            { "idle": "!variable.moving" }
+            {
+              "at_ease": "query.mark_variant == 1 && !variable.moving && !query.has_target"
+            },
+            {
+              "run": "query.has_target || variable.sprinting"
+            },
+            {
+              "alert": "!variable.moving && query.has_target"
+            },
+            {
+              "idle": "!variable.moving"
+            }
           ]
         },
         "run": {
-          "animations": ["run"],
+          "animations": [
+            "run"
+          ],
           "blend_transition": 0.2,
           "transitions": [
-            { "at_ease": "query.mark_variant == 1 && !variable.moving && !query.has_target" },
-            { "walk": "!variable.sprinting" }
+            {
+              "at_ease": "query.mark_variant == 1 && !variable.moving && !query.has_target"
+            },
+            {
+              "alert": "!variable.moving && query.has_target"
+            },
+            {
+              "idle": "!variable.moving"
+            },
+            {
+              "walk": "!query.has_target && !variable.sprinting"
+            }
           ]
         },
         "at_ease": {
-          "animations": ["at_ease"],
+          "animations": [
+            "at_ease"
+          ],
           "blend_transition": 0.4,
           "transitions": [
-            { "idle": "query.mark_variant != 1 || variable.moving || query.has_target" }
+            {
+              "idle": "query.mark_variant != 1 || variable.moving || query.has_target"
+            }
           ]
         }
       }
     },
-
     "controller.animation.bodyguard.combat": {
       "initial_state": "ready",
       "states": {
         "ready": {
           "blend_transition": 0.1,
           "transitions": [
-            { "special": "query.timer_flag_1" },
-            { "defend": "query.timer_flag_3" },
-            { "swing_a": "variable.attack_time >= 0.0 && math.mod(math.floor(query.life_time * 1.7), 2.0) < 1.0" },
-            { "swing_b": "variable.attack_time >= 0.0" }
+            {
+              "special": "query.timer_flag_1"
+            },
+            {
+              "defend": "query.timer_flag_3"
+            },
+            {
+              "swing_a": "variable.attack_time >= 0.0 && math.mod(math.floor(query.life_time * 1.7), 2.0) < 1.0"
+            },
+            {
+              "swing_b": "variable.attack_time >= 0.0"
+            }
           ]
         },
         "swing_a": {
-          "animations": ["attack_a"],
+          "animations": [
+            "attack_a"
+          ],
           "blend_transition": 0.05,
           "transitions": [
-            { "special": "query.timer_flag_1" },
-            { "ready": "variable.attack_time < 0.0" }
+            {
+              "special": "query.timer_flag_1"
+            },
+            {
+              "ready": "variable.attack_time < 0.0"
+            }
           ]
         },
         "swing_b": {
-          "animations": ["attack_b"],
+          "animations": [
+            "attack_b"
+          ],
           "blend_transition": 0.05,
           "transitions": [
-            { "special": "query.timer_flag_1" },
-            { "ready": "variable.attack_time < 0.0" }
+            {
+              "special": "query.timer_flag_1"
+            },
+            {
+              "ready": "variable.attack_time < 0.0"
+            }
           ]
         },
         "special": {
-          "animations": ["special"],
+          "animations": [
+            "special"
+          ],
           "blend_transition": 0.1,
           "transitions": [
-            { "ready": "!query.timer_flag_1" }
+            {
+              "ready": "!query.timer_flag_1"
+            }
           ]
         },
         "defend": {
-          "animations": ["defend"],
+          "animations": [
+            "defend"
+          ],
           "blend_transition": 0.2,
           "transitions": [
-            { "special": "query.timer_flag_1" },
-            { "ready": "!query.timer_flag_3" }
+            {
+              "special": "query.timer_flag_1"
+            },
+            {
+              "ready": "!query.timer_flag_3"
+            }
           ]
         }
       }
     },
-
     "controller.animation.bodyguard.state": {
       "initial_state": "alive",
       "states": {
         "alive": {
           "blend_transition": 0.2,
           "transitions": [
-            { "dying": "!query.is_alive" },
-            { "victory": "query.timer_flag_2" }
+            {
+              "dying": "!query.is_alive"
+            },
+            {
+              "victory": "query.timer_flag_2"
+            }
           ]
         },
         "victory": {
-          "animations": ["victory"],
+          "animations": [
+            "victory"
+          ],
           "blend_transition": 0.3,
           "transitions": [
-            { "dying": "!query.is_alive" },
-            { "alive": "!query.timer_flag_2" }
+            {
+              "dying": "!query.is_alive"
+            },
+            {
+              "alive": "!query.timer_flag_2"
+            }
           ]
         },
         "dying": {
-          "animations": ["death"],
+          "animations": [
+            "death"
+          ],
           "blend_transition": 0.1
         }
       }

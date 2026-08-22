@@ -51,8 +51,8 @@ const CONFIG = {
   guard: {
     /** Default radius of a GUARD post, in blocks. */
     defaultRadius: 12,
-    /** Extra drift allowed before the script walks it home. */
-    leash: 10,
+    /** Extra drift allowed before the script returns it to its post. */
+    leash: 6,
   },
 
   combat: {
@@ -61,11 +61,16 @@ const CONFIG = {
     /** Base critical chance, plus critPerTier for each gear tier. */
     critChance: 0.12,
     critPerTier: 0.04,
-    critMultiplier: 0.55,
+    /** Extra damage a critical adds, before the per-tier bonus. */
+    critDamage: 2,
+    critDamagePerTier: 1,
     /** Hits on the same target inside comboWindow ticks build a combo. */
     comboWindow: 60,
     comboFinisher: 3,
-    comboBonus: 0.35,
+    comboDamage: 2,
+    comboDamagePerTier: 0.75,
+    /** Extra shove applied to creepers, to buy the owner room. */
+    creeperPunt: 1.3,
     knockbackBase: 0.45,
     knockbackPerTier: 0.12,
     /** Guard Breaker: cooldown in seconds, radius and damage. */
@@ -79,6 +84,8 @@ const CONFIG = {
     dodgeDamage: 6,
     /** Blocks at which a bodyguard holding a bow switches to it. */
     rangedSwapDistance: 7,
+    /** Ticks without landing a melee hit that count as "cannot reach it". */
+    rangedStallTicks: 60,
   },
 
   regen: {
@@ -276,8 +283,12 @@ const warnedAt = new Map();
 const ownerIndex = new Map();
 /** player id -> tick of their last squad-wide reaction, to throttle hot events. */
 const reactionAt = new Map();
-/** player id -> tick of the last Contract action, to de-duplicate double fires. */
-const contractAt = new Map();
+/** Per-player input de-duplication.  Bedrock can deliver a single press as an
+ *  itemUseOn, an itemUse, and a minecraft:interact event; each path owns a
+ *  separate gate so one never swallows another's press. */
+const summonAt = new Map();
+const useAt = new Map();
+const panelAt = new Map();
 /** player id -> tick they last used a gold ingot; a strong hint about who hired. */
 const goldUseAt = new Map();
 
@@ -624,20 +635,19 @@ function onMeleeLanded(guard, victim) {
   }
   entry.comboAt = now;
 
-  const base = 5 + tier * 1.75 + weaponBonus(guard);
   let bonus = 0;
 
   const critChance = CONFIG.combat.critChance + tier * CONFIG.combat.critPerTier;
   const crit = Math.random() < critChance;
   if (crit) {
-    bonus += base * CONFIG.combat.critMultiplier;
+    bonus += CONFIG.combat.critDamage + tier * CONFIG.combat.critDamagePerTier;
     particle(victim, "minecraft:critical_hit_emitter", 1.0);
     playSound(guard, "random.anvil_land", 0.35, 1.9);
   }
 
   const finisher = entry.comboCount >= CONFIG.combat.comboFinisher;
   if (finisher) {
-    bonus += base * CONFIG.combat.comboBonus;
+    bonus += CONFIG.combat.comboDamage + tier * CONFIG.combat.comboDamagePerTier;
     entry.comboCount = 0;
     particle(victim, "bg:guard_slam", 0.1);
     playSound(guard, "mob.irongolem.throw", 0.7, 1.1);
@@ -652,8 +662,11 @@ function onMeleeLanded(guard, victim) {
     );
   }
 
-  const strength =
+  let strength =
     CONFIG.combat.knockbackBase + tier * CONFIG.combat.knockbackPerTier + (finisher ? 0.45 : 0);
+  // A creeper that reaches the owner is the worst outcome in the game, so it
+  // gets punted rather than merely nudged.
+  if (victim.typeId === "minecraft:creeper") strength += CONFIG.combat.creeperPunt;
   knockback(victim, guard, strength, finisher ? 0.42 : 0.16);
 
   playSound(guard, "mob.villager.hit", 0.4, 1.35 + Math.random() * 0.2);
@@ -814,7 +827,11 @@ function updateGuard(guard) {
 
     // A melee bodyguard carrying a bow in its off hand draws it when the fight
     // has stalled out of reach, and holsters it again once things close in.
-    if (offhandIsRanged(guard) && now - entry.lastMeleeHit > 100 && now >= entry.rangedCheckAt) {
+    if (
+      offhandIsRanged(guard) &&
+      now - entry.lastMeleeHit > CONFIG.combat.rangedStallTicks &&
+      now >= entry.rangedCheckAt
+    ) {
       entry.rangedCheckAt = now + 40;
       const targets = hostilesNear(guard, 16);
       let nearest = Infinity;
@@ -934,6 +951,15 @@ world.afterEvents.dataDrivenEntityTrigger.subscribe(
       return;
     }
 
+    // melee_box_attack fires this the moment a swing is thrown, whether or not
+    // it connects - which is exactly what "has this fight stalled?" needs.
+    if (event.eventId === "bg:on_melee_hit") {
+      const entry = state(guard.id);
+      markCombat(guard, entry);
+      entry.lastMeleeHit = system.currentTick;
+      return;
+    }
+
     if (event.eventId === "bg:command_panel") {
       const player = commandingPlayer(guard, 8);
       if (!player) return;
@@ -944,7 +970,7 @@ world.afterEvents.dataDrivenEntityTrigger.subscribe(
         );
         return;
       }
-      if (!gate(contractAt, player.id, 10)) return;
+      if (!gate(panelAt, player.id, 10)) return;
       system.run(() => openGuardPanel(player, guard));
     }
   },
@@ -1192,7 +1218,9 @@ world.afterEvents.entityDie.subscribe((event) => {
 world.afterEvents.playerLeave.subscribe((event) => {
   summonCooldowns.delete(event.playerId);
   reactionAt.delete(event.playerId);
-  contractAt.delete(event.playerId);
+  summonAt.delete(event.playerId);
+  useAt.delete(event.playerId);
+  panelAt.delete(event.playerId);
   goldUseAt.delete(event.playerId);
 });
 
@@ -1201,7 +1229,7 @@ world.afterEvents.itemUseOn.subscribe((event) => {
   const player = event.source;
   const stack = event.itemStack;
   if (!player || !stack || stack.typeId !== CONTRACT_ID) return;
-  if (!gate(contractAt, player.id, 10)) return;
+  if (!gate(summonAt, player.id, 10)) return;
   const block = event.block;
   const face = event.blockFace;
   system.run(() => safe(() => summonRecruit(player, block, face)));
@@ -1216,19 +1244,30 @@ world.afterEvents.itemUse.subscribe((event) => {
     return;
   }
   if (stack.typeId !== CONTRACT_ID) return;
-  if (!gate(contractAt, player.id, 10)) return;
-  // Looking straight at one of your own bodyguards opens its panel; otherwise
-  // the squad overview.  minecraft:interact covers the direct-tap case, this
-  // covers tapping from a short distance.
-  const hit = safe(() => player.getEntitiesFromViewDirection({ maxDistance: 10 }), []);
-  for (const entry of hit) {
-    const target = entry.entity;
-    if (alive(target) && target.typeId === ENTITY_ID && isOwner(target, player)) {
-      system.run(() => openGuardPanel(player, target));
-      return;
+  if (!gate(useAt, player.id, 10)) return;
+
+  // Bedrock may deliver a tap on a block as itemUse as well as itemUseOn, and
+  // the order is not guaranteed - so wait a few ticks and stand down if a
+  // summon already handled this press.
+  const pressedAt = system.currentTick;
+  system.runTimeout(() => {
+    if (!alive(player)) return;
+    const summoned = summonAt.get(player.id);
+    if (summoned !== undefined && summoned >= pressedAt - 4) return;
+    if (!gate(panelAt, player.id, 10)) return;
+
+    // Looking straight at one of your own bodyguards opens its panel;
+    // otherwise the squad overview.
+    const hit = safe(() => player.getEntitiesFromViewDirection({ maxDistance: 10 }), []);
+    for (const entry of hit) {
+      const target = entry.entity;
+      if (alive(target) && target.typeId === ENTITY_ID && isOwner(target, player)) {
+        openGuardPanel(player, target);
+        return;
+      }
     }
-  }
-  system.run(() => openSquadPanel(player));
+    openSquadPanel(player);
+  }, 3);
 });
 
 const FACE_OFFSET = {

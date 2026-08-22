@@ -276,30 +276,42 @@ def draw_body(img, tier):
 
     x, y, w, h = BODY.front
     img.shade(x, y, w, h, lighten(suit, 0.08), suit_dark)
+    # Collar line and a hint of neck shadow under the chin
+    img.rect(x, y, w, 1, darken(suit, 0.45))
     # Open jacket over a dress shirt
-    img.rect(x + 3, y, 2, h - 2, SHIRT)
-    img.rect(x + 3, y, 2, 1, darken(SHIRT, 0.2))
-    # Tie
+    img.rect(x + 3, y, 2, h - 3, SHIRT)
+    img.rect(x + 3, y, 2, 1, darken(SHIRT, 0.35))
+    # Tie, with a clip
     img.rect(x + 3, y + 1, 2, 5, tier["tie"])
-    img.set(x + 3, y + 6, tier["tie"])
-    img.set(x + 4, y + 6, tier["tie"])
-    # Lapels
-    for i in range(4):
-        img.set(x + 2 - 0, y + i, trim)
-        img.set(x + 5, y + i, trim)
-    # Belt
-    img.rect(x, y + h - 2, w, 1, darken(suit, 0.5))
+    img.rect(x + 3, y + 6, 2, 1, darken(tier["tie"], 0.25))
+    img.rect(x + 3, y + 4, 2, 1, tier["accent"])
+    # Lapels: a V of trim either side of the shirt
+    for i in range(5):
+        img.set(x + 2, y + i, trim if i < 4 else darken(trim, 0.3))
+        img.set(x + 5, y + i, trim if i < 4 else darken(trim, 0.3))
+    img.set(x + 1, y + 1, darken(trim, 0.25))
+    img.set(x + 6, y + 1, darken(trim, 0.25))
+    # Shoulder-holster strap across the chest
+    for step in range(5):
+        img.set(x + 1 + step // 2, y + 2 + step, darken(suit, 0.55))
+    # Belt with a buckle
+    img.rect(x, y + h - 2, w, 1, darken(suit, 0.55))
     img.rect(x + 3, y + h - 2, 2, 1, tier["accent"])
+    img.rect(x, y + h - 1, w, 1, darken(suit, 0.35))
 
     x, y, w, h = BODY.back
     img.shade(x, y, w, h, suit, suit_dark)
+    img.rect(x, y, w, 1, darken(suit, 0.45))
     img.rect(x + 1, y + 2, w - 2, 1, trim)
-    img.rect(x, y + h - 2, w, 1, darken(suit, 0.5))
+    # A small crest on the back of the jacket
+    img.rect(x + 3, y + 4, 2, 3, darken(trim, 0.15))
+    img.rect(x, y + h - 2, w, 1, darken(suit, 0.55))
 
     for face in (BODY.right, BODY.left):
         x, y, w, h = face
         img.shade(x, y, w, h, suit, suit_dark)
-        img.rect(x, y + h - 2, w, 1, darken(suit, 0.5))
+        img.rect(x, y, w, 1, darken(suit, 0.45))
+        img.rect(x, y + h - 2, w, 1, darken(suit, 0.55))
 
     x, y, w, h = BODY.top
     img.rect(x, y, w, h, darken(suit, 0.1))
@@ -308,14 +320,19 @@ def draw_body(img, tier):
 
 
 def draw_arm(img, tier):
-    suit = tier["suit"]
+    # Sleeves read a shade lighter than the jacket so the silhouette does not
+    # collapse into one dark block at a distance.
+    suit = lighten(tier["suit"], 0.10)
     for face in (ARM.right, ARM.front, ARM.left, ARM.back):
         x, y, w, h = face
-        img.shade(x, y, w, h, lighten(suit, 0.06), darken(suit, 0.3))
+        img.shade(x, y, w, h, lighten(suit, 0.08), darken(suit, 0.28))
+        # Shoulder seam
+        img.rect(x, y, w, 1, darken(suit, 0.4))
         # Cuff
         img.rect(x, y + h - 4, w, 1, tier["trim"])
         # Gloved hand
-        img.rect(x, y + h - 3, w, 3, darken(tier["plate"], 0.35))
+        img.rect(x, y + h - 3, w, 3, darken(tier["plate"], 0.4))
+        img.rect(x, y + h - 3, w, 1, darken(tier["plate"], 0.55))
     x, y, w, h = ARM.top
     img.rect(x, y, w, h, darken(suit, 0.12))
     x, y, w, h = ARM.bottom
@@ -323,13 +340,19 @@ def draw_arm(img, tier):
 
 
 def draw_leg(img, tier):
-    suit = darken(tier["suit"], 0.18)
+    suit = darken(tier["suit"], 0.14)
     for face in (LEG.right, LEG.front, LEG.left, LEG.back):
         x, y, w, h = face
-        img.shade(x, y, w, h, suit, darken(suit, 0.3))
-        # Boot
-        img.rect(x, y + h - 3, w, 3, (26, 24, 26, 255))
-        img.rect(x, y + h - 3, w, 1, tier["trim"])
+        img.shade(x, y, w, h, suit, darken(suit, 0.34))
+        # Waistband, so the trousers read as separate from the jacket
+        img.rect(x, y, w, 1, darken(suit, 0.5))
+        # Boot, with a thin trim line at the top of the shaft
+        img.rect(x, y + h - 4, w, 4, (26, 24, 26, 255))
+        img.rect(x, y + h - 4, w, 1, darken(tier["trim"], 0.35))
+        img.rect(x, y + h - 1, w, 1, (16, 15, 17, 255))
+    x, y, w, h = LEG.front
+    for row in range(1, h - 4):
+        img.set(x + 1, y + row, darken(suit, 0.2))
     x, y, w, h = LEG.top
     img.rect(x, y, w, h, darken(suit, 0.15))
     x, y, w, h = LEG.bottom
@@ -421,8 +444,10 @@ def build_contract_icon():
 
 def build_spawn_egg_icon(tier):
     img = Image(16, 16)
-    base = tier["suit"]
-    spot = tier["accent"]
+    # Deliberately not a tier colour: the egg reads as "bodyguard" - a dark
+    # charcoal shell with gold detail - at every zoom level in the hotbar.
+    base = (46, 50, 62, 255)
+    spot = (228, 182, 70, 255)
     shell = [
         (6, 2, 4), (5, 3, 6), (4, 4, 8), (4, 5, 8),
         (3, 6, 10), (3, 7, 10), (3, 8, 10), (3, 9, 10),
@@ -452,36 +477,49 @@ def build_spawn_egg_icon(tier):
 def build_pack_icon(tier):
     size = 128
     img = Image(size, size)
-    bg_top = (28, 32, 42, 255)
-    bg_bottom = (12, 14, 20, 255)
-    img.shade(0, 0, size, size, bg_top, bg_bottom)
+    img.shade(0, 0, size, size, (30, 34, 46, 255), (10, 12, 18, 255))
 
-    accent = tier["accent"]
+    gold = (228, 182, 70, 255)
     plate = tier["plate"]
-    # Shield crest
-    for y in range(18, 110):
-        t = (y - 18) / 92.0
-        if t < 0.62:
-            half = 40
-        else:
-            half = int(40 * (1 - (t - 0.62) / 0.38) ** 0.7)
+    suit = (38, 42, 52, 255)
+
+    def crest_half(y):
+        t = (y - 8) / 112.0
+        if t < 0.0:
+            return 0
+        if t < 0.66:
+            return 48
+        return int(48 * max(0.0, 1 - (t - 0.66) / 0.34) ** 0.65)
+
+    # Gold rim, then the crest face.
+    for y in range(8, 122):
+        half = crest_half(y)
         if half <= 0:
             continue
+        t = (y - 8) / 114.0
         for x in range(64 - half, 64 + half):
-            edge = x < 64 - half + 4 or x >= 64 + half - 4 or y < 22 or y > 105
-            img.set(x, y, darken(plate, 0.55) if edge else mix(plate, darken(plate, 0.5), t))
+            rim = x < 64 - half + 5 or x >= 64 + half - 5 or y < 13
+            img.set(x, y, mix(gold, darken(gold, 0.45), t) if rim else mix(plate, darken(plate, 0.55), t))
 
-    # Suit silhouette inside the crest
-    img.rect(52, 34, 24, 22, (232, 234, 238, 255))
-    img.rect(46, 56, 36, 34, tier["suit"])
-    img.rect(60, 56, 8, 26, (232, 234, 238, 255))
-    img.rect(62, 58, 4, 18, tier["tie"])
-    for y in range(34, 46):
-        img.rect(52, y, 24, 1, darken(accent, 0.1) if y < 38 else (232, 234, 238, 255))
-    img.rect(50, 40, 28, 5, tier["glass"])
-    img.rect(50, 40, 28, 1, darken(tier["glass"], 0.5))
-    img.set(55, 42, lighten(tier["glass"], 0.6))
-    img.set(56, 42, lighten(tier["glass"], 0.4))
+    # Head, shoulders and a shirt with a tie - the bodyguard in silhouette.
+    img.rect(50, 26, 28, 26, SKIN)
+    img.rect(50, 26, 28, 8, (34, 30, 30, 255))          # cap
+    img.rect(50, 33, 28, 3, darken(gold, 0.15))          # cap band
+    img.rect(48, 38, 32, 8, tier["glass"])               # visor
+    img.rect(48, 38, 32, 2, darken(tier["glass"], 0.55))
+    img.rect(53, 41, 4, 2, lighten(tier["glass"], 0.65))
+    img.rect(60, 41, 3, 2, lighten(tier["glass"], 0.35))
+
+    img.rect(38, 54, 52, 46, suit)                       # jacket
+    img.rect(38, 54, 52, 3, darken(suit, 0.5))
+    img.rect(56, 54, 16, 34, (236, 238, 242, 255))       # shirt
+    img.rect(61, 58, 6, 26, gold)                        # tie
+    img.rect(61, 84, 6, 3, darken(gold, 0.35))
+    for i in range(10):                                   # lapels
+        img.rect(52 - i // 2, 56 + i, 3, 1, darken(gold, 0.25))
+        img.rect(73 + i // 2, 56 + i, 3, 1, darken(gold, 0.25))
+    img.rect(34, 58, 8, 34, darken(suit, 0.18))          # shoulders
+    img.rect(86, 58, 8, 34, darken(suit, 0.18))
     return img
 
 

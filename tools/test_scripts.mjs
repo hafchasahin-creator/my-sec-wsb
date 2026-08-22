@@ -143,7 +143,7 @@ check("name badge shows the mode", /FOLLOW/.test(guard.nameTag), guard.nameTag);
 check("hiring plays the oath particle", stats.particles.some((p) => p.id === "bg:oath_seal"));
 
 // --- the command panel -----------------------------------------------------
-await advance(15); // clear the input de-duplication window
+await advance(15); // clear the input de-duplication windows
 ui.resetForms();
 world.afterEvents.dataDrivenEntityTrigger._fire({ entity: guard, eventId: "bg:command_panel" });
 await advance(2);
@@ -395,6 +395,146 @@ for (let i = 0; i < 6; i++) {
 noErrors("summon cap");
 const hired = summoned.filter((e) => e.getDynamicProperty("bg:ownerName") === "Hicks");
 check("the per-player cap is enforced", hired.length <= 3, hired.length + " hired");
+
+// --- a second bodyguard, for the flows the first one has already consumed ---
+const owner2 = spawnPlayer("Vasquez", overworld, { x: 200, y: 64, z: 200 });
+world.afterEvents.itemUseOn._fire({
+  source: owner2,
+  itemStack: contract,
+  block: { location: { x: 200, y: 64, z: 200 } },
+  blockFace: "Up",
+});
+await advance(4);
+const guard2 = overworld.getEntities({ type: "bg:bodyguard" }).find((e) => e.location.x >= 199 && e.location.x < 202);
+check("a second player can summon their own", !!guard2);
+world.afterEvents.dataDrivenEntityTrigger._fire({ entity: guard2, eventId: "bg:on_bind" });
+await advance(4);
+check("it binds to the summoner, not a bystander", guard2.getDynamicProperty("bg:ownerName") === "Vasquez");
+
+// A creeper must be punted harder than an ordinary mob.
+const creeper = spawnHostile(overworld, { x: 201, y: 64, z: 200 }, "minecraft:creeper");
+creeper._families = ["monster", "mob", "creeper"];
+const skeleton = spawnHostile(overworld, { x: 201, y: 64, z: 200 }, "minecraft:skeleton");
+stats.knockbacks.length = 0;
+world.afterEvents.entityHitEntity._fire({ damagingEntity: guard2, hitEntity: skeleton });
+await advance(2);
+const skeletonPush = stats.knockbacks.filter((k) => k.id === skeleton.id).pop();
+stats.knockbacks.length = 0;
+world.afterEvents.entityHitEntity._fire({ damagingEntity: guard2, hitEntity: creeper });
+await advance(2);
+const creeperPush = stats.knockbacks.filter((k) => k.id === creeper.id).pop();
+check(
+  "creepers get punted harder than other mobs",
+  creeperPush && skeletonPush && creeperPush.h > skeletonPush.h,
+  JSON.stringify({ creeperPush, skeletonPush })
+);
+creeper.remove();
+skeleton.remove();
+
+// --- STAY holds its post ---------------------------------------------------
+await advance(15);
+ui.resetForms();
+ui.answer("action", 1); // STAY
+world.afterEvents.dataDrivenEntityTrigger._fire({ entity: guard2, eventId: "bg:command_panel" });
+await advance(6);
+check("STAY records the post", !!guard2.getDynamicProperty("bg:anchor"));
+const post = guard2.getDynamicProperty("bg:anchor");
+guard2.location = { x: post.x + 40, y: post.y, z: post.z + 40 };
+stats.teleports.length = 0;
+await advance(60);
+check(
+  "a bodyguard that drifts off its post is brought back",
+  stats.teleports.some((t) => t.id === guard2.id)
+);
+check(
+  "and it is back near the post",
+  Math.abs(guard2.location.x - post.x) < 2 && Math.abs(guard2.location.z - post.z) < 2,
+  JSON.stringify(guard2.location)
+);
+
+// STAY must not chase the owner around.
+owner2.location = { x: 300, y: 64, z: 300 };
+stats.teleports.length = 0;
+await advance(60);
+check(
+  "STAY does not follow the owner away",
+  !stats.teleports.some((t) => t.id === guard2.id && Math.abs(t.location.x - 300) < 5)
+);
+owner2.location = { x: post.x, y: post.y, z: post.z };
+
+// --- the bow holster -------------------------------------------------------
+await advance(15);
+ui.resetForms();
+ui.answer("action", 0); // back to FOLLOW
+world.afterEvents.dataDrivenEntityTrigger._fire({ entity: guard2, eventId: "bg:command_panel" });
+await advance(6);
+
+const gear2 = guard2.getComponent("minecraft:equippable");
+gear2.setEquipment(EquipmentSlot.Mainhand, new ItemStack("minecraft:iron_sword"));
+gear2.setEquipment(EquipmentSlot.Offhand, new ItemStack("minecraft:bow"));
+stats.triggered.length = 0;
+const sniper = spawnHostile(overworld, { x: post.x + 12, y: 68, z: post.z }, "minecraft:skeleton");
+world.afterEvents.entityHurt._fire({
+  hurtEntity: guard2,
+  damage: 2,
+  damageSource: { cause: "projectile", damagingEntity: sniper },
+});
+await advance(80); // past the melee-stall threshold, still in combat
+check(
+  "an unreachable target makes it draw the bow",
+  gear2.getEquipment(EquipmentSlot.Mainhand)?.typeId === "minecraft:bow",
+  gear2.getEquipment(EquipmentSlot.Mainhand)?.typeId
+);
+check("drawing the bow enables the ranged goal", stats.triggered.some((t) => t.event === "bg:ranged_on"));
+sniper.remove();
+
+// It holsters again once the fight is over.
+stats.triggered.length = 0;
+await advance(20 * 20);
+check(
+  "the bow is holstered after the fight",
+  gear2.getEquipment(EquipmentSlot.Mainhand)?.typeId === "minecraft:iron_sword",
+  gear2.getEquipment(EquipmentSlot.Mainhand)?.typeId
+);
+check("and the ranged goal is switched off", stats.triggered.some((t) => t.event === "bg:ranged_off"));
+
+// --- rename ----------------------------------------------------------------
+await advance(15);
+ui.resetForms();
+ui.answer("action", 6); // Rename
+ui.answer("modal", undefined, ["Bishop"]);
+world.afterEvents.dataDrivenEntityTrigger._fire({ entity: guard2, eventId: "bg:command_panel" });
+await advance(8);
+check("renaming works", guard2.getDynamicProperty("bg:codename") === "Bishop");
+check("the new name shows on the badge", /Bishop/.test(guard2.nameTag), guard2.nameTag);
+
+// --- the squad panel -------------------------------------------------------
+await advance(15);
+ui.resetForms();
+ui.answer("action", 0); // pick the first bodyguard
+world.afterEvents.itemUse._fire({ source: owner2, itemStack: contract });
+await advance(10);
+check("the squad panel lists the detail", ui.forms.shown.length >= 1, String(ui.forms.shown.length));
+check(
+  "the squad panel names the bodyguard",
+  ui.forms.shown.some((f) => f.buttons.some((b) => typeof b.text === "string" && /Bishop/.test(b.text)))
+);
+
+// --- dismissal returns the gear -------------------------------------------
+await advance(15);
+ui.resetForms();
+ui.answer("action", 8); // Dismiss
+ui.answer("message", 0); // confirm
+world.afterEvents.dataDrivenEntityTrigger._fire({ entity: guard2, eventId: "bg:command_panel" });
+await advance(10);
+noErrors("dismiss");
+check("dismissing removes the bodyguard", !guard2.isValid());
+const inventory = owner2.getComponent("minecraft:inventory").container;
+check(
+  "dismissal hands the gear back",
+  inventory.items.some((i) => i && i.typeId === "minecraft:iron_sword"),
+  JSON.stringify(inventory.items.filter(Boolean).map((i) => i.typeId))
+);
 
 // --- report ----------------------------------------------------------------
 rmSync(sandbox, { recursive: true, force: true });

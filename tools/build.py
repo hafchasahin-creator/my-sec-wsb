@@ -25,6 +25,7 @@ white box, or a behaviour pack that refuses to load at all:
     cube face has non-transparent pixels behind it
   * every bg:* entity event a script triggers exists in the entity definition
   * every component group an event adds or removes exists
+  * no two AI goals that can be active together share a priority
   * every custom particle a script spawns exists in the resource pack
 
 Usage:  python3 tools/build.py [--skip-package]
@@ -325,6 +326,66 @@ def check_language(addon, identifiers, entity_ids):
 # --------------------------------------------------------------------------
 # Entities: behaviour side
 # --------------------------------------------------------------------------
+# Bedrock keeps target-selection goals in a separate list from action goals, so
+# a shared priority only matters within one list.
+TARGET_GOALS = {
+    "minecraft:behavior.hurt_by_target",
+    "minecraft:behavior.owner_hurt_by_target",
+    "minecraft:behavior.owner_hurt_target",
+    "minecraft:behavior.nearest_attackable_target",
+    "minecraft:behavior.nearest_prioritized_attackable_target",
+    "minecraft:behavior.defend_trusted_target",
+    "minecraft:behavior.defend_village_target",
+}
+
+
+def collect_goals(node, out):
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key.startswith("minecraft:behavior.") and isinstance(value, dict) and "priority" in value:
+                out.append((key, value["priority"]))
+            collect_goals(value, out)
+    elif isinstance(node, list):
+        for item in node:
+            collect_goals(item, out)
+
+
+def check_goal_priorities(path, entity):
+    """Two goals at the same priority in the same list have undefined order."""
+    groups = entity.get("component_groups", {})
+    base = []
+    collect_goals(entity.get("components", {}), base)
+
+    # Groups that are mutually exclusive by construction: one mode, one tier.
+    modes = sorted(g for g in groups if g.startswith("bg:mode_"))
+    tiers = sorted(g for g in groups if g.startswith("bg:tier_"))
+    always = sorted(g for g in groups if g.startswith("bg:flag_") or g == "bg:ranged")
+    if not modes:
+        return
+
+    for mode in modes:
+        combo = list(base)
+        if "bg:bound" in groups:
+            collect_goals(groups["bg:bound"], combo)
+        collect_goals(groups[mode], combo)
+        for extra in always:
+            collect_goals(groups[extra], combo)
+        for tier in tiers[:1]:
+            collect_goals(groups[tier], combo)
+
+        for is_target in (True, False):
+            seen = {}
+            for name, priority in combo:
+                if (name in TARGET_GOALS) != is_target:
+                    continue
+                if priority in seen and seen[priority] != name:
+                    fail(
+                        "%s: with %s active, %s and %s both sit at priority %s"
+                        % (path, mode, seen[priority], name, priority)
+                    )
+                seen[priority] = name
+
+
 def check_bp_entities(addon, documents):
     entity_ids = []
     events_by_entity = {}
@@ -382,6 +443,8 @@ def check_bp_entities(addon, documents):
             if missing.startswith("minecraft:"):
                 continue
             fail("%s: component triggers unknown event '%s'" % (path, missing))
+
+        check_goal_priorities(path, entity)
 
         if description.get("is_spawnable") is not True:
             warn("%s: %s is not spawnable, so it gets no creative spawn egg" % (path, identifier))

@@ -145,7 +145,7 @@ def tier_group(index):
 # --------------------------------------------------------------------------
 def follow_owner(start, stop, speed):
     return {
-        "priority": 7,
+        "priority": 9,
         "speed_multiplier": speed,
         "start_distance": start,
         "stop_distance": stop,
@@ -154,7 +154,7 @@ def follow_owner(start, stop, speed):
     }
 
 STROLL = {
-    "priority": 9,
+    "priority": 11,
     "speed_multiplier": 0.6,
     "xz_dist": 8,
     "y_dist": 4,
@@ -176,6 +176,7 @@ MODES["bg:mode_follow"] = {
     "minecraft:behavior.owner_hurt_by_target": dict(ALLY_FILTER, priority=1),
     "minecraft:behavior.owner_hurt_target": dict(ALLY_FILTER, priority=2),
     "minecraft:behavior.nearest_attackable_target": target_goal(4, 13),
+    "minecraft:behavior.move_towards_target": {"priority": 7, "within_radius": 1.6},
     "minecraft:behavior.follow_owner": follow_owner(5.0, 2.5, 1.15),
     "minecraft:behavior.random_stroll": dict(STROLL, speed_multiplier=0.55, xz_dist=5),
 }
@@ -185,8 +186,8 @@ MODES["bg:mode_stay"] = {
     "minecraft:mark_variant": {"value": 1},
     "minecraft:behavior.nearest_attackable_target": target_goal(4, 7, must_see=True, scan_interval=20),
     "minecraft:behavior.hold_ground": {
-        "priority": 6,
-        "min_radius": 6.0,
+        "priority": 4,
+        "min_radius": 5.0,
         "broadcast": False,
     },
 }
@@ -196,7 +197,8 @@ MODES["bg:mode_guard"] = {
     "minecraft:mark_variant": {"value": 2},
     "minecraft:behavior.owner_hurt_by_target": dict(ALLY_FILTER, priority=1),
     "minecraft:behavior.nearest_attackable_target": target_goal(4, 16, must_see=False, scan_interval=16),
-    "minecraft:behavior.random_stroll": dict(STROLL, speed_multiplier=0.5, xz_dist=6, interval=140),
+    "minecraft:behavior.move_towards_target": {"priority": 7, "within_radius": 1.6},
+    "minecraft:behavior.random_stroll": dict(STROLL, speed_multiplier=0.5, xz_dist=4, interval=140),
 }
 
 # PASSIVE - escort only. Never picks a fight, still defends itself.
@@ -211,7 +213,8 @@ MODES["bg:mode_aggressive"] = {
     "minecraft:mark_variant": {"value": 4},
     "minecraft:behavior.owner_hurt_by_target": dict(ALLY_FILTER, priority=1),
     "minecraft:behavior.owner_hurt_target": dict(ALLY_FILTER, priority=2),
-    "minecraft:behavior.nearest_attackable_target": target_goal(3, 20, must_see=False, scan_interval=10),
+    "minecraft:behavior.nearest_attackable_target": target_goal(4, 20, must_see=False, scan_interval=10),
+    "minecraft:behavior.move_towards_target": {"priority": 7, "within_radius": 1.6},
     "minecraft:behavior.follow_owner": follow_owner(9.0, 3.5, 1.3),
 }
 
@@ -231,17 +234,16 @@ components = {
     "minecraft:movement": {"value": 0.30},
     "minecraft:movement.basic": {"max_turn": 30.0},
     "minecraft:navigation.walk": {
-        "can_path_over_water": False,
-        "avoid_water": True,
+        "can_path_over_water": True,
+        "can_float": True,
         "avoid_damage_blocks": True,
         "avoid_portals": True,
         "can_pass_doors": True,
         "can_open_doors": True,
         "can_break_doors": False,
         "can_walk": True,
-        "can_sink": False,
     },
-    "minecraft:follow_range": {"value": 48, "max": 64},
+    "minecraft:follow_range": {"value": 32, "max": 48},
     "minecraft:health": {"value": 40, "max": 40},
     "minecraft:attack": {"damage": 5},
     "minecraft:knockback_resistance": {"value": 0.2, "max": 1.0},
@@ -294,7 +296,7 @@ components = {
     # Physical presence: solid enough to body-block, but it never shoves the
     # owner around - push_through 1.0 means the collision resolves by sliding
     # through instead of applying push velocity.
-    "minecraft:pushable": {"is_pushable": False, "is_pushable_by_piston": True},
+    "minecraft:pushable": {"is_pushable": True, "is_pushable_by_piston": True},
     "minecraft:push_through": {"value": 1.0},
     "minecraft:hurt_on_condition": {
         "damage_conditions": [
@@ -320,13 +322,13 @@ components = {
     "minecraft:behavior.float": {"priority": 0},
     "minecraft:behavior.open_door": {"priority": 3, "close_door_after": True},
     "minecraft:behavior.look_at_player": {
-        "priority": 10,
+        "priority": 13,
         "look_distance": 8.0,
         "probability": 0.35,
         "angle_of_view_horizontal": 180,
     },
     "minecraft:behavior.random_look_around": {
-        "priority": 11,
+        "priority": 14,
         "look_distance": 8.0,
         "look_time": [2, 6],
         "min_angle_of_view_horizontal": -45,
@@ -373,7 +375,7 @@ groups["bg:bound"] = {
     # Never retaliates against a player - that is what keeps it from ever
     # turning on its own owner, even if the owner clips it by accident.
     "minecraft:behavior.hurt_by_target": {
-        "priority": 1,
+        "priority": 3,
         "hurt_owner": False,
         "alert_same_type": True,
         "entity_types": {
@@ -381,8 +383,15 @@ groups["bg:bound"] = {
             "max_dist": 24,
         },
     },
+    "minecraft:behavior.look_at_entity": {
+        "priority": 12,
+        "look_distance": 10.0,
+        "probability": 0.6,
+        "look_time": [3, 7],
+        "filters": all_of(fam("player"), {"test": "is_owner", "subject": "other", "value": True}),
+    },
     "minecraft:behavior.melee_box_attack": {
-        "priority": 5,
+        "priority": 6,
         "track_target": True,
         "speed_multiplier": 1.25,
         "cooldown_time": 0.85,
@@ -391,7 +400,6 @@ groups["bg:bound"] = {
         "require_complete_path": False,
         "on_attack": {"event": "bg:on_melee_hit", "target": "self"},
     },
-    "minecraft:behavior.move_towards_target": {"priority": 6, "within_radius": 1.6},
     "minecraft:damage_sensor": {
         "triggers": [
             {
@@ -430,7 +438,7 @@ for i in range(len(TIERS)):
 groups["bg:ranged"] = {
     "minecraft:shooter": {"def": "minecraft:arrow", "sound": "bow"},
     "minecraft:behavior.ranged_attack": {
-        "priority": 4,
+        "priority": 5,
         "attack_interval_min": 1.4,
         "attack_interval_max": 2.4,
         "attack_radius": 16.0,
@@ -463,7 +471,7 @@ groups["bg:flag_victory"] = {
 }
 groups["bg:flag_defend"] = {
     "minecraft:behavior.timer_flag_3": {
-        "priority": 3,
+        "priority": 2,
         "duration_range": [1.2, 1.6],
         "cooldown_range": [0.0, 0.0],
         "on_end": {"event": "bg:defend_end", "target": "self"},
