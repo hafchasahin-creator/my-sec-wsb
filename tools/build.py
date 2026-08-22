@@ -27,6 +27,9 @@ white box, or a behaviour pack that refuses to load at all:
   * every component group an event adds or removes exists
   * every file uses a format_version its schema actually understands in 1.21.0
   * no two AI goals that can be active together share a priority
+  * every animation controller state is reachable and can be left again
+  * every Molang expression parses, and *(with a reference tree)* every
+    query.* it names exists in 1.21.0 and is not experimental
   * every custom particle a script spawns exists in the resource pack
 
 Usage:  python3 tools/build.py [--skip-package]
@@ -746,6 +749,127 @@ def check_geometry(addon, geometries, documents):
 
 
 # --------------------------------------------------------------------------
+# Animation controllers and Molang
+# --------------------------------------------------------------------------
+def check_controller_graphs(addon, documents):
+    """A state nothing transitions into never plays; a state with no way out
+    is a trap unless it is genuinely terminal (death)."""
+    for path, doc in documents.items():
+        if not path.startswith(os.path.join(addon["rp"], "animation_controllers")) or doc is None:
+            continue
+        for name, controller in doc.get("animation_controllers", {}).items():
+            states = controller.get("states", {})
+            initial = controller.get("initial_state", "default")
+            if initial not in states:
+                fail("%s: %s has initial_state '%s' which is not defined" % (path, name, initial))
+                continue
+
+            reachable = {initial}
+            frontier = [initial]
+            while frontier:
+                current = frontier.pop()
+                for transition in states.get(current, {}).get("transitions", []):
+                    for target in transition:
+                        if target not in states:
+                            continue  # already reported by check_rp_entities
+                        if target not in reachable:
+                            reachable.add(target)
+                            frontier.append(target)
+
+            for state in sorted(set(states) - reachable):
+                fail("%s: %s state '%s' can never be entered" % (path, name, state))
+
+            for state, body in states.items():
+                if body.get("transitions"):
+                    continue
+                # A terminal state is only sensible if it plays something that
+                # ends the entity, i.e. the death animation.
+                plays = [a if isinstance(a, str) else list(a.keys())[0] for a in body.get("animations", [])]
+                if not any("death" in play for play in plays):
+                    warn("%s: %s state '%s' has no way out" % (path, name, state))
+
+
+# Molang built-ins that are not query.* - checked by prefix.
+MOLANG_MATH = {
+    "abs", "acos", "asin", "atan", "atan2", "ceil", "clamp", "cos", "die_roll",
+    "die_roll_integer", "exp", "floor", "hermite_blend", "lerp", "lerprotate",
+    "ln", "max", "min", "mod", "pi", "pow", "random", "random_integer", "round",
+    "sin", "sqrt", "trunc",
+}
+# Set by the engine, so a pack may read them without assigning them first.
+ENGINE_VARIABLES = {
+    # entity animation
+    "attack_time", "gliding_speed_value", "is_brandishing_spear",
+    "is_holding_spyglass", "is_using_vr", "player_x_rotation", "player_y_rotation",
+    # particle systems
+    "particle_age", "particle_lifetime", "particle_random_1", "particle_random_2",
+    "particle_random_3", "particle_random_4", "emitter_age", "emitter_lifetime",
+    "emitter_random_1", "emitter_random_2", "emitter_random_3", "emitter_random_4",
+}
+# query.* that only resolves with an experimental toggle on.
+EXPERIMENTAL_QUERIES = {"state_time"}
+
+
+def molang_strings(node, out):
+    if isinstance(node, str):
+        if "query." in node or "math." in node or "variable." in node or "Math." in node:
+            out.append(node)
+    elif isinstance(node, dict):
+        for value in node.values():
+            molang_strings(value, out)
+    elif isinstance(node, list):
+        for item in node:
+            molang_strings(item, out)
+
+
+def check_molang(addon, documents, reference):
+    known_queries = None
+    if reference:
+        doc_path = os.path.join(reference, "documentation", "Molang.html")
+        if os.path.isfile(doc_path):
+            with open(doc_path, encoding="utf-8", errors="replace") as handle:
+                raw = handle.read()
+            known_queries = set(re.findall(r"query\.([a-z_0-9]+)", raw))
+
+    # Variables the pack itself assigns, anywhere in the resource pack.
+    assigned = set(ENGINE_VARIABLES)
+    for path, doc in documents.items():
+        if not path.startswith(addon["rp"]) or doc is None:
+            continue
+        text = json.dumps(doc)
+        assigned.update(re.findall(r"variable\.([a-zA-Z_0-9]+)\s*=", text))
+
+    checked = 0
+    for path, doc in documents.items():
+        if not path.startswith(addon["rp"]) or doc is None:
+            continue
+        expressions = []
+        molang_strings(doc, expressions)
+        for expression in expressions:
+            checked += 1
+            if expression.count("(") != expression.count(")"):
+                fail("%s: unbalanced parentheses in Molang: %s" % (path, expression[:90]))
+            for name in re.findall(r"[Mm]ath\.([a-zA-Z_0-9]+)", expression):
+                if name not in MOLANG_MATH:
+                    fail("%s: math.%s is not a Molang function" % (path, name))
+            for name in set(re.findall(r"query\.([a-zA-Z_0-9]+)", expression)):
+                if name in EXPERIMENTAL_QUERIES:
+                    fail(
+                        "%s: query.%s is experimental in 1.21.0 and will not resolve "
+                        "with experiments off" % (path, name)
+                    )
+                elif known_queries is not None and name not in known_queries:
+                    fail("%s: query.%s does not exist in 1.21.0" % (path, name))
+            for name in set(re.findall(r"variable\.([a-zA-Z_0-9]+)", expression)):
+                if name not in assigned:
+                    fail(
+                        "%s: variable.%s is read but never assigned in this pack "
+                        "and is not engine-provided" % (path, name)
+                    )
+    return checked
+
+
+# --------------------------------------------------------------------------
 # Sounds
 # --------------------------------------------------------------------------
 def check_sounds(addon, documents, reference):
@@ -813,10 +937,16 @@ def validate(reference):
         check_language(addon, identifiers, entity_ids)
         geometries = check_rp_entities(addon, documents, entity_ids)
         check_geometry(addon, geometries, documents)
+        check_controller_graphs(addon, documents)
+        molang = check_molang(addon, documents, reference)
         check_sounds(addon, documents, reference)
         print(
-            "  %-14s %2d items, %2d entities, %2d geometries, %2d particles, %3d JSON files"
-            % (addon["name"], len(identifiers), len(entity_ids), len(geometries), len(particles), len(documents))
+            "  %-14s %2d items, %2d entities, %2d geometries, %2d particles, "
+            "%3d Molang expressions, %3d JSON files"
+            % (
+                addon["name"], len(identifiers), len(entity_ids), len(geometries),
+                len(particles), molang, len(documents),
+            )
         )
     return total_files
 
