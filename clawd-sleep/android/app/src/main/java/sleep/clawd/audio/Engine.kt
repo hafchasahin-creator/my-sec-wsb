@@ -94,7 +94,7 @@ class Engine private constructor(private val app: Context) {
         PlaybackException.ERROR_CODE_IO_NO_PERMISSION -> "no permission to read that file"
         PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
         PlaybackException.ERROR_CODE_DECODER_INIT_FAILED -> "this phone can't play that format"
-        PlaybackException.ERROR_CODE_DRM_UNSUPPORTED_SCHEME -> "that file is copy protected"
+        PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED -> "that file is copy protected"
         else -> "that file would not play"
     }
 
