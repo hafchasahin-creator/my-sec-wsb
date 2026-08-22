@@ -257,6 +257,20 @@ await advance(2);
 check("a hit on the owner deals no bonus damage", stats.damages.length === 0);
 check("the owner is healed back instead", ownerHealth.currentValue > 20);
 
+// A stray arrow from your own bodyguard must cost you nothing.
+ownerHealth.setCurrentValue(14);
+world.afterEvents.entityHurt._fire({
+  hurtEntity: owner,
+  damage: 5,
+  damageSource: { cause: "projectile", damagingEntity: guard, damagingProjectile: zombie },
+});
+await advance(2);
+check(
+  "friendly fire from your own bodyguard is refunded",
+  ownerHealth.currentValue >= 19,
+  String(ownerHealth.currentValue)
+);
+
 // --- reacting to the owner being attacked ----------------------------------
 stats.effects.length = 0;
 stats.particles.length = 0;
@@ -331,6 +345,22 @@ check(
   Math.abs(crowdGain - soloGain) <= 4,
   "solo " + soloGain + " vs crowd " + crowdGain
 );
+// Round-robin fairness: every bodyguard in a crowd must actually be reached.
+// A sweep that skips one entry produces a bodyguard that never regenerates,
+// never notices it is stuck, and never gets its badge back.
+for (const extra of crowd) {
+  extra.nameTag = "";
+  extra.setDynamicProperty("bg:codename", "Crowd");
+}
+guard.nameTag = "";
+await advance(20 * 6);
+const unreached = crowd.concat([guard]).filter((e) => !/\u00a78\|/.test(e.nameTag));
+check(
+  "every bodyguard in a crowd is reached by the update sweep",
+  unreached.length === 0,
+  unreached.length + " of " + (crowd.length + 1) + " never updated"
+);
+
 for (const extra of crowd) extra.remove();
 await advance(20 * 12);
 
@@ -478,6 +508,11 @@ world.afterEvents.itemUseOn._fire({
 await advance(4);
 const guard2 = overworld.getEntities({ type: "bg:bodyguard" }).find((e) => e.location.x >= 199 && e.location.x < 202);
 check("a second player can summon their own", !!guard2);
+check(
+  "an unhired recruit says how to hire it",
+  /gold ingot/.test(guard2.nameTag),
+  guard2.nameTag
+);
 world.afterEvents.dataDrivenEntityTrigger._fire({ entity: guard2, eventId: "bg:on_bind" });
 await advance(4);
 check("it binds to the summoner, not a bystander", guard2.getDynamicProperty("bg:ownerName") === "Vasquez");
@@ -616,6 +651,26 @@ ui.resetForms();
 ui.answer("action", 0);
 world.afterEvents.dataDrivenEntityTrigger._fire({ entity: guard2, eventId: "bg:command_panel" });
 await advance(6);
+
+// --- sneak + tap a block reaches the squad panel ---------------------------
+await advance(15);
+ui.resetForms();
+ui.answer("action", 0);
+owner2.isSneaking = true;
+world.afterEvents.itemUseOn._fire({
+  source: owner2,
+  itemStack: contract,
+  block: { location: { x: 210, y: 64, z: 210 } },
+  blockFace: "Up",
+});
+await advance(8);
+owner2.isSneaking = false;
+noErrors("sneak squad panel");
+check("sneak + tap opens the squad panel instead of summoning", ui.forms.shown.length >= 1);
+check(
+  "and it does not summon",
+  overworld.getEntities({ type: "bg:bodyguard" }).every((e) => Math.abs(e.location.x - 210.5) > 0.1)
+);
 
 // --- the squad panel -------------------------------------------------------
 await advance(15);

@@ -267,7 +267,11 @@ components = {
             },
         ]
     },
-    # Mobile-friendly: gives touch players a labelled interact button.
+    # Mobile-friendly: a labelled interact button on a hired bodyguard, whatever
+    # the player happens to be holding.  Deliberately not filtered on holding
+    # the Contract - has_equipment matching a custom item id is not something
+    # the 1.21.0 docs promise, and this is the primary way a touch player gives
+    # orders, so it must not depend on it.
     "minecraft:interact": {
         "interactions": [
             {
@@ -275,12 +279,6 @@ components = {
                     "filters": all_of(
                         fam("player"),
                         {"test": "is_sneak_held", "subject": "other", "value": False},
-                        {
-                            "test": "has_equipment",
-                            "subject": "other",
-                            "domain": "hand",
-                            "value": "bg:contract",
-                        },
                         {"test": "has_component", "subject": "self", "value": "minecraft:is_tamed"},
                     ),
                     "event": "bg:command_panel",

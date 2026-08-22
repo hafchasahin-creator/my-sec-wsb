@@ -41,16 +41,15 @@ their head, and start following you.
 
 ## Commanding
 
-Hold the **Bodyguard Contract**:
-
-| What you tap | What happens |
+| What you long-press | What happens |
 | --- | --- |
-| Your bodyguard | Opens their command panel |
-| Empty air | Opens the squad panel for your whole detail |
-| A block | Summons a new recruit |
+| Your bodyguard, holding anything | Opens their command panel |
+| A block, holding the Contract | Summons a new recruit |
+| A block while sneaking, holding the Contract | Opens the squad panel |
+| Empty air, holding the Contract | Opens the squad panel |
 
-On touch controls, tapping a bodyguard while holding the Contract shows a **Command**
-button. Everything is a menu — no chat commands, no hidden gestures.
+On touch controls a hired bodyguard shows a **Command** button whenever you are near it,
+whatever you are holding. Everything is a menu — no chat commands, no hidden gestures.
 
 ### Modes
 

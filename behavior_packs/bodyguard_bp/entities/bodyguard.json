@@ -2198,12 +2198,6 @@
                     "value": false
                   },
                   {
-                    "test": "has_equipment",
-                    "subject": "other",
-                    "domain": "hand",
-                    "value": "bg:contract"
-                  },
-                  {
                     "test": "has_component",
                     "subject": "self",
                     "value": "minecraft:is_tamed"

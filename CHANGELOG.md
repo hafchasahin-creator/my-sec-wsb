@@ -33,8 +33,11 @@ published 1.21.0 data, script APIs against the `@minecraft/server` **1.11.0** ty
   equipment, rename, recall and dismiss.
 * A squad panel for the whole detail: per-bodyguard health, mode and distance, plus
   recall-all and set-all-modes.
-* Three ways in, all reachable with one thumb: tap a bodyguard with the Contract, tap
-  empty air with it, or use the **Command** button `minecraft:interact` puts on screen.
+* Four ways in, all reachable with one thumb: long-press a bodyguard with anything in
+  hand, long-press a block with the Contract to summon, sneak and long-press a block for
+  the squad panel, or long-press empty air. The **Command** button
+  `minecraft:interact` puts on screen does not depend on what you are holding, so it
+  cannot be broken by a filter that turns out not to match a custom item id.
 * Post settings for STAY and GUARD: move the post to where you stand, and set the guard
   radius between 4 and 32 blocks.
 * Name tags work: whatever you write becomes the codename, and the mode badge rebuilds
@@ -119,8 +122,9 @@ published 1.21.0 data, script APIs against the `@minecraft/server` **1.11.0** ty
 * `tools/verify_bedrock.py` checks every component and field against Mojang's published
   1.21.0 data; `tools/fetch_reference.py` downloads it.
 * `tools/test_scripts.mjs` runs the pack scripts against a stand-in for the 1.21.0
-  scripting API — 88 checks covering hiring, modes, posts, gear, combat, recovery,
-  dimensions, death, respawn, multiplayer refusal and the performance budget.
+  scripting API — 94 checks covering hiring, modes, posts, gear, combat, recovery,
+  dimensions, death, respawn, multiplayer refusal, the performance budget, and that the
+  update sweep reaches every bodyguard in a crowd.
 * `tools/preview_model.py` renders the model to a PNG so the art can be reviewed without
   launching the game.
 

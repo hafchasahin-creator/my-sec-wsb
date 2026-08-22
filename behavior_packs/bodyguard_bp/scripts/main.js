@@ -359,10 +359,18 @@ function resolve(id) {
   return alive(entity) ? entity : undefined;
 }
 
+const RECRUIT_LABEL = "§7Bodyguard Recruit §8(gold ingot to hire)";
+
 function track(entity) {
   if (!alive(entity) || entity.typeId !== ENTITY_ID) return;
   state(entity.id);
-  indexOwner(safe(() => entity.getDynamicProperty("bg:ownerName"), undefined), entity.id);
+  const owner = safe(() => entity.getDynamicProperty("bg:ownerName"), undefined);
+  indexOwner(owner, entity.id);
+  if (!owner && !safe(() => entity.nameTag, "")) {
+    safe(() => {
+      entity.nameTag = RECRUIT_LABEL;
+    });
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -461,7 +469,7 @@ function refreshName(guard) {
   const current = safe(() => guard.nameTag, "");
   if (current && current.indexOf("§8|") < 0) {
     const adopted = cleanName(current);
-    if (adopted && adopted !== "Bodyguard Recruit") {
+    if (adopted && adopted.indexOf("Bodyguard Recruit") !== 0) {
       safe(() => guard.setDynamicProperty("bg:codename", adopted));
     }
   }
@@ -892,6 +900,7 @@ function updateGuard(guard) {
 
     // Slow regeneration, roughly one point every three seconds.
     entry.regenCounter = (entry.regenCounter + 1) % 6;
+
     if (entry.regenCounter === 0 && now > entry.combatUntil + CONFIG.regen.delay * 20) {
       const health = getHealth(guard);
       if (health && health.currentValue < health.effectiveMax) {
@@ -940,14 +949,20 @@ system.runInterval(() => {
 
   const ids = Array.from(guards.keys());
   if (!ids.length) return;
-  if (cursor >= ids.length) cursor = 0;
 
   // Walk the registry round-robin, updating those that are due, and stop once
   // the per-run budget is spent.  A large population simply updates less often
   // rather than costing more per tick.
+  //
+  // `start` is captured before the sweep on purpose: computing the index from
+  // a cursor that the sweep itself moves makes the walk skip entries, and an
+  // entry that is always skipped is a bodyguard that never regenerates, never
+  // notices it is stuck, and never gets its badge back.
+  const start = cursor % ids.length;
+  let resume = start;
   let done = 0;
   for (let step = 0; step < ids.length && done < BUDGET.perTick; step++) {
-    const index = (cursor + step) % ids.length;
+    const index = (start + step) % ids.length;
     const id = ids[index];
     const guard = resolve(id);
     if (!guard) {
@@ -955,13 +970,13 @@ system.runInterval(() => {
       continue;
     }
     const entry = state(id);
+    resume = index + 1;
     if (now < entry.nextUpdateAt) continue;
     entry.nextUpdateAt = now + BUDGET.perGuard;
     done += 1;
-    cursor = index + 1;
     safe(() => updateGuard(guard));
   }
-  if (done === 0) cursor = (cursor + BUDGET.perTick) % ids.length;
+  cursor = resume % ids.length;
 }, BUDGET.interval);
 
 // --------------------------------------------------------------------------
@@ -1168,6 +1183,24 @@ world.afterEvents.entityHurt.subscribe((event) => {
   const source = event.damageSource;
   const attacker = source ? source.damagingEntity : undefined;
 
+  // Friendly fire from a bodyguard - most likely one of its own arrows -
+  // is refunded immediately.
+  if (
+    victim.typeId === "minecraft:player" &&
+    attacker &&
+    alive(attacker) &&
+    attacker.typeId === ENTITY_ID &&
+    isOwner(attacker, victim)
+  ) {
+    const health = getHealth(victim);
+    if (health) {
+      safe(() =>
+        health.setCurrentValue(Math.min(health.effectiveMax, health.currentValue + event.damage))
+      );
+    }
+    return;
+  }
+
   if (victim.typeId === ENTITY_ID) {
     const entry = state(victim.id);
     markCombat(victim, entry);
@@ -1283,9 +1316,17 @@ world.afterEvents.itemUseOn.subscribe((event) => {
   const player = event.source;
   const stack = event.itemStack;
   if (!player || !stack || stack.typeId !== CONTRACT_ID) return;
-  if (!gate(summonAt, player.id, 10)) return;
   const block = event.block;
   const face = event.blockFace;
+  // Sneaking turns the same press into the squad panel.  On touch controls
+  // this is the reliable way to reach it, since a tap in mid-air does not
+  // always register as an item use.
+  if (safe(() => player.isSneaking, false)) {
+    if (!gate(panelAt, player.id, 10)) return;
+    system.run(() => safe(() => openSquadPanel(player)));
+    return;
+  }
+  if (!gate(summonAt, player.id, 10)) return;
   system.run(() => safe(() => summonRecruit(player, block, face)));
 });
 
@@ -1357,7 +1398,7 @@ function summonRecruit(player, block, face) {
   state(recruit.id);
   safe(() => recruit.setDynamicProperty("bg:summonedBy", player.id));
   safe(() => {
-    recruit.nameTag = "§7Bodyguard Recruit";
+    recruit.nameTag = RECRUIT_LABEL;
   });
   particle(recruit, "bg:oath_seal", 1.0);
   playSound(recruit, "random.orb", 0.6, 1.0);
