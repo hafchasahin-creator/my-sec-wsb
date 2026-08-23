@@ -130,7 +130,25 @@ add_legs()
 #        |   EAST    |   NORTH   |   WEST    |   SOUTH   |  height sy
 #        +-----------+-----------+-----------+-----------+
 #
-# NORTH is the face the creature leads with, because the model faces -Z.
+# NORTH is the face the creature leads with, because Bedrock models face -Z.
+#
+# Both of those claims are checked, not assumed. Against Mojang's own assets at
+# tag v1.21.0.3 (github.com/Mojang/bedrock-samples):
+#
+#   * zombie.geo head is origin [-4,24,-4] size [8,8,8] at uv [0,0]. This
+#     formula puts NORTH at (8,8)-(16,16), and that rectangle of zombie.png is
+#     the zombie's face - brow, two eye sockets, mouth. The other three side
+#     slots are flat, featureless skin.
+#   * creeper.geo head, same dimensions and uv: NORTH lands exactly on the
+#     creeper's face.
+#   * pig.geo has a snout cube, origin [-2,9,-15] size [4,3,1] at uv [16,16].
+#     NORTH is a 4x3 rectangle at (17,17) holding the two nostrils, and SOUTH -
+#     the end buried inside the head - is fully transparent. The snout sits at
+#     the model's most negative Z, which is what fixes -Z as the front.
+#
+# Left/right is the one thing those samples cannot settle, because every head
+# checked is bilaterally symmetric. It does not matter here: the Bloatgrub is
+# symmetric too, and its EAST and WEST faces are painted from the same role.
 
 
 def uv_footprint(size):
