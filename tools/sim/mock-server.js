@@ -64,10 +64,14 @@ export const log = {
   removals: [],
   events: [],
   warnings: [],
+  // Call counters rather than records: these fire often enough that keeping
+  // every one would dwarf everything else in the log.
+  counts: { getEntities: 0, entitiesScanned: 0 },
   reset() {
     for (const key of Object.keys(this)) {
       if (Array.isArray(this[key])) this[key].length = 0;
     }
+    for (const key of Object.keys(this.counts)) this.counts[key] = 0;
   },
 };
 
@@ -340,10 +344,13 @@ export class Dimension {
     const entity = new Entity(typeId, this, location);
     this._add(entity);
     log.spawns.push({ typeId, location: { ...location }, id: entity.id });
+    this.world.afterEvents.entitySpawn.emit({ entity, cause: "Spawned" });
     return entity;
   }
 
   getEntities(options = {}) {
+    log.counts.getEntities++;
+    log.counts.entitiesScanned += this.entities.size;
     let found = [...this.entities];
     if (options.type) found = found.filter((e) => e.typeId === options.type);
     if (options.families) {
@@ -416,6 +423,7 @@ class World {
       entityDie: new Signal("entityDie"),
       entityHurt: new Signal("entityHurt"),
       entitySpawn: new Signal("entitySpawn"),
+      entityLoad: new Signal("entityLoad"),
       playerSpawn: new Signal("playerSpawn"),
       playerLeave: new Signal("playerLeave"),
     };

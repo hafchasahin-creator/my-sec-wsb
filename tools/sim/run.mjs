@@ -601,6 +601,69 @@ scenario("idle-world-is-quiet", () => {
   check("no errors", log.warnings.length === 0, JSON.stringify(log.warnings));
 });
 
+scenario("wanderer-is-still-found-after-the-scan-idles", () => {
+  // The proximity scan sleeps when no grub has been seen for a while. A grub
+  // that spawned far away, or came in on a chunk load the script never saw,
+  // must still be picked up by the periodic resync rather than being ignored
+  // forever.
+  const player = addPlayer("Unsuspecting");
+  const grub = player.dimension.spawnEntity(ENTITY, { x: 400, y: 64, z: 0 });
+
+  system.pump(600); // far longer than hunt.idleAfterTicks
+  check("nothing happened while it was miles away", !player.hasTag(TAG));
+
+  const before = log.counts.getEntities;
+  system.pump(100);
+  const idleRate = log.counts.getEntities - before;
+  check(
+    "and the scan had gone to sleep",
+    idleRate <= 6,
+    `${idleRate} queries over 100 idle ticks`
+  );
+
+  grub.location = { ...player.location };
+  system.pump(60); // three resync windows
+  check("but it is found once it arrives", player.hasTag(TAG), "never noticed");
+});
+
+scenario("scan-cost", () => {
+  // The hunt loop's entity query is the one thing in here that runs forever on
+  // every player, so its cost is worth a number rather than a shrug. 400 ticks
+  // is 20 seconds of game time.
+  const quiet = [];
+  for (let i = 0; i < 3; i++) addPlayer(`Quiet${i}`, { x: i * 40, y: 64, z: 0 });
+  // The script's scan gate is module state and survives reset(), so let it
+  // settle past hunt.idleAfterTicks before measuring - otherwise this reports
+  // whatever the previous scenario left behind.
+  system.pump(400);
+  log.reset();
+  system.pump(400);
+  quiet.push(log.counts.getEntities);
+  console.log(
+    `      empty world, 3 players, 20s: ${log.counts.getEntities} entity ` +
+      `queries (${(log.counts.getEntities / 3 / 20).toFixed(1)} per player per second)`
+  );
+
+  reset();
+  const hunted = addPlayer("Hunted");
+  for (let i = 0; i < 8; i++) {
+    hunted.dimension.spawnEntity(ENTITY, { x: 12 + i, y: 64, z: 0 });
+  }
+  log.reset();
+  system.pump(400);
+  console.log(
+    `      8 grubs nearby, 1 player, 20s: ${log.counts.getEntities} queries, ` +
+      `${log.counts.entitiesScanned} entities walked`
+  );
+
+  check(
+    "an empty world barely scans at all",
+    quiet[0] <= 3 * 12,
+    `${quiet[0]} queries for 3 players over 20 idle seconds`
+  );
+  check("no errors under load", log.warnings.length === 0, JSON.stringify(log.warnings));
+});
+
 /* ------------------------------------------------------------------ *
  * Run
  * ------------------------------------------------------------------ */

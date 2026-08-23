@@ -72,6 +72,13 @@ const CONFIG = {
   hunt: {
     intervalTicks: 4,
     scanRadius: 24,
+    // The proximity scan is the only thing in this add-on that runs forever on
+    // every player, so it does not run when there is nothing to find. It stays
+    // awake for idleAfterTicks past the last sighting of a grub, and takes one
+    // look every resyncTicks regardless, so a naturally spawned one wandering
+    // into range is still picked up within a couple of seconds.
+    idleAfterTicks: 200,
+    resyncTicks: 40,
     // A grub cannot latch until it has existed this long - you always get to
     // see it come at you.
     armTicks: 12,
@@ -408,6 +415,15 @@ const latchGrace = new Map();
 /** playerId -> tick until which a repeat itemUse is ignored */
 const useGuard = new Map();
 
+/** Tick a grub was last spawned, loaded or seen - gates the proximity scan. */
+let lastGrubSeen = -1e9;
+/** Tick the proximity scan last actually ran. */
+let lastScan = -1e9;
+
+function noticeGrub(tick) {
+  lastGrubSeen = tick;
+}
+
 function now() {
   try {
     return system.currentTick;
@@ -447,19 +463,21 @@ function pruneGrubState(tick) {
  * ------------------------------------------------------------------ */
 
 function spawnGrub(dimension, location, fallback) {
+  let grub;
   try {
-    return dimension.spawnEntity(ENTITY, location);
+    grub = dimension.spawnEntity(ENTITY, location);
   } catch {
     /* location was unloaded or inside a block - try the fallback */
   }
-  if (fallback) {
+  if (!grub && fallback) {
     try {
-      return dimension.spawnEntity(ENTITY, fallback);
+      grub = dimension.spawnEntity(ENTITY, fallback);
     } catch {
       return undefined;
     }
   }
-  return undefined;
+  if (grub) noticeGrub(now());
+  return grub;
 }
 
 function bindTo(grub, player, tick, armTicks) {
@@ -964,7 +982,13 @@ system.runInterval(() => {
 // 2. Hunting. Lunge, then get inside.
 system.runInterval(() => {
   const tick = now();
-  pruneGrubState(tick);
+
+  // Nothing to hunt with, nothing to scan for.
+  const quiet = tick - lastGrubSeen > CONFIG.hunt.idleAfterTicks;
+  const overdue = tick - lastScan >= CONFIG.hunt.resyncTicks;
+  if (quiet && !overdue) return;
+  lastScan = tick;
+  if (overdue) pruneGrubState(tick);
 
   for (const player of allPlayers()) {
     try {
@@ -977,6 +1001,8 @@ system.runInterval(() => {
         CONFIG.hunt.scanRadius,
         ENTITY
       );
+
+      if (grubs.length > 0) noticeGrub(tick);
 
       for (const grub of grubs) {
         if (!alive(grub)) continue;
@@ -1111,6 +1137,17 @@ world.afterEvents.entityDie.subscribe((event) => {
     console.warn(`[Bloatgrub] death handler failed: ${err}`);
   }
 });
+
+// A grub that spawns naturally, or rides in on a chunk load, wakes the scan
+// immediately rather than waiting for the next resync. Both signals exist in
+// @minecraft/server 1.11.0; the guard is for builds where they do not.
+for (const signal of ["entitySpawn", "entityLoad"]) {
+  safe(() =>
+    world.afterEvents[signal].subscribe((event) => {
+      if (event?.entity?.typeId === ENTITY) noticeGrub(now());
+    })
+  );
+}
 
 world.afterEvents.playerLeave.subscribe((event) => {
   const id = event.playerId;
