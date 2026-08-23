@@ -142,7 +142,7 @@ const CONFIG = {
 const FX = {
   squelch: ["mob.slime.squish", "mob.slime.attack"],
   chitter: ["mob.silverfish.say", "mob.spider.say"],
-  gnash: ["mob.silverfish.hurt", "mob.slime.attack"],
+  gnash: ["mob.silverfish.hit", "mob.slime.attack"],
   wake: ["mob.warden.nearby_closest", "mob.ghast.moan", "mob.silverfish.say"],
   burrow: ["mob.warden.angry", "mob.slime.big", "random.burp"],
   heartbeat: ["mob.warden.heartbeat", "mob.slime.small"],

@@ -262,6 +262,7 @@ resource_packs/
   bloatgrub_rp/            client entity, geometry, animations, entity texture, icons
   arcane_arsenal_rp/       6 item icons
 tools/
+  data/                    vanilla reference data extracted from bedrock-samples
   pixel.py                 stdlib RGBA PNG reader/writer shared by the generators
   gen_bloatgrub.py         model + entity texture + animations + icons, one pass
   gen_textures.py          Arcane Arsenal icons
@@ -352,6 +353,12 @@ Add `SIM_VERBOSE=1` to see each individual check, or pass a substring
   silently in game, since the handler still runs and its branch simply never fires
 - a tap-activated custom item with no `minecraft:interact_button` (see below), or an
   `interact_button` label with no matching `en_US.lang` entry
+- a sound id the engine does not know, checked against
+  `tools/data/vanilla_sound_ids.txt` — all 1375 sound events from Mojang's own
+  `bedrock-samples` at tag `v1.21.0.3`. `playSound` with a bad id neither throws nor
+  logs; it just plays nothing, so a typo deletes an effect with no way to notice from
+  inside the game. This check found `mob.silverfish.hurt` on its first run — the real id
+  is `mob.silverfish.hit`
 
 ---
 

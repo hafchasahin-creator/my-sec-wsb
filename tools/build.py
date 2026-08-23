@@ -24,6 +24,19 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pixel import read_png_size  # noqa: E402
 
 DIST = "dist"
+TOOLS = os.path.dirname(os.path.abspath(__file__))
+SOUND_IDS = os.path.join(TOOLS, "data", "vanilla_sound_ids.txt")
+
+
+def vanilla_sound_ids():
+    if not os.path.isfile(SOUND_IDS):
+        return set()
+    with open(SOUND_IDS, encoding="utf-8") as handle:
+        return {
+            line.strip()
+            for line in handle
+            if line.strip() and not line.startswith("#")
+        }
 
 ADDONS = [
     {
@@ -584,6 +597,54 @@ class Addon:
                     "pack defines"
                 )
 
+    # Dotted lowercase ids in a behaviour script are, in practice, sound
+    # events. Anything here that is genuinely not one goes in this set.
+    NOT_SOUND_IDS = frozenset()
+
+    def check_sound_ids(self):
+        """Catch a sound id the engine does not know.
+
+        playSound with an unknown id neither throws nor logs - it just plays
+        nothing - so a typo silently deletes an effect and no amount of testing
+        in game will tell you which one, or that there was one.
+        """
+        known = vanilla_sound_ids()
+        if not known:
+            return  # no reference list checked in; skip rather than guess
+
+        manifest = self.doc(self.bp, "manifest.json") or {}
+        entries = [
+            module["entry"]
+            for module in manifest.get("modules", [])
+            if module.get("type") == "script" and module.get("entry")
+        ]
+        pattern = re.compile(r"""["'`]([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)["'`]""")
+
+        for entry in entries:
+            path = os.path.join(self.bp, entry)
+            if not os.path.isfile(path):
+                continue
+            with open(path, encoding="utf-8") as handle:
+                source = handle.read()
+
+            reported = set()
+            for match in pattern.finditer(source):
+                sound = match.group(1)
+                if sound in known or sound in self.NOT_SOUND_IDS:
+                    continue
+                if sound in reported:
+                    continue
+                reported.add(sound)
+
+                stem = sound.split(".")[1] if "." in sound else sound
+                near = sorted(k for k in known if stem and stem in k)[:4]
+                hint = f" did you mean {near}?" if near else ""
+                line = source.count("\n", 0, match.start()) + 1
+                self.fail(
+                    f"{path}:{line}: '{sound}' is not a Bedrock 1.21.0 sound "
+                    f"event, so it would play nothing, silently.{hint}"
+                )
+
     def check_item_icon_sizes(self):
         for path in sorted(walk_files(os.path.join(self.rp, "textures", "items"), ".png")):
             try:
@@ -610,6 +671,7 @@ class Addon:
         self.check_recipes()
         self.check_entities()
         self.check_script_ids()
+        self.check_sound_ids()
         self.check_item_icon_sizes()
         self.check_item_names()
         return uuids
