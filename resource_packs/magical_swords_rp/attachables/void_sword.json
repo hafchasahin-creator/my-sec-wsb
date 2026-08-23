@@ -1,0 +1,43 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:attachable": {
+    "description": {
+      "identifier": "msword:void_sword",
+      "materials": {
+        "default": "entity_alphatest",
+        "glow": "entity_emissive",
+        "enchanted": "entity_alphatest_glint"
+      },
+      "textures": {
+        "default": "textures/attachables/void_sword",
+        "glow": "textures/attachables/void_energy",
+        "enchanted": "textures/misc/enchanted_item_glint"
+      },
+      "geometry": {
+        "default": "geometry.msword.void"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.msword_scroll = 0.1;"
+        ],
+        "animate": [
+          "wield"
+        ]
+      },
+      "animations": {
+        "wield": "controller.animation.msword.void.wield",
+        "first_person_hold": "animation.msword.void.first_person_hold",
+        "third_person_hold": "animation.msword.void.third_person_hold",
+        "idle": "animation.msword.void.idle"
+      },
+      "particle_effects": {
+        "ambient": "msword:void_wisp",
+        "ambient_tip": "msword:void_wisp"
+      },
+      "render_controllers": [
+        "controller.render.msword_base",
+        "controller.render.msword_glow"
+      ]
+    }
+  }
+}

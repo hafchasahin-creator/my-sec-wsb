@@ -1,0 +1,86 @@
+{
+  "format_version": "1.20.20",
+  "sound_definitions": {
+    "msword.equip": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/msword/equip",
+          "volume": 0.7
+        }
+      ]
+    },
+    "msword.inferno.cyclone": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/msword/inferno_cyclone",
+          "volume": 1.0
+        }
+      ]
+    },
+    "msword.frost.wave": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/msword/frost_wave",
+          "volume": 1.0
+        }
+      ]
+    },
+    "msword.thunder.skyfall": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/msword/thunder_skyfall",
+          "volume": 1.0
+        }
+      ]
+    },
+    "msword.thunder.crackle": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/msword/thunder_crackle",
+          "volume": 0.8
+        }
+      ]
+    },
+    "msword.void.slash": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/msword/void_slash",
+          "volume": 1.0
+        }
+      ]
+    },
+    "msword.void.blink": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/msword/void_blink",
+          "volume": 0.9
+        }
+      ]
+    },
+    "msword.celestial.slash": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/msword/celestial_slash",
+          "volume": 1.0
+        }
+      ]
+    },
+    "msword.celestial.nova": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/msword/celestial_nova",
+          "volume": 1.0
+        }
+      ]
+    }
+  }
+}

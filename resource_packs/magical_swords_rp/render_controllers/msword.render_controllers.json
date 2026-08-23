@@ -1,0 +1,60 @@
+{
+  "format_version": "1.10.0",
+  "render_controllers": {
+    "controller.render.msword_base": {
+      "geometry": "Geometry.default",
+      "part_visibility": [
+        {
+          "*": true
+        },
+        {
+          "energy": false
+        },
+        {
+          "orbitals": false
+        }
+      ],
+      "materials": [
+        {
+          "*": "variable.is_enchanted ? material.enchanted : material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default",
+        "Texture.enchanted"
+      ]
+    },
+    "controller.render.msword_glow": {
+      "geometry": "Geometry.default",
+      "part_visibility": [
+        {
+          "*": false
+        },
+        {
+          "energy": true
+        },
+        {
+          "orbitals": true
+        }
+      ],
+      "materials": [
+        {
+          "*": "material.glow"
+        }
+      ],
+      "textures": [
+        "Texture.glow"
+      ],
+      "uv_anim": {
+        "offset": [
+          "q.life_time * variable.msword_scroll",
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0
+        ]
+      }
+    }
+  }
+}

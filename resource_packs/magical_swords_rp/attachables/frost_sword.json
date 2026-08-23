@@ -1,0 +1,43 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:attachable": {
+    "description": {
+      "identifier": "msword:frost_sword",
+      "materials": {
+        "default": "entity_alphatest",
+        "glow": "entity_emissive",
+        "enchanted": "entity_alphatest_glint"
+      },
+      "textures": {
+        "default": "textures/attachables/frost_sword",
+        "glow": "textures/attachables/frost_energy",
+        "enchanted": "textures/misc/enchanted_item_glint"
+      },
+      "geometry": {
+        "default": "geometry.msword.frost"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.msword_scroll = 0.05;"
+        ],
+        "animate": [
+          "wield"
+        ]
+      },
+      "animations": {
+        "wield": "controller.animation.msword.frost.wield",
+        "first_person_hold": "animation.msword.frost.first_person_hold",
+        "third_person_hold": "animation.msword.frost.third_person_hold",
+        "idle": "animation.msword.frost.idle"
+      },
+      "particle_effects": {
+        "ambient": "msword:frost_aura",
+        "ambient_tip": "msword:frost_aura"
+      },
+      "render_controllers": [
+        "controller.render.msword_base",
+        "controller.render.msword_glow"
+      ]
+    }
+  }
+}

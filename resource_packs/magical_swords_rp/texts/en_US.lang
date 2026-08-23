@@ -1,0 +1,15 @@
+## Magical Swords - English (US)
+
+pack.name=Magical Swords RP
+pack.description=Models, animations, particles, sounds and textures for the Magical Swords.
+
+item.msword:inferno_sword=Inferno Sword
+item.msword:inferno_sword.name=Inferno Sword
+item.msword:frost_sword=Frost Sword
+item.msword:frost_sword.name=Frost Sword
+item.msword:thunder_sword=Thunder Sword
+item.msword:thunder_sword.name=Thunder Sword
+item.msword:void_sword=Void Sword
+item.msword:void_sword.name=Void Sword
+item.msword:celestial_sword=Celestial Sword
+item.msword:celestial_sword.name=Celestial Sword

@@ -1,0 +1,26 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "msword:thunder_sword"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [
+      " L ",
+      " D ",
+      " S "
+    ],
+    "key": {
+      "L": { "item": "minecraft:lightning_rod" },
+      "D": { "item": "minecraft:diamond" },
+      "S": { "item": "minecraft:stick" }
+    },
+    "unlock": [
+      { "context": "AlwaysUnlocked" }
+    ],
+    "result": {
+      "item": "msword:thunder_sword",
+      "count": 1
+    }
+  }
+}

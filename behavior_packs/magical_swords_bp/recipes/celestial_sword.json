@@ -1,0 +1,27 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "msword:celestial_sword"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [
+      "ANA",
+      " D ",
+      " R "
+    ],
+    "key": {
+      "A": { "item": "minecraft:amethyst_shard" },
+      "N": { "item": "minecraft:nether_star" },
+      "D": { "item": "minecraft:diamond_block" },
+      "R": { "item": "minecraft:blaze_rod" }
+    },
+    "unlock": [
+      { "context": "AlwaysUnlocked" }
+    ],
+    "result": {
+      "item": "msword:celestial_sword",
+      "count": 1
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Magical Swords BP",
+    "description": "Five magical swords with animated blades, particle auras and touch-friendly special abilities. Behavior Pack.",
+    "uuid": "6bcdaa0d-a4ac-4538-a43b-aa4b600dac6e",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "da35b246-fb1e-4ef2-a115-7b0030f1a555",
+      "version": [1, 0, 0]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "9a75b7b7-4bc3-470b-bd7a-5eb792bb590f",
+      "version": [1, 0, 0]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "6c21b006-47b2-442b-b677-45cc1c28ed9c",
+      "version": [1, 0, 0]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": ["Magical Swords"],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

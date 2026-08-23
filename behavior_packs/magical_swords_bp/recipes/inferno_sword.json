@@ -1,0 +1,26 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "msword:inferno_sword"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [
+      " F ",
+      " M ",
+      " R "
+    ],
+    "key": {
+      "F": { "item": "minecraft:fire_charge" },
+      "M": { "item": "minecraft:magma" },
+      "R": { "item": "minecraft:blaze_rod" }
+    },
+    "unlock": [
+      { "context": "AlwaysUnlocked" }
+    ],
+    "result": {
+      "item": "msword:inferno_sword",
+      "count": 1
+    }
+  }
+}

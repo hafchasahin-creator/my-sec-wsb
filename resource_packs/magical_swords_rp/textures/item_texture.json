@@ -1,0 +1,21 @@
+{
+  "resource_pack_name": "magical_swords",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "msword_inferno": {
+      "textures": "textures/items/inferno_sword"
+    },
+    "msword_frost": {
+      "textures": "textures/items/frost_sword"
+    },
+    "msword_thunder": {
+      "textures": "textures/items/thunder_sword"
+    },
+    "msword_void": {
+      "textures": "textures/items/void_sword"
+    },
+    "msword_celestial": {
+      "textures": "textures/items/celestial_sword"
+    }
+  }
+}

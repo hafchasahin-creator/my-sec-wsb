@@ -1,0 +1,43 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:attachable": {
+    "description": {
+      "identifier": "msword:inferno_sword",
+      "materials": {
+        "default": "entity_alphatest",
+        "glow": "entity_emissive",
+        "enchanted": "entity_alphatest_glint"
+      },
+      "textures": {
+        "default": "textures/attachables/inferno_sword",
+        "glow": "textures/attachables/inferno_energy",
+        "enchanted": "textures/misc/enchanted_item_glint"
+      },
+      "geometry": {
+        "default": "geometry.msword.inferno"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.msword_scroll = 0.22;"
+        ],
+        "animate": [
+          "wield"
+        ]
+      },
+      "animations": {
+        "wield": "controller.animation.msword.inferno.wield",
+        "first_person_hold": "animation.msword.inferno.first_person_hold",
+        "third_person_hold": "animation.msword.inferno.third_person_hold",
+        "idle": "animation.msword.inferno.idle"
+      },
+      "particle_effects": {
+        "ambient": "msword:inferno_aura",
+        "ambient_tip": "msword:inferno_aura"
+      },
+      "render_controllers": [
+        "controller.render.msword_base",
+        "controller.render.msword_glow"
+      ]
+    }
+  }
+}

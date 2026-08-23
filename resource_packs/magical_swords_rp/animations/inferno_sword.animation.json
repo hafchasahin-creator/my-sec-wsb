@@ -1,0 +1,74 @@
+{
+  "format_version": "1.10.0",
+  "animations": {
+    "animation.msword.inferno.first_person_hold": {
+      "loop": true,
+      "bones": {
+        "sword": {
+          "position": [
+            -4.0,
+            0.0,
+            -1.0
+          ],
+          "rotation": [
+            130.0,
+            -8.0,
+            18.0
+          ]
+        }
+      }
+    },
+    "animation.msword.inferno.third_person_hold": {
+      "loop": true,
+      "bones": {
+        "sword": {
+          "position": [
+            1.0,
+            -1.5,
+            -7.0
+          ],
+          "rotation": [
+            75.0,
+            0.0,
+            -45.0
+          ]
+        }
+      }
+    },
+    "animation.msword.inferno.idle": {
+      "loop": true,
+      "animation_length": 1.6,
+      "bones": {
+        "energy": {
+          "position": [
+            0,
+            "math.sin(q.life_time * 220.0) * 0.28",
+            0
+          ],
+          "scale": [
+            "1.0 + math.sin(q.life_time * 300.0) * 0.04",
+            "1.0 + math.sin(q.life_time * 300.0 + 90.0) * 0.03",
+            1.0
+          ]
+        },
+        "blade": {
+          "rotation": [
+            0,
+            0,
+            "math.sin(q.life_time * 140.0) * 0.8"
+          ]
+        }
+      },
+      "particle_effects": {
+        "0.0": {
+          "effect": "ambient",
+          "locator": "particle_mid"
+        },
+        "0.8": {
+          "effect": "ambient_tip",
+          "locator": "particle_tip"
+        }
+      }
+    }
+  }
+}

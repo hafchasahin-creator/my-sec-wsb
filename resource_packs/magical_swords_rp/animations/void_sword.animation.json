@@ -1,0 +1,86 @@
+{
+  "format_version": "1.10.0",
+  "animations": {
+    "animation.msword.void.first_person_hold": {
+      "loop": true,
+      "bones": {
+        "sword": {
+          "position": [
+            -4.0,
+            0.0,
+            -1.0
+          ],
+          "rotation": [
+            130.0,
+            -8.0,
+            18.0
+          ]
+        }
+      }
+    },
+    "animation.msword.void.third_person_hold": {
+      "loop": true,
+      "bones": {
+        "sword": {
+          "position": [
+            1.0,
+            -1.5,
+            -7.0
+          ],
+          "rotation": [
+            75.0,
+            0.0,
+            -45.0
+          ]
+        }
+      }
+    },
+    "animation.msword.void.idle": {
+      "loop": true,
+      "animation_length": 1.6,
+      "bones": {
+        "energy": {
+          "position": [
+            0,
+            "math.sin(q.life_time * 220.0) * 0.28",
+            0
+          ],
+          "scale": [
+            "1.0 + math.sin(q.life_time * 300.0) * 0.04",
+            "1.0 + math.sin(q.life_time * 300.0 + 90.0) * 0.03",
+            1.0
+          ]
+        },
+        "blade": {
+          "rotation": [
+            0,
+            0,
+            "math.sin(q.life_time * 140.0) * 0.8"
+          ]
+        },
+        "orbitals": {
+          "rotation": [
+            0,
+            "q.life_time * 150.0",
+            0
+          ],
+          "position": [
+            0,
+            "math.sin(q.life_time * 180.0) * 0.5",
+            0
+          ]
+        }
+      },
+      "particle_effects": {
+        "0.0": {
+          "effect": "ambient",
+          "locator": "particle_mid"
+        },
+        "0.8": {
+          "effect": "ambient_tip",
+          "locator": "particle_tip"
+        }
+      }
+    }
+  }
+}
