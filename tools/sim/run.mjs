@@ -375,6 +375,59 @@ scenario("infestation-runs-then-detonates", () => {
   check("the original mob never came back", !grub.isValid);
 });
 
+scenario("the countdown keeps to its documented timetable", () => {
+  // The README publishes the stage times and the total. This measures them off
+  // the running script rather than trusting the table, so retuning CONFIG
+  // without updating the docs fails here.
+  const player = addPlayer("Clock");
+  const grub = player.dimension.spawnEntity(ENTITY, { ...player.location });
+
+  let burrowedAt = -1;
+  let blastAt = -1;
+  let seen = log.actionBars.length;
+  const marks = [];
+  for (let i = 0; i < 400 && blastAt < 0; i++) {
+    system.pump(1);
+    if (burrowedAt < 0 && player.hasTag(TAG)) burrowedAt = system.currentTick;
+    while (seen < log.actionBars.length) {
+      marks.push(system.currentTick);
+      seen++;
+    }
+    if (log.explosions.length) blastAt = system.currentTick;
+  }
+
+  check("it got in", burrowedAt > 0, "never burrowed");
+  const stages = marks
+    .filter((tick) => tick >= burrowedAt)
+    .map((tick) => (tick - burrowedAt) / 20);
+  const blast = (blastAt - burrowedAt) / 20;
+  console.log(
+    `      stages at ${stages.map((t) => t.toFixed(1)).join("s, ")}s; ` +
+      `blast at ${blast.toFixed(1)}s`
+  );
+
+  // The infest loop ticks every 2 ticks, so 0.1s of quantisation is expected.
+  const documented = [0.0, 2.2, 4.6, 7.3, 9.6];
+  check(
+    `${documented.length} stages, as documented`,
+    stages.length === documented.length,
+    `saw ${stages.length}: ${stages.map((t) => t.toFixed(1)).join(", ")}`
+  );
+  for (let i = 0; i < Math.min(stages.length, documented.length); i++) {
+    check(
+      `stage ${i + 1} lands at the documented ${documented[i]}s`,
+      Math.abs(stages[i] - documented[i]) <= 0.3,
+      `at ${stages[i].toFixed(2)}s`
+    );
+  }
+  check(
+    "and the blast lands at the documented 11s",
+    Math.abs(blast - 11.0) <= 0.3,
+    `at ${blast.toFixed(2)}s`
+  );
+  check("the mob was consumed getting in", !grub.isValid);
+});
+
 scenario("bites-never-steal-the-kill", () => {
   const player = addPlayer("Fragile");
   player.health.current = 3; // one bite would normally finish them

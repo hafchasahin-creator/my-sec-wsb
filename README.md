@@ -43,12 +43,14 @@ Carrying it is the mistake.
 
 ## The four beats
 
-**1. It waits in your bag.** Every second a dormant grub is in your inventory it gets
-more restless: wet noises, a nudge on the action bar, then it starts biting through the
-bag for 1 damage at a time. Somewhere between roughly 90 and 240 restlessness points —
-randomised, and counted *per grub*, so a stack wakes far sooner than one — it uncurls,
-eats itself out of your inventory, and drops onto your shoulders. You can also just
-**tap it** to let it out deliberately; used bare-handed it fixates on you for 30 seconds.
+**1. It waits in your bag.** Every second a dormant grub is in your inventory it gets one
+point more restless — counted *per grub*, so a stack climbs several times faster. Past 45
+it starts making wet noises and biting through the bag: 1 damage, at most once every 6
+seconds, and never below 6 hearts, because being chewed to death by your own backpack
+before anything happens is not the joke. Somewhere between 90 and 240 points, randomised
+— **1.5 to 4 minutes** for a single grub — it uncurls, eats itself out of your inventory,
+and drops onto your shoulders. You can also just **tap it** to let it out deliberately;
+used bare-handed it fixates on you for 30 seconds.
 
 **2. It jumps on you.** Once loose it hunts. Inside 5.5 blocks it launches itself at your
 chest every 1.3 seconds — a real physics lunge on top of the vanilla leap behaviour, so
@@ -59,16 +61,15 @@ means you always get to see it coming.
 burst of gore, a camera shake, and `IT IS INSIDE YOU` across the screen. Now you have
 **11 seconds**, and they are staged:
 
-| Time | What you get |
-| --- | --- |
-| 0.0s | Nausea. *"Something went in under your skin."* |
-| 2.2s | Nausea + Slowness, bites start (2 damage) |
-| 4.6s | Nausea II + Weakness, 3 damage. **IT IS EATING** |
-| 7.3s | + Blindness + Mining Fatigue, 4 damage. Your ribs creak |
-| 9.6s | + Darkness, Slowness III, 5 damage. **IT IS SWELLING** |
+| Time | Heartbeat | Bite | Effects |
+| --- | --- | --- | --- |
+| 0.0s | every 26 ticks | — | Nausea II. *"Something went in under your skin."* |
+| 2.2s | every 20 ticks | 2 | Nausea II, Slowness I |
+| 4.6s | every 14 ticks | 3 | Nausea III, Weakness II. **IT IS EATING** |
+| 7.3s | every 9 ticks | 4 | Nausea III, Weakness II, Mining Fatigue II, Blindness I |
+| 9.6s | every 5 ticks | 5 | Nausea IV, Slowness III, Darkness I. **IT IS SWELLING** |
 
-A heartbeat plays underneath the whole thing, starting every 26 ticks and accelerating to
-every 5. The camera shake grows with it. Damage from inside uses the `magic` cause, so
+The camera shake grows with the heartbeat. Damage from inside uses the `magic` cause, so
 **armour does not help you**, and by default the bites deliberately stop at 1 HP — the
 grub wants the kill for itself.
 
@@ -148,6 +149,9 @@ Every number above sits in the `CONFIG` object at the top of
 | `blast.lethal` | `true` | Turn off for a survivable (still brutal) version |
 | `carry.minAgitationToWake` | `90` | How long a dormant grub stays quiet |
 | `carry.creativeImmune` | `true` | Creative players are ignored |
+| `carry.biteFloorHealth` | `6` | Bag bites never take you below this |
+| `hunt.leapRadius` | `5.5` | How far off it starts pouncing |
+| `jar.maskTicks` | `200` | How long the jar's fumes hide the thrower |
 
 Re-run `python3 tools/build.py` after editing.
 

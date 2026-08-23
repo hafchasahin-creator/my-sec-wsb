@@ -130,6 +130,13 @@ const CONFIG = {
     graceTicks: 300,
   },
 
+  jar: {
+    // How far the jar throws it, and how long its fumes keep the thrower off
+    // the menu afterwards.
+    throwDistance: 2.6,
+    maskTicks: 200,
+  },
+
   serum: {
     // Cutting it out costs you, but it always leaves you standing.
     selfDamage: 7,
@@ -563,11 +570,12 @@ function releaseFromJar(player) {
     view = player.getViewDirection();
   });
 
+  const reach = CONFIG.jar.throwDistance;
   const spot = offset(
     player.location,
-    view.x * 2.6,
+    view.x * reach,
     1.3 + view.y * 1.5,
-    view.z * 2.6
+    view.z * reach
   );
   const grub = spawnGrub(dimension, spot, offset(player.location, 0, 1, 0));
   if (!grub) {
@@ -580,7 +588,7 @@ function releaseFromJar(player) {
     grub.applyImpulse({ x: view.x * 1.1, y: 0.35 + view.y * 0.4, z: view.z * 1.1 })
   );
 
-  latchGrace.set(player.id, tick + CONFIG.serum.graceTicks);
+  latchGrace.set(player.id, tick + CONFIG.jar.maskTicks);
   sound(dimension, FX.chitter, spot);
   sound(dimension, FX.jarBreak, player.location);
   particle(dimension, PFX.ooze, spot);
