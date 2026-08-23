@@ -1,0 +1,31 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "grub:grub_jar",
+      "menu_category": {
+        "category": "nature"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "grub_jar"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Sealed Grub Jar"
+      },
+      "minecraft:max_stack_size": 8,
+      "minecraft:hand_equipped": false,
+      "minecraft:glint": false,
+      "minecraft:use_modifiers": {
+        "use_duration": 0.4,
+        "movement_modifier": 1.0
+      },
+      "minecraft:tags": {
+        "tags": ["grub:parasite", "grub:containment"]
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "grub:dormant_bloatgrub",
+      "menu_category": {
+        "category": "nature"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "dormant_bloatgrub"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Bloatgrub (Dormant)"
+      },
+      "minecraft:max_stack_size": 4,
+      "minecraft:hand_equipped": false,
+      "minecraft:glint": false,
+      "minecraft:use_modifiers": {
+        "use_duration": 0.6,
+        "movement_modifier": 0.85
+      },
+      "minecraft:tags": {
+        "tags": ["grub:parasite", "grub:live_specimen"]
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "grub:purge_serum"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [
+      " I ",
+      "FMF",
+      " B "
+    ],
+    "key": {
+      "I": { "item": "minecraft:iron_ingot" },
+      "F": { "item": "minecraft:fermented_spider_eye" },
+      "M": { "item": "minecraft:glistering_melon_slice" },
+      "B": { "item": "minecraft:glass_bottle" }
+    },
+    "unlock": [
+      { "item": "minecraft:glass_bottle" }
+    ],
+    "result": {
+      "item": "grub:purge_serum",
+      "count": 2
+    }
+  }
+}

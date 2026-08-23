@@ -1,0 +1,25 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "grub:grub_jar"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [
+      "GGG",
+      "GDG",
+      "GGG"
+    ],
+    "key": {
+      "G": { "item": "minecraft:glass" },
+      "D": { "item": "grub:dormant_bloatgrub" }
+    },
+    "unlock": [
+      { "item": "grub:dormant_bloatgrub" }
+    ],
+    "result": {
+      "item": "grub:grub_jar",
+      "count": 1
+    }
+  }
+}

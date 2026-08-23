@@ -1,0 +1,15 @@
+{
+  "resource_pack_name": "bloatgrub",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "dormant_bloatgrub": {
+      "textures": "textures/items/dormant_bloatgrub"
+    },
+    "grub_jar": {
+      "textures": "textures/items/grub_jar"
+    },
+    "purge_serum": {
+      "textures": "textures/items/purge_serum"
+    }
+  }
+}

@@ -1,14 +1,155 @@
-# Arcane Arsenal
+# Minecraft Bedrock add-ons
 
-A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six
-legendary weapons with scripted magic effects.
+Two self-contained add-ons for **Minecraft Bedrock Edition**, built and tested against
+the format versions available in **Bedrock 1.21.0** — the build in the screenshot this
+repo was started from (`1.21.0.26`, Android / Pocket Edition).
 
-Built and tested against the format versions available in **Bedrock 1.21.0** — the build
-running in the attached screenshot (`1.21.0.26`, Android / Pocket Edition). It uses only
-**stable** item components and the **stable** `@minecraft/server 1.11.0` scripting module,
-so **no experimental toggles are required** and it works on phones and tablets.
+Both use only **stable** components and the **stable** `@minecraft/server 1.11.0`
+scripting module, so **no experimental toggles are required** and both work on phones
+and tablets.
+
+| Add-on | What it is | Download |
+| --- | --- | --- |
+| **[Bloatgrub](#bloatgrub)** | A parasite that lives in your inventory, leaps at you, burrows in, and detonates | `dist/Bloatgrub.mcaddon` |
+| **[Arcane Arsenal](#arcane-arsenal)** | Six legendary weapons with scripted magic effects | `dist/ArcaneArsenal.mcaddon` |
+
+They share nothing but the build tooling, so you can install either one on its own.
 
 ---
+
+# Bloatgrub
+
+> Something you can pick up. Something you should not.
+
+A **Bloatgrub** is a pale, bloated, six-legged thing with a ring of teeth where its face
+should be and one filmy eye that never blinks. Kill one and it curls up into a **dormant
+grub** you can carry.
+
+Carrying it is the mistake.
+
+```
+   dormant grub in your inventory
+        |  you use it, or it simply gets tired of waiting
+        v
+   live grub on the ground  --leap-->  latched onto you
+        |                                   |
+        |  you kill it                      |  it burrows in
+        v                                   v
+   dormant grub drops                  INFESTED (a timer you can hear)
+                                            |
+                          purge serum <-----+-----> detonation
+                          (survive, hurt)          (you die, brood hatches)
+```
+
+## The four beats
+
+**1. It waits in your bag.** Every second a dormant grub is in your inventory it gets
+more restless: wet noises, a nudge on the action bar, then it starts biting through the
+bag for 1 damage at a time. Somewhere between roughly 90 and 240 restlessness points —
+randomised, and counted *per grub*, so a stack wakes far sooner than one — it uncurls,
+eats itself out of your inventory, and drops onto your shoulders. You can also just
+**tap it** to let it out deliberately; used bare-handed it fixates on you for 30 seconds.
+
+**2. It jumps on you.** Once loose it hunts. Inside 5.5 blocks it launches itself at your
+chest every 1.3 seconds — a real physics lunge on top of the vanilla leap behaviour, so
+it comes at you through the air. It cannot latch during its first 12 ticks alive, which
+means you always get to see it coming.
+
+**3. It goes inside you.** Get within 1.75 blocks and it is gone — no more mob, just a
+burst of gore, a camera shake, and `IT IS INSIDE YOU` across the screen. Now you have
+**11 seconds**, and they are staged:
+
+| Time | What you get |
+| --- | --- |
+| 0.0s | Nausea. *"Something went in under your skin."* |
+| 2.2s | Nausea + Slowness, bites start (2 damage) |
+| 4.6s | Nausea II + Weakness, 3 damage. **IT IS EATING** |
+| 7.3s | + Blindness + Mining Fatigue, 4 damage. Your ribs creak |
+| 9.6s | + Darkness, Slowness III, 5 damage. **IT IS SWELLING** |
+
+A heartbeat plays underneath the whole thing, starting every 26 ticks and accelerating to
+every 5. The camera shake grows with it. Damage from inside uses the `magic` cause, so
+**armour does not help you**, and by default the bites deliberately stop at 1 HP — the
+grub wants the kill for itself.
+
+**4. It blasts.** A radius-3 explosion out of your chest, 8 guaranteed splash damage to
+everything within 4 blocks, and a kill that goes through resistance. Then **two fresh
+grubs** crawl out of the crater, and chat reads:
+
+```
+<name> was hollowed out by a Bloatgrub.
+```
+
+## Surviving it
+
+**Purge Serum** is the only real answer, and you need it *before* you get infested — you
+have 11 seconds, not enough time to open a crafting table.
+
+- Tapping it while infested rips the grub out: **7 damage** (never lethal), Nausea III,
+  Poison, Slowness and Weakness for a while, and the grub lands next to you **enraged**
+  (faster, 6 damage). You get 10 seconds where nothing can re-enter you.
+- Tapping it when nothing is inside you just wastes the dose.
+
+Other outs: dying to something else robs it of its meal, respawning always comes back
+clean, and `/tag @s remove grub_infested` plus a re-login is the emergency stop.
+
+**Creative mode is immune** by default — you can carry, build and test with dormant grubs
+safely. Set `CONFIG.carry.creativeImmune` to `false` if you would rather not be.
+
+## Items
+
+| Item | How you get it | What tapping it does |
+| --- | --- | --- |
+| **Bloatgrub (Dormant)** | 60% drop from killing a Bloatgrub | Lets it out; it fixates on **you** |
+| **Sealed Grub Jar** | 8 × Glass around 1 dormant grub | Throws it 2.6 blocks away and masks your scent for 10 seconds |
+| **Purge Serum** ×2 | Iron Ingot / Fermented Spider Eye + Glistering Melon Slice + Fermented Spider Eye / Glass Bottle | Cuts an infestation out of you |
+
+The jar is the safe way to move one around, and the only sane way to weaponise one
+against something that is not you.
+
+## The animal itself
+
+14 HP, 4 melee damage, moves at 0.32 (a little faster than a zombie), climbs nothing,
+avoids water, and takes **double damage from fire** — a soft body under a thin shell.
+Grubs never hurt each other. When one dies there is a 20% chance it bursts and leaves a
+replacement, unless three or more are already within 16 blocks.
+
+They also **spawn naturally**, but rarely: underground only, light level 0–4, below
+Y 16, Easy difficulty and up, weight 3, at most 2 per area, in overworld biomes. To turn
+that off entirely, delete
+`behavior_packs/bloatgrub_bp/spawn_rules/bloatgrub.json` and rebuild.
+
+```
+/give @s grub:dormant_bloatgrub
+/give @s grub:grub_jar
+/give @s grub:purge_serum
+/summon grub:bloatgrub
+```
+
+## Tuning it
+
+Every number above sits in the `CONFIG` object at the top of
+`behavior_packs/bloatgrub_bp/scripts/main.js`. The knobs most people want:
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `infest.totalTicks` | `220` | Seconds × 20 from burrow to blast |
+| `infest.useHeavyScreenEffects` | `true` | Blindness and Darkness during the late stages |
+| `infest.bitesCanKill` | `false` | Whether internal bites can finish you before the blast |
+| `blast.breaksBlocks` | `true` | Whether the detonation wrecks terrain |
+| `blast.brood` | `2` | Grubs that hatch from the crater |
+| `blast.lethal` | `true` | Turn off for a survivable (still brutal) version |
+| `carry.minAgitationToWake` | `90` | How long a dormant grub stays quiet |
+| `carry.creativeImmune` | `true` | Creative players are ignored |
+
+Re-run `python3 tools/build.py` after editing.
+
+---
+
+# Arcane Arsenal
+
+A behaviour pack + resource pack that adds six legendary weapons with scripted magic
+effects.
 
 ## The weapons
 
@@ -42,53 +183,6 @@ They all appear in the creative **Equipment** tab next to the swords.
 
 ---
 
-## Installing on mobile (Android / Pocket Edition)
-
-1. Download **`dist/ArcaneArsenal.mcaddon`** onto the device.
-2. Tap the file. Minecraft opens and imports both packs automatically.
-3. Create or edit a world → **Behavior Packs** → activate **Arcane Arsenal BP**.
-   The resource pack is pulled in automatically as a dependency; if it is not, activate
-   **Arcane Arsenal RP** under **Resource Packs** too.
-4. Leave every experimental toggle **off** — none are needed.
-
-If tapping the file does not open Minecraft, rename it to `ArcaneArsenal.zip`, then use a
-file manager to copy the two inner folders into:
-
-```
-Android/data/com.mojang.minecraftpe/files/games/com.mojang/behavior_packs/arcane_arsenal_bp
-Android/data/com.mojang.minecraftpe/files/games/com.mojang/resource_packs/arcane_arsenal_rp
-```
-
-On Windows the same folders live under
-`%localappdata%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang\`.
-
-### Updating from v1.0.0
-
-v1.0.0 shipped with invisible item icons. If you already installed it:
-
-1. In Minecraft go to **Settings → Storage → Resource Packs / Behavior Packs** (or the
-   global **Profile → Packs** screen), find the two Arcane Arsenal packs and **delete**
-   both. This matters — the old copy is cached, and importing over it can keep the broken
-   textures.
-2. Import the new `ArcaneArsenal.mcaddon` (now version 1.0.1).
-3. Re-activate both packs on your world.
-
-### Checking it is actually working
-
-When you spawn into a world with the behaviour pack active, chat shows:
-
-```
-[Arcane Arsenal] v1.0.1 loaded - 6 weapons armed.
-```
-
-If that line does **not** appear, the behaviour pack's scripts are not running, and no
-weapon effect will fire. If it does appear but a weapon looks wrong, the problem is on the
-resource-pack side instead.
-
-To see exactly what the game thinks is wrong, turn on
-**Settings → Creator → Content Log GUI** (and "Content Log File"). It names the pack and
-file for any load error.
-
 ### Getting the weapons quickly
 
 ```
@@ -106,48 +200,115 @@ Both the Stormcaller and the Meteor Staff carry a use duration, so holding one m
 **use button** appear on the right of the HUD. Aim at a block or mob and tap it. If nothing
 is in range the spell lands where your view meets the ground, up to 40–48 blocks out.
 
+### Updating from v1.0.0
+
+v1.0.0 shipped with invisible item icons. If you already installed it:
+
+1. In Minecraft go to **Settings → Storage → Resource Packs / Behavior Packs** (or the
+   global **Profile → Packs** screen), find the two Arcane Arsenal packs and **delete**
+   both. This matters — the old copy is cached, and importing over it can keep the broken
+   textures.
+2. Import the new `ArcaneArsenal.mcaddon` (now version 1.0.1).
+3. Re-activate both packs on your world.
+
 ---
 
-## Repository layout
+# Installing on mobile (Android / Pocket Edition)
+
+1. Download **`dist/Bloatgrub.mcaddon`** (and/or `dist/ArcaneArsenal.mcaddon`) onto the
+   device.
+2. Tap the file. Minecraft opens and imports both of that add-on's packs automatically.
+3. Create or edit a world → **Behavior Packs** → activate the behaviour pack. The
+   matching resource pack is pulled in as a dependency; if it is not, activate it under
+   **Resource Packs** too.
+4. Leave every experimental toggle **off** — none are needed.
+
+If tapping the file does not open Minecraft, rename it to `.zip`, then use a file manager
+to copy the two inner folders into:
 
 ```
-behavior_packs/arcane_arsenal_bp/
-  manifest.json          BP manifest, min_engine_version 1.21.0
-  items/*.json           6 item definitions, format_version 1.21.0
-  recipes/*.json         6 shaped recipes
-  scripts/main.js        all weapon logic (@minecraft/server 1.11.0)
-  texts/                 pack name strings
-resource_packs/arcane_arsenal_rp/
-  manifest.json          RP manifest
-  textures/item_texture.json
-  textures/items/*.png   6 hand-made 16x16 icons
-  texts/en_US.lang       item display names
+Android/data/com.mojang.minecraftpe/files/games/com.mojang/behavior_packs/<pack>
+Android/data/com.mojang.minecraftpe/files/games/com.mojang/resource_packs/<pack>
+```
+
+On Windows the same folders live under
+`%localappdata%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang\`.
+
+## Checking it is actually working
+
+When you spawn into a world with a behaviour pack active, chat shows one of:
+
+```
+[Bloatgrub] v1.0.0 loaded - do not pick it up.
+[Arcane Arsenal] v1.0.1 loaded - 6 weapons armed.
+```
+
+If that line does **not** appear, the behaviour pack's scripts are not running and none
+of the scripted behaviour will fire — that is the first thing to check. If it does appear
+but something looks wrong, the problem is on the resource-pack side instead.
+
+To see exactly what the game thinks is wrong, turn on **Settings → Creator → Content Log
+GUI** (and "Content Log File"). It names the pack and file for any load error.
+
+---
+
+# Repository layout
+
+```
+behavior_packs/
+  bloatgrub_bp/            entity, 3 items, recipes, loot table, spawn rules, script
+  arcane_arsenal_bp/       6 items, 6 recipes, script
+resource_packs/
+  bloatgrub_rp/            client entity, geometry, animations, entity texture, icons
+  arcane_arsenal_rp/       6 item icons
 tools/
-  gen_textures.py        regenerates every icon (stdlib only)
-  build.py               validates the packs and writes the .mcaddon
-dist/ArcaneArsenal.mcaddon
+  pixel.py                 stdlib RGBA PNG reader/writer shared by the generators
+  gen_bloatgrub.py         model + entity texture + animations + icons, one pass
+  gen_textures.py          Arcane Arsenal icons
+  build.py                 validates both add-ons and writes the .mcaddon files
+dist/
+  Bloatgrub.mcaddon
+  ArcaneArsenal.mcaddon
 ```
 
 ## Rebuilding
 
 ```bash
-python3 tools/gen_textures.py      # redraw the icons (add --preview for ASCII art)
-python3 tools/build.py             # validate + repackage dist/ArcaneArsenal.mcaddon
+python3 tools/gen_bloatgrub.py     # model, entity texture, animations, item icons
+python3 tools/gen_textures.py      # Arcane Arsenal icons (--preview for ASCII art)
+python3 tools/build.py             # validate + repackage both .mcaddon files
+python3 tools/build.py Bloatgrub --check-only    # validate one, write nothing
 ```
 
-`build.py` fails loudly if any JSON is malformed, if manifest UUIDs collide, if the
-behaviour pack loses its resource-pack dependency, if an item icon does not resolve to a
-real PNG, if a recipe produces an item that does not exist, or if an item has no name in
-`en_US.lang`.
+### Why the generators exist
 
-## Tuning
+`gen_bloatgrub.py` emits the geometry, the entity texture **and** the animations from one
+declarative bone/cube table. Each cube's box-UV footprint is packed into the atlas once,
+and both the model JSON and the painted pixels come out of that single packing — so the
+model and its texture cannot drift apart, and an animation cannot name a bone the model
+does not have. That class of mistake produces a mob that renders as a smear or as
+nothing at all, with no error message anywhere.
 
-Every number — effect durations, amplifiers, lifesteal ratio, explosion radii, cast
-ranges, cooldowns — sits in the `CONFIG` object at the top of
-`behavior_packs/arcane_arsenal_bp/scripts/main.js`. Edit it and re-run `tools/build.py`.
+### What `build.py` refuses to ship
 
-To stop the Cataclysm Hammer and Meteor Staff from destroying terrain, set
-`hammer.breaksBlocks` and `staff.breaksBlocks` to `false`.
+- malformed JSON, or manifest UUIDs that collide within or across add-ons
+- a behaviour pack that lost its resource-pack dependency, or a missing `pack_icon.png`
+- a script module with no `@minecraft/server` dependency, or a missing entry point
+- an item icon that does not resolve to a real PNG, or that uses the deprecated flat
+  `minecraft:icon` `"texture"` field (which the game ignores in silence)
+- a recipe producing or consuming a custom item that has no definition
+- a behaviour entity with no client entity — or the reverse
+- a client entity pointing at a geometry, texture, animation or render controller that
+  is not defined anywhere
+- a geometry whose declared `texture_width`/`texture_height` disagrees with the actual
+  PNG, whose cubes have non-integer sizes, whose UVs run off the texture, or whose UV
+  footprints overlap each other
+- an animation driving a bone the model does not have
+- a `scripts.animate` entry with no matching animation slot
+- a custom item, entity or spawn egg with no name in `en_US.lang`
+- a loot table or spawn rule pointing at something that does not exist
+
+---
 
 ## Compatibility notes
 
@@ -168,3 +329,13 @@ To stop the Cataclysm Hammer and Meteor Staff from destroying terrain, set
   single effect instead of breaking the add-on.
 - Mobs that pick up these weapons get the effects too — the script reads the attacker's
   main hand rather than assuming a player.
+- **Bloatgrub specifics:** the entity uses only stable behaviour components
+  (`leap_at_target`, `melee_attack`, `nearest_attackable_target`, `damage_sensor`,
+  `navigation.walk`); the client entity blends `idle` and `walk` through
+  `scripts.animate` rather than an animation controller; and every sound, particle,
+  camera shake and screen effect is wrapped, so a device missing one id loses that
+  flourish and nothing else.
+- **Command dependence:** camera shake is the one effect that goes through
+  `/camerashake`. If a world blocks it, the infestation still runs — it just stops
+  rattling the screen.
+

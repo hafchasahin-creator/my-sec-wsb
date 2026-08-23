@@ -8,41 +8,15 @@ Usage:  python3 tools/gen_textures.py [--preview]
 """
 
 import os
-import struct
 import sys
-import zlib
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from pixel import TRANSPARENT, write_png  # noqa: E402
 
 SIZE = 16
 OUT_DIR = os.path.join("resource_packs", "arcane_arsenal_rp", "textures", "items")
 
-TRANSPARENT = (0, 0, 0, 0)
-
-
-# --------------------------------------------------------------------------
-# PNG output
-# --------------------------------------------------------------------------
-
-def write_png(path, pixels):
-    """pixels: list of rows, each row a list of (r, g, b, a)."""
-    raw = b"".join(
-        b"\x00" + bytes(channel for px in row for channel in px) for row in pixels
-    )
-
-    def chunk(tag, data):
-        return (
-            struct.pack(">I", len(data))
-            + tag
-            + data
-            + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
-        )
-
-    blob = b"\x89PNG\r\n\x1a\n"
-    blob += chunk(b"IHDR", struct.pack(">IIBBBBB", SIZE, SIZE, 8, 6, 0, 0, 0))
-    blob += chunk(b"IDAT", zlib.compress(raw, 9))
-    blob += chunk(b"IEND", b"")
-
-    with open(path, "wb") as handle:
-        handle.write(blob)
 
 
 # --------------------------------------------------------------------------

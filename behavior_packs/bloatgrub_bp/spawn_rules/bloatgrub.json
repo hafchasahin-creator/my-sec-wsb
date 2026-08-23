@@ -1,0 +1,30 @@
+{
+  "format_version": "1.17.0",
+  "minecraft:spawn_rules": {
+    "description": {
+      "identifier": "grub:bloatgrub",
+      "population_control": "monster"
+    },
+    "conditions": [
+      {
+        "minecraft:spawns_underground": {},
+        "minecraft:brightness_filter": {
+          "min": 0,
+          "max": 4,
+          "adjust_for_weather": false
+        },
+        "minecraft:height_filter": { "min": -60, "max": 16 },
+        "minecraft:difficulty_filter": { "min": "easy", "max": "hard" },
+        "minecraft:weight": { "default": 3 },
+        "minecraft:herd": { "min_size": 1, "max_size": 2 },
+        "minecraft:biome_filter": {
+          "test": "has_biome_tag",
+          "operator": "==",
+          "value": "overworld"
+        },
+        "minecraft:density_limit": { "underground": 2 },
+        "minecraft:disallow_spawns_in_bubble": {}
+      }
+    ]
+  }
+}

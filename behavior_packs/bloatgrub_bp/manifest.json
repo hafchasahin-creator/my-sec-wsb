@@ -1,0 +1,39 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Bloatgrub BP",
+    "description": "A parasite that hides in your inventory, leaps at you, burrows in, and detonates. Behavior Pack.",
+    "uuid": "0155d676-c3fd-4122-9b9f-e345a60814a4",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "6ed3d736-c5ed-4080-827f-724cf08daaf1",
+      "version": [1, 0, 0]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "4e503ba1-f08a-4e2c-b606-326ca29d733f",
+      "version": [1, 0, 0]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "b01dd74d-05bf-4539-87ba-060f68a91e9a",
+      "version": [1, 0, 0]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": ["Bloatgrub"],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

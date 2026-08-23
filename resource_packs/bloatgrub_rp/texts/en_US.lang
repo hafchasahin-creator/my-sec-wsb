@@ -1,0 +1,14 @@
+## Bloatgrub - English (US)
+
+pack.name=Bloatgrub RP
+pack.description=Model, texture, animations and names for the Bloatgrub.
+
+entity.grub:bloatgrub.name=Bloatgrub
+item.spawn_egg.entity.grub:bloatgrub.name=Spawn Bloatgrub
+
+item.grub:dormant_bloatgrub=Bloatgrub (Dormant)
+item.grub:dormant_bloatgrub.name=Bloatgrub (Dormant)
+item.grub:grub_jar=Sealed Grub Jar
+item.grub:grub_jar.name=Sealed Grub Jar
+item.grub:purge_serum=Purge Serum
+item.grub:purge_serum.name=Purge Serum

@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Validate and package Arcane Arsenal.
+"""Validate and package every add-on in this repository.
 
-Checks that every JSON file parses, that manifest UUIDs are unique, that the
-behaviour pack's resource-pack dependency points at the real resource pack, and
-that every item icon resolves all the way down to a PNG on disk. Then zips the
-two packs into dist/ArcaneArsenal.mcaddon.
+Validation is the point of this script. A Bedrock pack almost never fails
+loudly: a mistyped icon field, a geometry the client entity cannot find, or a
+texture whose size does not match the model all produce a silent blank item or
+an invisible mob in game, with nothing in chat to tell you why. Every check
+here exists because that class of failure is expensive to debug on a phone.
 
-Usage:  python3 tools/build.py
+Usage:
+    python3 tools/build.py                # validate + package everything
+    python3 tools/build.py Bloatgrub      # just one add-on
+    python3 tools/build.py --check-only   # validate, do not write .mcaddon
 """
 
 import json
@@ -14,166 +18,543 @@ import os
 import sys
 import zipfile
 
-BP = os.path.join("behavior_packs", "arcane_arsenal_bp")
-RP = os.path.join("resource_packs", "arcane_arsenal_rp")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from pixel import read_png_size  # noqa: E402
+
 DIST = "dist"
-ADDON = os.path.join(DIST, "ArcaneArsenal.mcaddon")
 
-errors = []
+ADDONS = [
+    {
+        "name": "ArcaneArsenal",
+        "bp": os.path.join("behavior_packs", "arcane_arsenal_bp"),
+        "rp": os.path.join("resource_packs", "arcane_arsenal_rp"),
+        "output": os.path.join(DIST, "ArcaneArsenal.mcaddon"),
+    },
+    {
+        "name": "Bloatgrub",
+        "bp": os.path.join("behavior_packs", "bloatgrub_bp"),
+        "rp": os.path.join("resource_packs", "bloatgrub_rp"),
+        "output": os.path.join(DIST, "Bloatgrub.mcaddon"),
+    },
+]
 
 
-def fail(message):
-    errors.append(message)
+# --------------------------------------------------------------------------
+# Helpers
+# --------------------------------------------------------------------------
 
-
-def load_json(path):
-    try:
-        with open(path, encoding="utf-8") as handle:
-            return json.load(handle)
-    except Exception as exc:  # noqa: BLE001 - report and keep going
-        fail(f"{path}: invalid JSON ({exc})")
-        return None
-
-
-def walk_json(root):
+def walk_files(root, suffix):
     for base, _dirs, files in os.walk(root):
         for name in sorted(files):
-            if name.endswith(".json"):
+            if name.endswith(suffix):
                 yield os.path.join(base, name)
 
 
-def validate():
-    documents = {}
-    for root in (BP, RP):
-        if not os.path.isdir(root):
-            fail(f"missing pack directory: {root}")
-            continue
-        for path in walk_json(root):
-            documents[path] = load_json(path)
+def version_tuple(value):
+    try:
+        return tuple(int(part) for part in str(value).split("."))
+    except ValueError:
+        return (0,)
 
-    bp_manifest = documents.get(os.path.join(BP, "manifest.json"))
-    rp_manifest = documents.get(os.path.join(RP, "manifest.json"))
-    if not bp_manifest or not rp_manifest:
-        return
 
-    # UUIDs must all be distinct.
-    uuids = []
-    for manifest in (bp_manifest, rp_manifest):
-        uuids.append(manifest["header"]["uuid"])
-        uuids.extend(module["uuid"] for module in manifest["modules"])
-    duplicates = {u for u in uuids if uuids.count(u) > 1}
-    if duplicates:
-        fail(f"duplicate UUIDs across manifests: {sorted(duplicates)}")
+class Addon:
+    """Loads one behaviour/resource pack pair and checks it over."""
 
-    # The behaviour pack must depend on this resource pack.
-    rp_uuid = rp_manifest["header"]["uuid"]
-    dependency_uuids = [
-        dep.get("uuid") for dep in bp_manifest.get("dependencies", [])
-    ]
-    if rp_uuid not in dependency_uuids:
-        fail(f"behaviour pack does not depend on resource pack {rp_uuid}")
+    def __init__(self, spec):
+        self.name = spec["name"]
+        self.bp = spec["bp"]
+        self.rp = spec["rp"]
+        self.output = spec["output"]
+        self.errors = []
+        self.documents = {}
+        self.item_ids = []
+        self.entity_ids = []
 
-    # The script entry point must exist.
-    for module in bp_manifest["modules"]:
-        if module["type"] == "script":
-            entry = os.path.join(BP, module["entry"])
+    # -- reporting ---------------------------------------------------------
+
+    def fail(self, message):
+        self.errors.append(message)
+
+    def load_json(self, path):
+        try:
+            with open(path, encoding="utf-8") as handle:
+                return json.load(handle)
+        except Exception as exc:  # noqa: BLE001 - report and keep going
+            self.fail(f"{path}: invalid JSON ({exc})")
+            return None
+
+    def doc(self, *parts):
+        return self.documents.get(os.path.join(*parts))
+
+    def docs_under(self, *parts):
+        prefix = os.path.join(*parts)
+        return {
+            path: doc
+            for path, doc in self.documents.items()
+            if path.startswith(prefix + os.sep) and doc is not None
+        }
+
+    def lang_text(self):
+        path = os.path.join(self.rp, "texts", "en_US.lang")
+        if not os.path.isfile(path):
+            return path, ""
+        with open(path, encoding="utf-8") as handle:
+            return path, handle.read()
+
+    # -- checks ------------------------------------------------------------
+
+    def read_all(self):
+        for root in (self.bp, self.rp):
+            if not os.path.isdir(root):
+                self.fail(f"missing pack directory: {root}")
+                continue
+            for path in walk_files(root, ".json"):
+                self.documents[path] = self.load_json(path)
+
+    def check_manifests(self):
+        bp_manifest = self.doc(self.bp, "manifest.json")
+        rp_manifest = self.doc(self.rp, "manifest.json")
+        if not bp_manifest or not rp_manifest:
+            self.fail("cannot validate without both manifests")
+            return []
+
+        uuids = []
+        for manifest in (bp_manifest, rp_manifest):
+            uuids.append(manifest["header"]["uuid"])
+            uuids.extend(module["uuid"] for module in manifest["modules"])
+        duplicates = {u for u in uuids if uuids.count(u) > 1}
+        if duplicates:
+            self.fail(f"duplicate UUIDs inside the add-on: {sorted(duplicates)}")
+
+        rp_uuid = rp_manifest["header"]["uuid"]
+        dependency_uuids = [d.get("uuid") for d in bp_manifest.get("dependencies", [])]
+        if rp_uuid not in dependency_uuids:
+            self.fail(f"behaviour pack does not depend on resource pack {rp_uuid}")
+
+        for module in bp_manifest["modules"]:
+            if module["type"] != "script":
+                continue
+            entry = os.path.join(self.bp, module["entry"])
             if not os.path.isfile(entry):
-                fail(f"script entry not found: {entry}")
+                self.fail(f"script entry not found: {entry}")
+            server = [
+                d for d in bp_manifest.get("dependencies", [])
+                if d.get("module_name") == "@minecraft/server"
+            ]
+            if not server:
+                self.fail(
+                    "behaviour pack declares a script module but no "
+                    "@minecraft/server dependency"
+                )
 
-    # Icons: item -> item_texture.json key -> png on disk.
-    atlas_path = os.path.join(RP, "textures", "item_texture.json")
-    atlas = documents.get(atlas_path)
-    if atlas is None:
-        fail(f"missing {atlas_path}")
-        return
-    texture_data = atlas.get("texture_data", {})
+        for pack_root in (self.bp, self.rp):
+            icon = os.path.join(pack_root, "pack_icon.png")
+            if not os.path.isfile(icon):
+                self.fail(f"missing {icon}")
 
-    identifiers = []
-    for path, doc in documents.items():
-        if not path.startswith(os.path.join(BP, "items")) or doc is None:
-            continue
-        item = doc.get("minecraft:item", {})
-        identifier = item.get("description", {}).get("identifier")
-        identifiers.append(identifier)
+        return uuids
 
-        # minecraft:icon changed shape at format_version 1.20.60: the flat
-        # "texture" string is deprecated and is silently ignored by the game,
-        # which shows up in-game as an item with a completely blank icon.
-        # Reject it rather than shipping an invisible weapon again.
-        version = tuple(
-            int(part) for part in str(doc.get("format_version", "0")).split(".")
-        )
-        icon = item.get("components", {}).get("minecraft:icon")
-        if isinstance(icon, dict) and "texture" in icon and version >= (1, 20, 60):
-            fail(
-                f"{path}: minecraft:icon uses the deprecated 'texture' field at "
-                f"format_version {doc['format_version']} - use "
-                f'{{"textures": {{"default": ...}}}} instead'
+    def check_items(self):
+        atlas_path = os.path.join(self.rp, "textures", "item_texture.json")
+        atlas = self.doc(self.rp, "textures", "item_texture.json")
+        texture_data = (atlas or {}).get("texture_data", {})
+        if atlas is None:
+            self.fail(f"missing {atlas_path}")
+
+        for path, doc in sorted(self.docs_under(self.bp, "items").items()):
+            item = doc.get("minecraft:item", {})
+            identifier = item.get("description", {}).get("identifier")
+            if not identifier:
+                self.fail(f"{path}: item has no identifier")
+                continue
+            self.item_ids.append(identifier)
+
+            # minecraft:icon changed shape at format_version 1.20.60: the flat
+            # "texture" string is deprecated and is silently ignored by the
+            # game, which shows up in game as a completely blank icon.
+            version = version_tuple(doc.get("format_version", "0"))
+            icon = item.get("components", {}).get("minecraft:icon")
+            if isinstance(icon, dict) and "texture" in icon and version >= (1, 20, 60):
+                self.fail(
+                    f"{path}: minecraft:icon uses the deprecated 'texture' field "
+                    f"at format_version {doc['format_version']} - use "
+                    f'{{"textures": {{"default": ...}}}} instead'
+                )
+                continue
+
+            if isinstance(icon, dict):
+                key = icon.get("textures", {}).get("default") or icon.get("texture")
+            else:
+                key = icon
+            if not key:
+                self.fail(f"{path}: no minecraft:icon texture")
+                continue
+            if key not in texture_data:
+                self.fail(f"{path}: icon '{key}' missing from item_texture.json")
+                continue
+            png = os.path.join(self.rp, texture_data[key]["textures"] + ".png")
+            if not os.path.isfile(png):
+                self.fail(f"{path}: icon '{key}' points at missing file {png}")
+
+    def check_recipes(self):
+        for path, doc in sorted(self.docs_under(self.bp, "recipes").items()):
+            recipe = (
+                doc.get("minecraft:recipe_shaped")
+                or doc.get("minecraft:recipe_shapeless")
+                or {}
             )
+            result = recipe.get("result", {})
+            result_item = result.get("item") if isinstance(result, dict) else result
+            if result_item and not result_item.startswith("minecraft:"):
+                if result_item not in self.item_ids:
+                    self.fail(f"{path}: result '{result_item}' has no item definition")
+
+            # Ingredients from our own namespaces must exist too.
+            ingredients = []
+            for entry in recipe.get("key", {}).values():
+                ingredients.append(entry.get("item") if isinstance(entry, dict) else entry)
+            raw = recipe.get("ingredients", [])
+            if isinstance(raw, list):
+                for entry in raw:
+                    ingredients.append(
+                        entry.get("item") if isinstance(entry, dict) else entry
+                    )
+            for ingredient in ingredients:
+                if not ingredient or ingredient.startswith("minecraft:"):
+                    continue
+                if ingredient not in self.item_ids:
+                    self.fail(f"{path}: ingredient '{ingredient}' has no item definition")
+
+    def check_entities(self):
+        """The expensive-to-debug half: a custom mob that renders as nothing."""
+        server_entities = {}
+        for path, doc in sorted(self.docs_under(self.bp, "entities").items()):
+            description = doc.get("minecraft:entity", {}).get("description", {})
+            identifier = description.get("identifier")
+            if not identifier:
+                self.fail(f"{path}: entity has no identifier")
+                continue
+            server_entities[identifier] = (path, doc)
+            self.entity_ids.append(identifier)
+
+        client_entities = {}
+        for path, doc in sorted(self.docs_under(self.rp, "entity").items()):
+            description = doc.get("minecraft:client_entity", {}).get("description", {})
+            identifier = description.get("identifier")
+            if not identifier:
+                self.fail(f"{path}: client entity has no identifier")
+                continue
+            client_entities[identifier] = (path, description)
+
+        for identifier, (path, _doc) in server_entities.items():
+            if identifier not in client_entities:
+                self.fail(
+                    f"{path}: no resource-pack client entity for '{identifier}' - "
+                    "the mob would spawn invisible"
+                )
+        for identifier, (path, _desc) in client_entities.items():
+            if identifier not in server_entities:
+                self.fail(f"{path}: client entity '{identifier}' has no behaviour entity")
+
+        geometries = self.collect_geometries()
+        animations = self.collect_animations()
+        controllers = self.collect_render_controllers()
+
+        for identifier, (path, description) in client_entities.items():
+            self.check_client_entity(path, description, geometries, animations, controllers)
+
+        # Loot tables and spawn rules referenced by the behaviour entities.
+        for identifier, (path, doc) in server_entities.items():
+            components = doc.get("minecraft:entity", {}).get("components", {})
+            loot = components.get("minecraft:loot", {}).get("table")
+            if loot and not os.path.isfile(os.path.join(self.bp, loot)):
+                self.fail(f"{path}: minecraft:loot points at missing {loot}")
+
+        for path, doc in sorted(self.docs_under(self.bp, "spawn_rules").items()):
+            identifier = (
+                doc.get("minecraft:spawn_rules", {})
+                .get("description", {})
+                .get("identifier")
+            )
+            if identifier and identifier not in server_entities:
+                self.fail(f"{path}: spawn rules for unknown entity '{identifier}'")
+
+        # Names, so nothing shows up as a raw identifier on the HUD.
+        lang_path, lang = self.lang_text()
+        for identifier in self.entity_ids:
+            if f"entity.{identifier}.name=" not in lang:
+                self.fail(f"{lang_path}: no name entry for entity {identifier}")
+            spawnable = (
+                server_entities[identifier][1]
+                .get("minecraft:entity", {})
+                .get("description", {})
+                .get("is_spawnable")
+            )
+            key = f"item.spawn_egg.entity.{identifier}.name="
+            if spawnable and key not in lang:
+                self.fail(f"{lang_path}: no spawn egg name for {identifier}")
+
+    def collect_geometries(self):
+        """{geometry id: (path, description, bone names)}."""
+        found = {}
+        for path in sorted(walk_files(os.path.join(self.rp, "models"), ".json")):
+            doc = self.documents.get(path)
+            if doc is None:
+                continue
+            for entry in doc.get("minecraft:geometry", []):
+                description = entry.get("description", {})
+                identifier = description.get("identifier")
+                if not identifier:
+                    self.fail(f"{path}: geometry with no identifier")
+                    continue
+                bones = {bone.get("name") for bone in entry.get("bones", [])}
+                found[identifier] = (path, description, bones)
+                self.check_geometry(path, entry)
+        return found
+
+    def check_geometry(self, path, entry):
+        description = entry.get("description", {})
+        width = description.get("texture_width")
+        height = description.get("texture_height")
+        if not width or not height:
+            self.fail(f"{path}: geometry is missing texture_width/texture_height")
+            return
+
+        bone_names = {bone.get("name") for bone in entry.get("bones", [])}
+        rects = []
+        for bone in entry.get("bones", []):
+            parent = bone.get("parent")
+            if parent and parent not in bone_names:
+                self.fail(
+                    f"{path}: bone '{bone.get('name')}' has unknown parent '{parent}'"
+                )
+            for cube in bone.get("cubes", []):
+                size = cube.get("size")
+                uv = cube.get("uv")
+                if not isinstance(uv, list):
+                    continue  # per-face UV, nothing to box-check
+                if not size or len(size) != 3:
+                    self.fail(f"{path}: cube in '{bone.get('name')}' has no size")
+                    continue
+                if any(float(value) != int(value) for value in size):
+                    self.fail(
+                        f"{path}: cube in '{bone.get('name')}' has non-integer size "
+                        f"{size}; box UV would land between texture pixels"
+                    )
+                    continue
+                sx, sy, sz = (int(value) for value in size)
+                u, v = int(uv[0]), int(uv[1])
+                rect = (u, v, 2 * (sx + sz), sz + sy)
+                if u + rect[2] > width or v + rect[3] > height:
+                    self.fail(
+                        f"{path}: cube in '{bone.get('name')}' at uv {uv} size {size} "
+                        f"runs off the {width}x{height} texture"
+                    )
+                rects.append((bone.get("name"), rect))
+
+        # Two cubes sharing texture pixels is how a model ends up wearing the
+        # wrong skin in one place and looking fine everywhere else.
+        for i in range(len(rects)):
+            name_a, (ax, ay, aw, ah) = rects[i]
+            for j in range(i + 1, len(rects)):
+                name_b, (bx, by, bw, bh) = rects[j]
+                if ax < bx + bw and bx < ax + aw and ay < by + bh and by < ay + ah:
+                    self.fail(
+                        f"{path}: UV footprints of '{name_a}' and '{name_b}' overlap"
+                    )
+
+    def collect_animations(self):
+        """{animation name: (path, bone names it drives)}."""
+        found = {}
+        anim_dir = os.path.join(self.rp, "animations")
+        for path in sorted(walk_files(anim_dir, ".json")):
+            doc = self.documents.get(path)
+            if doc is None:
+                continue
+            for name, body in doc.get("animations", {}).items():
+                found[name] = (path, set(body.get("bones", {}).keys()))
+        return found
+
+    def collect_render_controllers(self):
+        found = set()
+        controller_dir = os.path.join(self.rp, "render_controllers")
+        for path in sorted(walk_files(controller_dir, ".json")):
+            doc = self.documents.get(path)
+            if doc is None:
+                continue
+            found.update(doc.get("render_controllers", {}).keys())
+        return found
+
+    def check_client_entity(self, path, description, geometries, animations, controllers):
+        identifier = description.get("identifier")
+
+        for controller in description.get("render_controllers", []):
+            key = controller if isinstance(controller, str) else next(iter(controller))
+            if key not in controllers:
+                self.fail(f"{path}: unknown render controller '{key}'")
+
+        if not description.get("materials"):
+            self.fail(f"{path}: {identifier} declares no materials")
+
+        for key, texture in description.get("textures", {}).items():
+            png = os.path.join(self.rp, texture + ".png")
+            if not os.path.isfile(png):
+                self.fail(f"{path}: texture '{key}' points at missing file {png}")
+
+        geometry_ids = description.get("geometry", {})
+        for key, geometry_id in geometry_ids.items():
+            if geometry_id not in geometries:
+                self.fail(
+                    f"{path}: geometry '{geometry_id}' (slot '{key}') is not defined "
+                    "in any models/ file - the mob renders as nothing"
+                )
+                continue
+
+            geo_path, geo_description, _bones = geometries[geometry_id]
+            texture = description.get("textures", {}).get(key) or description.get(
+                "textures", {}
+            ).get("default")
+            if not texture:
+                continue
+            png = os.path.join(self.rp, texture + ".png")
+            if not os.path.isfile(png):
+                continue
+            try:
+                actual = read_png_size(png)
+            except ValueError as exc:
+                self.fail(str(exc))
+                continue
+            declared = (
+                geo_description.get("texture_width"),
+                geo_description.get("texture_height"),
+            )
+            if declared != actual:
+                self.fail(
+                    f"{geo_path}: {geometry_id} declares a "
+                    f"{declared[0]}x{declared[1]} texture but {png} is "
+                    f"{actual[0]}x{actual[1]} - every UV would be misaligned"
+                )
+
+        model_bones = set()
+        for geometry_id in geometry_ids.values():
+            if geometry_id in geometries:
+                model_bones |= geometries[geometry_id][2]
+
+        for key, animation in description.get("animations", {}).items():
+            if animation.startswith("controller."):
+                continue
+            if animation not in animations:
+                self.fail(f"{path}: animation '{animation}' (slot '{key}') is not defined")
+                continue
+            anim_path, anim_bones = animations[animation]
+            missing = sorted(anim_bones - model_bones)
+            if missing and model_bones:
+                self.fail(
+                    f"{anim_path}: {animation} animates bones the model does not "
+                    f"have: {missing}"
+                )
+
+        # Anything listed in scripts.animate has to resolve to a declared slot.
+        declared_slots = set(description.get("animations", {}).keys())
+        for entry in description.get("scripts", {}).get("animate", []):
+            slot = entry if isinstance(entry, str) else next(iter(entry))
+            if slot not in declared_slots:
+                self.fail(
+                    f"{path}: scripts.animate refers to '{slot}', which is not in "
+                    "the animations block"
+                )
+
+    def check_item_icon_sizes(self):
+        for path in sorted(walk_files(os.path.join(self.rp, "textures", "items"), ".png")):
+            try:
+                width, height = read_png_size(path)
+            except ValueError as exc:
+                self.fail(str(exc))
+                continue
+            if width != height:
+                self.fail(f"{path}: item icons must be square, got {width}x{height}")
+
+    def check_item_names(self):
+        lang_path, lang = self.lang_text()
+        for identifier in self.item_ids:
+            if f"item.{identifier}=" not in lang:
+                self.fail(f"{lang_path}: no name entry for {identifier}")
+
+    def validate(self):
+        self.read_all()
+        uuids = self.check_manifests()
+        if self.errors and not self.documents:
+            return uuids
+        self.check_items()
+        self.check_recipes()
+        self.check_entities()
+        self.check_item_icon_sizes()
+        self.check_item_names()
+        return uuids
+
+    # -- packaging ---------------------------------------------------------
+
+    def package(self):
+        os.makedirs(os.path.dirname(self.output) or ".", exist_ok=True)
+        if os.path.exists(self.output):
+            os.remove(self.output)
+
+        with zipfile.ZipFile(self.output, "w", zipfile.ZIP_DEFLATED) as archive:
+            for root in (self.bp, self.rp):
+                folder = os.path.basename(root)
+                for base, _dirs, files in os.walk(root):
+                    for name in sorted(files):
+                        source = os.path.join(base, name)
+                        arcname = os.path.join(
+                            folder, os.path.relpath(source, root)
+                        ).replace(os.sep, "/")
+                        archive.write(source, arcname)
+        return os.path.getsize(self.output)
+
+
+def main():
+    argv = [a for a in sys.argv[1:] if not a.startswith("-")]
+    check_only = "--check-only" in sys.argv
+
+    selected = [a for a in ADDONS if not argv or a["name"] in argv]
+    unknown = set(argv) - {a["name"] for a in ADDONS}
+    if unknown:
+        print(f"unknown add-on(s): {sorted(unknown)}", file=sys.stderr)
+        return 2
+
+    all_uuids = []
+    failed = False
+    for spec in selected:
+        addon = Addon(spec)
+        all_uuids.extend(addon.validate())
+
+        if addon.errors:
+            failed = True
+            print(f"\n{addon.name}: FAILED", file=sys.stderr)
+            for error in addon.errors:
+                print(f"  - {error}", file=sys.stderr)
             continue
 
-        if isinstance(icon, dict):
-            key = icon.get("textures", {}).get("default") or icon.get("texture")
+        summary = (
+            f"{addon.name}: {len(addon.documents)} JSON files, "
+            f"{len(addon.item_ids)} items, {len(addon.entity_ids)} entities"
+        )
+        if check_only:
+            print(f"{summary} - OK")
         else:
-            key = icon
-        if not key:
-            fail(f"{path}: no minecraft:icon texture")
-            continue
-        if key not in texture_data:
-            fail(f"{path}: icon '{key}' missing from item_texture.json")
-            continue
-        png = os.path.join(RP, texture_data[key]["textures"] + ".png")
-        if not os.path.isfile(png):
-            fail(f"{path}: icon '{key}' points at missing file {png}")
+            size = addon.package()
+            print(f"{summary} -> {addon.output} ({size:,} bytes)")
 
-    # Recipes must produce items that actually exist.
-    for path, doc in documents.items():
-        if not path.startswith(os.path.join(BP, "recipes")) or doc is None:
-            continue
-        recipe = doc.get("minecraft:recipe_shaped", {})
-        result = recipe.get("result", {})
-        result_item = result.get("item") if isinstance(result, dict) else result
-        if result_item and result_item.startswith("arcane:"):
-            if result_item not in identifiers:
-                fail(f"{path}: result '{result_item}' has no item definition")
+    # Two add-ons sharing a UUID means installing one uninstalls the other.
+    if len(selected) == len(ADDONS):
+        clashes = {u for u in all_uuids if all_uuids.count(u) > 1}
+        if clashes:
+            print(f"\nUUID collision across add-ons: {sorted(clashes)}", file=sys.stderr)
+            failed = True
 
-    # Every custom item needs a display name in the language file.
-    lang_path = os.path.join(RP, "texts", "en_US.lang")
-    lang = ""
-    if os.path.isfile(lang_path):
-        with open(lang_path, encoding="utf-8") as handle:
-            lang = handle.read()
-    for identifier in identifiers:
-        if identifier and f"item.{identifier}=" not in lang:
-            fail(f"{lang_path}: no name entry for {identifier}")
-
-    print(f"Validated {len(documents)} JSON files, {len(identifiers)} items.")
-
-
-def package():
-    os.makedirs(DIST, exist_ok=True)
-    if os.path.exists(ADDON):
-        os.remove(ADDON)
-
-    with zipfile.ZipFile(ADDON, "w", zipfile.ZIP_DEFLATED) as archive:
-        for root, folder in ((BP, "arcane_arsenal_bp"), (RP, "arcane_arsenal_rp")):
-            for base, _dirs, files in os.walk(root):
-                for name in sorted(files):
-                    source = os.path.join(base, name)
-                    arcname = os.path.join(
-                        folder, os.path.relpath(source, root)
-                    ).replace(os.sep, "/")
-                    archive.write(source, arcname)
-
-    size = os.path.getsize(ADDON)
-    print(f"Packaged {ADDON} ({size:,} bytes)")
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
-    validate()
-    if errors:
-        print("\nBuild failed:", file=sys.stderr)
-        for error in errors:
-            print(f"  - {error}", file=sys.stderr)
-        sys.exit(1)
-    package()
+    sys.exit(main())
