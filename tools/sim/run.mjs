@@ -419,7 +419,7 @@ scenario("serum-cuts-it-out", () => {
   check("the ejected grub could not re-enter during the grace", !player.hasTag(TAG));
 });
 
-scenario("serum-with-nothing-inside-is-wasted", () => {
+scenario("serum-tap-with-nothing-inside-costs-nothing", () => {
   const player = addPlayer("Hypochondriac");
   player.hold(SERUM, 2);
   useItem(player, SERUM);
@@ -429,6 +429,108 @@ scenario("serum-with-nothing-inside-is-wasted", () => {
     JSON.stringify(log.actionBars)
   );
   check("no grub was conjured", grubsIn().length === 0);
+  check(
+    "and the dose is still in their hand",
+    player._mainhand?.amount === 2,
+    `mainhand now ${JSON.stringify(player._mainhand)}`
+  );
+});
+
+scenario("holding-the-button-does-not-eat-the-stack", () => {
+  // Bedrock re-fires the use action while the touch interact button is held,
+  // at roughly the item's use_duration. The guard has to outlast that or one
+  // panicked press burns the whole stack.
+  const player = addPlayer("Panicker");
+  player.hold(DORMANT, 4);
+
+  useItem(player, DORMANT);
+  useItem(player, DORMANT); // same tick
+  system.pump(12); // shorter than the longest use_duration (0.8s = 16 ticks)
+  useItem(player, DORMANT);
+
+  check(
+    "only one grub came out",
+    grubsIn().length === 1,
+    `${grubsIn().length} grubs`
+  );
+  check(
+    "and only one was consumed",
+    player._mainhand?.amount === 3,
+    `mainhand now ${JSON.stringify(player._mainhand)}`
+  );
+});
+
+scenario("wake-does-not-destroy-the-item-when-nothing-can-spawn", () => {
+  const player = addPlayer("Cramped");
+  player._inventory.setItem(9, new ItemStack(DORMANT, 1));
+  world.overworld.spawnFails = true; // no room anywhere: a one-block gap
+
+  system.pump(CARRY_TIMEOUT_TICKS);
+  check("nothing spawned", grubsIn().length === 0);
+  check(
+    "and the grub is still in the bag rather than gone",
+    player._inventory.countOf(DORMANT) === 1,
+    `${player._inventory.countOf(DORMANT)} left`
+  );
+
+  // ...and once there is room, it still comes out.
+  world.overworld.spawnFails = false;
+  system.pump(60);
+  check("it wakes as soon as there is room", grubsIn().length === 1);
+});
+
+scenario("clearing-the-tag-really-is-the-escape-hatch", () => {
+  // README tells players /tag @s remove grub_infested gets them out. It only
+  // does if the countdown actually consults the tag.
+  const player = addPlayer("Desperate");
+  plantGrub(player, 1.0);
+  system.pump(8);
+  check("infested", player.hasTag(TAG));
+
+  player.removeTag(TAG);
+  log.reset();
+  system.pump(300);
+  check("no detonation", log.explosions.length === 0);
+  check("still alive", player.health.current > 0, `hp ${player.health.current}`);
+  check("no errors", log.warnings.length === 0, JSON.stringify(log.warnings));
+});
+
+scenario("brood-cannot-compound", () => {
+  // Detonating beside your own bed used to double the population every time
+  // you respawned into it.
+  const player = addPlayer("Doomed");
+  for (let i = 0; i < 4; i++) {
+    player.dimension.spawnEntity(ENTITY, { x: player.location.x + 10 + i, y: 64, z: 0 });
+  }
+  plantGrub(player, 1.0);
+  system.pump(8);
+  check("infested", player.hasTag(TAG));
+
+  const before = grubsIn().length;
+  system.pump(240);
+  check("it detonated", log.explosions.length === 1);
+  check(
+    "but the crater hatched nothing into an already crowded area",
+    grubsIn().length <= before,
+    `${before} before, ${grubsIn().length} after`
+  );
+});
+
+scenario("creative-release-still-finds-a-victim", () => {
+  // A creative player cannot be infested, so binding the grub to them would
+  // make it refuse to burrow into anybody for the whole bind window.
+  const host = addPlayer("Builder", { x: 0, y: 64, z: 0 });
+  host.gameMode = GameMode.creative;
+  const victim = addPlayer("Friend", { x: 2, y: 64, z: 0 });
+  host.hold(DORMANT, 1);
+
+  useItem(host, DORMANT);
+  check("a grub came out", grubsIn().length === 1);
+
+  for (const grub of grubsIn()) grub.location = { ...victim.location };
+  system.pump(40);
+  check("it went for the one who can actually be infested", victim.hasTag(TAG));
+  check("and not the creative player", !host.hasTag(TAG));
 });
 
 scenario("dying-to-something-else-robs-it", () => {

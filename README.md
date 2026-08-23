@@ -74,7 +74,8 @@ grub wants the kill for itself.
 
 **4. It blasts.** A radius-3 explosion out of your chest, 8 guaranteed splash damage to
 everything within 4 blocks, and a kill that goes through resistance. Then **two fresh
-grubs** crawl out of the crater, and chat reads:
+grubs** crawl out of the crater — unless four are already within 16 blocks, so blowing up
+beside your own bed cannot compound into a swarm — and chat reads:
 
 ```
 <name> was hollowed out by a Bloatgrub.
@@ -88,10 +89,12 @@ have 11 seconds, not enough time to open a crafting table.
 - Tapping it while infested rips the grub out: **7 damage** (never lethal), Nausea III,
   Poison, Slowness and Weakness for a while, and the grub lands next to you **enraged**
   (faster, 6 damage). You get 10 seconds where nothing can re-enter you.
-- Tapping it when nothing is inside you just wastes the dose.
+- Tapping it when nothing is inside you costs nothing — it just tells you so. Holding
+  the button down cannot burn more than one dose either.
 
 Other outs: dying to something else robs it of its meal, respawning always comes back
-clean, and `/tag @s remove grub_infested` plus a re-login is the emergency stop.
+clean, and `/tag @s remove grub_infested` stops the countdown on the spot — the tag is
+what the countdown reads, not a decoration.
 
 **Creative mode is immune** by default — you can carry, build and test with dormant grubs
 safely. Set `CONFIG.carry.creativeImmune` to `false` if you would rather not be.
@@ -141,6 +144,7 @@ Every number above sits in the `CONFIG` object at the top of
 | `infest.bitesCanKill` | `false` | Whether internal bites can finish you before the blast |
 | `blast.breaksBlocks` | `true` | Whether the detonation wrecks terrain |
 | `blast.brood` | `2` | Grubs that hatch from the crater |
+| `blast.broodMaxNearby` | `4` | Ceiling on grubs near the crater, so the brood cannot compound |
 | `blast.lethal` | `true` | Turn off for a survivable (still brutal) version |
 | `carry.minAgitationToWake` | `90` | How long a dormant grub stays quiet |
 | `carry.creativeImmune` | `true` | Creative players are ignored |

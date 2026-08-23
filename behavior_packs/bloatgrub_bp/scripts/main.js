@@ -47,6 +47,12 @@ const TAG_INFESTED = "grub_infested";
  * ------------------------------------------------------------------ */
 
 const CONFIG = {
+  // Ignore repeat itemUse events for this long after one is handled. It must
+  // exceed the longest use_duration declared by any of the items, because
+  // Bedrock re-fires the use action while the touch interact button is held,
+  // at roughly that interval - a shorter guard lets one press eat a stack.
+  useGuardTicks: 20,
+
   carry: {
     intervalTicks: 20,
     // A dormant grub in your bag wakes up on its own somewhere in this
@@ -112,12 +118,16 @@ const CONFIG = {
     // Extra guaranteed damage to everything standing next to the host.
     splashRadius: 4.0,
     splashDamage: 8,
-    // How many fresh grubs crawl out of the crater.
+    // How many fresh grubs crawl out of the crater - and a ceiling, so that
+    // detonating next to your own bed cannot compound: two grubs become four
+    // become six as you respawn into them.
     brood: 2,
+    broodMaxNearby: 4,
     lethal: true,
     deathMessage: true,
-    // Nothing may re-enter the crater's victim for this long.
-    graceTicks: 200,
+    // Nothing may re-enter the crater's victim for this long. Has to outlast
+    // respawning and walking back, or the brood simply re-infests you.
+    graceTicks: 300,
   },
 
   serum: {
@@ -527,7 +537,14 @@ function releaseOnSelf(player) {
     return false;
   }
 
-  bindTo(grub, player, tick, CONFIG.hunt.armTicks);
+  // Binding it to somebody who can never be infested - a creative player
+  // showing it off to a friend - would make it refuse to burrow into anyone
+  // at all until the bind expires. Leave it free to pick its own target.
+  if (eligibleHost(player, tick)) {
+    bindTo(grub, player, tick, CONFIG.hunt.armTicks);
+  } else {
+    seenGrubs.set(grub.id, tick);
+  }
   safe(() => grub.applyImpulse({ x: -view.x * 0.3, y: 0.25, z: -view.z * 0.3 }));
 
   sound(dimension, FX.wake, player.location, 1, 1.1);
@@ -734,7 +751,34 @@ function clearInfest(player) {
   safe(() => player.removeTag(TAG_INFESTED));
 }
 
+/**
+ * Is the player still marked?
+ *
+ * The tag is authoritative, not decorative, which is what makes
+ * `/tag @s remove grub_infested` the escape hatch the README says it is.
+ * On any error this answers yes: an API hiccup should not cure someone.
+ */
+function stillInfested(player) {
+  try {
+    return player.hasTag(TAG_INFESTED);
+  } catch {
+    return true;
+  }
+}
+
+/** Forget an infestation whether or not the player object is still to hand. */
+function dropInfest(playerId, player) {
+  infested.delete(playerId);
+  if (player) safe(() => player.removeTag(TAG_INFESTED));
+}
+
 function tickInfestation(player, state) {
+  if (!stillInfested(player)) {
+    // Somebody cleared the tag by hand. Let them go.
+    infested.delete(player.id);
+    return;
+  }
+
   const step = CONFIG.infest.intervalTicks;
   const total = CONFIG.infest.totalTicks;
   state.ticks += step;
@@ -828,8 +872,21 @@ function detonate(player) {
     killHost(player);
 
     const tick = now();
-    for (let i = 0; i < CONFIG.blast.brood; i++) {
-      const angle = (Math.PI * 2 * i) / Math.max(1, CONFIG.blast.brood);
+    // Never hatch more than the area can hold. Without this, detonating near
+    // your own bed compounds: you respawn into two grubs, they get you again,
+    // and now there are four.
+    const crowd = nearbyEntities(
+      dimension,
+      at,
+      CONFIG.death.nearbyRadius,
+      ENTITY
+    ).length;
+    const hatching = Math.max(
+      0,
+      Math.min(CONFIG.blast.brood, CONFIG.blast.broodMaxNearby - crowd)
+    );
+    for (let i = 0; i < hatching; i++) {
+      const angle = (Math.PI * 2 * i) / Math.max(1, hatching);
       const spot = offset(at, Math.cos(angle) * 1.2, 0.6, Math.sin(angle) * 1.2);
       const child = spawnGrub(dimension, spot, at);
       if (child) seenGrubs.set(child.id, tick);
@@ -850,9 +907,12 @@ function detonate(player) {
 function purge(player) {
   const state = infested.get(player.id);
   if (!state) {
+    // Returning false is what stops the dose being consumed: a mis-tap, or a
+    // second event from a held button, must not cost you the cure you are
+    // about to need.
     actionBar(player, "§8Nothing is inside you. Not yet.");
-    sound(player.dimension, FX.cut, player.location, 0.5, 1.2);
-    return true;
+    sound(player.dimension, FX.cut, player.location, 0.4, 1.3);
+    return false;
   }
 
   const dimension = player.dimension;
@@ -952,20 +1012,24 @@ system.runInterval(() => {
       }
 
       if (state.agitation >= state.wakeAt) {
-        carrying.delete(player.id);
-        if (!consumeSlot(container, slot)) continue;
-
         let view = { x: 0, y: 0, z: 1 };
         safe(() => {
           view = player.getViewDirection();
         });
         const spot = offset(player.location, -view.x * 0.9, 1.6, -view.z * 0.9);
+
+        // Spawn first, consume second. The other order destroys the item when
+        // there is nowhere for the grub to appear - crawling through a
+        // one-block gap, or up against the world height limit - and the player
+        // gets no grub, no item and no explanation.
         const grub = spawnGrub(
           player.dimension,
           spot,
           offset(player.location, 0, 1, 0)
         );
-        if (!grub) continue;
+        if (!grub) continue; // leave the carry clock running; try again later
+        carrying.delete(player.id);
+        consumeSlot(container, slot);
 
         bindTo(grub, player, tick, CONFIG.hunt.armTicks);
         sound(player.dimension, FX.wake, player.location, 1, 0.9);
@@ -1043,13 +1107,13 @@ system.runInterval(() => {
     try {
       const player = playerById(playerId);
       if (!player || !alive(player)) {
-        infested.delete(playerId);
+        dropInfest(playerId, player);
         continue;
       }
       tickInfestation(player, state);
     } catch (err) {
       console.warn(`[Bloatgrub] infest tick failed: ${err}`);
-      infested.delete(playerId);
+      dropInfest(playerId, playerById(playerId));
     }
   }
 }, CONFIG.infest.intervalTicks);
@@ -1067,7 +1131,7 @@ world.afterEvents.itemUse.subscribe((event) => {
   const tick = now();
   const guard = useGuard.get(player.id) ?? 0;
   if (tick < guard) return;
-  useGuard.set(player.id, tick + 6);
+  useGuard.set(player.id, tick + CONFIG.useGuardTicks);
 
   try {
     if (used === ITEMS.DORMANT) {
