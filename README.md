@@ -360,6 +360,10 @@ $ node tools/sim/run.mjs
 Add `SIM_VERBOSE=1` to see each individual check, or pass a substring
 (`node tools/sim/run.mjs latch`) to run a subset.
 
+Packaging is reproducible: entry order and timestamps are fixed, so rebuilding an
+unchanged pack produces a byte-identical `.mcaddon` rather than showing up as a change
+with nothing different in it.
+
 ### What `build.py` refuses to ship
 
 - malformed JSON, or manifest UUIDs that collide within or across add-ons

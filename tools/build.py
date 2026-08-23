@@ -920,16 +920,30 @@ class Addon:
         if os.path.exists(self.output):
             os.remove(self.output)
 
+        # Fixed entry metadata, so rebuilding an unchanged pack produces a
+        # byte-identical archive. Otherwise every build rewrites dist/ with new
+        # mtimes and shows up as a change with nothing actually different.
+        stamp = (1980, 1, 1, 0, 0, 0)
+        entries = []
+        for root in (self.bp, self.rp):
+            folder = os.path.basename(root)
+            for base, dirs, files in os.walk(root):
+                dirs.sort()
+                for name in sorted(files):
+                    source = os.path.join(base, name)
+                    arcname = os.path.join(
+                        folder, os.path.relpath(source, root)
+                    ).replace(os.sep, "/")
+                    entries.append((arcname, source))
+        entries.sort()
+
         with zipfile.ZipFile(self.output, "w", zipfile.ZIP_DEFLATED) as archive:
-            for root in (self.bp, self.rp):
-                folder = os.path.basename(root)
-                for base, _dirs, files in os.walk(root):
-                    for name in sorted(files):
-                        source = os.path.join(base, name)
-                        arcname = os.path.join(
-                            folder, os.path.relpath(source, root)
-                        ).replace(os.sep, "/")
-                        archive.write(source, arcname)
+            for arcname, source in entries:
+                info = zipfile.ZipInfo(arcname, date_time=stamp)
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.external_attr = 0o644 << 16
+                with open(source, "rb") as handle:
+                    archive.writestr(info, handle.read())
         return os.path.getsize(self.output)
 
 
