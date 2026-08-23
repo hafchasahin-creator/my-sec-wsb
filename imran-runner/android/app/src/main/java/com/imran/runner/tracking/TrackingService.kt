@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
@@ -40,6 +41,13 @@ class TrackingService : Service() {
         const val ACTION_FINISH = "com.imran.runner.action.FINISH"
 
         private const val NOTIFICATION_ID = 8_141
+
+        /**
+         * The tracker publishes at 5 Hz for the sake of a smooth screen. The notification shows
+         * whole seconds, so rebuilding it that often would be twelve thousand pointless wakeups
+         * over an hour's run with the screen off.
+         */
+        private const val NOTIFICATION_INTERVAL_MS = 1_000L
 
         fun start(context: Context) {
             try {
@@ -78,9 +86,18 @@ class TrackingService : Service() {
             goForeground()
             tracker.acquire()
             scope.launch {
+                var lastShownAt = 0L
+                var lastState: RunState? = null
                 tracker.metrics.collectLatest { metrics ->
-                    NotificationManagerCompat.from(this@TrackingService)
-                        .notifyIfAllowed(NOTIFICATION_ID, buildNotification(metrics))
+                    val now = SystemClock.elapsedRealtime()
+                    // Pausing or resuming changes the action button, so that always redraws
+                    // immediately; otherwise once a second is as fine as the text can show.
+                    if (metrics.state != lastState || now - lastShownAt >= NOTIFICATION_INTERVAL_MS) {
+                        lastShownAt = now
+                        lastState = metrics.state
+                        NotificationManagerCompat.from(this@TrackingService)
+                            .notifyIfAllowed(NOTIFICATION_ID, buildNotification(metrics))
+                    }
                 }
             }
         }
