@@ -464,6 +464,8 @@ const useGuard = new Map();
 let lastGrubSeen = -1e9;
 /** Tick the proximity scan last actually ran. */
 let lastScan = -1e9;
+/** Tick the bookkeeping maps were last swept. */
+let lastPrune = -1e9;
 
 function noticeGrub(tick) {
   lastGrubSeen = tick;
@@ -1120,7 +1122,13 @@ system.runInterval(() => {
   const overdue = tick - lastScan >= CONFIG.hunt.resyncTicks;
   if (quiet && !overdue) return;
   lastScan = tick;
-  if (overdue) pruneGrubState(tick);
+
+  // Sweep on its own clock, not on `overdue`: that only becomes true after the
+  // scan has been idle, which is precisely when there is nothing to sweep.
+  if (tick - lastPrune >= CONFIG.hunt.resyncTicks) {
+    lastPrune = tick;
+    pruneGrubState(tick);
+  }
 
   for (const player of allPlayers()) {
     try {

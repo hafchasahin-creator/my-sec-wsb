@@ -354,7 +354,7 @@ and the documented timings all fail here before they can drift.
 ```
 $ node tools/sim/run.mjs
 ...
-125 checks passed, 0 failed
+128 checks passed, 0 failed
 ```
 
 Add `SIM_VERBOSE=1` to see each individual check, or pass a substring

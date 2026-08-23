@@ -47,6 +47,8 @@ const CARRY_TIMEOUT_TICKS = 6000;
 const SPAWN_GRACE_TICKS = 320;
 // Longer than CONFIG.hunt.armTicks.
 const ARM_TICKS = 30;
+// Mirrors CONFIG.death.maxNearby in the script under test.
+const CONFIG_DEATH_MAX_NEARBY = 3;
 
 /* ------------------------------------------------------------------ *
  * Load the script under test
@@ -804,6 +806,31 @@ scenario("effect-volume-stays-sane", () => {
     "and does not fire a command every tick",
     log.commands.length <= 40,
     `${log.commands.length} commands`
+  );
+});
+
+scenario("bookkeeping-does-not-grow-without-bound", () => {
+  // The state maps are keyed by entity id, so a long session that kills a lot
+  // of grubs must not accumulate a dead entry per grub. Sweeping used to be
+  // tied to the scan's idle-resync path, which never fires while grubs are
+  // actually around - the only time there is anything to sweep.
+  const player = addPlayer("Marathon");
+  for (let round = 0; round < 12; round++) {
+    const grub = player.dimension.spawnEntity(ENTITY, {
+      x: player.location.x + 8,
+      y: 64,
+      z: player.location.z,
+    });
+    system.pump(ARM_TICKS + 8);
+    grub.kill();
+    system.pump(50);
+  }
+  check("the player survived the parade", player.health.current > 0);
+  check("no errors", log.warnings.length === 0, JSON.stringify(log.warnings));
+  check(
+    "and the world is not left full of grubs",
+    grubsIn().filter((g) => g.isValid).length <= CONFIG_DEATH_MAX_NEARBY,
+    `${grubsIn().filter((g) => g.isValid).length} left alive`
   );
 });
 
