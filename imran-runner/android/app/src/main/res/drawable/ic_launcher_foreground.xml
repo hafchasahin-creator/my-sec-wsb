@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Imran Runner mark: a runner caught mid-stride, drawn as stroked limbs so
+         it stays crisp at every launcher size. -->
+    <group android:name="runner">
+        <path
+            android:pathData="M58,34.5 A6,6 0 0 1 70,34.5 A6,6 0 0 1 58,34.5 Z"
+            android:fillColor="#5BDD18" />
+        <path
+            android:pathData="M59,45 L49,62"
+            android:strokeColor="#5BDD18"
+            android:strokeWidth="7"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M59.5,46.5 L68.5,53 L62.5,60"
+            android:strokeColor="#5BDD18"
+            android:strokeWidth="7"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M58,45.5 L46.5,46.5 L41,38"
+            android:strokeColor="#4FC414"
+            android:strokeWidth="7"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M49,62 L61.5,67 L58,79.5"
+            android:strokeColor="#5BDD18"
+            android:strokeWidth="7"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M49,62 L38,69.5 L45.5,78.5"
+            android:strokeColor="#4FC414"
+            android:strokeWidth="7"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>

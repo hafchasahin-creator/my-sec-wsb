@@ -1,0 +1,151 @@
+# Builds the installable Imran Runner APK.
+#
+# The container that authors this repo cannot reach dl.google.com — it is blocked by the egress
+# policy — so there is no Android SDK, no AGP and no AndroidX there. GitHub's runner image already
+# ships the SDK and can reach Google's Maven, so the real compile, the lint pass and the unit tests
+# all happen here. The finished APK is committed to imran-runner/dist/ and published as a release
+# asset, which is what gives the app a direct, permanent download link.
+name: Imran Runner APK
+
+on:
+  push:
+    branches: ["claude/imran-runner-android-eeqb4s"]
+    paths:
+      - "imran-runner/android/**"
+      - ".github/workflows/imran-runner-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: imran-runner-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APK_NAME: ImranRunner.apk
+  RELEASE_TAG: imran-runner-latest
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Show toolchain
+        working-directory: imran-runner/android
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME/platforms" || true
+          ls "$ANDROID_HOME/build-tools" || true
+          java -version
+          ./gradlew --version
+
+      - name: Unit tests
+        working-directory: imran-runner/android
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Lint
+        working-directory: imran-runner/android
+        run: ./gradlew --no-daemon lintDebug
+
+      - name: Assemble the release APK
+        working-directory: imran-runner/android
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Verify the APK is a real, installable Android package
+        working-directory: imran-runner/android
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/release/app-release.apk
+          test -f "$APK" || { echo "::error::no APK produced"; exit 1; }
+
+          echo "--- size ---"
+          ls -l "$APK"
+          SIZE=$(stat -c%s "$APK")
+          [ "$SIZE" -gt 500000 ] || { echo "::error::APK suspiciously small ($SIZE bytes)"; exit 1; }
+
+          echo "--- entries ---"
+          unzip -l "$APK" | tee /tmp/entries.txt
+          for required in classes.dex AndroidManifest.xml resources.arsc; do
+            grep -q "$required" /tmp/entries.txt \
+              || { echo "::error::APK is missing $required"; exit 1; }
+          done
+
+          BT=$(ls -1 "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+          echo "--- badging (build-tools $BT) ---"
+          "$ANDROID_HOME/build-tools/$BT/aapt2" dump badging "$APK" | head -40
+          "$ANDROID_HOME/build-tools/$BT/aapt2" dump badging "$APK" \
+            | grep -q "package: name='com.imran.runner'" \
+            || { echo "::error::unexpected package id"; exit 1; }
+          "$ANDROID_HOME/build-tools/$BT/aapt2" dump badging "$APK" \
+            | grep -q "application-label:'Imran Runner'" \
+            || { echo "::error::app is not branded Imran Runner"; exit 1; }
+          "$ANDROID_HOME/build-tools/$BT/aapt2" dump badging "$APK" \
+            | grep -q "uses-permission: name='android.permission.ACCESS_FINE_LOCATION'" \
+            || { echo "::error::GPS permission missing"; exit 1; }
+
+          echo "--- signature (an unsigned APK will not install) ---"
+          "$ANDROID_HOME/build-tools/$BT/apksigner" verify --print-certs -v "$APK"
+
+      - name: Stage the APK
+        run: |
+          set -euo pipefail
+          mkdir -p imran-runner/dist
+          cp imran-runner/android/app/build/outputs/apk/release/app-release.apk \
+             "imran-runner/dist/${APK_NAME}"
+          cd imran-runner/dist
+          sha256sum "${APK_NAME}" > "${APK_NAME}.sha256"
+          ls -l
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: imran-runner-apk
+          path: imran-runner/dist/${{ env.APK_NAME }}
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Commit the APK back to the branch
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "imran-runner/dist/${APK_NAME}" "imran-runner/dist/${APK_NAME}.sha256"
+          if git diff --cached --quiet; then
+            echo "APK unchanged — nothing to commit."
+            exit 0
+          fi
+          git commit -m "Build the Imran Runner APK [skip ci]"
+          for i in 1 2 3 4; do
+            git pull --rebase origin "${GITHUB_REF_NAME}" \
+              && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            echo "push attempt $i failed; retrying"
+            sleep $((2 ** i))
+          done
+          echo "::error::could not push the APK"; exit 1
+
+      - name: Publish the download link
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # A fixed tag keeps the download URL permanent, so the link handed to the user keeps
+          # working across every rebuild rather than pointing at one frozen build.
+          gh release delete "${RELEASE_TAG}" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "${RELEASE_TAG}" \
+            --title "Imran Runner — latest build" \
+            --notes "Install on any Android 8.0 (Oreo) phone or newer. Allow installs from unknown sources, open the APK, then grant location access so the GPS tracking works." \
+            --target "${GITHUB_SHA}" \
+            "imran-runner/dist/${APK_NAME}#Imran Runner APK"
+          echo "Download: https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${APK_NAME}"

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Imran Runner</string>
+    <string name="notification_channel_tracking">Run tracking</string>
+    <string name="notification_channel_tracking_desc">Keeps your run recording while the screen is off.</string>
+</resources>

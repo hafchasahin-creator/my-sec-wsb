@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sampled from the Imran Runner reference design. -->
+    <color name="brand_background">#01060F</color>
+    <color name="brand_surface">#0D141D</color>
+    <color name="brand_green">#5BDD18</color>
+    <color name="brand_green_deep">#66BE2E</color>
+</resources>
