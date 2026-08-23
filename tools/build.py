@@ -85,6 +85,19 @@ def walk_files(root, suffix):
                 yield os.path.join(base, name)
 
 
+def _flatten_references(node):
+    """Every string inside a render-controller field, however it is nested."""
+    if node is None:
+        return []
+    if isinstance(node, str):
+        return [node]
+    if isinstance(node, list):
+        return [ref for item in node for ref in _flatten_references(item)]
+    if isinstance(node, dict):
+        return [ref for item in node.values() for ref in _flatten_references(item)]
+    return []
+
+
 def version_tuple(value):
     try:
         return tuple(int(part) for part in str(value).split("."))
@@ -156,19 +169,33 @@ class Addon:
             return []
 
         uuids = []
-        for manifest in (bp_manifest, rp_manifest):
-            uuids.append(manifest["header"]["uuid"])
-            uuids.extend(module["uuid"] for module in manifest["modules"])
+        for label, manifest in (("behaviour", bp_manifest), ("resource", rp_manifest)):
+            header = manifest.get("header") or {}
+            if not header.get("uuid"):
+                self.fail(f"{label} pack manifest has no header.uuid")
+            else:
+                uuids.append(header["uuid"])
+            modules = manifest.get("modules")
+            if not isinstance(modules, list) or not modules:
+                self.fail(f"{label} pack manifest has no modules")
+                continue
+            for index, module in enumerate(modules):
+                if not isinstance(module, dict) or not module.get("uuid"):
+                    self.fail(f"{label} pack manifest module {index} has no uuid")
+                    continue
+                uuids.append(module["uuid"])
         duplicates = {u for u in uuids if uuids.count(u) > 1}
         if duplicates:
             self.fail(f"duplicate UUIDs inside the add-on: {sorted(duplicates)}")
 
-        rp_uuid = rp_manifest["header"]["uuid"]
+        rp_uuid = (rp_manifest.get("header") or {}).get("uuid")
         dependency_uuids = [d.get("uuid") for d in bp_manifest.get("dependencies", [])]
-        if rp_uuid not in dependency_uuids:
+        if rp_uuid and rp_uuid not in dependency_uuids:
             self.fail(f"behaviour pack does not depend on resource pack {rp_uuid}")
 
-        for module in bp_manifest["modules"]:
+        for module in bp_manifest.get("modules", []):
+            if not isinstance(module, dict):
+                continue
             if module["type"] != "script":
                 continue
             entry = os.path.join(self.bp, module["entry"])
@@ -232,9 +259,18 @@ class Addon:
             if key not in texture_data:
                 self.fail(f"{path}: icon '{key}' missing from item_texture.json")
                 continue
-            png = os.path.join(self.rp, texture_data[key]["textures"] + ".png")
-            if not os.path.isfile(png):
-                self.fail(f"{path}: icon '{key}' points at missing file {png}")
+            # "textures" is a string or, for variant icons, a list of them.
+            entry = texture_data[key]
+            paths = entry.get("textures") if isinstance(entry, dict) else entry
+            if isinstance(paths, str):
+                paths = [paths]
+            if not paths:
+                self.fail(f"{path}: icon '{key}' has no texture path in item_texture.json")
+                continue
+            for texture in paths:
+                png = os.path.join(self.rp, str(texture) + ".png")
+                if not os.path.isfile(png):
+                    self.fail(f"{path}: icon '{key}' points at missing file {png}")
 
     # An item with one of these already has a use action the client knows how
     # to offer, so it does not need an explicit touch button.
@@ -282,13 +318,45 @@ class Addon:
                     "the raw key"
                 )
 
+    CRAFTING_TAGS = frozenset({
+        "crafting_table", "stonecutter", "smithing_table", "furnace",
+        "blast_furnace", "smoker", "campfire", "soul_campfire",
+        "brewing_stand", "material_reducer",
+    })
+
     def check_recipes(self):
         for path, doc in sorted(self.docs_under(self.bp, "recipes").items()):
-            recipe = (
-                doc.get("minecraft:recipe_shaped")
-                or doc.get("minecraft:recipe_shapeless")
-                or {}
-            )
+            shaped = doc.get("minecraft:recipe_shaped")
+            recipe = shaped or doc.get("minecraft:recipe_shapeless") or {}
+
+            # Without a station tag the recipe loads and is craftable nowhere.
+            tags = recipe.get("tags")
+            if not tags:
+                self.fail(f"{path}: no crafting station in \"tags\"")
+            else:
+                unknown = sorted(set(tags) - self.CRAFTING_TAGS)
+                if unknown:
+                    self.fail(f"{path}: unknown crafting station tag(s) {unknown}")
+
+            if shaped:
+                pattern = shaped.get("pattern") or []
+                key = shaped.get("key") or {}
+                if not 1 <= len(pattern) <= 3:
+                    self.fail(f"{path}: pattern has {len(pattern)} rows, must be 1-3")
+                widths = {len(row) for row in pattern}
+                if len(widths) > 1:
+                    self.fail(f"{path}: pattern rows are ragged: {pattern}")
+                if widths and max(widths) > 3:
+                    self.fail(f"{path}: pattern is {max(widths)} columns wide, max 3")
+                used = {ch for row in pattern for ch in row} - {" "}
+                for ch in sorted(used - set(key)):
+                    self.fail(
+                        f"{path}: pattern uses '{ch}' but \"key\" does not define it, "
+                        "so the recipe will not load"
+                    )
+                for ch in sorted(set(key) - used):
+                    self.fail(f"{path}: \"key\" defines '{ch}' but the pattern never uses it")
+
             result = recipe.get("result", {})
             result_item = result.get("item") if isinstance(result, dict) else result
             if result_item and not result_item.startswith("minecraft:"):
@@ -310,6 +378,51 @@ class Addon:
                     continue
                 if ingredient not in self.item_ids:
                     self.fail(f"{path}: ingredient '{ingredient}' has no item definition")
+
+    def check_loot_tables(self):
+        """A typo in a loot entry drops nothing, and reports nothing.
+
+        check_entities only proves the file the entity points at exists. This
+        opens it and resolves every identifier inside, the same way recipes
+        are resolved.
+        """
+        def walk(node, path):
+            if isinstance(node, list):
+                for item in node:
+                    walk(item, path)
+                return
+            if not isinstance(node, dict):
+                return
+
+            kind = node.get("type")
+            name = node.get("name")
+            if name and isinstance(name, str):
+                if kind == "loot_table":
+                    if not os.path.isfile(os.path.join(self.bp, name)):
+                        self.fail(f"{path}: nested loot table '{name}' does not exist")
+                elif not name.startswith("minecraft:"):
+                    if name not in self.item_ids and name not in self.entity_ids:
+                        self.fail(
+                            f"{path}: loot entry '{name}' has no item or entity "
+                            "definition, so this drops nothing"
+                        )
+            for value in ("item", "entity"):
+                target = node.get(value)
+                if isinstance(target, str) and not target.startswith("minecraft:"):
+                    if target not in self.item_ids and target not in self.entity_ids:
+                        self.fail(f"{path}: loot references undefined '{target}'")
+
+            for value in node.values():
+                if isinstance(value, (dict, list)):
+                    walk(value, path)
+
+        for path, doc in sorted(self.docs_under(self.bp, "loot_tables").items()):
+            if "format_version" in doc:
+                self.fail(
+                    f"{path}: loot tables carry no format_version - none of the "
+                    "vanilla 1.21.0 tables have one"
+                )
+            walk(doc.get("pools", []), path)
 
     def check_entities(self):
         """The expensive-to-debug half: a custom mob that renders as nothing."""
@@ -446,18 +559,27 @@ class Addon:
                         f"{path}: cube in '{bone.get('name')}' at uv {uv} size {size} "
                         f"runs off the {width}x{height} texture"
                     )
-                rects.append((bone.get("name"), rect))
+                mirrored = bool(cube.get("mirror", bone.get("mirror", False)))
+                rects.append((bone.get("name"), rect, mirrored))
 
         # Two cubes sharing texture pixels is how a model ends up wearing the
-        # wrong skin in one place and looking fine everywhere else.
+        # wrong skin in one place and looking fine everywhere else - EXCEPT
+        # when a left/right pair deliberately shares one unwrap with "mirror".
+        # That is Mojang's own convention: geometry.humanoid gives rightArm and
+        # leftArm the same uv [40,16]. Only partial overlap is ever a bug.
         for i in range(len(rects)):
-            name_a, (ax, ay, aw, ah) = rects[i]
+            name_a, rect_a, mirror_a = rects[i]
             for j in range(i + 1, len(rects)):
-                name_b, (bx, by, bw, bh) = rects[j]
-                if ax < bx + bw and bx < ax + aw and ay < by + bh and by < ay + ah:
-                    self.fail(
-                        f"{path}: UV footprints of '{name_a}' and '{name_b}' overlap"
-                    )
+                name_b, rect_b, mirror_b = rects[j]
+                ax, ay, aw, ah = rect_a
+                bx, by, bw, bh = rect_b
+                if not (ax < bx + bw and bx < ax + aw and ay < by + bh and by < ay + ah):
+                    continue
+                if rect_a == rect_b and (mirror_a or mirror_b):
+                    continue  # the mirrored-pair idiom
+                self.fail(
+                    f"{path}: UV footprints of '{name_a}' and '{name_b}' overlap"
+                )
 
     def collect_animations(self):
         """{animation name: (path, bone names it drives)}."""
@@ -472,22 +594,58 @@ class Addon:
         return found
 
     def collect_render_controllers(self):
-        found = set()
+        """{controller name: {"geometry"|"textures"|"materials": {slot names}}}."""
+        found = {}
         controller_dir = os.path.join(self.rp, "render_controllers")
         for path in sorted(walk_files(controller_dir, ".json")):
             doc = self.documents.get(path)
             if doc is None:
                 continue
-            found.update(doc.get("render_controllers", {}).keys())
+            for name, body in doc.get("render_controllers", {}).items():
+                slots = {"geometry": set(), "textures": set(), "materials": set()}
+                for field, prefix in (
+                    ("geometry", "Geometry."),
+                    ("textures", "Texture."),
+                    ("materials", "Material."),
+                ):
+                    for reference in _flatten_references(body.get(field)):
+                        if not reference.startswith(prefix):
+                            continue
+                        slot = reference[len(prefix):]
+                        # Molang-driven slot names cannot be resolved statically.
+                        if any(ch in slot for ch in "()+ '\""):
+                            continue
+                        slots[field].add(slot)
+                found[name] = slots
         return found
 
     def check_client_entity(self, path, description, geometries, animations, controllers):
         identifier = description.get("identifier")
 
+        declared = {
+            "geometry": set(description.get("geometry", {})),
+            "textures": set(description.get("textures", {})),
+            "materials": set(description.get("materials", {})),
+        }
         for controller in description.get("render_controllers", []):
             key = controller if isinstance(controller, str) else next(iter(controller))
             if key not in controllers:
                 self.fail(f"{path}: unknown render controller '{key}'")
+                continue
+            # A controller asking for Texture.default when the client entity
+            # only declares "skin" renders the mob untextured, in silence.
+            prefixes = {
+                "geometry": "Geometry",
+                "textures": "Texture",
+                "materials": "Material",
+            }
+            for field, slots in controllers[key].items():
+                for slot in sorted(slots - declared[field]):
+                    self.fail(
+                        f"{path}: render controller '{key}' asks for "
+                        f"{prefixes[field]}.{slot}, but {identifier} declares no "
+                        f"'{slot}' in its {field} block"
+                    )
 
         if not description.get("materials"):
             self.fail(f"{path}: {identifier} declares no materials")
@@ -511,6 +669,10 @@ class Addon:
                 "textures", {}
             ).get("default")
             if not texture:
+                self.fail(
+                    f"{path}: geometry slot '{key}' has no matching texture and "
+                    "there is no 'default' to fall back on"
+                )
                 continue
             png = os.path.join(self.rp, texture + ".png")
             if not os.path.isfile(png):
@@ -743,6 +905,7 @@ class Addon:
         self.check_touch_controls()
         self.check_recipes()
         self.check_entities()
+        self.check_loot_tables()
         self.check_script_ids()
         self.check_sound_ids()
         self.check_particle_ids()

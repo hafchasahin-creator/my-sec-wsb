@@ -44,10 +44,11 @@ Carrying it is the mistake.
 ## The four beats
 
 **1. It waits in your bag.** Every second a dormant grub is in your inventory it gets one
-point more restless — counted *per grub*, so a stack climbs several times faster. Past 45
-it starts making wet noises and biting through the bag: 1 damage, at most once every 6
-seconds, and never below 6 hearts, because being chewed to death by your own backpack
-before anything happens is not the joke. Somewhere between 90 and 240 points, randomised
+point more restless — counted *per grub*, so a stack climbs several times faster. It makes wet
+noises from the moment you pick it up; past 15 it starts nudging your action bar, and
+past 45 it bites through the bag: 1 damage, at most once every 6 seconds, and never
+below 6 HP (3 hearts), because being chewed to death by your own backpack before
+anything happens is not the joke. Somewhere between 90 and 240 points, randomised
 — **1.5 to 4 minutes** for a single grub — it uncurls, eats itself out of your inventory,
 and drops onto your shoulders. You can also just **tap it** to let it out deliberately;
 used bare-handed it fixates on you for 30 seconds.
@@ -336,18 +337,24 @@ its containers hand back copies the way the real ones do, and `applyImpulse` thr
 not exist fails here instead of on someone's phone.
 
 The scenarios drive real situations end to end: carrying a grub until it wakes, a stack
-waking sooner than a single one, creative immunity, releasing one by hand, the jar's
-scent mask, the leap and the latch, the full countdown into the detonation and its brood,
-bites refusing to steal the kill, the serum, dying to something else mid-countdown,
+waking sooner than a single one, carrying one without being chewed to death, creative
+immunity, releasing one by hand, the jar's scent mask, the pounce landing *before* the
+latch, a grub that never pounced being refused entry, the full countdown into the
+detonation and its brood, bites refusing to steal the kill, the serum, a serum tap that
+should cost nothing, a held button that should not eat the stack, clearing the tag as an
+escape hatch, the brood refusing to compound, dying to something else mid-countdown,
 respawning, logging out mid-countdown, walking through a nether portal mid-countdown, two
-grubs arriving on the same tick, and two players not bleeding state into each other. One
-scenario just counts particles, sounds and commands per event so the effect budget cannot
-quietly balloon.
+grubs arriving on the same tick, and two players not bleeding state into each other.
+
+Three scenarios measure rather than assert behaviour: one counts particles, sounds and
+commands per event, one counts entity queries per player per second, and one times the
+infestation against the timetable published above — so the effect budget, the scan cost
+and the documented timings all fail here before they can drift.
 
 ```
 $ node tools/sim/run.mjs
 ...
-84 checks passed, 0 failed
+125 checks passed, 0 failed
 ```
 
 Add `SIM_VERBOSE=1` to see each individual check, or pass a substring
@@ -370,7 +377,14 @@ Add `SIM_VERBOSE=1` to see each individual check, or pass a substring
 - an animation driving a bone the model does not have
 - a `scripts.animate` entry with no matching animation slot
 - a custom item, entity or spawn egg with no name in `en_US.lang`
-- a loot table or spawn rule pointing at something that does not exist
+- a loot table or spawn rule pointing at something that does not exist, an item named
+  inside a loot table that has no definition (which drops nothing, in silence), or a
+  loot table carrying a `format_version` (none of the vanilla ones do)
+- a shaped recipe whose pattern uses a character `key` does not define, whose rows are
+  ragged or larger than 3×3, or that names no crafting station — each of which leaves
+  the recipe craftable nowhere
+- a render controller asking for a `Texture.`/`Geometry.`/`Material.` slot the client
+  entity does not declare, or a geometry slot with no texture to go with it
 - a namespaced id in the behaviour script that nothing in the pack defines, and a
   `triggerEvent()` naming something that is not an entity event — both of which fail
   silently in game, since the handler still runs and its branch simply never fires
