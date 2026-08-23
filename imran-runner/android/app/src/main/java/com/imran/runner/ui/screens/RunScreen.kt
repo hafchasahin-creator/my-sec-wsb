@@ -75,7 +75,7 @@ fun RunScreen(
         val chrome = (if (compact) 350.dp else 410.dp) + (if (notice) 76.dp else 0.dp)
         val gaugeSize = minOf(
             maxWidth - 40.dp,
-            (maxHeight - chrome).coerceIn(140.dp, 300.dp),
+            (maxHeight - chrome).coerceIn(140.dp, 288.dp),
         )
         val pager = rememberPagerState(pageCount = { 2 })
 

@@ -173,7 +173,7 @@ fun SpeedGauge(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = size * 0.155f),
+                .padding(top = size * 0.167f),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -183,7 +183,7 @@ fun SpeedGauge(
             )
             Spacer(Modifier.height(size * 0.015f))
             Box(
-                modifier = Modifier.height(size * 0.315f),
+                modifier = Modifier.height(size * 0.345f),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
