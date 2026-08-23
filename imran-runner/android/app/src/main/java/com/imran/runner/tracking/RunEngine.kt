@@ -19,8 +19,25 @@ class RunEngine(weightKg: Double = DEFAULT_WEIGHT_KG) {
     companion object {
         const val DEFAULT_WEIGHT_KG = 70.0
 
-        /** Fixes looser than this are watched for GPS quality but never move the numbers. */
+        /** Fixes looser than this are never allowed to add distance to the run. */
         const val MAX_ACCURACY_M = 25f
+
+        /**
+         * Speed is sensed from far looser fixes than distance is.
+         *
+         * A 40-metre fix still tells you reliably whether you are walking or standing, and
+         * refusing it outright is what left the readout sitting at 0.0 km/h through ordinary
+         * walks: on a phone in the hand, in a street with buildings either side, accuracy
+         * spends a lot of its time above 25 m.
+         */
+        const val SPEED_ACCURACY_GATE_M = 60f
+
+        /**
+         * Below this, a receiver's own speed is not evidence of standing still — plenty of them
+         * clamp Doppler to zero at walking pace, or repeat a stale zero on a fused fix. When the
+         * geometry plainly disagrees, the geometry wins.
+         */
+        const val DOUBTFUL_REPORTED_SPEED_MPS = 0.7
 
         /** Faster than a world-class sprinter: the receiver jumped, the runner did not. */
         const val MAX_PLAUSIBLE_MPS = 12.5
@@ -34,8 +51,11 @@ class RunEngine(weightKg: Double = DEFAULT_WEIGHT_KG) {
          */
         const val MAX_GAP_MS = 120_000L
 
-        /** After this long without a fix, live speed is bled to zero rather than left hanging. */
-        const val SPEED_TIMEOUT_MS = 4_000L
+        /**
+         * How long a fix keeps the speed readout alive. Beyond this the value is eased down to
+         * zero rather than left hanging — but the run itself keeps recording either way.
+         */
+        const val SPEED_TIMEOUT_MS = 6_000L
 
         /** Max speed only accepts fixes at least this tight, to keep a wild sample out of a PR. */
         const val MAX_SPEED_ACCURACY_M = 15f
@@ -54,6 +74,9 @@ class RunEngine(weightKg: Double = DEFAULT_WEIGHT_KG) {
 
         /** Average pace stays blank until there is enough distance for it to mean anything. */
         const val MIN_DISTANCE_FOR_PACE_M = 20.0
+
+        /** Fraction of a fix's accuracy that counts as wobble rather than travel. */
+        const val NOISE_ALLOWANCE = 0.35
 
         /** Sentinel for "no sample yet"; 0 is a legitimate elapsed-realtime value just after boot. */
         private const val UNSET = Long.MIN_VALUE
@@ -169,7 +192,7 @@ class RunEngine(weightKg: Double = DEFAULT_WEIGHT_KG) {
         lastAccuracyM = fix.accuracyMeters
 
         if (state == RunState.FINISHED) return
-        if (fix.accuracyMeters > MAX_ACCURACY_M) return
+        if (fix.accuracyMeters > SPEED_ACCURACY_GATE_M) return
 
         val previous = anchor
         if (previous == null) {
@@ -203,15 +226,17 @@ class RunEngine(weightKg: Double = DEFAULT_WEIGHT_KG) {
 
         // Speed is sensed in every state, not just while running: it drives the GPS-lock preview
         // before the run starts and lets auto-resume notice the runner setting off again.
-        val speed = speedFilter.update(
-            if (fix.hasSpeed) fix.speedMps.toDouble() else impliedMps,
-            dt,
-        )
+        val speed = speedFilter.update(rawSpeedFor(fix, moved, impliedMps), dt)
 
         if (state != RunState.RUNNING) {
             anchor = fix
             return
         }
+
+        // Distance is held to a stricter standard than speed. A loose fix does not move the
+        // anchor either, so the displacement it could not be trusted with is still there to be
+        // credited the moment a tight fix lands.
+        if (fix.accuracyMeters > MAX_ACCURACY_M) return
 
         val noiseFloor = max(1.5, fix.accuracyMeters * 0.5)
         if (moved < noiseFloor) {
@@ -237,6 +262,31 @@ class RunEngine(weightKg: Double = DEFAULT_WEIGHT_KG) {
 
         anchor = fix
         record(fix, speed)
+    }
+
+    /**
+     * Picks what to believe about this fix's speed.
+     *
+     * The receiver's own figure is the better measurement when it is saying anything at all —
+     * it comes from Doppler shift rather than from differencing two noisy positions. But a
+     * reported zero is not trustworthy at walking pace, so when the geometry says the phone has
+     * plainly moved, the geometry is used instead.
+     *
+     * Position-derived speed is gated on the displacement clearing the fix's own noise: without
+     * that, a phone sitting on a wall would read a couple of km/h of pure GPS wobble.
+     */
+    private fun rawSpeedFor(fix: Fix, movedMeters: Double, impliedMps: Double): Double {
+        val trustedImplied = if (movedMeters > fix.accuracyMeters * NOISE_ALLOWANCE) {
+            impliedMps
+        } else {
+            0.0
+        }
+        if (!fix.hasSpeed) return trustedImplied
+        val reported = fix.speedMps.toDouble()
+        if (reported < DOUBTFUL_REPORTED_SPEED_MPS && trustedImplied > reported) {
+            return trustedImplied
+        }
+        return reported
     }
 
     private fun record(fix: Fix, speed: Double) {
@@ -293,9 +343,17 @@ class RunEngine(weightKg: Double = DEFAULT_WEIGHT_KG) {
             lastKmPaceSecPerKm = lastKmPaceSecPerKm,
             elevationGainMeters = elevationGainMeters,
             gps = gpsQuality(nowMs),
+            hasRecentFix = hasRecentFix(nowMs),
             routePointCount = route.size,
         )
     }
+
+    /**
+     * Whether the receiver has said anything recently. Auto-pause leans on this: a run must
+     * never be stopped because the signal dropped, only because the runner did.
+     */
+    fun hasRecentFix(nowMs: Long): Boolean =
+        lastFixAtMs != UNSET && nowMs - lastFixAtMs <= SPEED_TIMEOUT_MS
 
     fun gpsQuality(nowMs: Long): GpsQuality {
         if (lastFixAtMs == UNSET || nowMs - lastFixAtMs > STALE_FIX_MS) return GpsQuality.NONE

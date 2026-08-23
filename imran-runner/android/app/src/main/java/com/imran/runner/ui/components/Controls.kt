@@ -113,7 +113,7 @@ fun ControlRow(
     // A slow halo that invites the first tap, and keeps a quieter heartbeat going during the
     // run itself — alive, never insistent.
     val transition = rememberInfiniteTransition(label = "primary")
-    val invite by transition.animateFloat(
+    val invite = transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -122,11 +122,7 @@ fun ControlRow(
         ),
         label = "invite",
     )
-    val haloStrength = when (state) {
-        RunState.IDLE, RunState.FINISHED -> 0.20f + 0.22f * invite
-        RunState.RUNNING -> 0.16f + 0.10f * invite
-        RunState.PAUSED -> 0.18f
-    }
+
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -148,6 +144,15 @@ fun ControlRow(
                     .scale(scale)
                     .size(primaryDiameter)
                     .drawBehind {
+                        // Read in the draw phase, not in composition: reading a per-frame
+                        // animation value up there would recompose this whole control on every
+                        // frame of every run, rebuilding the modifier chain sixty times a second.
+                        val breath = invite.value
+                        val haloStrength = when (state) {
+                            RunState.IDLE, RunState.FINISHED -> 0.20f + 0.22f * breath
+                            RunState.RUNNING -> 0.16f + 0.10f * breath
+                            RunState.PAUSED -> 0.18f
+                        }
                         drawCircle(
                             brush = Brush.radialGradient(
                                 colors = listOf(

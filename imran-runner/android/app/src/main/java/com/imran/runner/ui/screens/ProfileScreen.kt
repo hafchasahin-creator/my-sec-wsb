@@ -156,7 +156,8 @@ fun ProfileScreen(
         SettingToggle(
             icon = RunnerIcon.Speedometer,
             title = "Auto-pause",
-            body = "Stop the clock when you stop moving, and start it again when you set off.",
+            body = "Off by default. When on, the clock stops while you stand still and starts " +
+                "again when you set off. It never pauses just because GPS drops.",
             checked = profile.autoPause,
             onChange = { next -> onProfileChange { it.copy(autoPause = next) } },
         )

@@ -90,15 +90,18 @@ fun RunScreen(
                 quality = metrics.gps,
                 title = when {
                     locked -> "LOCKED"
+                    // The run is still recording; say why the numbers have gone quiet rather
+                    // than letting it look like tracking has stopped.
+                    metrics.state == RunState.RUNNING && !metrics.hasRecentFix -> "SEARCHING"
                     metrics.state == RunState.RUNNING -> "RUNNING"
                     metrics.state == RunState.PAUSED -> "PAUSED"
                     metrics.state == RunState.FINISHED -> "FINISHED"
                     else -> "READY"
                 },
-                titleTint = if (metrics.state == RunState.RUNNING) {
-                    ImranColors.Accent
-                } else {
-                    ImranColors.TextDim
+                titleTint = when {
+                    metrics.state == RunState.RUNNING && !metrics.hasRecentFix -> ImranColors.Amber
+                    metrics.state == RunState.RUNNING -> ImranColors.Accent
+                    else -> ImranColors.TextDim
                 },
                 onSettings = onSettings,
             )

@@ -1,5 +1,6 @@
 package com.imran.runner.core
 
+import kotlin.math.abs
 import kotlin.math.exp
 
 /**
@@ -11,9 +12,19 @@ import kotlin.math.exp
  * dropped or late fix does not change how much history is retained.
  */
 class SpeedFilter(
-    private val timeConstantSeconds: Double = 2.0,
+    private val timeConstantSeconds: Double = 1.5,
     private val maxPlausibleMps: Double = 12.5,
 ) {
+
+    private companion object {
+        /**
+         * A reading this far from the current value is a real change of pace, not noise, so the
+         * smoother is allowed to catch up quickly instead of dragging a walk down toward zero.
+         */
+        const val CATCH_UP_THRESHOLD_MPS = 0.9
+
+        const val CATCH_UP_TIME_CONSTANT_SECONDS = 0.55
+    }
     var value: Double = 0.0
         private set
 
@@ -37,7 +48,12 @@ class SpeedFilter(
             return value
         }
         if (dtSeconds <= 0.0) return value
-        val alpha = 1.0 - exp(-dtSeconds / timeConstantSeconds)
+        val tau = if (abs(clamped - value) > CATCH_UP_THRESHOLD_MPS) {
+            CATCH_UP_TIME_CONSTANT_SECONDS
+        } else {
+            timeConstantSeconds
+        }
+        val alpha = 1.0 - exp(-dtSeconds / tau)
         value += alpha * (clamped - value)
         return value
     }

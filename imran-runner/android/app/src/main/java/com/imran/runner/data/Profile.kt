@@ -14,7 +14,11 @@ data class Profile(
     val name: String = DEFAULT_NAME,
     val weightKg: Double = DEFAULT_WEIGHT_KG,
     val keepScreenOn: Boolean = true,
-    val autoPause: Boolean = true,
+    /**
+     * Off unless the runner turns it on. A tracker that stops itself is worse than one that
+     * records a minute of standing about: the first loses your run, the second loses nothing.
+     */
+    val autoPause: Boolean = false,
 ) {
     companion object {
         const val DEFAULT_NAME = "Runner"
@@ -36,7 +40,7 @@ class ProfileStore(context: Context) {
         name = prefs.getString(KEY_NAME, Profile.DEFAULT_NAME) ?: Profile.DEFAULT_NAME,
         weightKg = prefs.getFloat(KEY_WEIGHT, Profile.DEFAULT_WEIGHT_KG.toFloat()).toDouble(),
         keepScreenOn = prefs.getBoolean(KEY_KEEP_SCREEN_ON, true),
-        autoPause = prefs.getBoolean(KEY_AUTO_PAUSE, true),
+        autoPause = prefs.getBoolean(KEY_AUTO_PAUSE, false),
     )
 
     fun update(transform: (Profile) -> Profile) {

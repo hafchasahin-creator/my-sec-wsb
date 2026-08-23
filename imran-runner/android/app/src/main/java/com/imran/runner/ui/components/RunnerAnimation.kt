@@ -6,12 +6,14 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import com.imran.runner.core.GaitModel
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -57,18 +59,6 @@ class GaitState {
     var run by mutableFloatStateOf(0f)
 }
 
-private fun smoothstep(edge0: Float, edge1: Float, x: Float): Float {
-    val t = ((x - edge0) / (edge1 - edge0)).coerceIn(0f, 1f)
-    return t * t * (3f - 2f * t)
-}
-
-/**
- * Real runners hold a fairly narrow cadence and lengthen their stride instead, so this rises far
- * more slowly than speed does — the legs visibly quicken, but the figure never turns into a
- * flicker at 18 km/h.
- */
-private fun cadenceStepsPerMinute(speedKmh: Float): Float =
-    (85f + 7f * speedKmh).coerceIn(90f, 190f)
 
 /**
  * Drives [GaitState] from the live speed.
@@ -79,6 +69,14 @@ private fun cadenceStepsPerMinute(speedKmh: Float): Float =
 @Composable
 fun rememberGait(speedKmh: () -> Float, running: () -> Boolean): GaitState {
     val gait = remember { GaitState() }
+
+    // The frame loop below is started once and never restarted, so it would otherwise capture
+    // the lambdas from the *first* composition and keep asking them forever — reporting a
+    // stationary, not-running phone for the entire life of the screen, which left the figure
+    // frozen. rememberUpdatedState swaps the captured values under the running coroutine.
+    val currentSpeed by rememberUpdatedState(speedKmh)
+    val currentlyRunning by rememberUpdatedState(running)
+
     LaunchedEffect(Unit) {
         var previousFrame = 0L
         while (true) {
@@ -87,26 +85,22 @@ fun rememberGait(speedKmh: () -> Float, running: () -> Boolean): GaitState {
                     // Clamped so that a stall or a backgrounded frame cannot teleport the stride.
                     val dt = ((frame - previousFrame) / 1_000_000_000.0)
                         .toFloat().coerceIn(0f, 0.064f)
-                    val speed = speedKmh().coerceIn(0f, 32f)
+                    val speed = currentSpeed().coerceIn(0f, 32f)
+                    val tracking = currentlyRunning()
 
-                    // While tracking the runner never fully stops, so a runner waiting at a
-                    // crossing still jogs on the spot instead of freezing mid-stride.
-                    val target = if (running()) (speed / 13f).coerceIn(0.18f, 1f) else 0f
-                    gait.intensity += (target - gait.intensity) * (1f - exp(-dt / 0.5f))
-
-                    // The posture morphs idle -> walk -> run with speed, each blend low-passed
-                    // so a GPS blip cannot snap the figure between gaits.
-                    val runTarget = if (running()) smoothstep(5.5f, 10.5f, speed) else 0f
-                    val walkTarget =
-                        if (running()) smoothstep(0.3f, 3.0f, speed) * (1f - runTarget) else 0f
+                    // Posture and vigour both follow real speed, each low-passed so a GPS blip
+                    // cannot snap the figure between gaits.
                     val blendEase = 1f - exp(-dt / 0.45f)
-                    gait.run += (runTarget - gait.run) * blendEase
-                    gait.walk += (walkTarget - gait.walk) * blendEase
+                    gait.intensity += (GaitModel.intensity(speed, tracking) - gait.intensity) *
+                        (1f - exp(-dt / 0.5f))
+                    gait.run += (GaitModel.runBlend(speed, tracking) - gait.run) * blendEase
+                    gait.walk += (GaitModel.walkBlend(speed, tracking) - gait.walk) * blendEase
 
-                    val cycles = cadenceStepsPerMinute(speed) / 120f * gait.intensity
+                    // Never zero: standing still, this is what drives the idle weight shift.
+                    val cycles = GaitModel.cyclesPerSecond(speed, tracking)
                     gait.phase = (gait.phase + cycles * TWO_PI * dt) % TWO_PI
-                    gait.ground =
-                        (gait.ground + (0.22f + 0.10f * speed) * gait.intensity * dt) % 1f
+                    gait.ground = (gait.ground +
+                        (0.22f + 0.10f * speed) * gait.intensity * dt) % 1f
                     gait.breath = (gait.breath + 0.22f * dt) % 1f
                 }
                 previousFrame = frame
@@ -221,7 +215,10 @@ fun DrawScope.drawRunner(
     val footR = h * 0.021f
 
     // Posture, blended idle -> walk -> run.
-    val stride = h * (0.140f * walk + 0.165f * run) * intensity
+    val idle = (1f - walk - run).coerceIn(0f, 1f)
+    // The idle term is what keeps a stopped figure alive: without it walk and run both reach
+    // zero, the stride collapses, and the runner becomes a static icon.
+    val stride = h * ((0.140f * walk + 0.165f * run) * intensity + 0.012f * idle)
     val lift = h * (0.045f * walk + 0.130f * run) * intensity
     val heelKick = h * 0.12f * run * intensity
     val lean = 0.05f + 0.06f * walk + 0.18f * run
@@ -258,10 +255,18 @@ fun DrawScope.drawRunner(
 
         // Foot pitch from where the foot is in the cycle, continuously: toes-down trailing
         // behind the body, flat underneath it, slightly toes-up reaching for the landing.
-        val back = max(0f, -x / max(stride, 1e-4f))
-        val front = max(0f, x / max(stride, 1e-4f))
-        val pitch = (0.80f * back.pow(1.3f) - 0.22f * front) *
-            (0.45f * walk + 1.0f * run) * intensity + 0.05f * intensity
+        //
+        // Measured against the gait's own swing rather than the drawn x, and clamped: the
+        // sideways stance offset does not shrink with the gait blends, so dividing by a stride
+        // decaying toward zero used to send the trailing foot spinning through the ground for
+        // seconds after the runner stopped.
+        val swingSpan = -cos(t) * stride
+        val strideRef = max(stride, h * 1e-3f)
+        val back = (-swingSpan / strideRef).coerceIn(0f, 1f)
+        val front = (swingSpan / strideRef).coerceIn(0f, 1f)
+        val pitch = ((0.80f * back.pow(1.3f) - 0.22f * front) *
+            (0.45f * walk + 1.0f * run) * intensity + 0.05f * intensity)
+            .coerceIn(-0.35f, 1.0f)
         val toe = Offset(ankle.x + cos(pitch) * footLen, ankle.y + sin(pitch) * footLen)
 
         capsule(path, hip, thighR, knee, kneeR, color)

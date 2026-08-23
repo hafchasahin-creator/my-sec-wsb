@@ -18,7 +18,11 @@ from position deltas where it does not.
 - Live speed, distance, duration, calories, average speed, max speed and average pace
 - A second stats page with live pace, the last completed kilometre split, and elevation gain
 - Runs continue with the screen off, via a foreground service with a live notification
-- Auto-pause when you stop and auto-resume when you set off again
+- The session only ever pauses when you ask it to. Auto-pause is off unless you turn it on, and
+  even then it will not fire without a live fix — losing the signal under a bridge is not the
+  same as standing still, and the clock keeps running while the header says SEARCHING
+- Speed is read from far looser fixes than distance is, so an ordinary walk down a street with
+  buildings either side still shows a live km/h instead of sitting at 0.0
 - Completed runs are saved on the device with their full route trace
 - History with a route sparkline per run and a detail screen with the full trace
 - Stats: lifetime distance, calories, time and runs, personal records, and an eight-week chart

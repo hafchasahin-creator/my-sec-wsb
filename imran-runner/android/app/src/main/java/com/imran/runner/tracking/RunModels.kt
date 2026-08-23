@@ -72,6 +72,8 @@ data class RunMetrics(
     val lastKmPaceSecPerKm: Double = 0.0,
     val elevationGainMeters: Double = 0.0,
     val gps: GpsQuality = GpsQuality.NONE,
+    /** True while a usable fix has arrived recently enough to say anything about movement. */
+    val hasRecentFix: Boolean = false,
     val routePointCount: Int = 0,
 ) {
     val isActive: Boolean get() = state == RunState.RUNNING || state == RunState.PAUSED

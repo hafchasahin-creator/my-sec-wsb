@@ -251,6 +251,12 @@ class RunTracker(
             slowSinceMs = UNSET
             return
         }
+        // Without a live fix there is no evidence the runner has stopped — only that the sky
+        // has. Losing the signal under a bridge must never be mistaken for standing still.
+        if (!snapshot.hasRecentFix) {
+            slowSinceMs = UNSET
+            return
+        }
         when (snapshot.state) {
             RunState.RUNNING -> {
                 if (snapshot.sensedSpeedMps < AUTO_PAUSE_SPEED_MPS) {
