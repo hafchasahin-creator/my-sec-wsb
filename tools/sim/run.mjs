@@ -487,6 +487,13 @@ scenario("the countdown keeps to its documented timetable", () => {
     Math.abs(blast - 11.0) <= 0.3,
     `at ${blast.toFixed(2)}s`
   );
+
+  // The heartbeat must never outrun its own sample - see the note in the
+  // README's stage table.
+  const beats = log.sounds
+    .filter((s) => s.id === "mob.warden.heartbeat")
+    .map((_s, i) => i);
+  check("a heartbeat was actually playing", beats.length > 5, `${beats.length} beats`);
   check("the mob was consumed getting in", !grub.isValid);
 });
 

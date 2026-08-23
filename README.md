@@ -44,12 +44,12 @@ Carrying it is the mistake.
 ## The four beats
 
 **1. It waits in your bag.** Every second a dormant grub is in your inventory it gets one
-point more restless — counted *per grub*, so a stack climbs several times faster. It makes wet
-noises from the moment you pick it up; past 15 it starts nudging your action bar, and
-past 45 it bites through the bag: 1 damage, at most once every 6 seconds, and never
+point more restless — counted *per grub*, so a stack climbs several times faster. It
+makes wet noises from the moment you pick it up; past 15 it starts nudging your action
+bar; past 45 it bites through the bag — 1 damage, at most once every 6 seconds, never
 below 6 HP (3 hearts), because being chewed to death by your own backpack before
-anything happens is not the joke. Somewhere between 90 and 240 points, randomised
-— **1.5 to 4 minutes** for a single grub — it uncurls, eats itself out of your inventory,
+anything happens is not the joke. Somewhere between 90 and 240 points, randomised —
+**1.5 to 4 minutes** for a single grub — it uncurls, eats itself out of your inventory,
 and drops onto your shoulders. You can also just **tap it** to let it out deliberately;
 used bare-handed it fixates on you for 30 seconds.
 
@@ -66,13 +66,16 @@ burst of gore, a camera shake, and `IT IS INSIDE YOU` across the screen. Now you
 
 | Time | Heartbeat | Bite | Effects |
 | --- | --- | --- | --- |
-| 0.0s | every 26 ticks | — | Nausea II. *"Something went in under your skin."* |
-| 2.2s | every 20 ticks | 2 | Nausea II, Slowness I |
-| 4.6s | every 14 ticks | 3 | Nausea III, Weakness II. **IT IS EATING** |
-| 7.3s | every 9 ticks | 4 | Nausea III, Weakness II, Mining Fatigue II, Blindness I |
-| 9.6s | every 5 ticks | 5 | Nausea IV, Slowness III, Darkness I. **IT IS SWELLING** |
+| 0.0s | every 1.5s | — | Nausea II. *"Something went in under your skin."* |
+| 2.2s | every 1.2s | 2 | Nausea II, Slowness I |
+| 4.6s | every 0.8s | 3 | Nausea III, Weakness II. **IT IS EATING** |
+| 7.3s | every 0.6s | 4 | Nausea III, Weakness II, Mining Fatigue II, Blindness I |
+| 9.6s | every 0.5s | 5 | Nausea IV, Slowness III, Darkness I. **IT IS SWELLING** |
 
-The camera shake grows with the heartbeat. Damage from inside uses the `magic` cause, so
+The camera shake grows with the heartbeat, which never gets faster than every 0.5s —
+`mob.warden.heartbeat` is about that long, and firing it more often just stacks copies
+of the sample into a flat drone, losing the one cue that tells you how long you have.
+Damage from inside uses the `magic` cause, so
 **armour does not help you**, and by default the bites deliberately stop at 1 HP — the
 grub wants the kill for itself.
 
