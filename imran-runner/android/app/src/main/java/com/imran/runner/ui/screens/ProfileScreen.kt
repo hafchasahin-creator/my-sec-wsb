@@ -82,7 +82,7 @@ fun ProfileScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    profile.name.take(1).uppercase(Locale.US),
+                    profile.name.trim().ifEmpty { Profile.DEFAULT_NAME }.take(1).uppercase(Locale.US),
                     style = ImranType.StatValue.copy(color = ImranColors.Accent),
                 )
             }

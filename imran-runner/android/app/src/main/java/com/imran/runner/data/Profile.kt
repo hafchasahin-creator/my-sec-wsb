@@ -42,7 +42,7 @@ class ProfileStore(context: Context) {
     fun update(transform: (Profile) -> Profile) {
         val next = transform(_profile.value).let {
             it.copy(
-                name = it.name.trim().ifEmpty { Profile.DEFAULT_NAME }.take(24),
+                name = it.name.take(24),
                 weightKg = it.weightKg.coerceIn(Profile.MIN_WEIGHT_KG, Profile.MAX_WEIGHT_KG),
             )
         }

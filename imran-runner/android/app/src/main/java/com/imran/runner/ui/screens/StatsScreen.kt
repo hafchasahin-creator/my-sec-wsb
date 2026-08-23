@@ -102,7 +102,7 @@ fun StatsScreen(
             TotalTile(
                 "TOTAL TIME",
                 Format.duration(stats.totalDurationMs),
-                "HOURS",
+                "TIME",
                 ImranColors.Accent,
                 RunnerIcon.Stopwatch,
                 Modifier.weight(1f),
