@@ -3,7 +3,9 @@ package com.imran.runner.ui.components
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -124,7 +127,17 @@ fun MetricPanel(specs: List<PanelSpec>, modifier: Modifier = Modifier, compact: 
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(ImranColors.Surface)
+            // A whisper of light at the top edge and a hairline border: what makes the card
+            // read as a raised surface on a screen this dark, without a real shadow.
+            .background(
+                Brush.verticalGradient(
+                    listOf(ImranColors.SurfaceRaised, ImranColors.Surface),
+                ),
+            )
+            .border(
+                BorderStroke(1.dp, ImranColors.Divider.copy(alpha = 0.55f)),
+                RoundedCornerShape(22.dp),
+            )
             .padding(vertical = if (compact) 11.dp else 15.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

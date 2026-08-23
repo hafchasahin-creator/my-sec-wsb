@@ -24,7 +24,9 @@ object ImranColors {
     val Accent = Color(0xFF5BDD18)
     val AccentSoft = Color(0xFF4FC414)
     val AccentDeep = Color(0xFF66BE2E)
-    val AccentShadow = Color(0xFF1C4A0C)
+
+    /** Far limbs of the runner: dark enough to read as depth, light enough to still be seen. */
+    val AccentMid = Color(0xFF39960F)
 
     val Blue = Color(0xFF0FA0FC)
     val Orange = Color(0xFFFA6E14)

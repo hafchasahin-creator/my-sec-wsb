@@ -28,11 +28,17 @@ Nothing is ever uploaded. There is no network code in the app at all.
 
 ## The animation
 
-The runner is not a sprite loop. It is an articulated figure — head, torso, two arms, two legs —
-posed every frame by moving its feet along a stride path and solving two-bone inverse kinematics
-for the knees and elbows. That is what lets cadence scale *continuously* with speed instead of
-snapping between canned frames, and it is why the stride lengthens as well as quickens.
+The runner is not a sprite loop. It is a filled, athletic silhouette — head, torso, tapered
+limbs with real thickness, and feet — posed every frame by moving its feet along a stride path
+and solving two-bone inverse kinematics for the knees and elbows. That is what lets cadence
+scale *continuously* with speed instead of snapping between canned frames, and it is why the
+stride lengthens as well as quickens.
 
+- The posture itself morphs with speed: standing → walking → jogging → flat-out, each blend
+  low-passed so a GPS blip can never snap the figure between gaits
+- A running pose that reads as running: forward lean, knee drive, the trailing heel kicking up
+  just before the front foot lands, arms pumping bent at the elbow, feet that plantarflex at
+  toe-off and reach toes-up for the landing
 - Cadence follows a realistic curve: real runners hold a narrow cadence and lengthen their stride,
   so the legs quicken far more slowly than speed rises and never become a flicker
 - Speeding up stretches the gait already in progress; the phase is never reset

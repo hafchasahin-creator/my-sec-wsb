@@ -11,6 +11,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -21,6 +22,7 @@ import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.hypot
 import kotlin.math.max
+import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -47,6 +49,17 @@ class GaitState {
 
     /** Slow always-on cycle that keeps the idle pose alive. */
     var breath by mutableFloatStateOf(0f)
+
+    /** 0..1: how much of the posture is a walk. Fades back out as [run] takes over. */
+    var walk by mutableFloatStateOf(0f)
+
+    /** 0..1: how much of the posture is a full run. */
+    var run by mutableFloatStateOf(0f)
+}
+
+private fun smoothstep(edge0: Float, edge1: Float, x: Float): Float {
+    val t = ((x - edge0) / (edge1 - edge0)).coerceIn(0f, 1f)
+    return t * t * (3f - 2f * t)
 }
 
 /**
@@ -80,6 +93,15 @@ fun rememberGait(speedKmh: () -> Float, running: () -> Boolean): GaitState {
                     // crossing still jogs on the spot instead of freezing mid-stride.
                     val target = if (running()) (speed / 13f).coerceIn(0.18f, 1f) else 0f
                     gait.intensity += (target - gait.intensity) * (1f - exp(-dt / 0.5f))
+
+                    // The posture morphs idle -> walk -> run with speed, each blend low-passed
+                    // so a GPS blip cannot snap the figure between gaits.
+                    val runTarget = if (running()) smoothstep(5.5f, 10.5f, speed) else 0f
+                    val walkTarget =
+                        if (running()) smoothstep(0.3f, 3.0f, speed) * (1f - runTarget) else 0f
+                    val blendEase = 1f - exp(-dt / 0.45f)
+                    gait.run += (runTarget - gait.run) * blendEase
+                    gait.walk += (walkTarget - gait.walk) * blendEase
 
                     val cycles = cadenceStepsPerMinute(speed) / 120f * gait.intensity
                     gait.phase = (gait.phase + cycles * TWO_PI * dt) % TWO_PI
@@ -126,13 +148,41 @@ private fun solveJoint(
     )
 }
 
-private fun DrawScope.limb(from: Offset, via: Offset, to: Offset, color: Color, width: Float) {
-    drawLine(color, from, via, width, StrokeCap.Round)
-    drawLine(color, via, to, width, StrokeCap.Round)
+/**
+ * One tapered limb segment: a quad between the two joints plus round end caps. Fills with
+ * thickness are what turn the figure from a wire diagram into a body.
+ */
+private fun DrawScope.capsule(
+    path: Path,
+    p1: Offset,
+    r1: Float,
+    p2: Offset,
+    r2: Float,
+    color: Color,
+) {
+    val dx = p2.x - p1.x
+    val dy = p2.y - p1.y
+    val len = max(hypot(dx, dy), 1e-4f)
+    val nx = -dy / len
+    val ny = dx / len
+    path.reset()
+    path.moveTo(p1.x + nx * r1, p1.y + ny * r1)
+    path.lineTo(p2.x + nx * r2, p2.y + ny * r2)
+    path.lineTo(p2.x - nx * r2, p2.y - ny * r2)
+    path.lineTo(p1.x - nx * r1, p1.y - ny * r1)
+    path.close()
+    drawPath(path, color)
+    drawCircle(color, r1, p1)
+    drawCircle(color, r2, p2)
 }
 
 /**
- * Draws the runner, facing right, standing on [feet].
+ * Draws the runner, facing right, standing on [feet]: a filled, athletic silhouette in the
+ * style of the reference glyph, posed by inverse kinematics every frame.
+ *
+ * [walk] and [run] blend the posture between standing, walking and running; [intensity] scales
+ * how much everything moves. The far arm and leg are drawn first in [mid] so the figure reads
+ * with depth.
  *
  * @param height total figure height in pixels.
  */
@@ -142,56 +192,89 @@ fun DrawScope.drawRunner(
     phase: Float,
     intensity: Float,
     breath: Float,
+    walk: Float,
+    run: Float,
     bright: Color,
-    dim: Color,
+    mid: Color,
 ) {
-    val thigh = height * 0.235f
-    val shin = height * 0.225f
-    val upperArm = height * 0.175f
-    val foreArm = height * 0.165f
-    val torso = height * 0.30f
-    val headRadius = height * 0.082f
-    val stroke = height * 0.082f
+    val h = height
+
+    // Segment lengths.
+    val thigh = h * 0.240f
+    val shin = h * 0.225f
+    val footLen = h * 0.085f
+    val upperArm = h * 0.165f
+    val foreArm = h * 0.155f
+    val torso = h * 0.295f
+    val headRadius = h * 0.074f
     val legLength = thigh + shin
 
-    val stride = height * 0.19f * intensity
-    val lift = height * 0.15f * intensity
-    val stance = height * 0.035f * (1f - intensity)
-    // A runner leans further forward the harder they work.
-    val lean = 0.09f + 0.17f * intensity
+    // Segment thicknesses.
+    val chestR = h * 0.070f
+    val pelvisR = h * 0.058f
+    val thighR = h * 0.042f
+    val kneeR = h * 0.031f
+    val ankleR = h * 0.020f
+    val upperArmR = h * 0.030f
+    val elbowR = h * 0.025f
+    val wristR = h * 0.017f
+    val footR = h * 0.021f
 
-    val bob = -sin(phase * 2f) * height * 0.022f * intensity +
-        sin(breath * TWO_PI) * height * 0.009f * (1f - intensity)
+    // Posture, blended idle -> walk -> run.
+    val stride = h * (0.140f * walk + 0.165f * run) * intensity
+    val lift = h * (0.045f * walk + 0.130f * run) * intensity
+    val heelKick = h * 0.12f * run * intensity
+    val lean = 0.05f + 0.06f * walk + 0.18f * run
+    val armSwing = (0.55f * walk + 0.85f * run) * intensity
+    val armBias = (-0.05f * walk - 0.50f * run) * intensity
+    val armBend = 0.30f + 0.40f * walk + 1.30f * run
+    val stance = h * 0.030f * (1f - intensity)
 
-    val hip = Offset(feet.x, feet.y - legLength * 0.97f + bob)
+    val bob = -sin(phase * 2f) * h * (0.009f * walk + 0.026f * run) * intensity +
+        sin(breath * TWO_PI) * h * 0.008f * (1f - intensity)
+
+    val hip = Offset(feet.x, feet.y - legLength * 0.96f + bob)
     val upX = sin(lean)
     val upY = -cos(lean)
-    val shoulder = Offset(hip.x + upX * torso, hip.y + upY * torso)
+    val chest = Offset(hip.x + upX * torso, hip.y + upY * torso)
     val head = Offset(
-        shoulder.x + upX * (headRadius + height * 0.045f),
-        shoulder.y + upY * (headRadius + height * 0.045f),
+        chest.x + upX * (headRadius + h * 0.052f),
+        chest.y + upY * (headRadius + h * 0.052f),
     )
+    val shoulder = Offset(chest.x, chest.y + h * 0.012f)
 
-    /**
-     * The foot travels an arc rather than a straight line: keeping it inside the leg's reach is
-     * what stops the knee snapping straight at the ends of a long stride.
-     */
-    fun foot(t: Float, side: Float): Offset {
-        val x = -cos(t) * stride + side * stance
-        val drop = sqrt(max(0f, legLength * legLength * 0.95f - x * x))
-        return Offset(hip.x + x, hip.y + drop - lift * max(0f, sin(t)))
-    }
+    val path = Path()
 
     fun drawLeg(t: Float, side: Float, color: Color) {
-        val ankle = foot(t, side)
+        val x = -cos(t) * stride + side * stance
+        val drop = sqrt(max(0f, legLength * legLength * 0.92f - x * x))
+        val swing = max(0f, sin(t))
+        // The heel starts kicking up just before toe-off, so the trailing foot is already
+        // rising while the front foot lands — the moment that reads most like running.
+        val tk = t + 0.55f
+        val kick = max(0f, sin(tk)) * max(0f, cos(tk)) * 2f
+        val ankle = Offset(hip.x + x, hip.y + drop - lift * swing - heelKick * max(0f, kick))
         val knee = solveJoint(hip, ankle, thigh, shin, forward = 1f)
-        limb(hip, knee, ankle, color, stroke)
+
+        // Foot pitch from where the foot is in the cycle, continuously: toes-down trailing
+        // behind the body, flat underneath it, slightly toes-up reaching for the landing.
+        val back = max(0f, -x / max(stride, 1e-4f))
+        val front = max(0f, x / max(stride, 1e-4f))
+        val pitch = (0.80f * back.pow(1.3f) - 0.22f * front) *
+            (0.45f * walk + 1.0f * run) * intensity + 0.05f * intensity
+        val toe = Offset(ankle.x + cos(pitch) * footLen, ankle.y + sin(pitch) * footLen)
+
+        capsule(path, hip, thighR, knee, kneeR, color)
+        capsule(path, knee, kneeR * 0.96f, ankle, ankleR, color)
+        capsule(path, ankle, footR, toe, footR * 0.85f, color)
     }
 
     fun drawArm(t: Float, color: Color) {
-        val swing = (-0.45f + 0.80f * sin(t)) * intensity +
-            sin(breath * TWO_PI) * 0.06f * (1f - intensity)
-        val bend = 0.35f + 1.10f * intensity + 0.45f * max(0f, sin(t)) * intensity
+        // Shoulder angle from straight-down: a backward bias keeps the elbow driving behind
+        // the body, which is what makes the arm read as pumping rather than reaching.
+        val swing = armBias + sin(t) * armSwing +
+            sin(breath * TWO_PI) * 0.05f * (1f - intensity)
+        val bend = armBend + 0.30f * sin(t) * run * intensity
         val shoulderAngle = swing + lean
         val elbow = Offset(
             shoulder.x + sin(shoulderAngle) * upperArm,
@@ -201,18 +284,18 @@ fun DrawScope.drawRunner(
             elbow.x + sin(shoulderAngle + bend) * foreArm,
             elbow.y + cos(shoulderAngle + bend) * foreArm,
         )
-        limb(shoulder, elbow, hand, color, stroke * 0.85f)
+        capsule(path, shoulder, upperArmR, elbow, elbowR, color)
+        capsule(path, elbow, elbowR * 0.96f, hand, wristR, color)
+        drawCircle(color, wristR * 1.25f, hand)
     }
 
     val opposite = phase + PI.toFloat()
 
-    // Far side first, dimmer, so the figure reads with depth rather than as a flat pictogram.
-    drawLeg(opposite, side = -1f, color = dim)
-    drawArm(phase, color = dim)
-
-    drawLine(bright, hip, shoulder, stroke * 1.05f, StrokeCap.Round)
+    // Depth order: far limbs, body, near limbs.
+    drawArm(phase, mid)
+    drawLeg(opposite, side = -1f, color = mid)
+    capsule(path, hip, pelvisR, chest, chestR, bright)
     drawCircle(bright, headRadius, head)
-
     drawLeg(phase, side = 1f, color = bright)
     drawArm(opposite, color = bright)
 }

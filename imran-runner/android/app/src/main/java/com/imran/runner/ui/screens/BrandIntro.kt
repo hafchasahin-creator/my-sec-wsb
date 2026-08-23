@@ -127,8 +127,10 @@ fun BrandIntro(modifier: Modifier = Modifier) {
                     phase = phase,
                     intensity = 1f,
                     breath = 0f,
+                    walk = 0f,
+                    run = 1f,
                     bright = ImranColors.Accent,
-                    dim = ImranColors.AccentShadow,
+                    mid = ImranColors.AccentMid,
                 )
             }
 

@@ -88,9 +88,9 @@ fun SpeedGauge(
             val w = this.size.width
             val h = this.size.height
             val stroke = w * 0.031f
-            // Room for the leading dot's halo, which is 2.8 stroke widths across: at a tighter
-            // inset it would be clipped by the edge of the box at the top of the sweep.
-            val inset = stroke * 2.9f
+            // Room for the leading dot's halo, which is 3.4 stroke widths across: at a tighter
+            // inset its faint outer tail would be clipped at the top of the sweep.
+            val inset = stroke * 3.2f
             val arcSize = Size(w - inset * 2f, h - inset * 2f)
             val topLeft = Offset(inset, inset)
             val radius = arcSize.minDimension / 2f
@@ -108,8 +108,13 @@ fun SpeedGauge(
 
             val sweep = SWEEP_ANGLE * fraction
             if (sweep > 0.4f) {
-                // Three passes: a wide soft bloom, a tighter one, then the arc itself. Cheaper
-                // and steadier across GPUs than a blur, and it is what gives the green its glow.
+                // Layered passes: wide soft blooms narrowing to the arc itself. Cheaper and
+                // steadier across GPUs than a blur, and it is what gives the green its glow.
+                drawArc(
+                    color = ImranColors.Accent, startAngle = START_ANGLE, sweepAngle = sweep,
+                    useCenter = false, topLeft = topLeft, size = arcSize,
+                    style = roundStroke(stroke * 4.6f), alpha = 0.035f,
+                )
                 drawArc(
                     color = ImranColors.Accent, startAngle = START_ANGLE, sweepAngle = sweep,
                     useCenter = false, topLeft = topLeft, size = arcSize,
@@ -133,11 +138,11 @@ fun SpeedGauge(
                 )
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(ImranColors.Accent.copy(alpha = 0.55f), Color.Transparent),
+                        colors = listOf(ImranColors.Accent.copy(alpha = 0.60f), Color.Transparent),
                         center = tip,
-                        radius = stroke * 2.8f,
+                        radius = stroke * 3.4f,
                     ),
-                    radius = stroke * 2.8f,
+                    radius = stroke * 3.4f,
                     center = tip,
                 )
                 drawCircle(Color.White, stroke * 0.60f, tip)
@@ -161,12 +166,14 @@ fun SpeedGauge(
             )
             drawRunner(
                 feet = Offset(w / 2f, h * 0.862f),
-                height = h * 0.155f,
+                height = h * 0.170f,
                 phase = gait.phase,
                 intensity = gait.intensity,
                 breath = gait.breath,
+                walk = gait.walk,
+                run = gait.run,
                 bright = ImranColors.Accent,
-                dim = ImranColors.AccentShadow,
+                mid = ImranColors.AccentMid,
             )
         }
 

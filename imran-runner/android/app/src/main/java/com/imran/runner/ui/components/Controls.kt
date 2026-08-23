@@ -110,8 +110,8 @@ fun ControlRow(
     val interaction = remember { MutableInteractionSource() }
     val scale = pressScale(interaction)
 
-    // A slow halo while the app is waiting to be told to go. It stops once the run is under way,
-    // where a pulsing control would only be a distraction.
+    // A slow halo that invites the first tap, and keeps a quieter heartbeat going during the
+    // run itself — alive, never insistent.
     val transition = rememberInfiniteTransition(label = "primary")
     val invite by transition.animateFloat(
         initialValue = 0f,
@@ -122,10 +122,10 @@ fun ControlRow(
         ),
         label = "invite",
     )
-    val haloStrength = if (state == RunState.IDLE || state == RunState.FINISHED) {
-        0.20f + 0.22f * invite
-    } else {
-        0.24f
+    val haloStrength = when (state) {
+        RunState.IDLE, RunState.FINISHED -> 0.20f + 0.22f * invite
+        RunState.RUNNING -> 0.16f + 0.10f * invite
+        RunState.PAUSED -> 0.18f
     }
 
     Row(

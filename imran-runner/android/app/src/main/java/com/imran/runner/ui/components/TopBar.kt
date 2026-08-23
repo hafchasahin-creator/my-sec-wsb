@@ -49,6 +49,15 @@ fun GpsIndicator(quality: GpsQuality, modifier: Modifier = Modifier) {
         label = "pulse",
     )
 
+    // While there is no fix the bars fill one after another and reset — the universal
+    // "acquiring" idiom — instead of the whole cluster just dimming in place.
+    val sweep by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 4f,
+        animationSpec = infiniteRepeatable(animation = tween(1_600)),
+        label = "sweep",
+    )
+
     val searching = quality == GpsQuality.NONE
     val lit = when (quality) {
         GpsQuality.NONE -> ImranColors.Amber
@@ -63,17 +72,23 @@ fun GpsIndicator(quality: GpsQuality, modifier: Modifier = Modifier) {
     ) {
         val heights = listOf(7.dp, 11.dp, 15.dp)
         heights.forEachIndexed { index, barHeight ->
-            val on = index < quality.bars
-            // Only the leading bar breathes when locked on; while searching the whole indicator
-            // does, which reads as hunting rather than as connected.
-            val breathing = searching || (on && index == quality.bars - 1)
+            val on = if (searching) index < sweep.toInt() else index < quality.bars
+            // Only the leading bar breathes once locked on, so the eye is told "live" without
+            // being pulled to the corner of the screen.
+            val breathing = !searching && on && index == quality.bars - 1
             Box(
                 Modifier
                     .width(4.dp)
                     .height(barHeight)
                     .alpha(if (breathing) pulse else 1f)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(if (on || searching) lit.copy(alpha = if (on) 1f else 0.30f) else ImranColors.TextFaint),
+                    .background(
+                        when {
+                            on -> lit
+                            searching -> lit.copy(alpha = 0.25f)
+                            else -> ImranColors.TextFaint
+                        },
+                    ),
             )
         }
     }
