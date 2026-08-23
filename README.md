@@ -347,6 +347,9 @@ Add `SIM_VERBOSE=1` to see each individual check, or pass a substring
 - a `scripts.animate` entry with no matching animation slot
 - a custom item, entity or spawn egg with no name in `en_US.lang`
 - a loot table or spawn rule pointing at something that does not exist
+- a namespaced id in the behaviour script that nothing in the pack defines, and a
+  `triggerEvent()` naming something that is not an entity event — both of which fail
+  silently in game, since the handler still runs and its branch simply never fires
 
 ---
 

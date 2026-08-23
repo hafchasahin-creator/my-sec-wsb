@@ -15,6 +15,7 @@ Usage:
 
 import json
 import os
+import re
 import sys
 import zipfile
 
@@ -70,6 +71,8 @@ class Addon:
         self.documents = {}
         self.item_ids = []
         self.entity_ids = []
+        self.extra_ids = set()  # entity events, component groups, item tags
+        self.entity_events = set()
 
     # -- reporting ---------------------------------------------------------
 
@@ -169,6 +172,9 @@ class Addon:
                 self.fail(f"{path}: item has no identifier")
                 continue
             self.item_ids.append(identifier)
+            self.extra_ids.update(
+                item.get("components", {}).get("minecraft:tags", {}).get("tags", [])
+            )
 
             # minecraft:icon changed shape at format_version 1.20.60: the flat
             # "texture" string is deprecated and is silently ignored by the
@@ -237,6 +243,16 @@ class Addon:
                 continue
             server_entities[identifier] = (path, doc)
             self.entity_ids.append(identifier)
+            entity = doc.get("minecraft:entity", {})
+            self.extra_ids.update(entity.get("events", {}).keys())
+            self.entity_events.update(entity.get("events", {}).keys())
+            self.extra_ids.update(entity.get("component_groups", {}).keys())
+            families = (
+                entity.get("components", {})
+                .get("minecraft:type_family", {})
+                .get("family", [])
+            )
+            self.extra_ids.update(families)
 
         client_entities = {}
         for path, doc in sorted(self.docs_under(self.rp, "entity").items()):
@@ -465,6 +481,63 @@ class Addon:
                     "the animations block"
                 )
 
+    def check_script_ids(self):
+        """Catch a namespaced id in the script that nothing in the pack defines.
+
+        A typo here is invisible: the script loads, the handler runs, and the
+        branch it guards simply never fires. There is no error anywhere.
+        """
+        manifest = self.doc(self.bp, "manifest.json") or {}
+        entries = [
+            module["entry"]
+            for module in manifest.get("modules", [])
+            if module.get("type") == "script" and module.get("entry")
+        ]
+
+        known = set(self.item_ids) | set(self.entity_ids) | self.extra_ids
+        pattern = re.compile(r"""["'`]([a-z][a-z0-9_]*):([a-z0-9_./-]+)["'`]""")
+
+        for entry in entries:
+            path = os.path.join(self.bp, entry)
+            if not os.path.isfile(path):
+                continue
+            with open(path, encoding="utf-8") as handle:
+                source = handle.read()
+
+            # triggerEvent takes an entity EVENT, and nothing else. Without
+            # this, passing the component-group name instead of the event that
+            # adds it - grub:enraged for grub:enrage - looks like a valid id
+            # and does nothing at all in game.
+            for match in re.finditer(
+                r"""triggerEvent\(\s*["'`]([^"'`]+)["'`]""", source
+            ):
+                name = match.group(1)
+                if name in self.entity_events:
+                    continue
+                line = source.count("\n", 0, match.start()) + 1
+                known_events = sorted(self.entity_events) or ["<none defined>"]
+                self.fail(
+                    f"{path}:{line}: triggerEvent('{name}') - no entity in this "
+                    f"pack defines that event (defined: {known_events})"
+                )
+
+            seen = set()
+            for match in pattern.finditer(source):
+                namespace, name = match.groups()
+                # Vanilla ids and module specifiers are somebody else's problem.
+                if namespace in ("minecraft", "http", "https"):
+                    continue
+                identifier = f"{namespace}:{name}"
+                if identifier in known or identifier in seen:
+                    continue
+                seen.add(identifier)
+                line = source.count("\n", 0, match.start()) + 1
+                self.fail(
+                    f"{path}:{line}: script refers to '{identifier}', which no "
+                    "item, entity, entity event, component group or tag in this "
+                    "pack defines"
+                )
+
     def check_item_icon_sizes(self):
         for path in sorted(walk_files(os.path.join(self.rp, "textures", "items"), ".png")):
             try:
@@ -489,6 +562,7 @@ class Addon:
         self.check_items()
         self.check_recipes()
         self.check_entities()
+        self.check_script_ids()
         self.check_item_icon_sizes()
         self.check_item_names()
         return uuids
