@@ -356,8 +356,16 @@ and the documented timings all fail here before they can drift.
 
 ```
 $ node tools/sim/run.mjs
-...
-128 checks passed, 0 failed
+  boot
+    ok
+  carry-wakes-up
+    ok
+  ...
+  scan-cost
+      empty world, 3 players, 20s: 30 entity queries (0.5 per player per second)
+      8 grubs nearby, 1 player, 20s: 100 queries, 900 entities walked
+
+<n> checks passed, 0 failed
 ```
 
 Add `SIM_VERBOSE=1` to see each individual check, or pass a substring
