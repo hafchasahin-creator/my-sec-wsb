@@ -1,5 +1,5 @@
 {
-  "format_version": "1.17.0",
+  "format_version": "1.8.0",
   "minecraft:spawn_rules": {
     "description": {
       "identifier": "grub:bloatgrub",
@@ -22,7 +22,7 @@
           "operator": "==",
           "value": "monster"
         },
-        "minecraft:density_limit": { "underground": 2 },
+        "minecraft:density_limit": { "underground": 2, "surface": 0 },
         "minecraft:disallow_spawns_in_bubble": {}
       }
     ]
