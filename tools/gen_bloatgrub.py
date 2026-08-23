@@ -61,24 +61,27 @@ BONES = [
 CUBES = {
     "body": [
         ("abdomen", [-5, 5, 0], [10, 8, 8], "flesh", 0.0),
-        ("ridge", [-1, 12, 1], [2, 3, 7], "chitin", 0.0),
+        ("ridge", [-1, 13, 1], [2, 3, 7], "chitin", 0.0),
         ("boil_l", [-6, 9, 1], [3, 3, 3], "boil", 0.25),
         ("boil_r", [3, 9, 4], [3, 3, 3], "boil", 0.25),
-        ("boil_top", [-5, 11, 5], [4, 3, 3], "boil", 0.25),
+        ("boil_top", [-5, 12, 5], [4, 3, 3], "boil", 0.25),
     ],
     "thorax": [
-        ("thorax", [-4, 5, -4], [8, 7, 4], "flesh", 0.0),
+        ("thorax", [-4, 5, -4], [8, 8, 4], "flesh", 0.0),
     ],
     "head": [
-        ("skull", [-4, 5, -9], [8, 7, 5], "flesh", 0.0),
-        ("brow", [-5, 11, -10], [10, 2, 6], "chitin", 0.0),
-        ("eye", [-3, 13, -9], [6, 3, 4], "eye", 0.0),
+        ("skull", [-4, 5, -9], [8, 8, 5], "flesh", 0.0),
+        ("brow", [-5, 13, -11], [10, 2, 6], "chitin", 0.0),
+        ("eye", [-3, 14, -10], [6, 4, 4], "eye", 0.15),
     ],
+    # The maw is the whole point of the animal, so it is deliberately wider
+    # than the skull and tall enough for a ring of teeth to be legible at the
+    # size this thing actually renders on a phone.
     "jaw_upper": [
-        ("jaw_upper", [-4, 9, -13], [8, 2, 4], "maw_upper", 0.0),
+        ("jaw_upper", [-5, 9, -14], [10, 4, 5], "maw_upper", 0.0),
     ],
     "jaw_lower": [
-        ("jaw_lower", [-4, 6, -13], [8, 3, 4], "maw_lower", 0.0),
+        ("jaw_lower", [-5, 5, -14], [10, 4, 5], "maw_lower", 0.0),
     ],
     "tail": [
         ("tail", [-3, 6, 8], [6, 5, 4], "flesh", 0.0),
@@ -229,37 +232,42 @@ def build_geometry(placement):
 PALETTES = {
     "flesh": {
         "base": (188, 166, 158),
-        "light": (214, 198, 190),
-        "dark": (136, 112, 110),
-        "vein": (112, 44, 50),
-        "blot": (158, 130, 118),
+        "light": (210, 194, 186),
+        "dark": (146, 122, 120),
+        "vein": (152, 104, 104),
+        "deep": (118, 58, 62),
+        "blot": (170, 144, 132),
     },
     "chitin": {
         "base": (58, 48, 44),
-        "light": (96, 82, 70),
-        "dark": (28, 22, 20),
-        "vein": (122, 96, 60),
-        "blot": (44, 36, 32),
+        "light": (92, 78, 68),
+        "dark": (32, 26, 24),
+        "vein": (104, 82, 52),
+        "deep": (74, 58, 36),
+        "blot": (48, 40, 36),
     },
     "boil": {
         "base": (170, 172, 78),
         "light": (224, 226, 148),
         "dark": (104, 96, 42),
-        "vein": (92, 60, 36),
+        "vein": (126, 104, 52),
+        "deep": (92, 60, 36),
         "blot": (196, 190, 104),
     },
     "maw": {
         "base": (52, 16, 20),
         "light": (108, 30, 36),
         "dark": (20, 5, 9),
-        "vein": (150, 44, 48),
+        "vein": (120, 36, 40),
+        "deep": (150, 44, 48),
         "blot": (36, 10, 14),
     },
     "eye": {
         "base": (208, 200, 184),
         "light": (238, 234, 222),
         "dark": (150, 142, 128),
-        "vein": (154, 44, 44),
+        "vein": (176, 132, 130),
+        "deep": (154, 44, 44),
         "blot": (188, 178, 160),
     },
 }
@@ -299,29 +307,41 @@ def fill(grid, rect, rgba):
 
 
 def paint_base(grid, rect, palette, light, rng):
-    """Noisy base coat with a darkened rim so cube edges stay readable."""
+    """Base coat with a lightly broken rim so cube edges stay readable.
+
+    Kept deliberately low-contrast: these faces are only a handful of texels
+    across, so speckle that looks like texture in the atlas reads as static on
+    the mob.
+    """
     x, y, w, h = rect
     for row in range(y, y + h):
         for col in range(x, x + w):
             edge = row in (y, y + h - 1) or col in (x, x + w - 1)
-            tone = palette["dark"] if edge and rng.random() < 0.55 else palette["base"]
-            if not edge and rng.random() < 0.14:
+            tone = palette["dark"] if edge and rng.random() < 0.4 else palette["base"]
+            if not edge and rng.random() < 0.10:
                 tone = palette["blot"]
-            if not edge and rng.random() < 0.07:
+            elif not edge and rng.random() < 0.04:
                 tone = palette["light"]
-            put(grid, col, row, shade(tone, light, rng.randint(-7, 7)))
+            put(grid, col, row, shade(tone, light, rng.randint(-5, 5)))
 
 
-def paint_veins(grid, rect, palette, light, rng, count):
-    """Short dark random walks - reads as veins under translucent skin."""
+def paint_veins(grid, rect, palette, light, rng, density):
+    """Short random walks - reads as veins under translucent skin.
+
+    The walk count is derived from the face's area rather than fixed, because
+    a fixed count buries a small face in vein and leaves a large one bare.
+    `density` is roughly the fraction of the face a vein may cover.
+    """
     x, y, w, h = rect
     if w < 3 or h < 3:
         return
-    for _ in range(count):
+    walks = max(1, int(w * h * density / 6))
+    for _ in range(walks):
         col = rng.randrange(x + 1, x + w - 1)
         row = rng.randrange(y + 1, y + h - 1)
-        for _step in range(rng.randint(3, max(4, (w + h) // 2))):
-            put(grid, col, row, shade(palette["vein"], light, rng.randint(-10, 10)))
+        for step in range(rng.randint(2, 4)):
+            tone = palette["deep"] if step == 0 and rng.random() < 0.35 else palette["vein"]
+            put(grid, col, row, shade(tone, light, rng.randint(-8, 8)))
             col += rng.choice((-1, 0, 1))
             row += rng.choice((-1, 0, 1))
             col = max(x, min(x + w - 1, col))
@@ -340,6 +360,47 @@ def paint_teeth(grid, rect, light, side, rng):
         for step in range(length):
             row = y + step if side == "top" else y + h - 1 - step
             tone = TOOTH if step == 0 else TOOTH_SHADE
+            put(grid, col, row, shade(tone, light, rng.randint(-6, 6)))
+
+
+def paint_oral_disc(grid, rect, light, half, rng):
+    """Half of a lamprey-style mouth: a black throat ringed with teeth.
+
+    `half` is "upper" or "lower". The two halves are painted as mirror images
+    so that, with the jaws closed, the pair reads as one continuous ring of
+    teeth around a hole - which is the single feature that has to survive
+    being viewed from three blocks away on a phone.
+    """
+    palette = PALETTES["maw"]
+    x, y, w, h = rect
+    fill(grid, rect, shade(palette["dark"], light))
+
+    # Wet throat: a little variation so the hole is not a flat black rectangle.
+    for row in range(y, y + h):
+        for col in range(x, x + w):
+            if rng.random() < 0.22:
+                put(grid, col, row, shade(palette["base"], light, rng.randint(-6, 6)))
+
+    inner_row = y + h - 1 if half == "upper" else y
+    outer_row = y if half == "upper" else y + h - 1
+
+    # Outer rim and the two sides: a thin gum line holding the ring together.
+    for col in range(x, x + w):
+        put(grid, col, outer_row, shade(palette["light"], light, rng.randint(-8, 8)))
+    for row in range(y, y + h):
+        for col in (x, x + w - 1):
+            tone = TOOTH if (row + col) % 2 == 0 else palette["light"]
+            put(grid, col, row, shade(tone, light, rng.randint(-8, 8)))
+
+    # The teeth themselves, biting inward toward the gap between the jaws.
+    step = -1 if half == "upper" else 1
+    for col in range(x, x + w):
+        length = 2 if (col - x) % 2 == 0 else 1
+        if rng.random() < 0.2:
+            length += 1
+        for depth in range(min(length, h - 1)):
+            row = inner_row + step * depth
+            tone = TOOTH if depth == 0 else TOOTH_SHADE
             put(grid, col, row, shade(tone, light, rng.randint(-6, 6)))
 
 
@@ -367,21 +428,32 @@ def paint_eye(grid, rect, light, rng, big):
     """Milky sclera; the front and top faces get a bloodshot iris."""
     palette = PALETTES["eye"]
     paint_base(grid, rect, palette, light, rng)
-    paint_veins(grid, rect, palette, light, rng, 3)
+    paint_veins(grid, rect, palette, light, rng, 0.10)
     if not big:
         return
+    # An ellipse rather than a square, sized off the face so the iris fills
+    # most of it - a two-pixel iris on a six-pixel face reads as a speck.
     x, y, w, h = rect
-    cx = x + w // 2
-    cy = y + h // 2
-    radius = max(1, min(w, h) // 2)
-    for row in range(y, y + h):
-        for col in range(x, x + w):
-            dist = max(abs(col - cx), abs(row - cy))
-            if dist <= radius - 1:
-                put(grid, col, row, shade(IRIS, light, rng.randint(-8, 8)))
-    put(grid, cx, cy, PUPIL + (255,))
-    if radius >= 2:
-        put(grid, cx - 1, cy, PUPIL + (255,))
+    cx = (w - 1) / 2.0
+    cy = (h - 1) / 2.0
+    rx = max(0.9, w * 0.42)
+    ry = max(0.9, h * 0.42)
+    for row in range(h):
+        for col in range(w):
+            ex = (col - cx) / rx
+            ey = (row - cy) / ry
+            reach = ex * ex + ey * ey
+            if reach <= 1.0:
+                put(grid, x + col, y + row, shade(IRIS, light, rng.randint(-10, 10)))
+            elif reach <= 1.5 and rng.random() < 0.4:
+                put(grid, x + col, y + row, shade(palette["deep"], light, rng.randint(-8, 8)))
+
+    # Slit pupil, and a single wet highlight off to one side.
+    for row in range(h):
+        if abs(row - cy) <= max(0.5, h * 0.3):
+            put(grid, x + int(round(cx)), y + row, PUPIL + (255, ))
+    if w >= 4 and h >= 3:
+        put(grid, x + max(1, int(cx) - 1), y + 1, shade((255, 250, 240), light))
 
 
 def paint_face(grid, rect, role, face, rng):
@@ -398,10 +470,15 @@ def paint_face(grid, rect, role, face, rng):
 
     if role in ("maw_upper", "maw_lower"):
         palette = PALETTES["maw"]
-        paint_base(grid, rect, palette, light, rng)
-        paint_veins(grid, rect, palette, light, rng, 2)
+        half = "upper" if role == "maw_upper" else "lower"
         inward = "down" if role == "maw_upper" else "up"
         gum_side = "bottom" if role == "maw_upper" else "top"
+        if face == "north":
+            # The face you see coming at you.
+            paint_oral_disc(grid, rect, light, half, rng)
+            return
+        paint_base(grid, rect, palette, light, rng)
+        paint_veins(grid, rect, palette, light, rng, 0.14)
         if face == inward:
             # The surface that faces into the throat is all teeth.
             x, y, w, h = rect
@@ -413,13 +490,13 @@ def paint_face(grid, rect, role, face, rng):
                         put(
                             grid, col, row, shade(TOOTH_SHADE, light, rng.randint(-8, 8))
                         )
-        elif face in ("north", "east", "west"):
+        elif face in ("east", "west"):
             paint_teeth(grid, rect, light, gum_side, rng)
         return
 
     palette = PALETTES[role]
     paint_base(grid, rect, palette, light, rng)
-    paint_veins(grid, rect, palette, light, rng, 4 if role == "flesh" else 1)
+    paint_veins(grid, rect, palette, light, rng, 0.22 if role == "flesh" else 0.08)
 
 
 def build_texture(placement):

@@ -266,6 +266,7 @@ tools/
   gen_bloatgrub.py         model + entity texture + animations + icons, one pass
   gen_textures.py          Arcane Arsenal icons
   build.py                 validates both add-ons and writes the .mcaddon files
+  preview_bloatgrub.py     renders the model to a PNG so you can look at it
   sim/mock-server.js       a stand-in for @minecraft/server
   sim/run.mjs              runs the real Bloatgrub script against it, headless
 dist/
@@ -281,6 +282,7 @@ python3 tools/gen_textures.py      # Arcane Arsenal icons (--preview for ASCII a
 python3 tools/build.py             # validate + repackage both .mcaddon files
 python3 tools/build.py Bloatgrub --check-only    # validate one, write nothing
 node tools/sim/run.mjs             # run the behaviour script's scenarios headless
+python3 tools/preview_bloatgrub.py grub.png   # look at the model without launching the game
 ```
 
 ### Why the generators exist
@@ -291,6 +293,13 @@ and both the model JSON and the painted pixels come out of that single packing â
 model and its texture cannot drift apart, and an animation cannot name a bone the model
 does not have. That class of mistake produces a mob that renders as a smear or as
 nothing at all, with no error message anywhere.
+
+### Looking at the model without launching the game
+
+`python3 tools/preview_bloatgrub.py out.png` renders the geometry straight from
+`bloatgrub.geo.json` and `bloatgrub.png` â€” three orthographic views, painter's algorithm,
+sampling the real texture. It is not a renderer; it is a way to catch a model that reads
+as a grey lump, or a texture that landed on the wrong faces, before putting it on a phone.
 
 ### Testing the behaviour without a phone
 
