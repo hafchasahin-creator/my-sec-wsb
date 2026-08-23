@@ -14,15 +14,23 @@
       },
       "animations": {
         "idle": "animation.bloatgrub.idle",
-        "walk": "animation.bloatgrub.walk"
+        "walk": "animation.bloatgrub.walk",
+        "pounce": "animation.bloatgrub.pounce"
       },
       "scripts": {
         "animate": [
           "idle",
-          { "walk": "query.modified_move_speed" }
+          {
+            "walk": "query.modified_move_speed"
+          },
+          {
+            "pounce": "1 - query.is_on_ground"
+          }
         ]
       },
-      "render_controllers": ["controller.render.bloatgrub"],
+      "render_controllers": [
+        "controller.render.bloatgrub"
+      ],
       "spawn_egg": {
         "base_color": "#b9a79d",
         "overlay_color": "#5d1418"

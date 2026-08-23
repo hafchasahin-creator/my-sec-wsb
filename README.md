@@ -54,8 +54,10 @@ used bare-handed it fixates on you for 30 seconds.
 
 **2. It jumps on you.** Once loose it hunts. Inside 5.5 blocks it launches itself at your
 chest every 1.3 seconds — a real physics lunge on top of the vanilla leap behaviour, so
-it comes at you through the air. It cannot latch during its first 12 ticks alive, which
-means you always get to see it coming.
+it comes at you through the air, with an airborne pose to match. It cannot latch during
+its first 24 ticks alive, and a grub you released or woke yourself **must land at least
+one pounce before it is allowed in** — otherwise it would just walk the last metre and
+burrow, and you would never see the thing that killed you.
 
 **3. It goes inside you.** Get within 1.75 blocks and it is gone — no more mob, just a
 burst of gore, a camera shake, and `IT IS INSIDE YOU` across the screen. Now you have
@@ -85,7 +87,9 @@ beside your own bed cannot compound into a swarm — and chat reads:
 ## Surviving it
 
 **Purge Serum** is the only real answer, and you need it *before* you get infested — you
-have 11 seconds, not enough time to open a crafting table.
+have 11 seconds, not enough time to open a crafting table. The crude recipe exists so the
+cure is available in the same cave as the threat: brown mushrooms grow on the floor the
+grubs spawn on, and the spider eye comes from the spiders next to them.
 
 - Tapping it while infested rips the grub out: **7 damage** (never lethal), Nausea III,
   Poison, Slowness and Weakness for a while, and the grub lands next to you **enraged**
@@ -93,9 +97,12 @@ have 11 seconds, not enough time to open a crafting table.
 - Tapping it when nothing is inside you costs nothing — it just tells you so. Holding
   the button down cannot burn more than one dose either.
 
-Other outs: dying to something else robs it of its meal, respawning always comes back
-clean, and `/tag @s remove grub_infested` stops the countdown on the spot — the tag is
-what the countdown reads, not a decoration.
+Other outs: dying to something else robs it of its meal; respawning always comes back
+clean and grants 15 seconds where nothing can latch, so you are not taken straight back
+down by the brood standing on your own crater; a **Totem of Undying works** — surviving
+the blast is exactly what it is for, and the mod steps back rather than forcing the kill
+through it; and `/tag @s remove grub_infested` stops the countdown on the spot, because
+the tag is what the countdown reads, not a decoration.
 
 **Creative mode is immune** by default — you can carry, build and test with dormant grubs
 safely. Set `CONFIG.carry.creativeImmune` to `false` if you would rather not be.
@@ -106,7 +113,8 @@ safely. Set `CONFIG.carry.creativeImmune` to `false` if you would rather not be.
 | --- | --- | --- |
 | **Bloatgrub (Dormant)** | 60% drop from killing a Bloatgrub | Lets it out; it fixates on **you** |
 | **Sealed Grub Jar** | 8 × Glass around 1 dormant grub | Throws it 2.6 blocks away and masks your scent for 10 seconds |
-| **Purge Serum** ×2 | Iron Ingot / Fermented Spider Eye + Glistering Melon Slice + Fermented Spider Eye / Glass Bottle | Cuts an infestation out of you |
+| **Purge Serum** ×1 | *Crude:* Glass Bottle + Spider Eye + Brown Mushroom + Sugar (shapeless) | Cuts an infestation out of you |
+| **Purge Serum** ×2 | *Potent:* Iron Ingot / Fermented Spider Eye + Glistering Melon Slice + Fermented Spider Eye / Glass Bottle | The same thing, two at a time |
 
 The jar is the safe way to move one around, and the only sane way to weaponise one
 against something that is not you.
@@ -121,9 +129,11 @@ whole front of the animal was unhittable.
 Grubs never hurt each other. When one dies there is a 20% chance it bursts and leaves a
 replacement, unless three or more are already within 16 blocks.
 
-They also **spawn naturally**, but rarely: underground only, light level 0–4, below
-Y 16, Easy difficulty and up, weight 3, at most 2 per area, in any biome tagged
-`monster`. To turn that off entirely, delete
+They also **spawn naturally**, but uncommonly: underground only, light level 0–4, below
+Y 16, Easy difficulty and up, weight 12 against vanilla's 100-weight zombies and spiders
+— roughly 3% of hostile spawns down there — at most 2 per area, in any biome tagged
+`monster`. Killing one is the only way to get the item in survival, so much lower than
+that and the premise never happens to you. To turn that off entirely, delete
 `behavior_packs/bloatgrub_bp/spawn_rules/bloatgrub.json` and rebuild.
 
 ```
@@ -143,7 +153,8 @@ Every number above sits in the `CONFIG` object at the top of
 | `infest.totalTicks` | `220` | Seconds × 20 from burrow to blast |
 | `infest.useHeavyScreenEffects` | `true` | Blindness and Darkness during the late stages |
 | `infest.bitesCanKill` | `false` | Whether internal bites can finish you before the blast |
-| `blast.breaksBlocks` | `true` | Whether the detonation wrecks terrain |
+| `blast.breaksBlocks` | `true` | Whether the detonation wrecks terrain (the `mobGriefing` gamerule overrides it) |
+| `blast.ignoreTotems` | `false` | Set true to force the kill through a Totem of Undying |
 | `blast.brood` | `2` | Grubs that hatch from the crater |
 | `blast.broodMaxNearby` | `4` | Ceiling on grubs near the crater, so the brood cannot compound |
 | `blast.lethal` | `true` | Turn off for a survivable (still brutal) version |
@@ -151,6 +162,7 @@ Every number above sits in the `CONFIG` object at the top of
 | `carry.creativeImmune` | `true` | Creative players are ignored |
 | `carry.biteFloorHealth` | `6` | Bag bites never take you below this |
 | `hunt.leapRadius` | `5.5` | How far off it starts pouncing |
+| `hunt.lungeWindowTicks` | `200` | How long a released grub must keep trying to pounce before it may just burrow |
 | `jar.maskTicks` | `200` | How long the jar's fumes hide the thrower |
 
 Re-run `python3 tools/build.py` after editing.

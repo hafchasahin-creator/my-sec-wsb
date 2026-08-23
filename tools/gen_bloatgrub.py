@@ -674,6 +674,21 @@ WALK_SHIN_SWING = 12
 WALK_SHIN_LAG = 55  # degrees the shin trails the thigh
 LEG_PHASE_STEP = 120  # metachronal wave, not a tripod: see check_leg_clearance
 
+# Jaw budget. All three clips can be live at once and Bedrock sums them, so the
+# upper jaw's travel is the sum of every clip's contribution. Past about 25
+# degrees it sweeps up through the brow ridge and into the eye - both are
+# directly above and behind it - so check_jaw_clearance() enforces the total.
+JAW_UPPER_LIMIT = 25
+IDLE_JAW_UPPER_REST = -8
+IDLE_JAW_UPPER_SWING = 6
+WALK_JAW_UPPER_SWING = 6
+POUNCE_JAW_UPPER = -4
+
+IDLE_JAW_LOWER_REST = 14
+IDLE_JAW_LOWER_SWING = 13
+WALK_JAW_LOWER_SWING = 10
+POUNCE_JAW_LOWER = 8
+
 
 class Clip:
     """One animation, with the two things that are easy to get wrong checked.
@@ -755,6 +770,23 @@ def check_leg_clearance():
     return relative, gap
 
 
+def check_jaw_clearance():
+    """The upper jaw must not be able to reach the brow, whatever is playing."""
+    worst = (
+        abs(IDLE_JAW_UPPER_REST)
+        + IDLE_JAW_UPPER_SWING
+        + WALK_JAW_UPPER_SWING
+        + abs(POUNCE_JAW_UPPER)
+    )
+    if worst > JAW_UPPER_LIMIT:
+        raise ValueError(
+            f"upper jaw can reach {worst} deg with idle + walk + pounce all "
+            f"summed, and it cuts into the brow ridge past {JAW_UPPER_LIMIT}. "
+            "Trim one of the IDLE_/WALK_/POUNCE_JAW_UPPER constants."
+        )
+    return worst
+
+
 def leg_bones():
     """[(thigh, shin, phase, side)] - a metachronal wave down each side."""
     out = []
@@ -767,6 +799,7 @@ def leg_bones():
 
 def build_animations():
     check_leg_clearance()
+    check_jaw_clearance()
 
     # ---------------------------------------------------------------- idle
     # Idle owns the resting pose. Every constant offset in the rig lives here
@@ -789,10 +822,18 @@ def build_animations():
         },
         # A mouth that never stops working, even at rest.
         "jaw_lower": {
-            "rotation": [idle.wave(480, 13, offset=14), 0, 0],
+            "rotation": [
+                idle.wave(480, IDLE_JAW_LOWER_SWING, offset=IDLE_JAW_LOWER_REST),
+                0,
+                0,
+            ],
         },
         "jaw_upper": {
-            "rotation": [idle.wave(480, -8, offset=-9), 0, 0],
+            "rotation": [
+                idle.wave(480, -IDLE_JAW_UPPER_SWING, offset=IDLE_JAW_UPPER_REST),
+                0,
+                0,
+            ],
         },
         "tail": {
             "rotation": [idle.wave(60, 9), idle.wave(120, 10), 0],
@@ -836,10 +877,10 @@ def build_animations():
             "rotation": [walk.wave(640, 5, phase=90, fn="cos"), 0, 0],
         },
         "jaw_lower": {
-            "rotation": [walk.wave(640, 10), 0, 0],
+            "rotation": [walk.wave(640, WALK_JAW_LOWER_SWING), 0, 0],
         },
         "jaw_upper": {
-            "rotation": [walk.wave(640, -7), 0, 0],
+            "rotation": [walk.wave(640, -WALK_JAW_UPPER_SWING), 0, 0],
         },
         "tail": {
             "rotation": [0, walk.wave(320, 20), 0],
@@ -860,11 +901,33 @@ def build_animations():
             ]
         }
 
+    # -------------------------------------------------------------- pounce
+    # A held pose rather than a motion: the client blends it in on
+    # 1 - query.is_on_ground, so it only shows while the creature is off the
+    # ground, and it adds to whatever idle and walk are already doing. That is
+    # what turns the lunge from "the walk cycle sliding through the air" into
+    # something that reads as a leap.
+    pounce = Clip("pounce", 0.5)
+    pounce.bones = {
+        "body": {"rotation": [-26, 0, 0]},
+        "thorax": {"rotation": [-8, 0, 0]},
+        "head": {"rotation": [12, 0, 0]},
+        "jaw_lower": {"rotation": [POUNCE_JAW_LOWER, 0, 0]},
+        "jaw_upper": {"rotation": [POUNCE_JAW_UPPER, 0, 0]},
+        "tail": {"rotation": [-28, 0, 0]},
+        "tail_tip": {"rotation": [-20, 0, 0]},
+    }
+    for thigh, shin, _phase, side in leg_bones():
+        sign = -1 if side == "l" else 1
+        pounce.bones[thigh] = {"rotation": [-38, 0, 0]}
+        pounce.bones[shin] = {"rotation": [30, 0, sign * 8]}
+
     return {
         "format_version": "1.8.0",
         "animations": {
             "animation.bloatgrub.idle": idle.build(),
             "animation.bloatgrub.walk": walk.build(),
+            "animation.bloatgrub.pounce": pounce.build(),
         },
     }
 

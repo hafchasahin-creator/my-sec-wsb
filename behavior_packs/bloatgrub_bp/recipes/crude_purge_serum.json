@@ -1,0 +1,22 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shapeless": {
+    "description": {
+      "identifier": "grub:crude_purge_serum"
+    },
+    "tags": ["crafting_table"],
+    "ingredients": [
+      { "item": "minecraft:glass_bottle" },
+      { "item": "minecraft:spider_eye" },
+      { "item": "minecraft:brown_mushroom" },
+      { "item": "minecraft:sugar" }
+    ],
+    "unlock": [
+      { "item": "minecraft:spider_eye" }
+    ],
+    "result": {
+      "item": "grub:purge_serum",
+      "count": 1
+    }
+  }
+}

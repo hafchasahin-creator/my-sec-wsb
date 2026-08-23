@@ -66,6 +66,8 @@ const CONFIG = {
     // those, a grub carried long enough simply nibbles you to death before
     // it ever wakes, which is neither scary nor fair.
     agitationToBite: 45,
+    // ...but it starts muttering at you well before it starts biting.
+    agitationToWhisper: 15,
     biteChance: 0.12,
     biteDamage: 1,
     biteFloorHealth: 6,
@@ -87,7 +89,13 @@ const CONFIG = {
     resyncTicks: 40,
     // A grub cannot latch until it has existed this long - you always get to
     // see it come at you.
-    armTicks: 12,
+    armTicks: 24,
+    // ...and a grub released or woken at YOUR expense must complete at least
+    // one visible pounce before it is allowed in. Without this it simply walks
+    // the last metre and burrows, and the middle beat of the whole mod - the
+    // thing leaping at you - never happens. After this window it may burrow
+    // regardless, so a grub cornered against a wall cannot deadlock.
+    lungeWindowTicks: 200,
     // It lunges from here...
     leapRadius: 5.5,
     leapCooldownTicks: 26,
@@ -105,6 +113,11 @@ const CONFIG = {
     // 11 seconds from burrow to blast.
     totalTicks: 220,
     biteIntervalTicks: 30,
+    // mob.warden.heartbeat is about half a second long, and vanilla's own
+    // minecraft:heartbeat never schedules it faster than every 0.5s. Below
+    // that the samples overlap and the accelerating pulse - the only cue for
+    // how much time is left - collapses into a flat drone.
+    minBeatTicks: 10,
     // Internal bites never land the killing blow - the detonation does.
     bitesCanKill: false,
     // Blindness and darkness are strong; set to false if you find them unfair.
@@ -123,7 +136,12 @@ const CONFIG = {
     // become six as you respawn into them.
     brood: 2,
     broodMaxNearby: 4,
+    broodDelayTicks: 10,
     lethal: true,
+    // A Totem of Undying is the game's own answer to "you are about to die".
+    // Burning it and killing the player anyway makes it worthless; leave this
+    // false and surviving the blast is exactly what the totem is for.
+    ignoreTotems: false,
     deathMessage: true,
     // Nothing may re-enter the crater's victim for this long. Has to outlast
     // respawning and walking back, or the brood simply re-infests you.
@@ -282,6 +300,16 @@ function alive(entity) {
     return Boolean(entity);
   } catch {
     return false;
+  }
+}
+
+/** Is block-breaking allowed? Players turn this off to protect their builds. */
+function mobGriefingAllowed() {
+  try {
+    const value = world.gameRules?.mobGriefing;
+    return value === undefined ? true : Boolean(value);
+  } catch {
+    return true;
   }
 }
 
@@ -503,12 +531,15 @@ function bindTo(grub, player, tick, armTicks) {
     hostId: player.id,
     until: tick + CONFIG.hunt.bindTicks,
     armAt: tick + armTicks,
+    hasLunged: false,
   });
   seenGrubs.set(grub.id, tick);
 }
 
 /** Shove a grub through the air at a point - the visible pounce. */
 function lungeAt(grub, targetLocation) {
+  const link = bound.get(grub.id);
+  if (link) link.hasLunged = true;
   const from = grub.location;
   const dx = targetLocation.x - from.x;
   const dz = targetLocation.z - from.z;
@@ -537,7 +568,9 @@ function releaseOnSelf(player) {
     view = player.getViewDirection();
   });
 
-  const spot = offset(player.location, view.x * 1.2, 1.4, view.z * 1.2);
+  // Well outside latchRadius, and thrown further out, so it has to come back
+  // at you through the air.
+  const spot = offset(player.location, view.x * 4.0, 1.3, view.z * 4.0);
   const grub = spawnGrub(dimension, spot, offset(player.location, 0, 1, 0));
   if (!grub) {
     actionBar(player, "§8It will not come out here.");
@@ -552,7 +585,7 @@ function releaseOnSelf(player) {
   } else {
     seenGrubs.set(grub.id, tick);
   }
-  safe(() => grub.applyImpulse({ x: -view.x * 0.3, y: 0.25, z: -view.z * 0.3 }));
+  safe(() => grub.applyImpulse({ x: view.x * 0.5, y: 0.3, z: view.z * 0.5 }));
 
   sound(dimension, FX.wake, player.location, 1, 1.1);
   particle(dimension, PFX.ooze, spot);
@@ -650,7 +683,7 @@ function burrow(grub, player) {
 const STAGES = [
   {
     at: 0.0,
-    beat: 26,
+    beat: 30,
     whisper: "§7Something went in under your skin.",
     effects: [["nausea", 1]],
     bite: 0,
@@ -658,7 +691,7 @@ const STAGES = [
   },
   {
     at: 0.2,
-    beat: 20,
+    beat: 24,
     whisper: "§7It is working its way toward your chest.",
     effects: [["nausea", 1], ["slowness", 0]],
     bite: 2,
@@ -666,7 +699,7 @@ const STAGES = [
   },
   {
     at: 0.42,
-    beat: 14,
+    beat: 16,
     whisper: "§cIt has started eating.",
     effects: [["nausea", 2], ["weakness", 1]],
     bite: 3,
@@ -675,7 +708,7 @@ const STAGES = [
   },
   {
     at: 0.66,
-    beat: 9,
+    beat: 12,
     whisper: "§4Your ribs are creaking outward.",
     effects: [["nausea", 2], ["weakness", 1], ["mining_fatigue", 1]],
     heavy: [["blindness", 0]],
@@ -684,7 +717,7 @@ const STAGES = [
   },
   {
     at: 0.87,
-    beat: 5,
+    beat: 10,
     whisper: "§4§lIT IS SWELLING",
     effects: [["nausea", 3], ["slowness", 2]],
     heavy: [["darkness", 0]],
@@ -802,7 +835,7 @@ function tickInfestation(player, state) {
 
   state.nextBeat -= step;
   if (state.nextBeat <= 0) {
-    state.nextBeat = stage.beat;
+    state.nextBeat = Math.max(CONFIG.infest.minBeatTicks, stage.beat);
     const pitch = 0.7 + progress * 0.6;
     sound(player.dimension, FX.heartbeat, chest(player), 1, pitch);
     particle(player.dimension, PFX.bulge, chest(player));
@@ -825,18 +858,29 @@ function tickInfestation(player, state) {
 function killHost(player) {
   if (!CONFIG.blast.lethal) return;
   hurt(player, 1000, EntityDamageCause.entityExplosion);
+
+  let survived = false;
+  try {
+    survived = (player.getComponent("minecraft:health")?.currentValue ?? 0) > 0;
+  } catch {
+    survived = false;
+  }
+  if (!survived) return;
+
+  // Still standing after a thousand damage means something intervened - a
+  // totem, or another add-on. Let it.
+  if (!CONFIG.blast.ignoreTotems) {
+    actionBar(player, "§6Something held you together. It will not hold twice.");
+    return;
+  }
+
   try {
     const health = player.getComponent("minecraft:health");
     if (health && health.currentValue > 0) health.setCurrentValue(0);
   } catch {
     /* fall through */
   }
-  try {
-    const health = player.getComponent("minecraft:health");
-    if (health && health.currentValue > 0) player.kill?.();
-  } catch {
-    /* nothing left to try - a totem earned it */
-  }
+  safe(() => player.kill?.());
 }
 
 function detonate(player) {
@@ -855,15 +899,15 @@ function detonate(player) {
   system.run(() => {
     safe(() =>
       dimension.createExplosion(at, CONFIG.blast.radius, {
-        breaksBlocks: CONFIG.blast.breaksBlocks,
+        breaksBlocks: CONFIG.blast.breaksBlocks && mobGriefingAllowed(),
         causesFire: CONFIG.blast.causesFire,
         allowUnderwater: true,
       })
     );
 
     particle(dimension, PFX.rupture, core);
-    for (let i = 0; i < 12; i++) {
-      const angle = (Math.PI * 2 * i) / 12;
+    for (let i = 0; i < 8; i++) {
+      const angle = (Math.PI * 2 * i) / 8;
       particle(
         dimension,
         PFX.gore,
@@ -879,7 +923,6 @@ function detonate(player) {
 
     killHost(player);
 
-    const tick = now();
     // Never hatch more than the area can hold. Without this, detonating near
     // your own bed compounds: you respawn into two grubs, they get you again,
     // and now there are four.
@@ -893,12 +936,24 @@ function detonate(player) {
       0,
       Math.min(CONFIG.blast.brood, CONFIG.blast.broodMaxNearby - crowd)
     );
-    for (let i = 0; i < hatching; i++) {
-      const angle = (Math.PI * 2 * i) / Math.max(1, hatching);
-      const spot = offset(at, Math.cos(angle) * 1.2, 0.6, Math.sin(angle) * 1.2);
-      const child = spawnGrub(dimension, spot, at);
-      if (child) seenGrubs.set(child.id, tick);
-    }
+    // Half a second later, not in the blast frame. spawnEntity is the most
+    // expensive call here - entity construction plus AI setup - and stacking
+    // it on top of the explosion, the block breaking and the gore ring is a
+    // visible hitch at exactly the moment this wants to land clean. It is a
+    // better beat this way too: a still crater, and then things climb out.
+    system.runTimeout(() => {
+      try {
+        for (let i = 0; i < hatching; i++) {
+          const angle = (Math.PI * 2 * i) / Math.max(1, hatching);
+          const spot = offset(at, Math.cos(angle) * 1.2, 0.6, Math.sin(angle) * 1.2);
+          const child = spawnGrub(dimension, spot, at);
+          if (child) seenGrubs.set(child.id, now());
+        }
+        if (hatching > 0) sound(dimension, FX.chitter, core, 1, 1.2);
+      } catch (err) {
+        console.warn(`[Bloatgrub] brood failed: ${err}`);
+      }
+    }, CONFIG.blast.broodDelayTicks);
 
     if (CONFIG.blast.deathMessage) {
       safe(() =>
@@ -989,13 +1044,17 @@ system.runInterval(() => {
           biteReadyAt: 0,
         };
         carrying.set(player.id, state);
+        // Phones get played on mute. Say something the first time, or a
+        // player can carry this for four minutes with no idea it is alive.
+        actionBar(player, "§8It is warm. It should not be warm.");
+        particle(player.dimension, PFX.ooze, chest(player));
       }
 
       state.agitation += count;
 
       if (Math.random() < CONFIG.carry.whisperChance) {
         sound(player.dimension, FX.squelch, player.location, 0.35);
-        if (state.agitation > CONFIG.carry.agitationToBite) {
+        if (state.agitation > CONFIG.carry.agitationToWhisper) {
           actionBar(player, "§8Something in your bag just moved.");
           particle(player.dimension, PFX.ooze, chest(player));
         }
@@ -1024,7 +1083,8 @@ system.runInterval(() => {
         safe(() => {
           view = player.getViewDirection();
         });
-        const spot = offset(player.location, -view.x * 0.9, 1.6, -view.z * 0.9);
+        // Behind you and out of reach - it has to cross the gap itself.
+        const spot = offset(player.location, -view.x * 3.4, 1.3, -view.z * 3.4);
 
         // Spawn first, consume second. The other order destroys the item when
         // there is nowhere for the grub to appear - crawling through a
@@ -1089,7 +1149,18 @@ system.runInterval(() => {
         const gap = distance(grub.location, player.location);
         const heightGap = Math.abs(grub.location.y - player.location.y);
 
-        if (gap <= CONFIG.hunt.latchRadius && heightGap <= CONFIG.hunt.latchMaxHeightDelta) {
+        // Make it earn the entrance: a grub bound to this player has to land
+        // at least one pounce first, unless it has been trying for a while.
+        const owes =
+          link &&
+          !link.hasLunged &&
+          tick < link.armAt + CONFIG.hunt.lungeWindowTicks;
+
+        if (
+          !owes &&
+          gap <= CONFIG.hunt.latchRadius &&
+          heightGap <= CONFIG.hunt.latchMaxHeightDelta
+        ) {
           burrow(grub, player);
           break;
         }
@@ -1233,9 +1304,12 @@ world.afterEvents.playerSpawn.subscribe((event) => {
   const player = event.player;
   if (!player) return;
   try {
-    // A respawn always comes back clean, whatever was inside you.
+    // A respawn always comes back clean, whatever was inside you - and gets
+    // the same breathing room a purge grants, so a player cannot walk back to
+    // their own crater and be taken straight back down by the brood.
     infested.delete(player.id);
     safe(() => player.removeTag(TAG_INFESTED));
+    latchGrace.set(player.id, now() + CONFIG.blast.graceTicks);
     if (!event.initialSpawn) return;
     player.sendMessage(
       `§2[Bloatgrub]§r v${VERSION} loaded - do not pick it up.`

@@ -41,6 +41,13 @@ const TAG = "grub_infested";
 // Generous upper bound on CONFIG.carry.maxAgitationToWake x carry.intervalTicks.
 const CARRY_TIMEOUT_TICKS = 6000;
 
+// A player gets latch immunity when they spawn, so nothing can take them down
+// the instant they log in or respawn. Scenarios have to wait it out before a
+// grub can do anything to them.
+const SPAWN_GRACE_TICKS = 320;
+// Longer than CONFIG.hunt.armTicks.
+const ARM_TICKS = 30;
+
 /* ------------------------------------------------------------------ *
  * Load the script under test
  * ------------------------------------------------------------------ */
@@ -96,6 +103,7 @@ function reset() {
 function addPlayer(name, location = { x: 0, y: 64, z: 0 }, dimension = world.overworld) {
   const player = world.addPlayer(name, dimension, location);
   world.afterEvents.playerSpawn.emit({ player, initialSpawn: true });
+  system.pump(SPAWN_GRACE_TICKS); // wait out the spawn immunity
   return player;
 }
 
@@ -117,7 +125,7 @@ function plantGrub(player, distance) {
     y: player.location.y,
     z: player.location.z,
   });
-  system.pump(20); // longer than CONFIG.hunt.armTicks
+  system.pump(ARM_TICKS);
   return grub;
 }
 
@@ -336,6 +344,58 @@ scenario("leap-then-latch", () => {
   );
 });
 
+scenario("it-pounces-before-it-gets-in", () => {
+  // The middle beat of the brief. Both player-facing paths used to drop the
+  // grub already inside the latch radius, so it burrowed on the spot and the
+  // leap never happened at all.
+  const player = addPlayer("Quarry");
+  player.hold(DORMANT, 1);
+  player.viewDirection = { x: 0, y: 0, z: 1 };
+
+  useItem(player, DORMANT);
+  const grubs = grubsIn();
+  check("a grub came out", grubs.length === 1);
+  const grub = grubs[0];
+  const thrown = distance(grub.location, player.location);
+  check(
+    "it starts well out of reach rather than on top of you",
+    thrown > 2.5,
+    `only ${thrown.toFixed(2)} blocks away`
+  );
+
+  system.pump(40);
+  check("it has not got in from over there", !player.hasTag(TAG));
+  check(
+    "and it has thrown itself at you",
+    log.events.some((e) => e.kind === "impulse" && e.id === grub.id),
+    "no lunge recorded"
+  );
+
+  grub.location = { ...player.location };
+  system.pump(8);
+  check("then it gets in", player.hasTag(TAG));
+});
+
+scenario("a-grub-that-never-pounced-cannot-sneak-in", () => {
+  const player = addPlayer("Watchful");
+  player.hold(DORMANT, 1);
+  useItem(player, DORMANT);
+  const grub = grubsIn()[0];
+
+  // Teleport it onto the player before the hunt loop has ever seen it in
+  // lunge range, so it has no pounce to its name.
+  grub.location = { ...player.location };
+  system.pump(6); // far less than hunt.armTicks
+  check("not yet armed, so nothing happens", !player.hasTag(TAG));
+});
+
+function distance(a, b) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  const dz = a.z - b.z;
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
 scenario("infestation-runs-then-detonates", () => {
   const player = addPlayer("Host");
   const grub = plantGrub(player, 1.0);
@@ -435,7 +495,7 @@ scenario("bites-never-steal-the-kill", () => {
   system.pump(8);
   check("infested", player.hasTag(TAG));
 
-  system.pump(200); // most of the countdown, but not the blast
+  system.pump(150); // well into the countdown, but short of the blast
   check(
     "still breathing on 1 hp",
     player.health.current > 0,
@@ -671,7 +731,7 @@ scenario("two-grubs-arriving-together", () => {
   const player = addPlayer("Swarmed");
   const a = plantGrub(player, 1.0);
   const b = player.dimension.spawnEntity(ENTITY, { ...player.location });
-  system.pump(20);
+  system.pump(ARM_TICKS);
 
   check("the player is infested once", player.hasTag(TAG));
   const left = grubsIn().filter((g) => g.isValid).length;
