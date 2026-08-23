@@ -127,7 +127,7 @@ add_legs()
 #   v    +-----------+-----------+-----------+-----------+
 #        |  (blank)  |    UP     |   DOWN    |  (blank)  |  height sz
 #   v+sz +-----------+-----------+-----------+-----------+
-#        |   EAST    |   NORTH   |   WEST    |   SOUTH   |  height sy
+#        |   WEST    |   NORTH   |   EAST    |   SOUTH   |  height sy
 #        +-----------+-----------+-----------+-----------+
 #
 # NORTH is the face the creature leads with, because Bedrock models face -Z.
@@ -146,9 +146,12 @@ add_legs()
 #     the end buried inside the head - is fully transparent. The snout sits at
 #     the model's most negative Z, which is what fixes -Z as the front.
 #
-# Left/right is the one thing those samples cannot settle, because every head
-# checked is bilaterally symmetric. It does not matter here: the Bloatgrub is
-# symmetric too, and its EAST and WEST faces are painted from the same role.
+# The leftmost sz-wide column is the WEST (-X) face, not the east one: the
+# canonical 64x32 skin template labels (0,8)-(8,16) as the head's right side,
+# and geometry.humanoid puts rightArm at x = -8..-4, so the entity's right is
+# -X. It makes no visual difference here - the Bloatgrub is symmetric and its
+# east and west faces are painted from the same role - but a reader editing
+# this table later would be misled by the wrong names.
 
 
 def uv_footprint(size):
@@ -162,9 +165,9 @@ def uv_faces(u, v, size):
     return {
         "up": (u + sz, v, sx, sz),
         "down": (u + sz + sx, v, sx, sz),
-        "east": (u, v + sz, sz, sy),
+        "west": (u, v + sz, sz, sy),
         "north": (u + sz, v + sz, sx, sy),
-        "west": (u + sz + sx, v + sz, sz, sy),
+        "east": (u + sz + sx, v + sz, sz, sy),
         "south": (u + 2 * sz + sx, v + sz, sx, sy),
     }
 

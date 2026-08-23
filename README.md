@@ -115,8 +115,8 @@ Grubs never hurt each other. When one dies there is a 20% chance it bursts and l
 replacement, unless three or more are already within 16 blocks.
 
 They also **spawn naturally**, but rarely: underground only, light level 0–4, below
-Y 16, Easy difficulty and up, weight 3, at most 2 per area, in overworld biomes. To turn
-that off entirely, delete
+Y 16, Easy difficulty and up, weight 3, at most 2 per area, in any biome tagged
+`monster`. To turn that off entirely, delete
 `behavior_packs/bloatgrub_bp/spawn_rules/bloatgrub.json` and rebuild.
 
 ```
@@ -350,8 +350,25 @@ Add `SIM_VERBOSE=1` to see each individual check, or pass a substring
 - a namespaced id in the behaviour script that nothing in the pack defines, and a
   `triggerEvent()` naming something that is not an entity event — both of which fail
   silently in game, since the handler still runs and its branch simply never fires
+- a tap-activated custom item with no `minecraft:interact_button` (see below), or an
+  `interact_button` label with no matching `en_US.lang` entry
 
 ---
+
+## The one that would have killed it on a phone
+
+A custom item with no vanilla use behaviour — not food, not a projectile, not a block
+placer — shows **no use button at all on touch controls**. The player has no input that
+can generate a use action, so `world.afterEvents.itemUse` never fires for them, while the
+exact same pack works fine with a mouse. Nothing appears in the content log.
+
+The fix is `minecraft:interact_button`, which is stable at item `format_version` 1.20.30
+and ships in 1.21.0's own schema set as
+`metadata/json_schemas/InteractButton v1.20.50.json`: *"determines if the interact button
+is shown in touch controls and what text is displayed on the button."* All three Bloatgrub
+items carry it with a localised label (Release / Throw Jar / Inject), and so do Arcane
+Arsenal's two tap-activated weapons (Call Lightning / Call Meteor), which had the same
+latent problem. `build.py` now fails any tap-activated item that is missing it.
 
 ## Compatibility notes
 

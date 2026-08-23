@@ -12,3 +12,9 @@ item.grub:grub_jar=Sealed Grub Jar
 item.grub:grub_jar.name=Sealed Grub Jar
 item.grub:purge_serum=Purge Serum
 item.grub:purge_serum.name=Purge Serum
+
+## Touch-controls interact button labels. Without minecraft:interact_button on
+## the item, a phone shows no use button at all and itemUse never fires.
+action.interact.grub:release=Release
+action.interact.grub:throw=Throw Jar
+action.interact.grub:inject=Inject

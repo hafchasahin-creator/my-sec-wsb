@@ -15,3 +15,7 @@ item.arcane:cataclysm_hammer=Cataclysm Hammer
 item.arcane:cataclysm_hammer.name=Cataclysm Hammer
 item.arcane:meteor_staff=Meteor Staff
 item.arcane:meteor_staff.name=Meteor Staff
+
+## Touch-controls interact button labels.
+action.interact.arcane:call_storm=Call Lightning
+action.interact.arcane:call_meteor=Call Meteor

@@ -20,7 +20,7 @@
         "minecraft:biome_filter": {
           "test": "has_biome_tag",
           "operator": "==",
-          "value": "overworld"
+          "value": "monster"
         },
         "minecraft:density_limit": { "underground": 2 },
         "minecraft:disallow_spawns_in_bubble": {}

@@ -3,6 +3,7 @@
   "minecraft:entity": {
     "description": {
       "identifier": "grub:bloatgrub",
+      "spawn_category": "monster",
       "is_spawnable": true,
       "is_summonable": true,
       "is_experimental": false
@@ -12,10 +13,9 @@
         "minecraft:movement": { "value": 0.42 },
         "minecraft:attack": { "damage": 6 },
         "minecraft:behavior.melee_attack": {
-          "priority": 3,
+          "priority": 4,
           "speed_multiplier": 1.5,
-          "track_target": true,
-          "reach_multiplier": 1.6
+          "track_target": true
         }
       },
       "grub:vanish": {
@@ -48,7 +48,6 @@
       "minecraft:jump.static": {},
       "minecraft:attack": { "damage": 4 },
       "minecraft:nameable": {},
-      "minecraft:conditional_bandwidth_optimization": {},
       "minecraft:despawn": {
         "despawn_from_distance": { "max_distance": 96, "min_distance": 48 }
       },
@@ -78,21 +77,19 @@
       "minecraft:behavior.float": { "priority": 0 },
       "minecraft:behavior.hurt_by_target": { "priority": 1 },
       "minecraft:behavior.leap_at_target": {
-        "priority": 2,
+        "priority": 3,
         "target_dist": 4.0,
         "yd": 0.55,
         "must_be_on_ground": true
       },
       "minecraft:behavior.melee_attack": {
-        "priority": 3,
+        "priority": 4,
         "speed_multiplier": 1.25,
-        "track_target": true,
-        "reach_multiplier": 1.4
+        "track_target": true
       },
       "minecraft:behavior.nearest_attackable_target": {
-        "priority": 4,
+        "priority": 2,
         "must_see": false,
-        "must_reach": false,
         "reselect_targets": true,
         "within_radius": 24.0,
         "entity_types": [

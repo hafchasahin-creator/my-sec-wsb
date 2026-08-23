@@ -44,6 +44,7 @@
         "category": "arcane_storm",
         "duration": 4.0
       },
+      "minecraft:interact_button": "action.interact.arcane:call_storm",
       "minecraft:use_modifiers": {
         "use_duration": 0.2,
         "movement_modifier": 0.7

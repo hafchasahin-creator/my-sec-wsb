@@ -44,6 +44,7 @@
         "category": "arcane_meteor",
         "duration": 6.0
       },
+      "minecraft:interact_button": "action.interact.arcane:call_meteor",
       "minecraft:use_modifiers": {
         "use_duration": 0.2,
         "movement_modifier": 0.6

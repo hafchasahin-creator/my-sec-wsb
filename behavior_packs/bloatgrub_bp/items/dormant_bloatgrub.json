@@ -19,6 +19,7 @@
       "minecraft:max_stack_size": 4,
       "minecraft:hand_equipped": false,
       "minecraft:glint": false,
+      "minecraft:interact_button": "action.interact.grub:release",
       "minecraft:use_modifiers": {
         "use_duration": 0.6,
         "movement_modifier": 0.85

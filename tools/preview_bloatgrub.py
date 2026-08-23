@@ -88,9 +88,9 @@ def uv_faces(u, v, size):
     return {
         "up": (u + sz, v, sx, sz),
         "down": (u + sz + sx, v, sx, sz),
-        "east": (u, v + sz, sz, sy),
+        "west": (u, v + sz, sz, sy),
         "north": (u + sz, v + sz, sx, sy),
-        "west": (u + sz + sx, v + sz, sz, sy),
+        "east": (u + sz + sx, v + sz, sz, sy),
         "south": (u + 2 * sz + sx, v + sz, sx, sy),
     }
 
@@ -116,11 +116,11 @@ def collect_cubes():
 # and which axis to sort along (far to near).
 VIEWS = {
     "side": {
-        "face": "east",
+        "face": "west",
         "axis_h": "z", "flip_h": False,
         "axis_v": "y",
-        "depth": lambda c: c["origin"][0],           # bigger x is nearer
-        "label": "side (from +X, facing left)",
+        "depth": lambda c: -c["origin"][0],          # smaller x is nearer
+        "label": "side (from -X, facing right)",
     },
     "front": {
         "face": "north",

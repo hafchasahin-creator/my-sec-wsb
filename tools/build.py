@@ -203,6 +203,52 @@ class Addon:
             if not os.path.isfile(png):
                 self.fail(f"{path}: icon '{key}' points at missing file {png}")
 
+    # An item with one of these already has a use action the client knows how
+    # to offer, so it does not need an explicit touch button.
+    VANILLA_USE_COMPONENTS = (
+        "minecraft:food",
+        "minecraft:throwable",
+        "minecraft:shooter",
+        "minecraft:projectile",
+        "minecraft:block_placer",
+        "minecraft:entity_placer",
+        "minecraft:record",
+        "minecraft:bundle_interaction",
+    )
+
+    def check_touch_controls(self):
+        """The works-on-PC-dead-on-phone bug.
+
+        A custom item with no vanilla use behaviour and no
+        minecraft:interact_button gives touch players no on-screen use button.
+        They then have no input that can generate a use action at all, so
+        world.afterEvents.itemUse never fires for them - while the very same
+        pack works fine with a mouse. Nothing is logged either way.
+        """
+        _lang_path, lang = self.lang_text()
+
+        for path, doc in sorted(self.docs_under(self.bp, "items").items()):
+            item = doc.get("minecraft:item", {})
+            components = item.get("components", {})
+            identifier = item.get("description", {}).get("identifier", path)
+
+            button = components.get("minecraft:interact_button")
+            usable = "minecraft:use_modifiers" in components
+            vanilla_use = any(c in components for c in self.VANILLA_USE_COMPONENTS)
+
+            if usable and button is None and not vanilla_use:
+                self.fail(
+                    f"{path}: {identifier} has minecraft:use_modifiers but no "
+                    "minecraft:interact_button, so touch players get no use "
+                    "button and itemUse never fires for them"
+                )
+            if isinstance(button, str) and f"{button}=" not in lang:
+                self.fail(
+                    f"{path}: interact_button label '{button}' has no entry in "
+                    "the resource pack's en_US.lang, so the button would show "
+                    "the raw key"
+                )
+
     def check_recipes(self):
         for path, doc in sorted(self.docs_under(self.bp, "recipes").items()):
             recipe = (
@@ -560,6 +606,7 @@ class Addon:
         if self.errors and not self.documents:
             return uuids
         self.check_items()
+        self.check_touch_controls()
         self.check_recipes()
         self.check_entities()
         self.check_script_ids()
