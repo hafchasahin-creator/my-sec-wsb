@@ -15,6 +15,7 @@ Usage:
 """
 
 import json
+import math
 import os
 import random
 import sys
@@ -83,11 +84,14 @@ CUBES = {
     "jaw_lower": [
         ("jaw_lower", [-5, 5, -14], [10, 4, 5], "maw_lower", 0.0),
     ],
+    # Each tail segment starts two units IN FRONT of its own pivot, so the
+    # joint stays buried in the segment ahead of it and no amount of swing
+    # opens a gap you can see the sky through.
     "tail": [
-        ("tail", [-3, 6, 8], [6, 5, 4], "flesh", 0.0),
+        ("tail", [-3, 6, 6], [6, 5, 6], "flesh", 0.0),
     ],
     "tail_tip": [
-        ("tail_tip", [-1, 8, 12], [2, 2, 4], "chitin", 0.0),
+        ("tail_tip", [-1, 8, 10], [2, 2, 6], "chitin", 0.0),
     ],
 }
 
@@ -661,116 +665,198 @@ PACK_FACE = [
 # `walk` in on top of `idle` whenever the creature is moving.
 
 
+IDLE_LENGTH = 6.0
+WALK_LENGTH = 1.125
+
+# Walk swing, in degrees. Small on purpose - see Clip.check_leg_clearance.
+WALK_THIGH_SWING = 16
+WALK_SHIN_SWING = 12
+WALK_SHIN_LAG = 55  # degrees the shin trails the thigh
+LEG_PHASE_STEP = 120  # metachronal wave, not a tripod: see check_leg_clearance
+
+
+class Clip:
+    """One animation, with the two things that are easy to get wrong checked.
+
+    A looping Bedrock animation restarts query.anim_time at 0 when it reaches
+    animation_length. A raw sine of anim_time is therefore only continuous
+    across the wrap if it completes a whole number of cycles in that time -
+    otherwise the whole rig snaps, once per loop, forever. check_wraps()
+    enforces that for every frequency the clip uses.
+    """
+
+    def __init__(self, name, length):
+        self.name = name
+        self.length = length
+        self.bones = {}
+        self.frequencies = set()
+
+    def wave(self, freq, amplitude, phase=0, offset=0.0, fn="sin"):
+        self.frequencies.add(freq)
+        inner = f"query.anim_time * {freq}"
+        if phase:
+            inner += f" + {phase}"
+        term = f"math.{fn}({inner}) * {amplitude}"
+        return f"{offset} + {term}" if offset else term
+
+    def check_wraps(self):
+        base = 360.0 / self.length
+        broken = sorted(
+            freq for freq in self.frequencies
+            if abs(freq / base - round(freq / base)) > 1e-9
+        )
+        if broken:
+            raise ValueError(
+                f"{self.name}: {broken} deg/s do not complete a whole number "
+                f"of cycles in {self.length}s, so the pose jumps every loop. "
+                f"Frequencies must be multiples of {base:g}."
+            )
+
+    def build(self):
+        self.check_wraps()
+        return {"loop": True, "animation_length": self.length, "bones": self.bones}
+
+
+def check_leg_clearance():
+    """Adjacent legs on one side must not swing through each other.
+
+    Thigh and shin both pivot off the hip, offset only along X, so the foot
+    describes a single pendulum whose amplitude is the vector sum of the two
+    swings. Two neighbours close twice that, scaled by how far apart in phase
+    they are; that has to stay inside the gap between their shins.
+    """
+    lag = math.radians(WALK_SHIN_LAG)
+    resultant = math.degrees(
+        math.acos(
+            max(-1.0, min(1.0, math.cos(math.radians(WALK_THIGH_SWING))))
+        )
+    )
+    resultant = math.sqrt(
+        WALK_THIGH_SWING ** 2
+        + WALK_SHIN_SWING ** 2
+        - 2 * WALK_THIGH_SWING * WALK_SHIN_SWING * math.cos(lag)
+    )
+
+    shin_length = 7  # hip pivot at y 7, foot at y 0
+    sweep = shin_length * math.sin(math.radians(resultant))
+    spacing = min(b - a for a, b in zip(LEG_Z, LEG_Z[1:]))
+    shin_depth = 2
+    gap = spacing - shin_depth
+    relative = 2 * math.sin(math.radians(LEG_PHASE_STEP) / 2) * sweep
+
+    if relative >= gap:
+        raise ValueError(
+            f"legs would intersect: neighbours {spacing} apart leave a {gap}-unit "
+            f"gap, but they close {relative:.2f} units of it "
+            f"(resultant swing {resultant:.1f} deg, foot sweep {sweep:.2f}). "
+            "Reduce WALK_THIGH_SWING/WALK_SHIN_SWING, widen LEG_Z, or lower "
+            "LEG_PHASE_STEP."
+        )
+    return relative, gap
+
+
 def leg_bones():
-    """[(thigh, shin, gait_phase_degrees)] - alternating tripod gait."""
+    """[(thigh, shin, phase, side)] - a metachronal wave down each side."""
     out = []
     for index in range(len(LEG_Z)):
-        for side, offset in (("l", 0), ("r", 180)):
-            # Adjacent legs on the same side are in antiphase, and the two
-            # sides are swapped, which is what makes it a tripod crawl.
-            phase = (offset + index * 180) % 360
+        for side, base in (("l", 0), ("r", 180)):
+            phase = (base + index * LEG_PHASE_STEP) % 360
             out.append((f"thigh_{side}{index}", f"shin_{side}{index}", phase, side))
     return out
 
 
 def build_animations():
-    idle_bones = {
+    check_leg_clearance()
+
+    # ---------------------------------------------------------------- idle
+    # Idle owns the resting pose. Every constant offset in the rig lives here
+    # and nowhere else - see the note on `walk` below.
+    idle = Clip("idle", IDLE_LENGTH)
+    idle.bones = {
         "body": {
-            "position": [0, "math.sin(query.anim_time * 110) * 0.45", 0],
-            "rotation": ["math.sin(query.anim_time * 110 + 30) * 1.8", 0, 0],
+            "position": [0, idle.wave(120, 0.45), 0],
+            "rotation": [idle.wave(120, 1.8, phase=30), 0, 0],
         },
         "thorax": {
-            "rotation": ["math.sin(query.anim_time * 110 + 70) * 2.5", 0, 0],
+            "rotation": [idle.wave(120, 2.5, phase=70), 0, 0],
         },
         "head": {
             "rotation": [
-                "math.sin(query.anim_time * 90) * 4",
-                "math.sin(query.anim_time * 41) * 7",
-                "math.sin(query.anim_time * 63) * 3",
+                idle.wave(60, 4),
+                idle.wave(180, 7),
+                idle.wave(120, 3),
             ],
         },
         # A mouth that never stops working, even at rest.
         "jaw_lower": {
-            "rotation": ["14 + math.sin(query.anim_time * 290) * 13", 0, 0],
+            "rotation": [idle.wave(480, 13, offset=14), 0, 0],
         },
         "jaw_upper": {
-            "rotation": ["-9 - math.sin(query.anim_time * 290) * 8", 0, 0],
+            "rotation": [idle.wave(480, -8, offset=-9), 0, 0],
         },
         "tail": {
-            "rotation": [
-                "22 + math.sin(query.anim_time * 85) * 9",
-                "math.sin(query.anim_time * 67) * 10",
-                0,
-            ],
+            "rotation": [idle.wave(60, 9), idle.wave(120, 10), 0],
         },
         "tail_tip": {
             "rotation": [
-                "math.sin(query.anim_time * 85 + 55) * 16",
-                "math.sin(query.anim_time * 67 + 40) * 14",
+                idle.wave(60, 16, phase=55),
+                idle.wave(120, 14, phase=40),
                 0,
             ],
         },
     }
     for thigh, shin, phase, side in leg_bones():
         sign = -1 if side == "l" else 1
-        idle_bones[thigh] = {
-            "rotation": [f"math.sin(query.anim_time * 130 + {phase}) * 2.5", 0, 0]
-        }
-        idle_bones[shin] = {
-            "rotation": [
-                0,
-                0,
-                f"{sign * 4} + math.sin(query.anim_time * 130 + {phase + 40}) * 3",
-            ]
+        idle.bones[thigh] = {"rotation": [idle.wave(120, 2.5, phase=phase), 0, 0]}
+        idle.bones[shin] = {
+            "rotation": [0, 0, idle.wave(120, 3, phase=phase + 40, offset=sign * 4)]
         }
 
-    walk_bones = {
+    # ---------------------------------------------------------------- walk
+    # Walk is purely DIFFERENTIAL: every channel is zero-mean, with no constant
+    # offsets at all. Bedrock sums concurrent animations channel by channel, so
+    # a constant here would add to idle's resting pose rather than replace it -
+    # which is how you end up with a jaw that opens twice as far as designed and
+    # scythes up through the creature's own brow.
+    walk = Clip("walk", WALK_LENGTH)
+    walk.bones = {
         "body": {
-            "position": [0, "math.abs(math.cos(query.anim_time * 640)) * 0.6", 0],
-            "rotation": [0, 0, "math.cos(query.anim_time * 640) * 3.5"],
+            "position": [0, walk.wave(1280, 0.3, fn="cos"), 0],
+            "rotation": [0, 0, walk.wave(640, 3.5, fn="cos")],
         },
         "head": {
-            "rotation": ["math.cos(query.anim_time * 640 + 90) * 5", 0, 0],
+            "rotation": [walk.wave(640, 5, phase=90, fn="cos"), 0, 0],
         },
         "jaw_lower": {
-            "rotation": ["20 + math.sin(query.anim_time * 620) * 16", 0, 0],
+            "rotation": [walk.wave(640, 10), 0, 0],
         },
         "jaw_upper": {
-            "rotation": ["-14 - math.sin(query.anim_time * 620) * 10", 0, 0],
+            "rotation": [walk.wave(640, -7), 0, 0],
         },
         "tail": {
-            "rotation": [0, "math.sin(query.anim_time * 320) * 20", 0],
+            "rotation": [0, walk.wave(320, 20), 0],
         },
         "tail_tip": {
-            "rotation": [0, "math.sin(query.anim_time * 320 + 70) * 26", 0],
+            "rotation": [0, walk.wave(320, 26, phase=70), 0],
         },
     }
-    for thigh, shin, phase, side in leg_bones():
-        sign = -1 if side == "l" else 1
-        walk_bones[thigh] = {
-            "rotation": [f"math.cos(query.anim_time * 640 + {phase}) * 28", 0, 0]
+    for thigh, shin, phase, _side in leg_bones():
+        walk.bones[thigh] = {
+            "rotation": [walk.wave(640, WALK_THIGH_SWING, phase=phase, fn="cos"), 0, 0]
         }
-        walk_bones[shin] = {
+        walk.bones[shin] = {
             "rotation": [
-                f"math.cos(query.anim_time * 640 + {phase + 55}) * -22",
+                walk.wave(640, -WALK_SHIN_SWING, phase=phase + WALK_SHIN_LAG, fn="cos"),
                 0,
-                f"{sign * 6}",
+                0,
             ]
         }
 
     return {
         "format_version": "1.8.0",
         "animations": {
-            "animation.bloatgrub.idle": {
-                "loop": True,
-                "animation_length": 3.0,
-                "bones": idle_bones,
-            },
-            "animation.bloatgrub.walk": {
-                "loop": True,
-                "animation_length": 1.125,
-                "bones": walk_bones,
-            },
+            "animation.bloatgrub.idle": idle.build(),
+            "animation.bloatgrub.walk": walk.build(),
         },
     }
 

@@ -3,65 +3,65 @@
   "animations": {
     "animation.bloatgrub.idle": {
       "loop": true,
-      "animation_length": 3.0,
+      "animation_length": 6.0,
       "bones": {
         "body": {
           "position": [
             0,
-            "math.sin(query.anim_time * 110) * 0.45",
+            "math.sin(query.anim_time * 120) * 0.45",
             0
           ],
           "rotation": [
-            "math.sin(query.anim_time * 110 + 30) * 1.8",
+            "math.sin(query.anim_time * 120 + 30) * 1.8",
             0,
             0
           ]
         },
         "thorax": {
           "rotation": [
-            "math.sin(query.anim_time * 110 + 70) * 2.5",
+            "math.sin(query.anim_time * 120 + 70) * 2.5",
             0,
             0
           ]
         },
         "head": {
           "rotation": [
-            "math.sin(query.anim_time * 90) * 4",
-            "math.sin(query.anim_time * 41) * 7",
-            "math.sin(query.anim_time * 63) * 3"
+            "math.sin(query.anim_time * 60) * 4",
+            "math.sin(query.anim_time * 180) * 7",
+            "math.sin(query.anim_time * 120) * 3"
           ]
         },
         "jaw_lower": {
           "rotation": [
-            "14 + math.sin(query.anim_time * 290) * 13",
+            "14 + math.sin(query.anim_time * 480) * 13",
             0,
             0
           ]
         },
         "jaw_upper": {
           "rotation": [
-            "-9 - math.sin(query.anim_time * 290) * 8",
+            "-9 + math.sin(query.anim_time * 480) * -8",
             0,
             0
           ]
         },
         "tail": {
           "rotation": [
-            "22 + math.sin(query.anim_time * 85) * 9",
-            "math.sin(query.anim_time * 67) * 10",
+            "math.sin(query.anim_time * 60) * 9",
+            "math.sin(query.anim_time * 120) * 10",
             0
           ]
         },
         "tail_tip": {
           "rotation": [
-            "math.sin(query.anim_time * 85 + 55) * 16",
-            "math.sin(query.anim_time * 67 + 40) * 14",
+            "math.sin(query.anim_time * 60 + 55) * 16",
+            "math.sin(query.anim_time * 120 + 40) * 14",
             0
           ]
         },
         "thigh_l0": {
           "rotation": [
-            "math.sin(query.anim_time * 130 + 0) * 2.5",
+            "math.sin(query.anim_time * 120) * 2.5",
             0,
             0
           ]
@@ -70,12 +70,12 @@
           "rotation": [
             0,
             0,
-            "-4 + math.sin(query.anim_time * 130 + 40) * 3"
+            "-4 + math.sin(query.anim_time * 120 + 40) * 3"
           ]
         },
         "thigh_r0": {
           "rotation": [
-            "math.sin(query.anim_time * 130 + 180) * 2.5",
+            "math.sin(query.anim_time * 120 + 180) * 2.5",
             0,
             0
           ]
@@ -84,12 +84,12 @@
           "rotation": [
             0,
             0,
-            "4 + math.sin(query.anim_time * 130 + 220) * 3"
+            "4 + math.sin(query.anim_time * 120 + 220) * 3"
           ]
         },
         "thigh_l1": {
           "rotation": [
-            "math.sin(query.anim_time * 130 + 180) * 2.5",
+            "math.sin(query.anim_time * 120 + 120) * 2.5",
             0,
             0
           ]
@@ -98,12 +98,12 @@
           "rotation": [
             0,
             0,
-            "-4 + math.sin(query.anim_time * 130 + 220) * 3"
+            "-4 + math.sin(query.anim_time * 120 + 160) * 3"
           ]
         },
         "thigh_r1": {
           "rotation": [
-            "math.sin(query.anim_time * 130 + 0) * 2.5",
+            "math.sin(query.anim_time * 120 + 300) * 2.5",
             0,
             0
           ]
@@ -112,12 +112,12 @@
           "rotation": [
             0,
             0,
-            "4 + math.sin(query.anim_time * 130 + 40) * 3"
+            "4 + math.sin(query.anim_time * 120 + 340) * 3"
           ]
         },
         "thigh_l2": {
           "rotation": [
-            "math.sin(query.anim_time * 130 + 0) * 2.5",
+            "math.sin(query.anim_time * 120 + 240) * 2.5",
             0,
             0
           ]
@@ -126,12 +126,12 @@
           "rotation": [
             0,
             0,
-            "-4 + math.sin(query.anim_time * 130 + 40) * 3"
+            "-4 + math.sin(query.anim_time * 120 + 280) * 3"
           ]
         },
         "thigh_r2": {
           "rotation": [
-            "math.sin(query.anim_time * 130 + 180) * 2.5",
+            "math.sin(query.anim_time * 120 + 60) * 2.5",
             0,
             0
           ]
@@ -140,7 +140,7 @@
           "rotation": [
             0,
             0,
-            "4 + math.sin(query.anim_time * 130 + 220) * 3"
+            "4 + math.sin(query.anim_time * 120 + 100) * 3"
           ]
         }
       }
@@ -152,7 +152,7 @@
         "body": {
           "position": [
             0,
-            "math.abs(math.cos(query.anim_time * 640)) * 0.6",
+            "math.cos(query.anim_time * 1280) * 0.3",
             0
           ],
           "rotation": [
@@ -170,14 +170,14 @@
         },
         "jaw_lower": {
           "rotation": [
-            "20 + math.sin(query.anim_time * 620) * 16",
+            "math.sin(query.anim_time * 640) * 10",
             0,
             0
           ]
         },
         "jaw_upper": {
           "rotation": [
-            "-14 - math.sin(query.anim_time * 620) * 10",
+            "math.sin(query.anim_time * 640) * -7",
             0,
             0
           ]
@@ -198,86 +198,86 @@
         },
         "thigh_l0": {
           "rotation": [
-            "math.cos(query.anim_time * 640 + 0) * 28",
+            "math.cos(query.anim_time * 640) * 16",
             0,
             0
           ]
         },
         "shin_l0": {
           "rotation": [
-            "math.cos(query.anim_time * 640 + 55) * -22",
+            "math.cos(query.anim_time * 640 + 55) * -12",
             0,
-            "-6"
+            0
           ]
         },
         "thigh_r0": {
           "rotation": [
-            "math.cos(query.anim_time * 640 + 180) * 28",
+            "math.cos(query.anim_time * 640 + 180) * 16",
             0,
             0
           ]
         },
         "shin_r0": {
           "rotation": [
-            "math.cos(query.anim_time * 640 + 235) * -22",
+            "math.cos(query.anim_time * 640 + 235) * -12",
             0,
-            "6"
+            0
           ]
         },
         "thigh_l1": {
           "rotation": [
-            "math.cos(query.anim_time * 640 + 180) * 28",
+            "math.cos(query.anim_time * 640 + 120) * 16",
             0,
             0
           ]
         },
         "shin_l1": {
           "rotation": [
-            "math.cos(query.anim_time * 640 + 235) * -22",
+            "math.cos(query.anim_time * 640 + 175) * -12",
             0,
-            "-6"
+            0
           ]
         },
         "thigh_r1": {
           "rotation": [
-            "math.cos(query.anim_time * 640 + 0) * 28",
+            "math.cos(query.anim_time * 640 + 300) * 16",
             0,
             0
           ]
         },
         "shin_r1": {
           "rotation": [
-            "math.cos(query.anim_time * 640 + 55) * -22",
+            "math.cos(query.anim_time * 640 + 355) * -12",
             0,
-            "6"
+            0
           ]
         },
         "thigh_l2": {
           "rotation": [
-            "math.cos(query.anim_time * 640 + 0) * 28",
+            "math.cos(query.anim_time * 640 + 240) * 16",
             0,
             0
           ]
         },
         "shin_l2": {
           "rotation": [
-            "math.cos(query.anim_time * 640 + 55) * -22",
+            "math.cos(query.anim_time * 640 + 295) * -12",
             0,
-            "-6"
+            0
           ]
         },
         "thigh_r2": {
           "rotation": [
-            "math.cos(query.anim_time * 640 + 180) * 28",
+            "math.cos(query.anim_time * 640 + 60) * 16",
             0,
             0
           ]
         },
         "shin_r2": {
           "rotation": [
-            "math.cos(query.anim_time * 640 + 235) * -22",
+            "math.cos(query.anim_time * 640 + 115) * -12",
             0,
-            "6"
+            0
           ]
         }
       }

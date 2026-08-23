@@ -111,6 +111,9 @@ against something that is not you.
 
 14 HP, 4 melee damage, moves at 0.32 (a little faster than a zombie), climbs nothing,
 avoids water, and takes **double damage from fire** — a soft body under a thin shell.
+Its hitbox is two boxes shaped to the model rather than the collision box, so a tap on
+the teeth or the eye connects — `minecraft:scale` is visual only, and without that the
+whole front of the animal was unhittable.
 Grubs never hurt each other. When one dies there is a 20% chance it bursts and leaves a
 replacement, unless three or more are already within 16 blocks.
 

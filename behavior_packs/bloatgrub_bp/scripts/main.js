@@ -1081,6 +1081,9 @@ world.afterEvents.entityDie.subscribe((event) => {
 
     const dimension = dead.dimension;
     const at = chest(dead);
+    // Read the corpse's position now: Entity.location throws once the handle
+    // goes invalid, and the split below runs a tick later.
+    const deadAt = { ...dead.location };
     sound(dimension, FX.grubDeath, at);
     particle(dimension, PFX.gore, at);
 
@@ -1094,10 +1097,14 @@ world.afterEvents.entityDie.subscribe((event) => {
     if (crowd >= CONFIG.death.maxNearby) return;
 
     system.run(() => {
-      const child = spawnGrub(dimension, offset(dead.location, 0.4, 0.4, 0.4), dead.location);
-      if (child) {
-        seenGrubs.set(child.id, now());
-        sound(dimension, FX.chitter, at, 1, 1.3);
+      try {
+        const child = spawnGrub(dimension, offset(deadAt, 0.4, 0.4, 0.4), deadAt);
+        if (child) {
+          seenGrubs.set(child.id, now());
+          sound(dimension, FX.chitter, at, 1, 1.3);
+        }
+      } catch (err) {
+        console.warn(`[Bloatgrub] brood split failed: ${err}`);
       }
     });
   } catch (err) {
