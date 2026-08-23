@@ -135,45 +135,39 @@ const CONFIG = {
 /* ------------------------------------------------------------------ *
  * Cosmetic vocabulary
  *
- * Several ids per effect on purpose: safe() swallows any that a given build
- * does not know, so the survivors still carry the moment.
+ * These are deliberate LAYERS, not fallback chains. Bedrock ignores an unknown
+ * sound id silently rather than throwing, so a "try the next one" list would
+ * just play every entry at once - three voices at full volume for one event,
+ * which turns to mud on a phone speaker. Each entry is therefore capped at two
+ * layers, [id, volume, pitch], with the second voice sitting well under the
+ * lead. tools/build.py checks every id against Bedrock 1.21.0's real sound
+ * event list, because a typo here would be inaudible rather than an error.
  * ------------------------------------------------------------------ */
 
 const FX = {
-  squelch: ["mob.slime.squish", "mob.slime.attack"],
-  chitter: ["mob.silverfish.say", "mob.spider.say"],
-  gnash: ["mob.silverfish.hit", "mob.slime.attack"],
-  wake: ["mob.warden.nearby_closest", "mob.ghast.moan", "mob.silverfish.say"],
-  burrow: ["mob.warden.angry", "mob.slime.big", "random.burp"],
-  heartbeat: ["mob.warden.heartbeat", "mob.slime.small"],
-  panic: ["mob.ghast.scream", "mob.warden.angry"],
-  rupture: ["random.explode", "mob.warden.sonic_boom", "mob.slime.big"],
-  cut: ["random.break", "mob.silverfish.kill", "random.drink"],
-  grubDeath: ["mob.silverfish.kill", "mob.slime.small", "random.burp"],
+  squelch: [["mob.slime.squish", 0.9, 0.7]],
+  chitter: [["mob.silverfish.say", 1.0, 0.8]],
+  gnash: [["mob.silverfish.hit", 1.0, 0.7]],
+  wake: [["mob.warden.nearby_closest", 1.0, 1.0], ["mob.slime.big", 0.45, 0.55]],
+  burrow: [["mob.warden.angry", 1.0, 0.75], ["mob.slime.big", 0.6, 0.5]],
+  heartbeat: [["mob.warden.heartbeat", 1.0, 1.0]],
+  panic: [["mob.ghast.scream", 1.0, 0.65]],
+  rupture: [["random.explode", 1.0, 0.8], ["mob.warden.sonic_boom", 0.55, 0.7]],
+  cut: [["random.break", 1.0, 0.9], ["random.drink", 0.5, 0.8]],
+  grubDeath: [["mob.silverfish.kill", 1.0, 0.95], ["random.burp", 0.35, 0.6]],
+  jarBreak: [["random.glass", 0.8, 1.4]],
 };
 
+// Particles are layered the same way and for the same reason, except that an
+// unsupported particle id CAN throw, which safe() absorbs. Two ids per effect
+// is the ceiling: the emitters below are spawned in rings, so a third id
+// multiplies straight into the per-frame emitter count on a phone.
 const PFX = {
-  ooze: [
-    "minecraft:basic_smoke_particle",
-    "minecraft:villager_angry",
-  ],
-  bulge: [
-    "minecraft:villager_angry",
-    "minecraft:basic_crit_particle",
-  ],
-  gore: [
-    "minecraft:critical_hit_emitter",
-    "minecraft:basic_crit_particle",
-    "minecraft:villager_angry",
-  ],
-  rupture: [
-    "minecraft:huge_explosion_emitter",
-    "minecraft:critical_hit_emitter",
-  ],
-  cure: [
-    "minecraft:villager_happy",
-    "minecraft:basic_smoke_particle",
-  ],
+  ooze: ["minecraft:basic_smoke_particle", "minecraft:villager_angry"],
+  bulge: ["minecraft:villager_angry"],
+  gore: ["minecraft:critical_hit_emitter", "minecraft:villager_angry"],
+  rupture: ["minecraft:huge_explosion_emitter"],
+  cure: ["minecraft:villager_happy"],
 };
 
 /* ------------------------------------------------------------------ *
@@ -189,9 +183,16 @@ function safe(fn) {
   }
 }
 
-function sound(dimension, ids, location, volume = 1, pitch = 1) {
-  for (const id of ids) {
-    safe(() => dimension.playSound(id, location, { volume, pitch }));
+/** Play a layer stack. `volume` and `pitch` scale every layer in it. */
+function sound(dimension, layers, location, volume = 1, pitch = 1) {
+  for (const [id, layerVolume = 1, layerPitch = 1] of layers) {
+    const finalPitch = Math.max(0.5, Math.min(2, pitch * layerPitch));
+    safe(() =>
+      dimension.playSound(id, location, {
+        volume: volume * layerVolume,
+        pitch: finalPitch,
+      })
+    );
   }
 }
 
@@ -484,7 +485,7 @@ function lungeAt(grub, targetLocation) {
       z: (dz / flat) * CONFIG.hunt.leapForward,
     })
   );
-  sound(grub.dimension, FX.gnash, grub.location, 1, 0.7);
+  sound(grub.dimension, FX.gnash, grub.location);
   particle(grub.dimension, PFX.ooze, chest(grub));
 }
 
@@ -511,7 +512,7 @@ function releaseOnSelf(player) {
   bindTo(grub, player, tick, CONFIG.hunt.armTicks);
   safe(() => grub.applyImpulse({ x: -view.x * 0.3, y: 0.25, z: -view.z * 0.3 }));
 
-  sound(dimension, FX.wake, player.location, 1, 1.15);
+  sound(dimension, FX.wake, player.location, 1, 1.1);
   particle(dimension, PFX.ooze, spot);
   shake(player, 0.35, 0.4);
   actionBar(player, "§cIt uncurls in your palm.");
@@ -545,8 +546,8 @@ function releaseFromJar(player) {
   );
 
   latchGrace.set(player.id, tick + CONFIG.serum.graceTicks);
-  sound(dimension, FX.chitter, spot, 1, 0.9);
-  sound(dimension, ["random.glass"], player.location, 0.8, 1.4);
+  sound(dimension, FX.chitter, spot);
+  sound(dimension, FX.jarBreak, player.location);
   particle(dimension, PFX.ooze, spot);
   actionBar(player, "§7The jar breaks. Its fumes hide you - briefly.");
   return true;
@@ -581,9 +582,9 @@ function burrow(grub, player) {
   });
   safe(() => player.addTag(TAG_INFESTED));
 
-  sound(dimension, FX.burrow, at, 1, 0.8);
-  for (let i = 0; i < 10; i++) {
-    const angle = (Math.PI * 2 * i) / 10;
+  sound(dimension, FX.burrow, at);
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI * 2 * i) / 8;
     particle(
       dimension,
       PFX.gore,
@@ -672,7 +673,7 @@ function enterStage(player, stage) {
   }
   actionBar(player, stage.whisper);
   shake(player, stage.shake, 0.6);
-  sound(player.dimension, FX.squelch, chest(player), 0.9, 0.6);
+  sound(player.dimension, FX.squelch, chest(player), 0.9);
 }
 
 /**
@@ -777,7 +778,7 @@ function detonate(player) {
   clearInfest(player);
   latchGrace.set(player.id, now() + CONFIG.blast.graceTicks);
 
-  sound(dimension, FX.panic, core, 1, 0.6);
+  sound(dimension, FX.panic, core);
   shake(player, 3.5, 0.5);
 
   // Explode on the next tick so nothing here runs inside a read-only window.
@@ -791,15 +792,15 @@ function detonate(player) {
     );
 
     particle(dimension, PFX.rupture, core);
-    for (let i = 0; i < 16; i++) {
-      const angle = (Math.PI * 2 * i) / 16;
+    for (let i = 0; i < 12; i++) {
+      const angle = (Math.PI * 2 * i) / 12;
       particle(
         dimension,
         PFX.gore,
-        offset(core, Math.cos(angle) * 1.4, (i % 4) * 0.4 - 0.4, Math.sin(angle) * 1.4)
+        offset(core, Math.cos(angle) * 1.4, (i % 3) * 0.5 - 0.4, Math.sin(angle) * 1.4)
       );
     }
-    sound(dimension, FX.rupture, core, 1, 0.8);
+    sound(dimension, FX.rupture, core);
 
     for (const other of nearbyEntities(dimension, at, CONFIG.blast.splashRadius)) {
       if (other.id === player.id) continue;
@@ -832,7 +833,7 @@ function purge(player) {
   const state = infested.get(player.id);
   if (!state) {
     actionBar(player, "§8Nothing is inside you. Not yet.");
-    sound(player.dimension, ["random.drink"], player.location, 0.7, 1.2);
+    sound(player.dimension, FX.cut, player.location, 0.5, 1.2);
     return true;
   }
 
@@ -853,7 +854,7 @@ function purge(player) {
   effect(player, "slowness", 120, 1);
   effect(player, "weakness", 200, 1);
 
-  sound(dimension, FX.cut, chest(player), 1, 0.9);
+  sound(dimension, FX.cut, chest(player));
   particle(dimension, PFX.gore, chest(player));
   particle(dimension, PFX.cure, chest(player));
   shake(player, 1.4, 0.5);
@@ -907,7 +908,7 @@ system.runInterval(() => {
       state.agitation += count;
 
       if (Math.random() < CONFIG.carry.whisperChance) {
-        sound(player.dimension, FX.squelch, player.location, 0.35, 0.7);
+        sound(player.dimension, FX.squelch, player.location, 0.35);
         if (state.agitation > CONFIG.carry.agitationToBite) {
           actionBar(player, "§8Something in your bag just moved.");
           particle(player.dimension, PFX.ooze, chest(player));
@@ -928,7 +929,7 @@ system.runInterval(() => {
         if (dealt > 0) {
           state.biteReadyAt = tick + CONFIG.carry.biteCooldownTicks;
           actionBar(player, "§cIt bit you through the bag.");
-          sound(player.dimension, FX.gnash, player.location, 0.6, 1.1);
+          sound(player.dimension, FX.gnash, player.location, 0.6, 1.2);
         }
       }
 
@@ -949,7 +950,7 @@ system.runInterval(() => {
         if (!grub) continue;
 
         bindTo(grub, player, tick, CONFIG.hunt.armTicks);
-        sound(player.dimension, FX.wake, player.location, 1, 0.85);
+        sound(player.dimension, FX.wake, player.location, 1, 0.9);
         particle(player.dimension, PFX.ooze, chest(player));
         shake(player, 1.0, 0.6);
         title(player, "§4§lIT WOKE UP", "§7it was never asleep", 35);
@@ -1080,7 +1081,7 @@ world.afterEvents.entityDie.subscribe((event) => {
 
     const dimension = dead.dimension;
     const at = chest(dead);
-    sound(dimension, FX.grubDeath, at, 1, 1.05);
+    sound(dimension, FX.grubDeath, at);
     particle(dimension, PFX.gore, at);
 
     if (Math.random() >= CONFIG.death.splitChance) return;

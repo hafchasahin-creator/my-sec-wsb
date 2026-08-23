@@ -561,19 +561,33 @@ scenario("effect-volume-stays-sane", () => {
       `countdown+blast: ${log.particles.length} particles / ${log.sounds.length} sounds ` +
       `/ ${log.commands.length} commands`
   );
+  // Budgets, not guesses: these are the measured levels, with a little room.
+  // The point is that adding an id to an FX or PFX group multiplies straight
+  // into the per-frame emitter and voice count on a phone, and nothing else
+  // would notice.
   check(
-    "one burrow does not spam hundreds of particles",
-    burrowParticles <= 64,
+    "one burrow stays inside its particle budget",
+    burrowParticles <= 24,
     `${burrowParticles} particles in one burrow`
   );
   check(
-    "the whole 11s infestation stays under a few hundred particles",
-    log.particles.length <= 400,
+    "one burrow does not stack a chord of sounds",
+    burrowSounds <= 6,
+    `${burrowSounds} simultaneous-ish sounds`
+  );
+  check(
+    "the whole 11s infestation stays inside its particle budget",
+    log.particles.length <= 80,
     `${log.particles.length} particles`
   );
   check(
+    "and its sound budget",
+    log.sounds.length <= 40,
+    `${log.sounds.length} sounds`
+  );
+  check(
     "and does not fire a command every tick",
-    log.commands.length <= 80,
+    log.commands.length <= 40,
     `${log.commands.length} commands`
   );
 });
