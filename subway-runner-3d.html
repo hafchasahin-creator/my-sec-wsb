@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Subway Runner 3D</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a14; font-family: 'Segoe UI', Arial, sans-serif; touch-action: none; }
+  #game-canvas { display: block; width: 100%; height: 100%; }
+
+  .hud { position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: 14px 18px; pointer-events: none; z-index: 5; }
+  .pill {
+    background: rgba(10, 10, 25, 0.55); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 14px;
+    padding: 8px 16px; color: #fff; font-weight: 700; font-size: 20px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5); min-width: 110px; text-align: center;
+  }
+  .pill small { display: block; font-size: 10px; font-weight: 600; letter-spacing: 2px; opacity: 0.7; }
+  #coin-pill { color: #ffd75e; }
+
+  .overlay {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; z-index: 10;
+    background: radial-gradient(ellipse at center, rgba(20,20,50,0.55) 0%, rgba(5,5,15,0.85) 100%);
+    transition: opacity 0.3s; text-align: center; padding: 20px;
+  }
+  .overlay.hidden { opacity: 0; pointer-events: none; }
+  .title {
+    font-size: clamp(40px, 9vw, 84px); font-weight: 900; color: #fff; line-height: 1.02;
+    text-transform: uppercase; letter-spacing: 2px;
+    background: linear-gradient(180deg, #ffe259, #ffa751 45%, #ff5e62);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 4px 14px rgba(255,120,60,0.35));
+  }
+  .subtitle { color: #9fd8ff; font-size: clamp(14px, 3vw, 20px); margin-top: 10px; font-weight: 600; letter-spacing: 1px; }
+  .btn {
+    margin-top: 30px; padding: 16px 54px; font-size: 24px; font-weight: 800; cursor: pointer;
+    color: #17240a; background: linear-gradient(180deg, #b6ff5e, #5ad948); border: none; border-radius: 50px;
+    box-shadow: 0 6px 0 #2f9130, 0 12px 24px rgba(0,0,0,0.45); letter-spacing: 1px;
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #2f9130, 0 6px 12px rgba(0,0,0,0.45); }
+  .controls-hint { margin-top: 34px; color: rgba(255,255,255,0.75); font-size: 14px; line-height: 2; }
+  .key {
+    display: inline-block; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px; padding: 2px 9px; margin: 0 3px; font-weight: 700; font-size: 13px; color: #fff;
+  }
+  #final-stats { color: #fff; font-size: 22px; margin-top: 18px; line-height: 1.7; }
+  #final-stats b { color: #ffd75e; }
+  #new-record { color: #7dff8a; font-weight: 800; font-size: 20px; margin-top: 8px; display: none; animation: pulse 0.8s infinite alternate; }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.12); } }
+  #fps { position: fixed; bottom: 8px; left: 10px; color: rgba(255,255,255,0.35); font-size: 11px; z-index: 5; pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+
+<div class="hud">
+  <div class="pill" id="score-pill"><small>SCORE</small><span id="score">0</span></div>
+  <div class="pill" id="coin-pill"><small>COINS</small><span id="coins">0</span></div>
+  <div class="pill"><small>BEST</small><span id="best">0</span></div>
+</div>
+<div id="fps"></div>
+
+<div class="overlay" id="menu">
+  <div class="title">Subway<br>Runner 3D</div>
+  <div class="subtitle">Dodge the trains &bull; Grab the coins &bull; Don't stop running</div>
+  <button class="btn" id="play-btn">PLAY</button>
+  <div class="controls-hint">
+    <span class="key">&larr;</span><span class="key">&rarr;</span> or <span class="key">A</span><span class="key">D</span> switch lanes &nbsp;
+    <span class="key">&uarr;</span>/<span class="key">W</span>/<span class="key">Space</span> jump &nbsp;
+    <span class="key">&darr;</span>/<span class="key">S</span> roll<br>
+    On mobile: swipe left / right / up / down
+  </div>
+</div>
+
+<div class="overlay hidden" id="gameover">
+  <div class="title" style="font-size: clamp(34px,7vw,64px);">Wasted!</div>
+  <div id="final-stats"></div>
+  <div id="new-record">&#9733; NEW RECORD! &#9733;</div>
+  <button class="btn" id="retry-btn">RUN AGAIN</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+'use strict';
+/* ============================================================
+   SUBWAY RUNNER 3D — single-file endless runner
+   Performance notes:
+   - All geometries & materials are created ONCE and shared.
+   - Obstacles / coins / scenery live in recycled object pools.
+   - World moves toward a static player (no floating-point drift).
+   - Pixel ratio capped, fog hides pop-in, zero per-frame allocs
+     in the hot loop, no shadow maps (baked-look lighting).
+   ============================================================ */
+
+// ---------- Tunables ----------
+const LANES = [-2.4, 0, 2.4];
+const CHUNK_LEN = 24;            // length of one recycled ground chunk
+const NUM_CHUNKS = 10;           // chunks kept alive (240 units of track)
+const SPAWN_AHEAD = 190;         // obstacle spawn distance
+const KILL_Z = 14;               // recycle when this far behind player
+const BASE_SPEED = 16;
+const MAX_SPEED = 42;
+const SPEED_RAMP = 0.12;         // units/sec^2
+const GRAVITY = -42;
+const JUMP_VEL = 14.5;
+const LANE_LERP = 14;
+const ROLL_TIME = 0.62;
+
+// ---------- Renderer / scene ----------
+const canvas = document.getElementById('game-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x86c5f5);
+scene.fog = new THREE.Fog(0x86c5f5, 60, 175);
+
+const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 300);
+camera.position.set(0, 5.4, 9.5);
+camera.lookAt(0, 1.6, -14);
+
+const sun = new THREE.DirectionalLight(0xfff3d6, 2.1);
+sun.position.set(-14, 26, 12);
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xbfe3ff, 0x6b5d4f, 1.05));
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ---------- Shared materials ----------
+const MAT = {
+  ground:   new THREE.MeshLambertMaterial({ color: 0x8a8f98 }),
+  gravel:   new THREE.MeshLambertMaterial({ color: 0x6f6a61 }),
+  rail:     new THREE.MeshLambertMaterial({ color: 0x4a4f57 }),
+  sleeper:  new THREE.MeshLambertMaterial({ color: 0x5d4a35 }),
+  sideWalk: new THREE.MeshLambertMaterial({ color: 0xb7b3ac }),
+  wall:     new THREE.MeshLambertMaterial({ color: 0x9a8f83 }),
+  building1:new THREE.MeshLambertMaterial({ color: 0xc96f4a }),
+  building2:new THREE.MeshLambertMaterial({ color: 0x7591b8 }),
+  building3:new THREE.MeshLambertMaterial({ color: 0xb8a67c }),
+  window:   new THREE.MeshLambertMaterial({ color: 0x2e3d55, emissive: 0x1a2c4d, emissiveIntensity: 0.5 }),
+  trainBody:new THREE.MeshLambertMaterial({ color: 0xd9483b }),
+  trainBody2:new THREE.MeshLambertMaterial({ color: 0x3b7dd9 }),
+  trainBody3:new THREE.MeshLambertMaterial({ color: 0x3fae5a }),
+  trainTop: new THREE.MeshLambertMaterial({ color: 0xe8e5df }),
+  trainWin: new THREE.MeshLambertMaterial({ color: 0x1c2733 }),
+  barrier:  new THREE.MeshLambertMaterial({ color: 0xe0a13c }),
+  barrierStripe: new THREE.MeshLambertMaterial({ color: 0x3c3c3c }),
+  overhead: new THREE.MeshLambertMaterial({ color: 0xcc4444 }),
+  post:     new THREE.MeshLambertMaterial({ color: 0x777777 }),
+  coin:     new THREE.MeshLambertMaterial({ color: 0xffcf3f, emissive: 0xdf9f10, emissiveIntensity: 0.55 }),
+  skin:     new THREE.MeshLambertMaterial({ color: 0xf0b98f }),
+  shirt:    new THREE.MeshLambertMaterial({ color: 0x2ec4f0 }),
+  pants:    new THREE.MeshLambertMaterial({ color: 0x2b3a67 }),
+  shoe:     new THREE.MeshLambertMaterial({ color: 0xf4f4f4 }),
+  cap:      new THREE.MeshLambertMaterial({ color: 0xe2453c }),
+  shadow:   new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3 }),
+};
+const trainColors = [MAT.trainBody, MAT.trainBody2, MAT.trainBody3];
+const buildingMats = [MAT.building1, MAT.building2, MAT.building3];
+
+// ---------- Shared geometries ----------
+const GEO = {
+  box: new THREE.BoxGeometry(1, 1, 1),
+  coin: new THREE.CylinderGeometry(0.42, 0.42, 0.1, 14),
+  shadow: new THREE.CircleGeometry(0.55, 12),
+};
+
+function box(mat, sx, sy, sz, x, y, z, parent) {
+  const m = new THREE.Mesh(GEO.box, mat);
+  m.scale.set(sx, sy, sz);
+  m.position.set(x, y, z);
+  if (parent) parent.add(m);
+  return m;
+}
+
+// ---------- Track chunks (recycled scenery) ----------
+const chunks = [];
+function makeChunk() {
+  const g = new THREE.Group();
+  // ground base
+  box(MAT.ground, 22, 0.5, CHUNK_LEN, 0, -0.25, 0, g);
+  // gravel beds + rails + sleepers per lane
+  for (const lx of LANES) {
+    box(MAT.gravel, 2.1, 0.12, CHUNK_LEN, lx, 0.06, 0, g);
+    box(MAT.rail, 0.09, 0.12, CHUNK_LEN, lx - 0.55, 0.18, 0, g);
+    box(MAT.rail, 0.09, 0.12, CHUNK_LEN, lx + 0.55, 0.18, 0, g);
+    for (let z = -CHUNK_LEN / 2 + 1; z < CHUNK_LEN / 2; z += 2.2) {
+      box(MAT.sleeper, 1.7, 0.08, 0.5, lx, 0.12, z, g);
+    }
+  }
+  // side walkways + low walls
+  box(MAT.sideWalk, 4, 0.7, CHUNK_LEN, -7.4, 0.35, 0, g);
+  box(MAT.sideWalk, 4, 0.7, CHUNK_LEN, 7.4, 0.35, 0, g);
+  box(MAT.wall, 0.6, 1.6, CHUNK_LEN, -5.2, 0.8, 0, g);
+  box(MAT.wall, 0.6, 1.6, CHUNK_LEN, 5.2, 0.8, 0, g);
+  // buildings on both sides (randomized once per chunk creation, then re-randomized on recycle)
+  g.userData.buildings = [];
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 2; i++) {
+      const b = new THREE.Group();
+      const w = 5 + Math.random() * 3, h = 8 + Math.random() * 14, d = 8;
+      const body = box(buildingMats[(Math.random() * 3) | 0], w, h, d, 0, h / 2, 0, b);
+      // window strips (cheap: 3 long boxes)
+      for (let f = 0; f < 3; f++) {
+        box(MAT.window, 0.1, h * 0.7, d * 0.8, side * -(w / 2 + 0.01), h * 0.45, 0, b);
+        break; // one strip facing track is enough
+      }
+      b.position.set(side * (11 + Math.random() * 3), 0, -CHUNK_LEN / 2 + 6 + i * 12);
+      g.add(b);
+      g.userData.buildings.push({ grp: b, body });
+    }
+  }
+  // catenary posts
+  for (const side of [-1, 1]) {
+    box(MAT.post, 0.25, 6, 0.25, side * 4.6, 3, -CHUNK_LEN / 2 + 2, g);
+  }
+  box(MAT.post, 9.6, 0.18, 0.18, 0, 5.9, -CHUNK_LEN / 2 + 2, g);
+  scene.add(g);
+  return g;
+}
+for (let i = 0; i < NUM_CHUNKS; i++) {
+  const c = makeChunk();
+  c.position.z = -i * CHUNK_LEN + CHUNK_LEN;
+  chunks.push(c);
+}
+
+// ---------- Player ----------
+const player = new THREE.Group();
+const pBody = new THREE.Group();          // animated part
+player.add(pBody);
+const torso = box(MAT.shirt, 0.62, 0.62, 0.36, 0, 1.05, 0, pBody);
+const head  = box(MAT.skin, 0.4, 0.4, 0.4, 0, 1.62, 0, pBody);
+const capM  = box(MAT.cap, 0.46, 0.14, 0.46, 0, 1.85, 0, pBody);
+const brim  = box(MAT.cap, 0.46, 0.06, 0.2, 0, 1.8, -0.3, pBody);
+const armL = box(MAT.shirt, 0.16, 0.55, 0.16, -0.44, 1.05, 0, pBody);
+const armR = box(MAT.shirt, 0.16, 0.55, 0.16, 0.44, 1.05, 0, pBody);
+const legL = box(MAT.pants, 0.2, 0.55, 0.2, -0.16, 0.47, 0, pBody);
+const legR = box(MAT.pants, 0.2, 0.55, 0.2, 0.16, 0.47, 0, pBody);
+const shoeL = box(MAT.shoe, 0.22, 0.14, 0.3, -0.16, 0.13, 0.02, pBody);
+const shoeR = box(MAT.shoe, 0.22, 0.14, 0.3, 0.16, 0.13, 0.02, pBody);
+armL.geometry = armR.geometry = legL.geometry = legR.geometry = GEO.box;
+// limbs pivot at the top: shift via parent groups
+function pivotize(mesh, px, py, pz) {
+  const pv = new THREE.Group();
+  pv.position.set(px, py, pz);
+  mesh.position.set(0, -mesh.scale.y / 2, 0);
+  pBody.add(pv); pv.add(mesh);
+  return pv;
+}
+const pivArmL = pivotize(armL, -0.44, 1.32, 0);
+const pivArmR = pivotize(armR, 0.44, 1.32, 0);
+const pivLegL = pivotize(legL, -0.16, 0.74, 0);
+const pivLegR = pivotize(legR, 0.16, 0.74, 0);
+pivLegL.add(shoeL); pivLegR.add(shoeR);
+shoeL.position.set(0, -0.62, 0.04); shoeR.position.set(0, -0.62, 0.04);
+const blob = new THREE.Mesh(GEO.shadow, MAT.shadow);
+blob.rotation.x = -Math.PI / 2;
+blob.position.y = 0.26;
+player.add(blob);
+player.position.set(0, 0, 0);
+scene.add(player);
+
+// ---------- Pools ----------
+function makePool(factory, size) {
+  const items = [];
+  for (let i = 0; i < size; i++) {
+    const o = factory();
+    o.visible = false;
+    scene.add(o);
+    items.push(o);
+  }
+  return {
+    items,
+    get() { for (const o of items) if (!o.visible) { o.visible = true; return o; } return null; },
+    release(o) { o.visible = false; o.position.z = 1000; },
+  };
+}
+
+// Train: ~2 units wide, sits on a lane, long
+function makeTrain() {
+  const g = new THREE.Group();
+  const body = box(trainColors[0], 2.1, 2.6, 11, 0, 1.55, 0, g);
+  box(MAT.trainTop, 2.14, 0.25, 11.1, 0, 2.95, 0, g);
+  box(MAT.trainWin, 2.16, 0.7, 9.5, 0, 2.1, 0, g);
+  box(MAT.trainTop, 1.9, 1.4, 0.3, 0, 1.4, 5.62, g);   // front face
+  box(MAT.trainWin, 1.6, 0.6, 0.1, 0, 2.3, 5.72, g);   // windshield
+  box(MAT.barrierStripe, 2.0, 0.35, 0.32, 0, 0.55, 5.64, g); // bumper
+  g.userData = { type: 'train', body, halfLen: 5.6, height: 3.1, lane: 1, moving: false, mspeed: 0 };
+  return g;
+}
+// Low barrier -> jump over it
+function makeBarrier() {
+  const g = new THREE.Group();
+  box(MAT.barrier, 2.0, 0.35, 0.25, 0, 0.95, 0, g);
+  box(MAT.barrierStripe, 2.0, 0.12, 0.26, 0, 0.95, 0.005, g);
+  box(MAT.post, 0.12, 1.0, 0.12, -0.85, 0.5, 0, g);
+  box(MAT.post, 0.12, 1.0, 0.12, 0.85, 0.5, 0, g);
+  g.userData = { type: 'barrier', halfLen: 0.3, lowTop: 1.15, lane: 1 };
+  return g;
+}
+// Overhead sign -> roll under it
+function makeOverhead() {
+  const g = new THREE.Group();
+  box(MAT.overhead, 2.1, 0.9, 0.3, 0, 1.75, 0, g);
+  box(MAT.trainTop, 1.7, 0.45, 0.32, 0, 1.75, 0, g);
+  box(MAT.post, 0.14, 2.2, 0.14, -0.95, 1.1, 0, g);
+  box(MAT.post, 0.14, 2.2, 0.14, 0.95, 1.1, 0, g);
+  g.userData = { type: 'overhead', halfLen: 0.3, gapBottom: 1.28, lane: 1 };
+  return g;
+}
+function makeCoin() {
+  const m = new THREE.Mesh(GEO.coin, MAT.coin);
+  m.rotation.z = Math.PI / 2;
+  m.userData = { type: 'coin', taken: false };
+  return m;
+}
+
+const trainPool = makePool(makeTrain, 10);
+const barrierPool = makePool(makeBarrier, 8);
+const overheadPool = makePool(makeOverhead, 6);
+const coinPool = makePool(makeCoin, 60);
+
+const activeObstacles = [];
+const activeCoins = [];
+
+// ---------- Game state ----------
+const S = {
+  running: false,
+  speed: BASE_SPEED,
+  dist: 0,
+  score: 0,
+  coins: 0,
+  best: +(localStorage.getItem('sr3d_best') || 0),
+  lane: 1,
+  px: 0,               // player x (lerped)
+  py: 0, vy: 0,
+  jumping: false,
+  rolling: false,
+  rollT: 0,
+  nextSpawnZ: -40,     // world-z where next obstacle row goes (moves away as world scrolls)
+  time: 0,
+  dead: false,
+};
+document.getElementById('best').textContent = S.best;
+
+// ---------- Spawning ----------
+// A "row" = pattern across the 3 lanes at one z position.
+function spawnRow(z) {
+  const r = Math.random();
+  const freeLanes = [0, 1, 2];
+  const usedTrainLanes = [];
+
+  if (r < 0.42) {
+    // 1-2 trains
+    const nTrains = Math.random() < 0.35 ? 2 : 1;
+    for (let i = 0; i < nTrains && freeLanes.length > 1; i++) {
+      const li = freeLanes.splice((Math.random() * freeLanes.length) | 0, 1)[0];
+      const t = trainPool.get();
+      if (!t) break;
+      t.userData.lane = li;
+      t.userData.body.material = trainColors[(Math.random() * 3) | 0];
+      t.userData.moving = Math.random() < 0.3 && S.speed > 22;
+      t.userData.mspeed = t.userData.moving ? 6 + Math.random() * 5 : 0;
+      t.position.set(LANES[li], 0, z - (Math.random() * 6));
+      activeObstacles.push(t);
+      usedTrainLanes.push(li);
+    }
+    // maybe barrier on one remaining lane
+    if (Math.random() < 0.5 && freeLanes.length > 1) {
+      const li = freeLanes.splice((Math.random() * freeLanes.length) | 0, 1)[0];
+      const b = Math.random() < 0.5 ? barrierPool.get() : overheadPool.get();
+      if (b) { b.userData.lane = li; b.position.set(LANES[li], 0, z); activeObstacles.push(b); }
+    }
+  } else if (r < 0.72) {
+    // barriers / overheads on up to 2 lanes
+    const n = 1 + (Math.random() < 0.55 ? 1 : 0);
+    for (let i = 0; i < n && freeLanes.length > 1; i++) {
+      const li = freeLanes.splice((Math.random() * freeLanes.length) | 0, 1)[0];
+      const b = Math.random() < 0.55 ? barrierPool.get() : overheadPool.get();
+      if (b) { b.userData.lane = li; b.position.set(LANES[li], 0, z); activeObstacles.push(b); }
+    }
+  }
+  // else: breather row (no obstacle)
+
+  // coins: line on a free lane, arc if over a low barrier lane
+  if (Math.random() < 0.8 && freeLanes.length) {
+    const li = freeLanes[(Math.random() * freeLanes.length) | 0];
+    const n = 5;
+    for (let i = 0; i < n; i++) {
+      const c = coinPool.get();
+      if (!c) break;
+      c.userData.taken = false;
+      c.position.set(LANES[li], 1.0, z - i * 1.6 + 3);
+      activeCoins.push(c);
+    }
+  }
+}
+
+// ---------- Input ----------
+function goLeft()  { if (S.running && S.lane > 0) S.lane--; }
+function goRight() { if (S.running && S.lane < 2) S.lane++; }
+function jump() {
+  if (!S.running) return;
+  if (!S.jumping) { S.jumping = true; S.vy = JUMP_VEL; S.rolling = false; }
+}
+function roll() {
+  if (!S.running) return;
+  if (S.jumping) { S.vy = -26; }        // slam down
+  S.rolling = true; S.rollT = 0;
+}
+window.addEventListener('keydown', (e) => {
+  switch (e.code) {
+    case 'ArrowLeft': case 'KeyA': goLeft(); break;
+    case 'ArrowRight': case 'KeyD': goRight(); break;
+    case 'ArrowUp': case 'KeyW': case 'Space': jump(); e.preventDefault(); break;
+    case 'ArrowDown': case 'KeyS': roll(); e.preventDefault(); break;
+    case 'Enter':
+      if (!S.running) (S.dead ? retryBtn : playBtn).click();
+      break;
+  }
+});
+// touch swipes
+let tsx = 0, tsy = 0, tst = 0;
+window.addEventListener('touchstart', (e) => {
+  tsx = e.touches[0].clientX; tsy = e.touches[0].clientY; tst = performance.now();
+}, { passive: true });
+window.addEventListener('touchend', (e) => {
+  const dx = e.changedTouches[0].clientX - tsx;
+  const dy = e.changedTouches[0].clientY - tsy;
+  if (performance.now() - tst > 600) return;
+  if (Math.abs(dx) < 24 && Math.abs(dy) < 24) { jump(); return; }
+  if (Math.abs(dx) > Math.abs(dy)) (dx > 0 ? goRight() : goLeft());
+  else (dy < 0 ? jump() : roll());
+}, { passive: true });
+
+// ---------- UI ----------
+const menuEl = document.getElementById('menu');
+const overEl = document.getElementById('gameover');
+const scoreEl = document.getElementById('score');
+const coinsEl = document.getElementById('coins');
+const bestEl = document.getElementById('best');
+const fpsEl = document.getElementById('fps');
+const playBtn = document.getElementById('play-btn');
+const retryBtn = document.getElementById('retry-btn');
+
+function resetGame() {
+  for (const o of activeObstacles) {
+    (o.userData.type === 'train' ? trainPool : o.userData.type === 'barrier' ? barrierPool : overheadPool).release(o);
+  }
+  activeObstacles.length = 0;
+  for (const c of activeCoins) coinPool.release(c);
+  activeCoins.length = 0;
+  chunks.forEach((c, i) => { c.position.z = -i * CHUNK_LEN + CHUNK_LEN; });
+  Object.assign(S, {
+    running: true, dead: false, speed: BASE_SPEED, dist: 0, score: 0, coins: 0,
+    lane: 1, px: 0, py: 0, vy: 0, jumping: false, rolling: false, rollT: 0,
+    nextSpawnZ: -50, time: 0,
+  });
+  scoreEl.textContent = '0'; coinsEl.textContent = '0';
+  pBody.rotation.set(0, 0, 0); pBody.scale.set(1, 1, 1); pBody.position.y = 0;
+  player.position.set(0, 0, 0);
+  // pre-fill track ahead
+  for (let z = -50; z > -SPAWN_AHEAD; z -= 26) spawnRow(z);
+  S.nextSpawnZ = -SPAWN_AHEAD;
+}
+playBtn.addEventListener('click', () => { menuEl.classList.add('hidden'); resetGame(); });
+retryBtn.addEventListener('click', () => { overEl.classList.add('hidden'); resetGame(); });
+
+function gameOver() {
+  S.running = false; S.dead = true;
+  const isRecord = S.score > S.best;
+  if (isRecord) { S.best = S.score; localStorage.setItem('sr3d_best', S.best); bestEl.textContent = S.best; }
+  document.getElementById('final-stats').innerHTML =
+    `Score: <b>${S.score}</b> &nbsp;&bull;&nbsp; Coins: <b>${S.coins}</b><br>Best: <b>${S.best}</b>`;
+  document.getElementById('new-record').style.display = isRecord ? 'block' : 'none';
+  setTimeout(() => overEl.classList.remove('hidden'), 450);
+}
+
+// ---------- Collision ----------
+function checkCollisions() {
+  const px = S.px, py = S.py;
+  const pHalfW = 0.38;
+  const pTop = py + (S.rolling ? 1.0 : 1.9);
+  const pBottom = py + 0.05;
+  for (let i = 0; i < activeObstacles.length; i++) {
+    const o = activeObstacles[i];
+    const u = o.userData;
+    const dz = o.position.z;
+    if (dz > 3 || dz < -13) continue;
+    const lx = o.position.x;
+    if (Math.abs(px - lx) > pHalfW + 0.95) continue;
+
+    if (u.type === 'train') {
+      if (dz - u.halfLen < 0.45 && dz + u.halfLen > -0.45) {
+        if (pBottom < u.height) return true;   // trains can't be jumped
+      }
+    } else if (u.type === 'barrier') {
+      if (Math.abs(dz) < 0.55) {
+        if (pBottom < u.lowTop - 0.15) return true;  // must be airborne above it
+      }
+    } else if (u.type === 'overhead') {
+      if (Math.abs(dz) < 0.55) {
+        if (pTop > u.gapBottom + 0.1) return true;   // must roll under
+      }
+    }
+  }
+  return false;
+}
+
+// ---------- Main loop ----------
+let last = performance.now();
+let fpsAcc = 0, fpsN = 0, fpsT = 0;
+const camTarget = new THREE.Vector3();
+
+function tick(now) {
+  requestAnimationFrame(tick);
+  let dt = (now - last) / 1000;
+  last = now;
+  if (dt > 0.05) dt = 0.05;   // clamp tab-switch spikes
+
+  // fps meter
+  fpsAcc += dt; fpsN++; fpsT += dt;
+  if (fpsT > 0.5) { fpsEl.textContent = Math.round(fpsN / fpsAcc) + ' fps'; fpsAcc = 0; fpsN = 0; fpsT = 0; }
+
+  if (S.running) {
+    S.time += dt;
+    S.speed = Math.min(MAX_SPEED, S.speed + SPEED_RAMP * dt * 10);
+    const dz = S.speed * dt;
+    S.dist += dz;
+    S.score = (S.dist * 2) | 0;
+    scoreEl.textContent = S.score + '';
+
+    // --- scroll world toward player ---
+    for (const c of chunks) {
+      c.position.z += dz;
+      if (c.position.z > CHUNK_LEN * 1.5) {
+        c.position.z -= NUM_CHUNKS * CHUNK_LEN;
+        // cheap re-randomize buildings on recycle
+        for (const b of c.userData.buildings) {
+          const h = 8 + Math.random() * 14;
+          b.body.scale.y = h; b.body.position.y = h / 2;
+          b.body.material = buildingMats[(Math.random() * 3) | 0];
+        }
+      }
+    }
+    for (let i = activeObstacles.length - 1; i >= 0; i--) {
+      const o = activeObstacles[i];
+      o.position.z += dz;
+      if (o.userData.moving) o.position.z += o.userData.mspeed * dt;
+      if (o.position.z > KILL_Z + (o.userData.halfLen || 0)) {
+        (o.userData.type === 'train' ? trainPool : o.userData.type === 'barrier' ? barrierPool : overheadPool).release(o);
+        activeObstacles.splice(i, 1);
+      }
+    }
+    for (let i = activeCoins.length - 1; i >= 0; i--) {
+      const c = activeCoins[i];
+      c.position.z += dz;
+      c.rotation.y += 4 * dt;
+      if (!c.userData.taken &&
+          Math.abs(c.position.z) < 0.9 &&
+          Math.abs(c.position.x - S.px) < 0.75 &&
+          Math.abs(c.position.y - (S.py + 1)) < 1.2) {
+        c.userData.taken = true;
+        S.coins++; S.score += 10;
+        coinsEl.textContent = S.coins + '';
+        coinPool.release(c);
+        activeCoins.splice(i, 1);
+        continue;
+      }
+      if (c.position.z > KILL_Z) { coinPool.release(c); activeCoins.splice(i, 1); }
+    }
+
+    // spawn ahead — nextSpawnZ scrolls with the world
+    S.nextSpawnZ += dz;
+    while (S.nextSpawnZ > -SPAWN_AHEAD) {
+      const gap = Math.max(20, 34 - S.speed * 0.25) + Math.random() * 10;
+      spawnRow(-SPAWN_AHEAD - 5);
+      S.nextSpawnZ -= gap;
+    }
+
+    // --- player movement ---
+    const targetX = LANES[S.lane];
+    S.px += (targetX - S.px) * Math.min(1, LANE_LERP * dt);
+    if (S.jumping) {
+      S.vy += GRAVITY * dt;
+      S.py += S.vy * dt;
+      if (S.py <= 0) { S.py = 0; S.vy = 0; S.jumping = false; }
+    }
+    if (S.rolling) {
+      S.rollT += dt;
+      if (S.rollT > ROLL_TIME) S.rolling = false;
+    }
+    player.position.x = S.px;
+    player.position.y = S.py;
+    player.rotation.z = (S.px - targetX) * -0.14;
+
+    // --- run animation ---
+    const runHz = 2.2 + S.speed * 0.18;
+    const ph = S.time * runHz * Math.PI * 2;
+    if (S.jumping) {
+      pivLegL.rotation.x = 0.7; pivLegR.rotation.x = -0.5;
+      pivArmL.rotation.x = -2.4; pivArmR.rotation.x = -2.4;
+      pBody.rotation.x = 0.15;
+      pBody.scale.y = 1;
+    } else if (S.rolling) {
+      const t = S.rollT / ROLL_TIME;
+      pBody.scale.y = 0.45;
+      pBody.rotation.x = -Math.PI * 2 * t;
+      pivLegL.rotation.x = pivLegR.rotation.x = 1.2;
+      pivArmL.rotation.x = pivArmR.rotation.x = 1.0;
+    } else {
+      pBody.scale.y = 1;
+      pBody.rotation.x = 0.12;
+      const s = Math.sin(ph);
+      pivLegL.rotation.x = s * 0.95;
+      pivLegR.rotation.x = -s * 0.95;
+      pivArmL.rotation.x = -s * 0.85;
+      pivArmR.rotation.x = s * 0.85;
+      pBody.position.y = Math.abs(Math.cos(ph)) * 0.09;
+    }
+    blob.scale.setScalar(Math.max(0.4, 1 - S.py * 0.12));
+    MAT.shadow.opacity = Math.max(0.08, 0.3 - S.py * 0.04);
+
+    // --- camera follow ---
+    camTarget.set(S.px * 0.55, 5.4 + S.py * 0.28, 9.5);
+    camera.position.lerp(camTarget, Math.min(1, 6 * dt));
+    camera.lookAt(S.px * 0.4, 1.6 + S.py * 0.3, -14);
+
+    // --- death ---
+    if (checkCollisions()) {
+      gameOver();
+      pBody.rotation.x = -1.3;   // faceplant
+      pBody.position.y = 0.2;
+    }
+  } else {
+    // idle spin on menu / slow drift on game over
+    if (!S.dead) {
+      const t = now * 0.0004;
+      camera.position.set(Math.sin(t) * 4, 5.5, 9.5 + Math.cos(t * 0.7));
+      camera.lookAt(0, 1.5, -14);
+      const ph = now * 0.006;
+      pivLegL.rotation.x = Math.sin(ph) * 0.5;
+      pivLegR.rotation.x = -Math.sin(ph) * 0.5;
+      pivArmL.rotation.x = -Math.sin(ph) * 0.4;
+      pivArmR.rotation.x = Math.sin(ph) * 0.4;
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
