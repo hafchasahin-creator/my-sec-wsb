@@ -54,10 +54,16 @@ const CONFIG = {
     // pile of them wakes far sooner than a single specimen.
     minAgitationToWake: 90,
     maxAgitationToWake: 240,
-    // Once it is this restless it starts testing your skin.
+    // Once it is this restless it starts testing your skin. A bite is a
+    // warning, not a way to die: it never takes you below biteFloorHealth,
+    // and it cannot land again until the cooldown is up. Without both of
+    // those, a grub carried long enough simply nibbles you to death before
+    // it ever wakes, which is neither scary nor fair.
     agitationToBite: 45,
     biteChance: 0.12,
     biteDamage: 1,
+    biteFloorHealth: 6,
+    biteCooldownTicks: 120,
     whisperChance: 0.22,
     // Creative players can carry and build with it safely.
     creativeImmune: true,
@@ -103,11 +109,14 @@ const CONFIG = {
     brood: 2,
     lethal: true,
     deathMessage: true,
+    // Nothing may re-enter the crater's victim for this long.
+    graceTicks: 200,
   },
 
   serum: {
-    // Cutting it out costs you.
+    // Cutting it out costs you, but it always leaves you standing.
     selfDamage: 7,
+    floorHealth: 1,
     nauseaTicks: 220,
     poisonTicks: 120,
     // The ejected grub is furious, but it cannot re-enter you for a while.
@@ -666,21 +675,39 @@ function enterStage(player, stage) {
   sound(player.dimension, FX.squelch, chest(player), 0.9, 0.6);
 }
 
-/** Damage from inside ignores armour, and by default leaves you alive for the blast. */
-function biteHost(player, amount) {
+/**
+ * Damage that refuses to be the killing blow.
+ *
+ * `floor` is the health it will not take you below; pass 0 to allow a kill.
+ * Returns how much was actually dealt, so callers can tell a real bite from a
+ * bite that had nothing left to take.
+ */
+function gnaw(player, amount, floor, cause) {
   let allowed = amount;
-  if (!CONFIG.infest.bitesCanKill) {
+  if (floor > 0) {
     try {
       const health = player.getComponent("minecraft:health");
       const current = health?.currentValue ?? 20;
-      allowed = Math.min(amount, Math.max(0, current - 1));
+      allowed = Math.min(amount, Math.max(0, current - floor));
     } catch {
       allowed = amount;
     }
   }
-  if (allowed <= 0) return;
-  hurt(player, allowed, EntityDamageCause.magic);
-  particle(player.dimension, PFX.bulge, chest(player));
+  if (allowed <= 0) return 0;
+  hurt(player, allowed, cause ?? EntityDamageCause.magic);
+  return allowed;
+}
+
+/** Damage from inside ignores armour, and by default leaves you for the blast. */
+function biteHost(player, amount) {
+  const dealt = gnaw(
+    player,
+    amount,
+    CONFIG.infest.bitesCanKill ? 0 : 1,
+    EntityDamageCause.magic
+  );
+  if (dealt > 0) particle(player.dimension, PFX.bulge, chest(player));
+  return dealt;
 }
 
 function clearInfest(player) {
@@ -748,7 +775,7 @@ function detonate(player) {
   const name = player.name ?? "Someone";
 
   clearInfest(player);
-  latchGrace.set(player.id, now() + CONFIG.serum.graceTicks);
+  latchGrace.set(player.id, now() + CONFIG.blast.graceTicks);
 
   sound(dimension, FX.panic, core, 1, 0.6);
   shake(player, 3.5, 0.5);
@@ -814,10 +841,12 @@ function purge(player) {
   clearInfest(player);
 
   // Always leaves you standing, but barely.
-  const before = CONFIG.infest.bitesCanKill;
-  CONFIG.infest.bitesCanKill = false;
-  biteHost(player, CONFIG.serum.selfDamage);
-  CONFIG.infest.bitesCanKill = before;
+  gnaw(
+    player,
+    CONFIG.serum.selfDamage,
+    CONFIG.serum.floorHealth,
+    EntityDamageCause.magic
+  );
 
   effect(player, "nausea", CONFIG.serum.nauseaTicks, 2);
   effect(player, "poison", CONFIG.serum.poisonTicks, 0);
@@ -870,6 +899,7 @@ system.runInterval(() => {
         state = {
           agitation: 0,
           wakeAt: CONFIG.carry.minAgitationToWake + Math.floor(Math.random() * span),
+          biteReadyAt: 0,
         };
         carrying.set(player.id, state);
       }
@@ -886,11 +916,20 @@ system.runInterval(() => {
 
       if (
         state.agitation > CONFIG.carry.agitationToBite &&
+        tick >= state.biteReadyAt &&
         Math.random() < CONFIG.carry.biteChance
       ) {
-        hurt(player, CONFIG.carry.biteDamage, EntityDamageCause.contact);
-        actionBar(player, "§cIt bit you through the bag.");
-        sound(player.dimension, FX.gnash, player.location, 0.6, 1.1);
+        const dealt = gnaw(
+          player,
+          CONFIG.carry.biteDamage,
+          CONFIG.carry.biteFloorHealth,
+          EntityDamageCause.contact
+        );
+        if (dealt > 0) {
+          state.biteReadyAt = tick + CONFIG.carry.biteCooldownTicks;
+          actionBar(player, "§cIt bit you through the bag.");
+          sound(player.dimension, FX.gnash, player.location, 0.6, 1.1);
+        }
       }
 
       if (state.agitation >= state.wakeAt) {
@@ -902,7 +941,11 @@ system.runInterval(() => {
           view = player.getViewDirection();
         });
         const spot = offset(player.location, -view.x * 0.9, 1.6, -view.z * 0.9);
-        const grub = spawnGrub(spot ? player.dimension : player.dimension, spot, offset(player.location, 0, 1, 0));
+        const grub = spawnGrub(
+          player.dimension,
+          spot,
+          offset(player.location, 0, 1, 0)
+        );
         if (!grub) continue;
 
         bindTo(grub, player, tick, CONFIG.hunt.armTicks);

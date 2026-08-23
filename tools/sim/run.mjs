@@ -180,11 +180,13 @@ scenario("carry-stack-wakes-sooner", () => {
   let stackedWokeAt = -1;
   let soloWokeAt = -1;
   let stackLeftAtFirstWake = -1;
+  let looseAtFirstWake = -1;
   for (let i = 0; i < CARRY_TIMEOUT_TICKS && (stackedWokeAt < 0 || soloWokeAt < 0); i++) {
     system.pump(1);
     if (stackedWokeAt < 0 && stacked._inventory.countOf(DORMANT) < 4) {
       stackedWokeAt = i;
       stackLeftAtFirstWake = stacked._inventory.countOf(DORMANT);
+      looseAtFirstWake = grubsIn().length;
     }
     if (soloWokeAt < 0 && solo._inventory.countOf(DORMANT) < 1) soloWokeAt = i;
   }
@@ -200,9 +202,32 @@ scenario("carry-stack-wakes-sooner", () => {
     `left ${stackLeftAtFirstWake}`
   );
   check(
-    "the survivors start their own clock rather than waking together",
-    grubsIn().length < 4,
-    `${grubsIn().length} grubs loose at once`
+    "the rest of the stack keeps its own counsel rather than waking together",
+    looseAtFirstWake === 1,
+    `${looseAtFirstWake} grubs loose the moment the first one woke`
+  );
+});
+
+scenario("carrying-one-hurts-but-cannot-kill", () => {
+  // Regression: the carry bite used to be an unclamped 1 damage on a 12%
+  // roll every second, so a grub carried until it woke had already chewed
+  // its way through most of a health bar - and could finish a hurt player
+  // off before anything interesting happened.
+  const player = addPlayer("Chewed");
+  player._inventory.setItem(9, new ItemStack(DORMANT, 4));
+
+  let lowest = player.health.current;
+  for (let i = 0; i < CARRY_TIMEOUT_TICKS; i += 20) {
+    system.pump(20);
+    lowest = Math.min(lowest, player.health.current);
+    if (player.health.current <= 0) break;
+  }
+  check("the carrier is still alive", player.health.current > 0, `hp ${player.health.current}`);
+  check("but it did draw blood", lowest < 20, `never dropped below ${lowest}`);
+  check(
+    "and it stopped short of a fatal amount",
+    lowest >= 5,
+    `bottomed out at ${lowest} hp`
   );
 });
 
