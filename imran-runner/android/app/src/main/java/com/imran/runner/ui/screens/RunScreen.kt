@@ -59,7 +59,6 @@ fun RunScreen(
     locationEnabled: Boolean,
     onPrimary: () -> Unit,
     onLock: () -> Unit,
-    onUnlock: () -> Unit,
     onFinish: () -> Unit,
     onSettings: () -> Unit,
     onRequestPermission: () -> Unit,
@@ -73,7 +72,7 @@ fun RunScreen(
         // what is left over rather than the column hoping it all fits. On a tall phone the cap
         // stops it dominating; on a short one it shrinks instead of pushing the controls off the
         // bottom of the screen, which is the one thing a running app must never do.
-        val chrome = (if (compact) 344.dp else 402.dp) + (if (notice) 76.dp else 0.dp)
+        val chrome = (if (compact) 350.dp else 410.dp) + (if (notice) 76.dp else 0.dp)
         val gaugeSize = minOf(
             maxWidth - 40.dp,
             (maxHeight - chrome).coerceIn(140.dp, 300.dp),
@@ -113,7 +112,15 @@ fun RunScreen(
             )
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                HorizontalPager(state = pager, modifier = Modifier.fillMaxWidth()) { page ->
+                // An explicit height rather than wrap-content: it keeps the space arithmetic
+                // above exact, and stops the two pages disagreeing about their height and
+                // nudging the gauge as you swipe between them.
+                HorizontalPager(
+                    state = pager,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(if (compact) 102.dp else 120.dp),
+                ) { page ->
                     StatRow(
                         specs = if (page == 0) primaryStats(metrics) else secondaryStats(metrics),
                         compact = compact,
@@ -143,10 +150,6 @@ fun RunScreen(
                     onFinish = onFinish,
                 )
             }
-        }
-
-        if (locked) {
-            LockOverlay(onUnlock = onUnlock)
         }
     }
 }
@@ -273,7 +276,7 @@ private fun LocationNotice(
  * findable while moving, so the gesture is hold-anywhere rather than a target to hit.
  */
 @Composable
-private fun LockOverlay(onUnlock: () -> Unit) {
+internal fun LockOverlay(onUnlock: () -> Unit) {
     var progress by remember { mutableFloatStateOf(0f) }
 
     Box(

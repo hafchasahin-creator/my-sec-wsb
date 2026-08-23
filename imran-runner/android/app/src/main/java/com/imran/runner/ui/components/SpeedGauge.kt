@@ -88,7 +88,9 @@ fun SpeedGauge(
             val w = this.size.width
             val h = this.size.height
             val stroke = w * 0.031f
-            val inset = stroke * 1.9f
+            // Room for the leading dot's halo, which is 2.8 stroke widths across: at a tighter
+            // inset it would be clipped by the edge of the box at the top of the sweep.
+            val inset = stroke * 2.9f
             val arcSize = Size(w - inset * 2f, h - inset * 2f)
             val topLeft = Offset(inset, inset)
             val radius = arcSize.minDimension / 2f

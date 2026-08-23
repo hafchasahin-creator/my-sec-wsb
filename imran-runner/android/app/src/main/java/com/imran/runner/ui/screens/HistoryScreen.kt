@@ -19,7 +19,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -85,8 +88,9 @@ private fun HistoryCard(
     onClick: () -> Unit,
 ) {
     // Routes are read off disk, so only the cards actually scrolled into view pay for one.
-    val route by produceState<List<RoutePoint>>(initialValue = emptyList(), run.id) {
-        value = withContext(Dispatchers.IO) { routeFor(run.id) }
+    var route by remember(run.id) { mutableStateOf(emptyList<RoutePoint>()) }
+    LaunchedEffect(run.id) {
+        route = withContext(Dispatchers.IO) { routeFor(run.id) }
     }
 
     Column(

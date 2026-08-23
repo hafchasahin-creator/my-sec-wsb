@@ -71,7 +71,7 @@ data class StatSpec(
 )
 
 @Composable
-fun StatRow(specs: List<StatSpec>, compact: Boolean = false, modifier: Modifier = Modifier) {
+fun StatRow(specs: List<StatSpec>, modifier: Modifier = Modifier, compact: Boolean = false) {
     val valueStyle =
         if (compact) ImranType.StatValue.copy(fontSize = 25.sp) else ImranType.StatValue
     Row(
@@ -117,7 +117,7 @@ data class PanelSpec(
 )
 
 @Composable
-fun MetricPanel(specs: List<PanelSpec>, compact: Boolean = false, modifier: Modifier = Modifier) {
+fun MetricPanel(specs: List<PanelSpec>, modifier: Modifier = Modifier, compact: Boolean = false) {
     val valueStyle =
         if (compact) ImranType.PanelValue.copy(fontSize = 22.sp) else ImranType.PanelValue
     Row(

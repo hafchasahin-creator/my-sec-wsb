@@ -31,7 +31,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -48,6 +47,7 @@ import com.imran.runner.ui.components.BottomNav
 import com.imran.runner.ui.components.NavTab
 import com.imran.runner.ui.screens.BrandIntro
 import com.imran.runner.ui.screens.HistoryScreen
+import com.imran.runner.ui.screens.LockOverlay
 import com.imran.runner.ui.screens.ProfileScreen
 import com.imran.runner.ui.screens.RunDetailScreen
 import com.imran.runner.ui.screens.RunScreen
@@ -210,8 +210,11 @@ private fun ImranRunnerRoot(
                 val detail = openRun
                 when {
                     detail != null -> {
-                        val route by produceState<List<RoutePoint>>(emptyList(), detail.id) {
-                            value = withContext(Dispatchers.IO) {
+                        var route by remember(detail.id) {
+                            mutableStateOf(emptyList<RoutePoint>())
+                        }
+                        LaunchedEffect(detail.id) {
+                            route = withContext(Dispatchers.IO) {
                                 application.repository.route(detail.id)
                             }
                         }
@@ -240,7 +243,6 @@ private fun ImranRunnerRoot(
                             }
                         },
                         onLock = { locked = true },
-                        onUnlock = { locked = false },
                         onFinish = {
                             val saved = tracker.finish()
                             if (saved == null) tracker.reset() else justFinished = saved
@@ -280,6 +282,12 @@ private fun ImranRunnerRoot(
                 }
                 Spacer(Modifier.height(10.dp))
             }
+        }
+
+        // Above the bottom navigation as well as the run screen: a locked phone in a pocket must
+        // not be able to change tabs any more than it can stop the run.
+        if (locked) {
+            LockOverlay(onUnlock = { locked = false })
         }
 
         justFinished?.let { saved ->
