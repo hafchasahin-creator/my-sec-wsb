@@ -300,7 +300,9 @@ function emberfangHit(attacker, victim) {
     hurt(other, cfg.burstDamage, EntityDamageCause.fire, attacker);
   }
 
-  particle(dimension, "minecraft:mobflame_emitter", at);
+  // minecraft:mobflame_emitter is the blaze's own emitter: it needs Molang
+  // context from a host entity and renders nothing spawned on its own.
+  particle(dimension, "minecraft:large_explosion", at);
   for (let i = 0; i < 8; i++) {
     const angle = (Math.PI * 2 * i) / 8;
     particle(

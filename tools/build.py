@@ -26,6 +26,26 @@ from pixel import read_png_size  # noqa: E402
 DIST = "dist"
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 SOUND_IDS = os.path.join(TOOLS, "data", "vanilla_sound_ids.txt")
+PARTICLE_IDS = os.path.join(TOOLS, "data", "vanilla_particle_ids.txt")
+
+
+def vanilla_particle_ids():
+    """({working}, {everything else})."""
+    if not os.path.isfile(PARTICLE_IDS):
+        return set(), set()
+    working, other, bucket = set(), set(), None
+    with open(PARTICLE_IDS, encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line == "[WORKING]":
+                bucket = working
+            elif line == "[OTHER]":
+                bucket = other
+            elif bucket is not None:
+                bucket.add(line)
+    return working, other
 
 
 def vanilla_sound_ids():
@@ -645,6 +665,59 @@ class Addon:
                     f"event, so it would play nothing, silently.{hint}"
                 )
 
+    # Particles this project has verified as spawnable despite the reference
+    # list saying otherwise. Add with a note, not on a hunch.
+    EXTRA_WORKING_PARTICLES = frozenset()
+
+    def check_particle_ids(self):
+        """Catch a particle that renders nothing when spawned standalone.
+
+        Two failure modes look identical in game: an id that does not exist,
+        and an id that exists but needs Molang context from a host entity.
+        Neither reports anything - the effect is simply not there.
+        """
+        working, other = vanilla_particle_ids()
+        if not working:
+            return
+
+        manifest = self.doc(self.bp, "manifest.json") or {}
+        entries = [
+            module["entry"]
+            for module in manifest.get("modules", [])
+            if module.get("type") == "script" and module.get("entry")
+        ]
+        pattern = re.compile(r"""["'`]minecraft:([a-z0-9_]+)["'`]""")
+
+        for entry in entries:
+            path = os.path.join(self.bp, entry)
+            if not os.path.isfile(path):
+                continue
+            with open(path, encoding="utf-8") as handle:
+                source = handle.read()
+
+            reported = set()
+            for match in pattern.finditer(source):
+                name = match.group(1)
+                # Only ids that look like particles; component and entity ids
+                # under the minecraft namespace are checked elsewhere.
+                if not (name.endswith("_particle") or name.endswith("_emitter")
+                        or name in other or name in working):
+                    continue
+                if name in working or name in self.EXTRA_WORKING_PARTICLES:
+                    continue
+                if name in reported:
+                    continue
+                reported.add(name)
+
+                line = source.count("\n", 0, match.start()) + 1
+                why = (
+                    "needs Molang context from a host entity, so it renders "
+                    "nothing when spawned on its own"
+                    if name in other
+                    else "is not a vanilla Bedrock particle"
+                )
+                self.fail(f"{path}:{line}: 'minecraft:{name}' {why}")
+
     def check_item_icon_sizes(self):
         for path in sorted(walk_files(os.path.join(self.rp, "textures", "items"), ".png")):
             try:
@@ -672,6 +745,7 @@ class Addon:
         self.check_entities()
         self.check_script_ids()
         self.check_sound_ids()
+        self.check_particle_ids()
         self.check_item_icon_sizes()
         self.check_item_names()
         return uuids

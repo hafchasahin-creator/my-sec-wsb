@@ -353,6 +353,11 @@ Add `SIM_VERBOSE=1` to see each individual check, or pass a substring
   silently in game, since the handler still runs and its branch simply never fires
 - a tap-activated custom item with no `minecraft:interact_button` (see below), or an
   `interact_button` label with no matching `en_US.lang` entry
+- a particle id that is not a vanilla Bedrock particle, or that is one but needs Molang
+  context from a host entity and so renders nothing when spawned on its own — the two
+  look identical in game, which is to say invisible. Checked against
+  `tools/data/vanilla_particle_ids.txt`; this found Emberfang using the blaze's own
+  `minecraft:mobflame_emitter`
 - a sound id the engine does not know, checked against
   `tools/data/vanilla_sound_ids.txt` — all 1375 sound events from Mojang's own
   `bedrock-samples` at tag `v1.21.0.3`. `playSound` with a bad id neither throws nor
