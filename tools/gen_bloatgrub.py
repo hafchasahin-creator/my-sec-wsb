@@ -818,6 +818,14 @@ def build_animations():
     # a constant here would add to idle's resting pose rather than replace it -
     # which is how you end up with a jaw that opens twice as far as designed and
     # scythes up through the creature's own brow.
+    #
+    # That the engine accumulates is not an assumption: vanilla's own
+    # animation.pig.setup sets body rotation to the Molang "-this", and
+    # animation.pig.setup.v1.0 to "90.0 - this". `this` is the value the
+    # previously applied animations have already put on the channel, and those
+    # clips exist purely to cancel it out. The client entity's
+    # {"walk": "query.modified_move_speed"} form is vanilla too - pig and cow
+    # use it verbatim - and the Molang there is a blend weight, not a gate.
     walk = Clip("walk", WALK_LENGTH)
     walk.bones = {
         "body": {
