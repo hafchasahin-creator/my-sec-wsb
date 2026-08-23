@@ -266,6 +266,8 @@ tools/
   gen_bloatgrub.py         model + entity texture + animations + icons, one pass
   gen_textures.py          Arcane Arsenal icons
   build.py                 validates both add-ons and writes the .mcaddon files
+  sim/mock-server.js       a stand-in for @minecraft/server
+  sim/run.mjs              runs the real Bloatgrub script against it, headless
 dist/
   Bloatgrub.mcaddon
   ArcaneArsenal.mcaddon
@@ -278,6 +280,7 @@ python3 tools/gen_bloatgrub.py     # model, entity texture, animations, item ico
 python3 tools/gen_textures.py      # Arcane Arsenal icons (--preview for ASCII art)
 python3 tools/build.py             # validate + repackage both .mcaddon files
 python3 tools/build.py Bloatgrub --check-only    # validate one, write nothing
+node tools/sim/run.mjs             # run the behaviour script's scenarios headless
 ```
 
 ### Why the generators exist
@@ -288,6 +291,34 @@ and both the model JSON and the painted pixels come out of that single packing �
 model and its texture cannot drift apart, and an animation cannot name a bone the model
 does not have. That class of mistake produces a mob that renders as a smear or as
 nothing at all, with no error message anywhere.
+
+### Testing the behaviour without a phone
+
+`node tools/sim/run.mjs` loads
+`behavior_packs/bloatgrub_bp/scripts/main.js` **unmodified** and runs it against
+`tools/sim/mock-server.js`, a stand-in for `@minecraft/server` with a manual tick pump.
+The mock is deliberately strict — it only implements members the real 1.11.0 module has,
+its containers hand back copies the way the real ones do, and `applyImpulse` throws on a
+`Player` exactly as the real API does — so a script that reaches for something that does
+not exist fails here instead of on someone's phone.
+
+The scenarios drive real situations end to end: carrying a grub until it wakes, a stack
+waking sooner than a single one, creative immunity, releasing one by hand, the jar's
+scent mask, the leap and the latch, the full countdown into the detonation and its brood,
+bites refusing to steal the kill, the serum, dying to something else mid-countdown,
+respawning, logging out mid-countdown, walking through a nether portal mid-countdown, two
+grubs arriving on the same tick, and two players not bleeding state into each other. One
+scenario just counts particles, sounds and commands per event so the effect budget cannot
+quietly balloon.
+
+```
+$ node tools/sim/run.mjs
+...
+84 checks passed, 0 failed
+```
+
+Add `SIM_VERBOSE=1` to see each individual check, or pass a substring
+(`node tools/sim/run.mjs latch`) to run a subset.
 
 ### What `build.py` refuses to ship
 
