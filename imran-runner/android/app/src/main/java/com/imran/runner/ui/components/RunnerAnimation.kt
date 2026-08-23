@@ -147,8 +147,8 @@ fun DrawScope.drawRunner(
 ) {
     val thigh = height * 0.235f
     val shin = height * 0.225f
-    val upperArm = height * 0.155f
-    val foreArm = height * 0.145f
+    val upperArm = height * 0.175f
+    val foreArm = height * 0.165f
     val torso = height * 0.30f
     val headRadius = height * 0.082f
     val stroke = height * 0.082f
@@ -231,9 +231,11 @@ fun DrawScope.drawGroundGrid(
 ) {
     if (alpha <= 0.01f) return
     val rows = 9
-    val columns = 15
+    val columns = 11
     val zNear = 1f
-    val zFar = 3.4f
+    // A long way to the far plane: it bunches the distant rows tightly against the vanishing
+    // point, which is what makes the plane read as receding rather than as a flat carpet.
+    val zFar = 5f
     val sNear = 1f / zNear
     val sFar = 1f / zFar
 
@@ -252,7 +254,7 @@ fun DrawScope.drawGroundGrid(
 
         for (column in 0 until columns) {
             val t = (column - (columns - 1) / 2f) / ((columns - 1) / 2f)
-            val edgeFade = 1f - abs(t) * abs(t) * 0.92f
+            val edgeFade = (1f - abs(t)) * (1f - abs(t) * 0.55f)
             val a = rowAlpha * edgeFade
             if (a <= 0.012f) continue
             drawCircle(

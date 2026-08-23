@@ -145,12 +145,12 @@ fun SpeedGauge(
 
             // Ground first, then the runner standing on it.
             drawGroundGrid(
-                vanishing = Offset(w / 2f, h * 0.800f),
-                width = w * 0.82f,
-                depth = h * 0.075f,
+                vanishing = Offset(w / 2f, h * 0.798f),
+                width = w * 0.62f,
+                depth = h * 0.10f,
                 scroll = gait.ground,
                 color = ImranColors.Accent,
-                alpha = 0.60f,
+                alpha = 0.75f,
             )
             drawSpeedStreaks(
                 center = Offset(w / 2f, h * 0.845f),
@@ -161,7 +161,7 @@ fun SpeedGauge(
             )
             drawRunner(
                 feet = Offset(w / 2f, h * 0.862f),
-                height = h * 0.145f,
+                height = h * 0.155f,
                 phase = gait.phase,
                 intensity = gait.intensity,
                 breath = gait.breath,
