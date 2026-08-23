@@ -58,7 +58,17 @@ jobs:
 
       - name: Lint
         working-directory: imran-runner/android
-        run: ./gradlew --no-daemon lintDebug
+        run: |
+          # Gradle only echoes the first failure, which is useless when several need fixing, so
+          # the whole report is dumped before the step gives up.
+          if ! ./gradlew --no-daemon lintDebug; then
+            echo "::group::full lint report"
+            cat app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt 2>/dev/null \
+              || cat app/build/reports/lint-results-debug.txt 2>/dev/null \
+              || echo "(no text report found)"
+            echo "::endgroup::"
+            exit 1
+          fi
 
       - name: Assemble the release APK
         working-directory: imran-runner/android

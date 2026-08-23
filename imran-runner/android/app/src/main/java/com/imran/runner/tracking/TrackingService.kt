@@ -1,5 +1,6 @@
 package com.imran.runner.tracking
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
@@ -115,6 +116,9 @@ class TrackingService : Service() {
         }
     }
 
+    // POST_NOTIFICATIONS is optional here: if it was declined the run still records, so the throw
+    // is caught rather than the call being gated on a permission the app does not require.
+    @SuppressLint("MissingPermission")
     private fun NotificationManagerCompat.notifyIfAllowed(id: Int, notification: Notification) {
         try {
             notify(id, notification)

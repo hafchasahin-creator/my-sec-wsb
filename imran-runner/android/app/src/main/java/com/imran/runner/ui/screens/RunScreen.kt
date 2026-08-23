@@ -66,18 +66,27 @@ fun RunScreen(
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val compact = maxHeight < 680.dp
-        val gaugeSize = minOf(maxWidth - 40.dp, maxHeight * (if (compact) 0.365f else 0.395f))
+        val compact = maxHeight < 700.dp
+        val notice = !permissionGranted || !locationEnabled
+
+        // Everything except the gauge has a height this screen already knows, so the gauge takes
+        // what is left over rather than the column hoping it all fits. On a tall phone the cap
+        // stops it dominating; on a short one it shrinks instead of pushing the controls off the
+        // bottom of the screen, which is the one thing a running app must never do.
+        val chrome = (if (compact) 344.dp else 402.dp) + (if (notice) 76.dp else 0.dp)
+        val gaugeSize = minOf(
+            maxWidth - 40.dp,
+            (maxHeight - chrome).coerceIn(140.dp, 300.dp),
+        )
         val pager = rememberPagerState(pageCount = { 2 })
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 20.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            Spacer(Modifier.height(if (compact) 6.dp else 12.dp))
-
             RunTopBar(
                 quality = metrics.gps,
                 title = when {
@@ -95,8 +104,6 @@ fun RunScreen(
                 onSettings = onSettings,
             )
 
-            Spacer(Modifier.weight(0.5f))
-
             SpeedGauge(
                 speedKmh = (metrics.speedMps * 3.6).toFloat(),
                 sessionTopKmh = (metrics.maxSpeedMps * 3.6).toFloat(),
@@ -105,42 +112,37 @@ fun RunScreen(
                 size = gaugeSize,
             )
 
-            Spacer(Modifier.weight(0.6f))
-
-            HorizontalPager(
-                state = pager,
-                modifier = Modifier.fillMaxWidth(),
-            ) { page ->
-                StatRow(if (page == 0) primaryStats(metrics) else secondaryStats(metrics))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                HorizontalPager(state = pager, modifier = Modifier.fillMaxWidth()) { page ->
+                    StatRow(
+                        specs = if (page == 0) primaryStats(metrics) else secondaryStats(metrics),
+                        compact = compact,
+                    )
+                }
+                Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
+                PageDots(count = 2, selected = pager.currentPage)
             }
 
-            Spacer(Modifier.height(if (compact) 8.dp else 14.dp))
-            PageDots(count = 2, selected = pager.currentPage)
-            Spacer(Modifier.height(if (compact) 10.dp else 16.dp))
+            MetricPanel(summaryPanel(metrics), compact = compact)
 
-            MetricPanel(summaryPanel(metrics))
-
-            Spacer(Modifier.weight(0.75f))
-
-            if (!permissionGranted || !locationEnabled) {
-                LocationNotice(
-                    permissionGranted = permissionGranted,
-                    onRequestPermission = onRequestPermission,
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                if (notice) {
+                    LocationNotice(
+                        permissionGranted = permissionGranted,
+                        onRequestPermission = onRequestPermission,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
+                ControlRow(
+                    state = metrics.state,
+                    locked = locked,
+                    primaryDiameter = if (compact) 78.dp else 92.dp,
+                    secondaryDiameter = if (compact) 56.dp else 66.dp,
+                    onPrimary = onPrimary,
+                    onLock = onLock,
+                    onFinish = onFinish,
                 )
-                Spacer(Modifier.height(14.dp))
             }
-
-            ControlRow(
-                state = metrics.state,
-                locked = locked,
-                primaryDiameter = if (compact) 80.dp else 92.dp,
-                secondaryDiameter = if (compact) 58.dp else 66.dp,
-                onPrimary = onPrimary,
-                onLock = onLock,
-                onFinish = onFinish,
-            )
-
-            Spacer(Modifier.weight(0.55f))
         }
 
         if (locked) {

@@ -1,6 +1,7 @@
 package com.imran.runner.tracking
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -165,6 +166,9 @@ class RunTracker(
         return null
     }
 
+    // Lint cannot see the permission check through hasLocationPermission(), and the whole body is
+    // guarded by it as well as by a SecurityException catch.
+    @SuppressLint("MissingPermission")
     private fun startLocation() {
         if (listening || !hasLocationPermission()) return
         val provider = bestProvider() ?: return

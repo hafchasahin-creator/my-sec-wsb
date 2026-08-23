@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.imran.runner.ui.theme.ImranColors
 import com.imran.runner.ui.theme.ImranType
 
@@ -70,7 +71,9 @@ data class StatSpec(
 )
 
 @Composable
-fun StatRow(specs: List<StatSpec>, modifier: Modifier = Modifier) {
+fun StatRow(specs: List<StatSpec>, compact: Boolean = false, modifier: Modifier = Modifier) {
+    val valueStyle =
+        if (compact) ImranType.StatValue.copy(fontSize = 25.sp) else ImranType.StatValue
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -80,7 +83,7 @@ fun StatRow(specs: List<StatSpec>, modifier: Modifier = Modifier) {
                 Box(
                     Modifier
                         .width(1.dp)
-                        .height(58.dp)
+                        .height(if (compact) 48.dp else 58.dp)
                         .background(ImranColors.Divider),
                 )
             }
@@ -88,19 +91,14 @@ fun StatRow(specs: List<StatSpec>, modifier: Modifier = Modifier) {
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                ImranIcon(spec.icon, spec.iconTint, size = 25.dp)
-                Spacer(Modifier.height(9.dp))
+                ImranIcon(spec.icon, spec.iconTint, size = if (compact) 20.dp else 25.dp)
+                Spacer(Modifier.height(if (compact) 6.dp else 9.dp))
                 Text(spec.label, style = ImranType.Label)
-                Spacer(Modifier.height(5.dp))
+                Spacer(Modifier.height(if (compact) 3.dp else 5.dp))
                 if (spec.animated) {
-                    AnimatedMetric(spec.value, spec.format, ImranType.StatValue)
+                    AnimatedMetric(spec.value, spec.format, valueStyle)
                 } else {
-                    Text(
-                        spec.format(spec.value),
-                        style = ImranType.StatValue,
-                        maxLines = 1,
-                        softWrap = false,
-                    )
+                    Text(spec.format(spec.value), style = valueStyle, maxLines = 1, softWrap = false)
                 }
                 Spacer(Modifier.height(3.dp))
                 Text(spec.unit, style = ImranType.Unit.copy(color = spec.unitTint))
@@ -119,13 +117,15 @@ data class PanelSpec(
 )
 
 @Composable
-fun MetricPanel(specs: List<PanelSpec>, modifier: Modifier = Modifier) {
+fun MetricPanel(specs: List<PanelSpec>, compact: Boolean = false, modifier: Modifier = Modifier) {
+    val valueStyle =
+        if (compact) ImranType.PanelValue.copy(fontSize = 22.sp) else ImranType.PanelValue
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
             .background(ImranColors.Surface)
-            .padding(vertical = 15.dp),
+            .padding(vertical = if (compact) 11.dp else 15.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         specs.forEachIndexed { index, spec ->
@@ -133,7 +133,7 @@ fun MetricPanel(specs: List<PanelSpec>, modifier: Modifier = Modifier) {
                 Box(
                     Modifier
                         .width(1.dp)
-                        .height(52.dp)
+                        .height(if (compact) 44.dp else 52.dp)
                         .background(ImranColors.Divider),
                 )
             }
@@ -142,8 +142,8 @@ fun MetricPanel(specs: List<PanelSpec>, modifier: Modifier = Modifier) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(spec.label, style = ImranType.Label)
-                Spacer(Modifier.height(6.dp))
-                AnimatedMetric(spec.value, spec.format, ImranType.PanelValue)
+                Spacer(Modifier.height(if (compact) 4.dp else 6.dp))
+                AnimatedMetric(spec.value, spec.format, valueStyle)
                 Spacer(Modifier.height(3.dp))
                 Text(spec.unit, style = ImranType.Unit.copy(color = spec.unitTint))
             }
