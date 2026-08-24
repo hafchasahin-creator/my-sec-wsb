@@ -86,7 +86,20 @@
           "priority": 1
         },
         "minecraft:behavior.owner_hurt_target": {
-          "priority": 2
+          "priority": 2,
+          "entity_types": [
+            {
+              "filters": {
+                "none_of": [
+                  { "test": "is_family", "subject": "other", "value": "villager" },
+                  { "test": "is_family", "subject": "other", "value": "irongolem" },
+                  { "test": "is_family", "subject": "other", "value": "bodyguard" },
+                  { "test": "has_component", "subject": "other", "value": "minecraft:is_tamed" }
+                ]
+              },
+              "max_dist": 24
+            }
+          ]
         },
         "minecraft:behavior.stay_while_sitting": {
           "priority": 3
@@ -95,7 +108,7 @@
           "priority": 7,
           "speed_multiplier": 1.1,
           "start_distance": 8.0,
-          "stop_distance": 2.0,
+          "stop_distance": 3.0,
           "max_distance": 48.0
         }
       }
@@ -148,6 +161,15 @@
         "hard_distance": 6.0,
         "max_distance": 10.0
       },
+      "minecraft:hurt_on_condition": {
+        "damage_conditions": [
+          {
+            "filters": { "test": "in_lava", "subject": "self", "operator": "==", "value": true },
+            "cause": "lava",
+            "damage_per_tick": 4
+          }
+        ]
+      },
       "minecraft:breathable": {
         "total_supply": 15,
         "suffocate_time": 0
@@ -166,7 +188,20 @@
       },
       "minecraft:behavior.hurt_by_target": {
         "priority": 4,
-        "alert_same_type": false
+        "alert_same_type": false,
+        "entity_types": [
+          {
+            "filters": {
+              "none_of": [
+                { "test": "is_family", "subject": "other", "value": "villager" },
+                { "test": "is_family", "subject": "other", "value": "irongolem" },
+                { "test": "is_family", "subject": "other", "value": "bodyguard" },
+                { "test": "has_component", "subject": "other", "value": "minecraft:is_tamed" }
+              ]
+            },
+            "max_dist": 24
+          }
+        ]
       },
       "minecraft:behavior.delayed_attack": {
         "priority": 5,
@@ -174,7 +209,7 @@
         "track_target": true,
         "require_complete_path": false,
         "random_stop_interval": 0,
-        "reach_multiplier": 1.5,
+        "reach_multiplier": 2.0,
         "speed_multiplier": 1.15,
         "attack_duration": 0.75,
         "hit_delay_pct": 0.35

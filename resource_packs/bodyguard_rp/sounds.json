@@ -1,0 +1,20 @@
+{
+  "entity_sounds": {
+    "entities": {
+      "bg:bodyguard_girl": {
+        "volume": 1.0,
+        "pitch": [
+          1.2,
+          1.4
+        ],
+        "events": {
+          "ambient": "mob.villager.idle",
+          "hurt": "mob.villager.hit",
+          "death": "mob.villager.death",
+          "step": "step.grass",
+          "attack.strong": "game.player.attack.strong"
+        }
+      }
+    }
+  }
+}

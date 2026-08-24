@@ -90,8 +90,14 @@ function subscribe(getEvent, handler, label) {
   }
 }
 
+/** Spawn a particle. Returns true if the engine accepted it. */
 function particle(dimension, id, location) {
-  safe(() => dimension.spawnParticle(id, location));
+  try {
+    dimension.spawnParticle(id, location);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function sound(dimension, id, location) {
@@ -202,9 +208,15 @@ function playerById(id) {
  * Cosmetics
  * ------------------------------------------------------------------ */
 
-/** A small ring of sakura petals, with a vanilla fallback particle. */
+/**
+ * A small ring of sakura petals.
+ *
+ * The vanilla fallback is only used when bg:sakura_petal is genuinely
+ * unavailable (BP applied without the RP). Spawning it unconditionally would
+ * shower hearts over every mob she cuts, which reads as taming, not fighting.
+ */
 function petalBurst(dimension, at, count = 6, radius = 0.7) {
-  particle(dimension, CONFIG.petal, at);
+  const havePetal = particle(dimension, CONFIG.petal, at);
   for (let i = 0; i < count; i++) {
     const angle = (Math.PI * 2 * i) / count;
     const spot = offset(
@@ -213,8 +225,7 @@ function petalBurst(dimension, at, count = 6, radius = 0.7) {
       0.2 + (i % 3) * 0.25,
       Math.sin(angle) * radius
     );
-    particle(dimension, CONFIG.petal, spot);
-    particle(dimension, CONFIG.petalFallback, spot);
+    particle(dimension, havePetal ? CONFIG.petal : CONFIG.petalFallback, spot);
   }
 }
 

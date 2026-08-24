@@ -439,17 +439,20 @@ def paint_leg(cv, P, name, lit_face, dark_face, dark_fx):
     fill(cv, f["up"], P["skin_shadow"])           # hidden under the skirt
     fill(cv, f["down"], P["outline"])             # sole
 
+    # The skirt (skirt_upper y10-13, skirt_lower y6-10) fully encloses the legs
+    # in x and z, so ONLY leg rows 6-11 (y 6 down to y 0) are ever on screen.
+    # The whole thigh/stocking/shoe banding therefore lives inside that window;
+    # rows 0-5 are sealed under the skirt and are painted flat skin.
     for key in ("east", "north", "west", "south"):
         rect = f[key]
-        rows(cv, rect, 0, 1, P["skin_mid"])       # bare thigh above the welt
-        hrow(cv, rect, 2, P["thigh_high_band"])   # contrast welt
-        rows(cv, rect, 3, 8, P["thigh_high"])
-        hrow(cv, rect, 9, P["uniform_secondary"])  # shoe strap
+        rows(cv, rect, 0, 6, P["skin_mid"])        # bare thigh (row 6 = visible)
+        hrow(cv, rect, 7, P["thigh_high_band"])    # contrast welt, just below hem
+        rows(cv, rect, 8, 9, P["thigh_high"])      # stocking
         rows(cv, rect, 10, 11, P["outline"])       # school shoe
 
-    hrow(cv, f[lit_face], 3, P["uniform_trim"])   # stocking sheen
+    hrow(cv, f[lit_face], 8, P["uniform_trim"])   # stocking sheen
     _, _, w, _ = f[dark_face]
-    vcol(cv, f[dark_face], dark_fx % w, P["skirt_shadow"], 3, 9)
+    vcol(cv, f[dark_face], dark_fx % w, P["skirt_shadow"], 6, 10)
 
 
 def paint_chest_decor(cv, P):

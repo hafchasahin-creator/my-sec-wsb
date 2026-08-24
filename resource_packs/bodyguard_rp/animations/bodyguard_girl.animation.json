@@ -1415,7 +1415,7 @@
         },
         "katana": {
           "rotation": [
-            74,
+            94,
             8,
             -78
           ],
@@ -1535,7 +1535,7 @@
             "rotation": "entity"
           },
           "rotation": [
-            "math.clamp(query.target_x_rotation, -35.0, 35.0) - this",
+            "math.clamp(query.target_x_rotation, -22.0, 35.0) - this",
             "math.clamp(query.target_y_rotation, -75.0, 75.0) - this",
             0.0
           ]
