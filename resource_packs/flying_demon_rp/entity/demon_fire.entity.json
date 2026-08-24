@@ -1,0 +1,31 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "fdc:demon_fire",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/demon_fire"
+      },
+      "geometry": {
+        "default": "geometry.fdc_demon_fire"
+      },
+      "animations": {
+        "trail": "animation.fdc_demon_fire.trail"
+      },
+      "scripts": {
+        "animate": [
+          "trail"
+        ]
+      },
+      "particle_effects": {
+        "trail_flame": "fdc:fire_trail"
+      },
+      "render_controllers": [
+        "controller.render.fdc_demon_fire"
+      ]
+    }
+  }
+}

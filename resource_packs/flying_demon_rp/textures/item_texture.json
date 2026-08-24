@@ -1,0 +1,9 @@
+{
+  "resource_pack_name": "flying_demon_rp",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "fdc_demon_egg": {
+      "textures": "textures/items/fdc_demon_egg"
+    }
+  }
+}

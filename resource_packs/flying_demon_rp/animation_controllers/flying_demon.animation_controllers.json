@@ -1,0 +1,142 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+
+    "controller.animation.fdc_demon.locomotion": {
+      "initial_state": "hover",
+      "states": {
+        "ground_idle": {
+          "animations": [ "ground_idle" ],
+          "blend_transition": 0.3,
+          "transitions": [
+            { "sit": "query.is_sitting" },
+            { "hover": "!query.is_on_ground" },
+            { "walk": "query.is_on_ground && query.modified_move_speed > 0.1" }
+          ]
+        },
+        "walk": {
+          "animations": [ "walk" ],
+          "blend_transition": 0.25,
+          "transitions": [
+            { "sit": "query.is_sitting" },
+            { "hover": "!query.is_on_ground" },
+            { "ground_idle": "query.modified_move_speed < 0.06" }
+          ]
+        },
+        "hover": {
+          "animations": [ "hover" ],
+          "blend_transition": 0.35,
+          "transitions": [
+            { "sit": "query.is_sitting" },
+            { "landing": "query.is_on_ground" },
+            { "dive": "query.variant == 1 && query.vertical_speed < -1.2 && !query.is_on_ground" },
+            { "fly": "query.modified_move_speed > 0.35" }
+          ]
+        },
+        "fly": {
+          "animations": [ "fly" ],
+          "blend_transition": 0.3,
+          "transitions": [
+            { "sit": "query.is_sitting" },
+            { "landing": "query.is_on_ground" },
+            { "dive": "query.variant == 1 && query.vertical_speed < -1.2 && !query.is_on_ground" },
+            { "fly_fast": "query.modified_move_speed > 0.75" },
+            { "hover": "query.modified_move_speed < 0.25" }
+          ]
+        },
+        "fly_fast": {
+          "animations": [ "fly_fast" ],
+          "blend_transition": 0.25,
+          "transitions": [
+            { "sit": "query.is_sitting" },
+            { "landing": "query.is_on_ground" },
+            { "dive": "query.variant == 1 && query.vertical_speed < -1.2 && !query.is_on_ground" },
+            { "fly": "query.modified_move_speed < 0.6" }
+          ]
+        },
+        "dive": {
+          "animations": [ "dive" ],
+          "blend_transition": 0.15,
+          "transitions": [
+            { "landing": "query.is_on_ground" },
+            { "fly": "query.vertical_speed > -0.6 || query.variant == 0" }
+          ]
+        },
+        "landing": {
+          "animations": [ "land" ],
+          "blend_transition": 0.2,
+          "transitions": [
+            { "hover": "!query.is_on_ground" },
+            { "sit": "query.is_sitting" },
+            { "ground_idle": "query.all_animations_finished" }
+          ]
+        },
+        "sit": {
+          "animations": [ "sit" ],
+          "blend_transition": 0.4,
+          "transitions": [
+            { "ground_idle": "!query.is_sitting && query.is_on_ground" },
+            { "hover": "!query.is_sitting && !query.is_on_ground" }
+          ]
+        }
+      }
+    },
+
+    "controller.animation.fdc_demon.action": {
+      "initial_state": "calm_hub",
+      "states": {
+        "calm_hub": {
+          "blend_transition": 0.2,
+          "transitions": [
+            { "rage_intro": "query.variant == 1" },
+            { "biting": "query.is_delayed_attacking" },
+            { "devouring": "query.mark_variant == 1" },
+            { "breathing": "query.mark_variant == 2" }
+          ]
+        },
+        "rage_intro": {
+          "animations": [ "rage_enter" ],
+          "blend_transition": 0.15,
+          "transitions": [
+            { "rage_hub": "query.all_animations_finished" },
+            { "calm_hub": "query.variant == 0" }
+          ]
+        },
+        "rage_hub": {
+          "blend_transition": 0.2,
+          "transitions": [
+            { "calm_hub": "query.variant == 0" },
+            { "biting": "query.is_delayed_attacking" },
+            { "breathing": "query.mark_variant == 2" },
+            { "devouring": "query.mark_variant == 1" }
+          ]
+        },
+        "biting": {
+          "animations": [ "bite" ],
+          "blend_transition": 0.1,
+          "transitions": [
+            { "rage_hub": "!query.is_delayed_attacking && query.variant == 1" },
+            { "calm_hub": "!query.is_delayed_attacking" }
+          ]
+        },
+        "breathing": {
+          "animations": [ "firebreath" ],
+          "blend_transition": 0.25,
+          "transitions": [
+            { "biting": "query.is_delayed_attacking" },
+            { "rage_hub": "query.mark_variant != 2 && query.variant == 1" },
+            { "calm_hub": "query.mark_variant != 2" }
+          ]
+        },
+        "devouring": {
+          "animations": [ "devour" ],
+          "blend_transition": 0.3,
+          "transitions": [
+            { "rage_hub": "query.mark_variant != 1 && query.variant == 1" },
+            { "calm_hub": "query.mark_variant != 1" }
+          ]
+        }
+      }
+    }
+  }
+}

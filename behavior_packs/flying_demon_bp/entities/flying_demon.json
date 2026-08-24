@@ -1,0 +1,442 @@
+{
+  "format_version": "1.20.80",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "fdc:flying_demon",
+      "spawn_category": "creature",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "is_experimental": false
+    },
+
+    "component_groups": {
+
+      "fdc:wild": {
+        "minecraft:tameable": {
+          "probability": 1.0,
+          "tame_items": [
+            "rotten_flesh", "bone", "beef", "porkchop", "chicken",
+            "mutton", "rabbit", "cod", "salmon"
+          ],
+          "tame_event": {
+            "event": "minecraft:on_tame",
+            "target": "self"
+          }
+        }
+      },
+
+      "fdc:bonded": {
+        "minecraft:is_tamed": {},
+        "minecraft:sittable": {},
+        "minecraft:behavior.owner_hurt_by_target": {
+          "priority": 1
+        },
+        "minecraft:behavior.owner_hurt_target": {
+          "priority": 2
+        },
+        "minecraft:behavior.stay_while_sitting": {
+          "priority": 4
+        },
+        "minecraft:behavior.follow_owner": {
+          "priority": 6,
+          "speed_multiplier": 1.2,
+          "start_distance": 11,
+          "stop_distance": 5
+        },
+        "minecraft:healable": {
+          "items": [
+            { "item": "cooked_beef", "heal_amount": 10 },
+            { "item": "cooked_porkchop", "heal_amount": 10 },
+            { "item": "cooked_chicken", "heal_amount": 8 },
+            { "item": "rotten_flesh", "heal_amount": 4 }
+          ]
+        }
+      },
+
+      "fdc:calm": {
+        "minecraft:timer": {
+          "looping": false,
+          "randomInterval": true,
+          "time": [ 150, 330 ],
+          "time_down_event": {
+            "event": "fdc:arson_start",
+            "target": "self"
+          }
+        }
+      },
+
+      "fdc:arson": {
+        "minecraft:mark_variant": {
+          "value": 2
+        },
+        "minecraft:movement": {
+          "value": 0.12
+        },
+        "minecraft:timer": {
+          "looping": false,
+          "time": 5,
+          "time_down_event": {
+            "event": "fdc:arson_end",
+            "target": "self"
+          }
+        }
+      },
+
+      "fdc:rage": {
+        "minecraft:variant": {
+          "value": 1
+        },
+        "minecraft:angry": {
+          "duration": 45,
+          "broadcastAnger": false,
+          "calm_event": {
+            "event": "fdc:rage_over",
+            "target": "self"
+          }
+        },
+        "minecraft:movement": {
+          "value": 0.55
+        },
+        "minecraft:attack": {
+          "damage": 11,
+          "effect_name": "slowness",
+          "effect_duration": 3
+        },
+        "minecraft:knockback_resistance": {
+          "value": 0.9
+        }
+      },
+
+      "fdc:rage_far": {
+        "minecraft:mark_variant": {
+          "value": 2
+        },
+        "minecraft:shooter": {
+          "def": "fdc:demon_fire"
+        },
+        "minecraft:behavior.ranged_attack": {
+          "priority": 3,
+          "burst_shots": 3,
+          "burst_interval": 0.4,
+          "charge_charged_trigger": 0.0,
+          "charge_shoot_trigger": 4.0,
+          "attack_interval_min": 2.0,
+          "attack_interval_max": 3.0,
+          "attack_radius": 14.0
+        },
+        "minecraft:timer": {
+          "looping": false,
+          "time": 5,
+          "time_down_event": {
+            "event": "fdc:rage_close_phase",
+            "target": "self"
+          }
+        }
+      },
+
+      "fdc:rage_close": {
+        "minecraft:behavior.swoop_attack": {
+          "priority": 3,
+          "damage_reach": 0.3,
+          "speed_multiplier": 1.6,
+          "delay_range": [ 1.0, 2.5 ]
+        },
+        "minecraft:timer": {
+          "looping": false,
+          "time": 12,
+          "time_down_event": {
+            "event": "fdc:rage_far_phase",
+            "target": "self"
+          }
+        }
+      },
+
+      "fdc:devour": {
+        "minecraft:mark_variant": {
+          "value": 1
+        },
+        "minecraft:variant": {
+          "value": 1
+        },
+        "minecraft:movement": {
+          "value": 0.0
+        },
+        "minecraft:timer": {
+          "looping": false,
+          "time": 3.4,
+          "time_down_event": {
+            "event": "fdc:devour_done",
+            "target": "self"
+          }
+        }
+      }
+    },
+
+    "components": {
+      "minecraft:type_family": {
+        "family": [ "demon", "mob" ]
+      },
+      "minecraft:nameable": {},
+      "minecraft:persistent": {},
+      "minecraft:collision_box": {
+        "width": 1.5,
+        "height": 2.3
+      },
+      "minecraft:scale": {
+        "value": 1.1
+      },
+      "minecraft:health": {
+        "value": 120,
+        "max": 120
+      },
+      "minecraft:attack": {
+        "damage": 7,
+        "effect_name": "slowness",
+        "effect_duration": 3
+      },
+      "minecraft:follow_range": {
+        "value": 48
+      },
+      "minecraft:knockback_resistance": {
+        "value": 0.6
+      },
+      "minecraft:movement": {
+        "value": 0.38
+      },
+      "minecraft:movement.fly": {},
+      "minecraft:navigation.fly": {
+        "can_path_over_water": true,
+        "can_path_from_air": true,
+        "avoid_damage_blocks": true
+      },
+      "minecraft:jump.static": {},
+      "minecraft:can_fly": {},
+      "minecraft:physics": {},
+      "minecraft:pushable": {
+        "is_pushable": true,
+        "is_pushable_by_piston": true
+      },
+      "minecraft:leashable": {
+        "soft_distance": 4.0,
+        "hard_distance": 6.0,
+        "max_distance": 10.0
+      },
+      "minecraft:breathable": {
+        "breathes_air": true,
+        "breathes_water": true
+      },
+      "minecraft:fire_immune": {},
+      "minecraft:damage_sensor": {
+        "triggers": [
+          {
+            "cause": "fall",
+            "deals_damage": false
+          }
+        ]
+      },
+      "minecraft:ambient_sound_interval": {
+        "value": 10,
+        "range": 16,
+        "event_name": "ambient"
+      },
+      "minecraft:on_target_acquired": {
+        "event": "fdc:enraged",
+        "target": "self"
+      },
+      "minecraft:on_target_escape": {
+        "event": "fdc:target_lost",
+        "target": "self"
+      },
+      "minecraft:behavior.float": {
+        "priority": 0
+      },
+      "minecraft:behavior.hurt_by_target": {
+        "priority": 3
+      },
+      "minecraft:behavior.delayed_attack": {
+        "priority": 4,
+        "attack_once": false,
+        "track_target": true,
+        "require_complete_path": false,
+        "random_stop_interval": 0,
+        "reach_multiplier": 1.7,
+        "speed_multiplier": 1.25,
+        "attack_duration": 0.55,
+        "hit_delay_pct": 0.5
+      },
+      "minecraft:behavior.random_fly": {
+        "priority": 9,
+        "xz_dist": 8,
+        "y_dist": 4,
+        "y_offset": 2,
+        "speed_multiplier": 1.0,
+        "can_land_on_trees": true,
+        "avoid_damage_blocks": true
+      },
+      "minecraft:behavior.look_at_player": {
+        "priority": 10,
+        "look_distance": 10.0,
+        "probability": 0.8
+      },
+      "minecraft:behavior.random_look_around": {
+        "priority": 11
+      }
+    },
+
+    "events": {
+
+      "minecraft:entity_spawned": {
+        "sequence": [
+          {
+            "add": {
+              "component_groups": [ "fdc:wild" ]
+            }
+          },
+          {
+            "queue_command": {
+              "command": "playsound fdc.demon.roar @a[r=24]"
+            }
+          },
+          {
+            "queue_command": {
+              "command": "tellraw @p[r=16] {\"rawtext\":[{\"text\":\"§5A demon circles above you, watching... §7Offer it any raw meat or a bone to bind it to your will.\"}]}"
+            }
+          }
+        ]
+      },
+
+      "minecraft:on_tame": {
+        "sequence": [
+          {
+            "remove": {
+              "component_groups": [ "fdc:wild" ]
+            }
+          },
+          {
+            "add": {
+              "component_groups": [ "fdc:bonded", "fdc:calm" ]
+            }
+          },
+          {
+            "queue_command": {
+              "command": "tellraw @p[r=8] {\"rawtext\":[{\"text\":\"§5The demon bows its head. §7It is bound to you now — whoever dares harm you will be devoured.\"}]}"
+            }
+          }
+        ]
+      },
+
+      "fdc:enraged": {
+        "sequence": [
+          {
+            "remove": {
+              "component_groups": [ "fdc:calm", "fdc:arson", "fdc:rage_close", "fdc:devour" ]
+            }
+          },
+          {
+            "add": {
+              "component_groups": [ "fdc:rage", "fdc:rage_far" ]
+            }
+          }
+        ]
+      },
+
+      "fdc:rage_close_phase": {
+        "remove": {
+          "component_groups": [ "fdc:rage_far" ]
+        },
+        "add": {
+          "component_groups": [ "fdc:rage_close" ]
+        }
+      },
+
+      "fdc:rage_far_phase": {
+        "remove": {
+          "component_groups": [ "fdc:rage_close" ]
+        },
+        "add": {
+          "component_groups": [ "fdc:rage_far" ]
+        }
+      },
+
+      "fdc:target_lost": {
+        "remove": {
+          "component_groups": [ "fdc:rage", "fdc:rage_far", "fdc:rage_close" ]
+        },
+        "add": {
+          "component_groups": [ "fdc:devour" ]
+        }
+      },
+
+      "fdc:target_killed": {
+        "remove": {
+          "component_groups": [ "fdc:rage", "fdc:rage_far", "fdc:rage_close" ]
+        },
+        "add": {
+          "component_groups": [ "fdc:devour" ]
+        }
+      },
+
+      "fdc:devour_done": {
+        "remove": {
+          "component_groups": [ "fdc:devour" ]
+        },
+        "add": {
+          "component_groups": [ "fdc:calm" ]
+        }
+      },
+
+      "fdc:rage_over": {
+        "remove": {
+          "component_groups": [ "fdc:rage", "fdc:rage_far", "fdc:rage_close" ]
+        },
+        "add": {
+          "component_groups": [ "fdc:calm" ]
+        }
+      },
+
+      "fdc:arson_start": {
+        "sequence": [
+          {
+            "remove": {
+              "component_groups": [ "fdc:calm" ]
+            }
+          },
+          {
+            "add": {
+              "component_groups": [ "fdc:arson" ]
+            }
+          },
+          {
+            "queue_command": {
+              "command": "setblock ^ ^1 ^4 fire keep"
+            }
+          },
+          {
+            "queue_command": {
+              "command": "setblock ^1 ^ ^6 fire keep"
+            }
+          },
+          {
+            "queue_command": {
+              "command": "setblock ^-1 ^ ^5 fire keep"
+            }
+          },
+          {
+            "queue_command": {
+              "command": "setblock ^ ^ ^7 fire keep"
+            }
+          }
+        ]
+      },
+
+      "fdc:arson_end": {
+        "remove": {
+          "component_groups": [ "fdc:arson" ]
+        },
+        "add": {
+          "component_groups": [ "fdc:calm" ]
+        }
+      }
+    }
+  }
+}

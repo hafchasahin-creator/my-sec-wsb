@@ -1,0 +1,108 @@
+{
+  "format_version": "1.14.0",
+  "sound_definitions": {
+    "fdc.demon.roar": {
+      "category": "hostile",
+      "max_distance": 48.0,
+      "sounds": [
+        {
+          "name": "sounds/fdc/roar",
+          "volume": 1.0,
+          "pitch": 1.0
+        }
+      ]
+    },
+    "fdc.demon.rage": {
+      "category": "hostile",
+      "max_distance": 48.0,
+      "sounds": [
+        {
+          "name": "sounds/fdc/rage",
+          "volume": 1.0,
+          "pitch": 1.0
+        }
+      ]
+    },
+    "fdc.demon.growl": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/fdc/growl",
+          "volume": 0.7,
+          "pitch": 1.0
+        }
+      ]
+    },
+    "fdc.demon.bite": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/fdc/bite",
+          "volume": 0.95,
+          "pitch": 1.0
+        }
+      ]
+    },
+    "fdc.demon.eat": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/fdc/eat",
+          "volume": 0.9,
+          "pitch": 1.0
+        }
+      ]
+    },
+    "fdc.demon.fire": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/fdc/fire",
+          "volume": 0.9,
+          "pitch": 1.0
+        }
+      ]
+    },
+    "fdc.demon.flap": {
+      "category": "neutral",
+      "sounds": [
+        {
+          "name": "sounds/fdc/flap",
+          "volume": 0.45,
+          "pitch": 1.0
+        }
+      ]
+    },
+    "fdc.demon.hurt": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/fdc/hurt",
+          "volume": 0.9,
+          "pitch": 1.0
+        }
+      ]
+    },
+    "fdc.demon.death": {
+      "category": "hostile",
+      "max_distance": 48.0,
+      "sounds": [
+        {
+          "name": "sounds/fdc/death",
+          "volume": 1.0,
+          "pitch": 1.0
+        }
+      ]
+    },
+    "fdc.demon.land": {
+      "category": "neutral",
+      "sounds": [
+        {
+          "name": "sounds/fdc/land",
+          "volume": 0.7,
+          "pitch": 1.0
+        }
+      ]
+    }
+  }
+}

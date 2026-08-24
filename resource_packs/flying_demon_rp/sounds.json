@@ -1,0 +1,16 @@
+{
+  "entity_sounds": {
+    "entities": {
+      "fdc:flying_demon": {
+        "volume": 1.0,
+        "pitch": [ 0.9, 1.05 ],
+        "events": {
+          "ambient": "fdc.demon.growl",
+          "hurt": "fdc.demon.hurt",
+          "death": "fdc.demon.death",
+          "attack.strong": "fdc.demon.bite"
+        }
+      }
+    }
+  }
+}

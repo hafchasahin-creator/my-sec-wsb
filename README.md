@@ -1,3 +1,15 @@
+# Bedrock add-ons in this repository
+
+Two independent add-ons for **Minecraft Bedrock 1.21.0.26 (Android / mobile)**, each
+shipped as a ready-to-import `.mcaddon` in `dist/`:
+
+| Add-on | Docs | Package |
+| --- | --- | --- |
+| **Flying Demon Companion** — a huge flying demon bodyguard that bonds to you, rages when you're attacked and devours your enemies | [FLYING_DEMON.md](FLYING_DEMON.md) | `dist/FlyingDemonCompanion.mcaddon` |
+| **Arcane Arsenal** — six legendary weapons with scripted magic effects | this file, below | `dist/ArcaneArsenal.mcaddon` |
+
+---
+
 # Arcane Arsenal
 
 A Minecraft **Bedrock Edition** add-on (behaviour pack + resource pack) that adds six

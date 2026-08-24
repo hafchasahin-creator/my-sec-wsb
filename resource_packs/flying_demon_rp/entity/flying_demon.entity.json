@@ -1,0 +1,70 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "fdc:flying_demon",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/flying_demon",
+        "rage": "textures/entity/flying_demon_rage"
+      },
+      "geometry": {
+        "default": "geometry.fdc_demon"
+      },
+      "animations": {
+        "look_at_target": "animation.common.look_at_target",
+        "ground_idle": "animation.fdc_demon.ground_idle",
+        "walk": "animation.fdc_demon.walk",
+        "hover": "animation.fdc_demon.hover",
+        "fly": "animation.fdc_demon.fly",
+        "fly_fast": "animation.fdc_demon.fly_fast",
+        "dive": "animation.fdc_demon.dive",
+        "sit": "animation.fdc_demon.sit",
+        "land": "animation.fdc_demon.land",
+        "rage_enter": "animation.fdc_demon.rage_enter",
+        "bite": "animation.fdc_demon.bite",
+        "devour": "animation.fdc_demon.devour",
+        "firebreath": "animation.fdc_demon.firebreath",
+        "ambient_fx": "animation.fdc_demon.ambient_fx",
+        "rage_fx": "animation.fdc_demon.rage_fx",
+        "locomotion": "controller.animation.fdc_demon.locomotion",
+        "action": "controller.animation.fdc_demon.action"
+      },
+      "scripts": {
+        "animate": [
+          "locomotion",
+          "action",
+          "look_at_target",
+          "ambient_fx",
+          {
+            "rage_fx": "query.variant == 1"
+          }
+        ]
+      },
+      "particle_effects": {
+        "ember": "fdc:ember",
+        "smoke": "fdc:smoke",
+        "breath": "fdc:fire_breath",
+        "rageburst": "fdc:rage_burst",
+        "gore": "fdc:devour_bits",
+        "flare": "fdc:eye_flare"
+      },
+      "sound_effects": {
+        "roar": "fdc.demon.roar",
+        "rage": "fdc.demon.rage",
+        "eat": "fdc.demon.eat",
+        "fire": "fdc.demon.fire",
+        "flap": "fdc.demon.flap",
+        "land": "fdc.demon.land"
+      },
+      "render_controllers": [
+        "controller.render.fdc_demon"
+      ],
+      "spawn_egg": {
+        "texture": "fdc_demon_egg"
+      }
+    }
+  }
+}

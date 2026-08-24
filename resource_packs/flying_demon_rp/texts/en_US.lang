@@ -1,0 +1,5 @@
+pack.name=Flying Demon Companion RP
+pack.description=Model, animations, particles and sounds for the Flying Demon guardian. Built for Bedrock 1.21.0.26.
+entity.fdc:flying_demon.name=Flying Demon
+entity.fdc:demon_fire.name=Demon Fire
+item.spawn_egg.entity.fdc:flying_demon.name=Flying Demon
