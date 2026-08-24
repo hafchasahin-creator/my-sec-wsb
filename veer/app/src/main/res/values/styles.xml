@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="veer_bg">#FFFFFFFF</color>
+    <color name="veer_ink">#FF16204A</color>
+    <color name="veer_splash_bg">#FF0B1230</color>
+
+    <style name="VeerTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/veer_splash_bg</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:navigationBarColor">@color/veer_splash_bg</item>
+        <item name="android:statusBarColor">@color/veer_splash_bg</item>
+    </style>
+</resources>
