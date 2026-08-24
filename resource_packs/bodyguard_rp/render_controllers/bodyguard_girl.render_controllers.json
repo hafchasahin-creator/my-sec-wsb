@@ -1,0 +1,25 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.bodyguard_girl": {
+      "arrays": {
+        "textures": {
+          "Array.skins": [
+            "Texture.sakura",
+            "Texture.midnight",
+            "Texture.frost"
+          ]
+        }
+      },
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Array.skins[math.clamp(query.variant, 0, 2)]"
+      ]
+    }
+  }
+}

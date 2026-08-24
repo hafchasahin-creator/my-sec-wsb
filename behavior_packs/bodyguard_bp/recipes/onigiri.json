@@ -1,0 +1,31 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shapeless": {
+    "description": {
+      "identifier": "bg:onigiri"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "ingredients": [
+      {
+        "item": "minecraft:cooked_salmon"
+      },
+      {
+        "item": "minecraft:dried_kelp"
+      },
+      {
+        "item": "minecraft:wheat"
+      }
+    ],
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bg:onigiri",
+      "count": 2
+    }
+  }
+}

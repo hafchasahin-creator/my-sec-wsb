@@ -1,0 +1,108 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.bodyguard_girl.general": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "blend_transition": 0.25,
+          "animations": [
+            {
+              "idle": "1.0 - query.is_delayed_attacking * 0.6"
+            },
+            {
+              "hair_flow": "1.0"
+            },
+            {
+              "look_at": "1.0"
+            }
+          ],
+          "transitions": [
+            {
+              "sit": "query.is_sitting"
+            },
+            {
+              "walk": "!query.is_sitting && query.modified_move_speed > 0.05"
+            }
+          ]
+        },
+        "walk": {
+          "blend_transition": 0.2,
+          "animations": [
+            {
+              "idle": "(1.0 - math.clamp(query.modified_move_speed * 2.4, 0.0, 1.0)) * 0.6"
+            },
+            {
+              "walk": "math.clamp(query.modified_move_speed * 2.4, 0.2, 1.0) * (1.0 - query.is_delayed_attacking * 0.65)"
+            },
+            {
+              "hair_flow": "1.0"
+            },
+            {
+              "look_at": "1.0"
+            }
+          ],
+          "transitions": [
+            {
+              "sit": "query.is_sitting"
+            },
+            {
+              "idle": "!query.is_sitting && query.modified_move_speed <= 0.05"
+            }
+          ]
+        },
+        "sit": {
+          "blend_transition": 0.35,
+          "animations": [
+            {
+              "sit": "1.0"
+            },
+            {
+              "hair_flow": "1.0"
+            },
+            {
+              "look_at": "1.0"
+            }
+          ],
+          "transitions": [
+            {
+              "idle": "!query.is_sitting"
+            }
+          ]
+        }
+      }
+    },
+    "controller.animation.bodyguard_girl.attack": {
+      "initial_state": "default",
+      "states": {
+        "default": {
+          "blend_transition": 0.2,
+          "animations": [],
+          "transitions": [
+            {
+              "attack": "query.is_delayed_attacking"
+            }
+          ]
+        },
+        "attack": {
+          "blend_transition": 0.05,
+          "animations": [
+            {
+              "attack": "1.0"
+            }
+          ],
+          "particle_effects": [
+            {
+              "effect": "sakura"
+            }
+          ],
+          "transitions": [
+            {
+              "default": "query.all_animations_finished"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

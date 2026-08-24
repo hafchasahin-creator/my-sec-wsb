@@ -1,0 +1,14 @@
+## Sakura Bodyguard - English (US)
+
+pack.name=Sakura Bodyguard RP
+pack.description=Models, textures, animations and names for Aya, the Sakura Bodyguard.
+
+item.bg:sakura_katana=Sakura Katana
+item.bg:sakura_katana.name=Sakura Katana
+item.bg:sakura_charm=Sakura Charm
+item.bg:sakura_charm.name=Sakura Charm
+item.bg:onigiri=Onigiri
+item.bg:onigiri.name=Onigiri
+
+entity.bg:bodyguard_girl.name=Aya
+item.spawn_egg.entity.bg:bodyguard_girl.name=Spawn Aya

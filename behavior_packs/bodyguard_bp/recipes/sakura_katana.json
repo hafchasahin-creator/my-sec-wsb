@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bg:sakura_katana"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "  D",
+      " D ",
+      "S  "
+    ],
+    "key": {
+      "D": {
+        "item": "minecraft:diamond"
+      },
+      "S": {
+        "item": "minecraft:stick"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bg:sakura_katana",
+      "count": 1
+    }
+  }
+}

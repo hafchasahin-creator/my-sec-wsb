@@ -1,0 +1,15 @@
+{
+  "resource_pack_name": "bodyguard",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "sakura_katana": {
+      "textures": "textures/items/sakura_katana"
+    },
+    "sakura_charm": {
+      "textures": "textures/items/sakura_charm"
+    },
+    "onigiri": {
+      "textures": "textures/items/onigiri"
+    }
+  }
+}

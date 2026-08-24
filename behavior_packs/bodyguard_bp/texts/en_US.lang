@@ -1,0 +1,14 @@
+## Sakura Bodyguard - English (US)
+
+pack.name=Sakura Bodyguard BP
+pack.description=Aya, the Sakura Bodyguard - a katana companion who follows you and fights hostile mobs.
+
+item.bg:sakura_katana=Sakura Katana
+item.bg:sakura_katana.name=Sakura Katana
+item.bg:sakura_charm=Sakura Charm
+item.bg:sakura_charm.name=Sakura Charm
+item.bg:onigiri=Onigiri
+item.bg:onigiri.name=Onigiri
+
+entity.bg:bodyguard_girl.name=Aya
+item.spawn_egg.entity.bg:bodyguard_girl.name=Spawn Aya

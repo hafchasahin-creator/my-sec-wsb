@@ -1,0 +1,36 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Sakura Bodyguard RP",
+    "description": "Models, textures, animations and names for Aya, the Sakura Bodyguard. Resource Pack.",
+    "uuid": "9ceb725c-6940-406e-9505-34c85f30eb0c",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "6b1f9b26-da1c-4459-867b-4536ed35931f",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "Sakura Bodyguard"
+    ],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

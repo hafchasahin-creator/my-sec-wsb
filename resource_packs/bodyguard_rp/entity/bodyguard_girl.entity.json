@@ -1,0 +1,45 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "bg:bodyguard_girl",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "sakura": "textures/entity/bodyguard/sakura",
+        "midnight": "textures/entity/bodyguard/midnight",
+        "frost": "textures/entity/bodyguard/frost"
+      },
+      "geometry": {
+        "default": "geometry.bodyguard_girl"
+      },
+      "animations": {
+        "idle": "animation.bodyguard_girl.idle",
+        "walk": "animation.bodyguard_girl.walk",
+        "attack": "animation.bodyguard_girl.attack",
+        "sit": "animation.bodyguard_girl.sit",
+        "hair_flow": "animation.bodyguard_girl.hair_flow",
+        "look_at": "animation.bodyguard_girl.look_at",
+        "ctrl_general": "controller.animation.bodyguard_girl.general",
+        "ctrl_attack": "controller.animation.bodyguard_girl.attack"
+      },
+      "scripts": {
+        "animate": [
+          "ctrl_general",
+          "ctrl_attack"
+        ]
+      },
+      "particle_effects": {
+        "sakura": "bg:sakura_petal"
+      },
+      "render_controllers": [
+        "controller.render.bodyguard_girl"
+      ],
+      "spawn_egg": {
+        "base_color": "#F79AC0",
+        "overlay_color": "#7A1F3B"
+      }
+    }
+  }
+}
