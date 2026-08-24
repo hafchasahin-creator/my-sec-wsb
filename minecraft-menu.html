@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minecraft Main Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --px-font: 'Press Start 2P', 'Courier New', monospace;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; user-select:none; }
+  html,body{ width:100%; height:100%; overflow:hidden; background:#000; }
+  body{ font-family:var(--px-font); }
+
+  /* ---------- animated panorama background ---------- */
+  #panorama{
+    position:fixed; inset:0; width:100vw; height:100vh;
+    filter: blur(2px) brightness(.92);
+    transform: scale(1.03);
+  }
+  #vignette{
+    position:fixed; inset:0; pointer-events:none;
+    background:
+      linear-gradient(rgba(0,0,0,.28), rgba(0,0,0,0) 30%,
+                      rgba(0,0,0,0) 65%, rgba(0,0,0,.38));
+  }
+
+  /* ---------- layout ---------- */
+  #ui{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center;
+    animation: fadein .8s ease-out both;
+  }
+  @keyframes fadein{ from{opacity:0} to{opacity:1} }
+
+  #logoWrap{
+    position:relative;
+    margin-top:clamp(24px, 8vh, 80px);
+  }
+  #logo{
+    display:block;
+    width:min(90vw, 620px);
+    image-rendering:pixelated;
+    filter: drop-shadow(0 6px 0 rgba(0,0,0,.35));
+  }
+  #splash{
+    position:absolute;
+    right:-6%; bottom:-8%;
+    color:#ff0; font-size:clamp(9px, 1.6vw, 15px);
+    text-shadow:2px 2px 0 #3f3f00;
+    transform-origin:center;
+    animation: splash .45s ease-in-out infinite;
+    white-space:nowrap;
+    pointer-events:none;
+  }
+  @keyframes splash{
+    0%,100%{ transform:rotate(-18deg) scale(1); }
+    50%    { transform:rotate(-18deg) scale(1.09); }
+  }
+
+  #menu{
+    margin-top:clamp(24px, 6vh, 64px);
+    display:flex; flex-direction:column; gap:10px; align-items:center;
+  }
+  .row{ display:flex; gap:10px; }
+
+  /* ---------- classic MC buttons ---------- */
+  .btn{
+    font-family:var(--px-font);
+    font-size:13px; color:#fff;
+    text-shadow:2px 2px 0 rgba(0,0,0,.55);
+    width:min(404px, 88vw); height:42px;
+    border:2px solid #000;
+    background-color:#6f6f6f;
+    background-image:linear-gradient(rgba(255,255,255,.14), rgba(0,0,0,.14)), var(--btnTex, none);
+    background-size:auto, 48px 48px;
+    image-rendering:pixelated;
+    box-shadow:
+      inset  2px  2px 0 rgba(255,255,255,.42),
+      inset -2px -2px 0 rgba(0,0,0,.45);
+    cursor:pointer;
+  }
+  .btn:hover:not(:disabled){
+    background-color:#7a86c9;
+    color:#ffffa0;
+    box-shadow:
+      inset  2px  2px 0 rgba(255,255,255,.6),
+      inset -2px -2px 0 rgba(0,0,0,.5),
+      0 0 0 2px #fff;
+  }
+  .btn:active:not(:disabled){
+    box-shadow:
+      inset -2px -2px 0 rgba(255,255,255,.35),
+      inset  2px  2px 0 rgba(0,0,0,.45);
+  }
+  .btn:disabled{
+    color:#a0a0a0; cursor:default;
+    background-color:#4d4d4d;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.3);
+  }
+  .btn.half{ width:min(197px, 42.5vw); }
+  .btn.icon{
+    width:42px; padding:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .btn.icon canvas{ width:24px; height:24px; image-rendering:pixelated; }
+
+  /* ---------- corner texts ---------- */
+  .corner{
+    position:fixed; bottom:6px;
+    color:#fff; font-size:11px;
+    text-shadow:2px 2px 0 rgba(0,0,0,.6);
+  }
+  #verText{ left:8px; }
+  #copyText{ right:8px; }
+
+  /* ---------- options / quit overlays ---------- */
+  .overlay{
+    position:fixed; inset:0; z-index:10;
+    display:none; flex-direction:column; align-items:center;
+    background-color:#000;
+    background-image:linear-gradient(rgba(0,0,0,.62), rgba(0,0,0,.62)), var(--dirtTex, none);
+    background-size:auto, 64px 64px;
+    image-rendering:pixelated;
+  }
+  .overlay.open{ display:flex; animation:fadein .25s both; }
+  .overlay h2{
+    color:#fff; font-size:16px; font-weight:normal;
+    margin:clamp(24px, 8vh, 64px) 0 28px;
+    text-shadow:2px 2px 0 rgba(0,0,0,.6);
+  }
+  .optGrid{
+    display:grid; grid-template-columns:repeat(2, min(310px,44vw));
+    gap:10px 12px; justify-content:center;
+  }
+  .optGrid .btn{ width:100%; font-size:11px; }
+  #optDone{ margin-top:36px; width:min(404px,88vw); }
+
+  #quitOverlay{
+    background:#000; z-index:20;
+    justify-content:center; text-align:center; gap:18px;
+    cursor:pointer;
+  }
+  #quitOverlay h2{ margin:0; font-size:20px; }
+  #quitOverlay p{ color:#aaa; font-size:10px; }
+
+  /* ---------- toast ---------- */
+  #toast{
+    position:fixed; left:50%; bottom:14vh; transform:translateX(-50%);
+    background:rgba(0,0,0,.72); border:2px solid #555;
+    color:#ffffa0; font-size:11px; padding:12px 18px;
+    text-shadow:2px 2px 0 rgba(0,0,0,.6);
+    opacity:0; transition:opacity .25s; pointer-events:none;
+    z-index:30; white-space:nowrap;
+  }
+  #toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+
+<canvas id="panorama"></canvas>
+<div id="vignette"></div>
+
+<div id="ui">
+  <div id="logoWrap">
+    <canvas id="logo"></canvas>
+    <div id="splash"></div>
+  </div>
+
+  <div id="menu">
+    <button class="btn" data-act="sp">Singleplayer</button>
+    <button class="btn" data-act="mp">Multiplayer</button>
+    <button class="btn" disabled>Minecraft Realms</button>
+    <div class="row">
+      <button class="btn icon" data-act="lang" title="Language"><canvas id="globeIcon"></canvas></button>
+      <button class="btn half" data-act="options">Options...</button>
+      <button class="btn half" data-act="quit">Quit Game</button>
+      <button class="btn icon" data-act="a11y" title="Accessibility"><canvas id="a11yIcon"></canvas></button>
+    </div>
+  </div>
+</div>
+
+<div class="corner" id="verText">Minecraft 1.21 (HTML Edition)</div>
+<div class="corner" id="copyText">Copyright Mojang AB. Do not distribute!</div>
+
+<div class="overlay" id="optionsOverlay">
+  <h2>Options</h2>
+  <div class="optGrid">
+    <button class="btn" id="optMusic">Music: OFF</button>
+    <button class="btn" id="optDifficulty">Difficulty: Normal</button>
+    <button class="btn" id="optFov">FOV: Normal</button>
+    <button class="btn" id="optGraphics">Graphics: Fancy</button>
+  </div>
+  <button class="btn" id="optDone">Done</button>
+</div>
+
+<div class="overlay" id="quitOverlay">
+  <h2>Thanks for playing!</h2>
+  <p>(click anywhere to return to the menu)</p>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+/* =========================================================
+ * Procedural textures (no external assets)
+ * ========================================================= */
+function noiseTexture(size, base, spread){
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  const cell = 4;
+  for (let y = 0; y < size; y += cell){
+    for (let x = 0; x < size; x += cell){
+      const v = (Math.random() - 0.5) * 2 * spread;
+      g.fillStyle = `rgb(${base[0]+v|0},${base[1]+v|0},${base[2]+v|0})`;
+      g.fillRect(x, y, cell, cell);
+    }
+  }
+  return c.toDataURL();
+}
+document.documentElement.style.setProperty('--btnTex',
+  `url(${noiseTexture(48, [125,125,125], 18)})`);
+document.documentElement.style.setProperty('--dirtTex',
+  `url(${noiseTexture(64, [125, 88, 60], 26)})`);
+
+/* =========================================================
+ * Pixel logo: "MINECRAFT" drawn as extruded stone blocks
+ * ========================================================= */
+const GLYPHS = {
+  M:['10001','11011','10101','10001','10001','10001','10001'],
+  I:['111','010','010','010','010','010','111'],
+  N:['10001','11001','10101','10011','10001','10001','10001'],
+  E:['11111','10000','11110','10000','10000','10000','11111'],
+  C:['01111','10000','10000','10000','10000','10000','01111'],
+  R:['11110','10001','10001','11110','10100','10010','10001'],
+  A:['01110','10001','10001','11111','10001','10001','10001'],
+  F:['11111','10000','11110','10000','10000','10000','10000'],
+  T:['11111','00100','00100','00100','00100','00100','00100'],
+};
+function drawLogo(){
+  const word = 'MINECRAFT';
+  const s = 12;          // pixel cell size
+  const depth = 4;       // 3D extrusion offset
+  const gap = 1;         // columns between letters
+  let cols = 0;
+  for (const ch of word) cols += GLYPHS[ch][0].length + gap;
+  cols -= gap;
+
+  const cv = document.getElementById('logo');
+  cv.width  = cols * s + depth + 2;
+  cv.height = 7 * s + depth + 2;
+  const g = cv.getContext('2d');
+
+  // collect lit cells
+  const cells = [];
+  let xo = 0;
+  for (const ch of word){
+    const rows = GLYPHS[ch];
+    rows.forEach((row, ry) => {
+      for (let rx = 0; rx < row.length; rx++)
+        if (row[rx] === '1') cells.push([xo + rx, ry]);
+    });
+    xo += rows[0].length + gap;
+  }
+
+  // pass 1: dark extrusion (down-right)
+  g.fillStyle = '#2b2b2b';
+  for (const [cx, cy] of cells)
+    g.fillRect(cx*s + depth, cy*s + depth, s, s);
+
+  // pass 2: shaded stone faces
+  for (const [cx, cy] of cells){
+    const v = 140 + (Math.random()*46 | 0);
+    g.fillStyle = `rgb(${v},${v},${v})`;
+    g.fillRect(cx*s, cy*s, s, s);
+    g.fillStyle = 'rgba(255,255,255,.35)';           // top bevel
+    g.fillRect(cx*s, cy*s, s, 2);
+    g.fillStyle = 'rgba(0,0,0,.3)';                  // bottom bevel
+    g.fillRect(cx*s, cy*s + s - 2, s, 2);
+  }
+}
+drawLogo();
+
+/* =========================================================
+ * Splash text
+ * ========================================================= */
+const SPLASHES = [
+  'Also try Terraria!', '100% pure!', 'Now in HTML!', 'Single file edition!',
+  'Punching trees since 2009!', "Don't dig straight down!", 'Creepers gonna creep!',
+  '90% bug free!', 'As seen on TV!', 'Now with zero assets!', 'Made of <div>s!',
+  'Best viewed in fullscreen!', 'Water proof!', 'Undocumented!', 'Woo, Javascript!',
+  'Ultimate edition!', 'Not on steam!', 'Home-made!', 'Absolutely no memes!',
+];
+document.getElementById('splash').textContent =
+  SPLASHES[Math.random() * SPLASHES.length | 0];
+
+/* =========================================================
+ * Panorama: blocky looping landscape, slowly panning
+ * ========================================================= */
+const PAN_W = 3072, PAN_H = 768, BLOCK = 24;
+function hash(n){ // deterministic per-column jitter
+  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+function buildPanorama(){
+  const c = document.createElement('canvas');
+  c.width = PAN_W; c.height = PAN_H;
+  const g = c.getContext('2d');
+
+  // sky
+  const sky = g.createLinearGradient(0, 0, 0, PAN_H);
+  sky.addColorStop(0, '#6f9fff');
+  sky.addColorStop(0.7, '#a9c9ff');
+  sky.addColorStop(1, '#c8dcff');
+  g.fillStyle = sky;
+  g.fillRect(0, 0, PAN_W, PAN_H);
+
+  // sun
+  g.fillStyle = '#fdfbd3';
+  g.fillRect(PAN_W * 0.72, PAN_H * 0.10, BLOCK * 3, BLOCK * 3);
+
+  // blocky clouds
+  g.fillStyle = 'rgba(255,255,255,.85)';
+  for (let i = 0; i < 14; i++){
+    const cx = hash(i * 7 + 1) * (PAN_W - BLOCK * 10);
+    const cy = PAN_H * 0.08 + hash(i * 13 + 5) * PAN_H * 0.18;
+    const len = 4 + (hash(i * 29 + 3) * 6 | 0);
+    g.fillRect(cx, cy, len * BLOCK, BLOCK);
+    g.fillRect(cx + BLOCK, cy - BLOCK * 0.6, (len - 2) * BLOCK, BLOCK * 0.6);
+  }
+
+  // looping heightmap (integer-frequency sines => seamless wrap)
+  const nCols = PAN_W / BLOCK;
+  const heights = [];
+  for (let i = 0; i < nCols; i++){
+    const t = (i / nCols) * Math.PI * 2;
+    let h = PAN_H * 0.58
+      + Math.sin(t * 2) * 40 + Math.sin(t * 5 + 1.7) * 26
+      + Math.sin(t * 9 + 0.4) * 14 + (hash(i) - 0.5) * 10;
+    heights.push(Math.round(h / BLOCK) * BLOCK);
+  }
+  const waterLevel = PAN_H * 0.66;
+
+  for (let i = 0; i < nCols; i++){
+    const x = i * BLOCK, top = heights[i];
+    for (let y = top; y < PAN_H; y += BLOCK){
+      const j = (hash(i * 31 + y) - 0.5) * 22;
+      let col;
+      if (y === top)              col = [110 + j, 170 + j, 70 + j];   // grass
+      else if (y < top + BLOCK*3) col = [125 + j,  88 + j, 60 + j];   // dirt
+      else                        col = [118 + j, 118 + j, 118 + j];  // stone
+      g.fillStyle = `rgb(${col[0]|0},${col[1]|0},${col[2]|0})`;
+      g.fillRect(x, y, BLOCK, BLOCK);
+    }
+    // water fills valleys
+    if (top > waterLevel){
+      g.fillStyle = 'rgba(52,102,212,.82)';
+      g.fillRect(x, waterLevel, BLOCK, top - waterLevel);
+    }
+    // occasional tree (kept clear of the wrap seam)
+    if (i > 4 && i < nCols - 5 && top <= waterLevel && hash(i * 97 + 11) > 0.82){
+      const tx = x, ty = top;
+      g.fillStyle = '#6b4a2b';
+      g.fillRect(tx, ty - BLOCK * 3, BLOCK, BLOCK * 3);
+      g.fillStyle = '#3e7a2a';
+      g.fillRect(tx - BLOCK * 1.5, ty - BLOCK * 5.5, BLOCK * 4, BLOCK * 2.5);
+      g.fillRect(tx - BLOCK * 0.5, ty - BLOCK * 6.5, BLOCK * 2, BLOCK);
+    }
+  }
+  return c;
+}
+const pano = buildPanorama();
+const panoCv = document.getElementById('panorama');
+const panoCtx = panoCv.getContext('2d');
+function sizePano(){
+  panoCv.width = innerWidth;
+  panoCv.height = innerHeight;
+}
+addEventListener('resize', sizePano);
+sizePano();
+(function animate(t){
+  const scale = panoCv.height / PAN_H;
+  const w = PAN_W * scale;
+  const off = ((t || 0) * 0.018 * scale) % w;
+  for (let x = -off; x < panoCv.width; x += w)
+    panoCtx.drawImage(pano, x, 0, w, panoCv.height);
+  requestAnimationFrame(animate);
+})(0);
+
+/* =========================================================
+ * Pixel icons (globe / accessibility)
+ * ========================================================= */
+function drawIcon(id, rows){
+  const cv = document.getElementById(id);
+  cv.width = rows[0].length; cv.height = rows.length;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#fff';
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++)
+      if (row[x] === '1') g.fillRect(x, y, 1, 1);
+  });
+}
+drawIcon('globeIcon', [
+  '00111100','01000010','10011001','10100101',
+  '10100101','10011001','01000010','00111100',
+]);
+drawIcon('a11yIcon', [
+  '00011000','00011000','01111110','10011001',
+  '00011000','00100100','01000010','10000001',
+]);
+
+/* =========================================================
+ * Sounds (WebAudio: click + optional ambient pad)
+ * ========================================================= */
+let actx = null;
+function audio(){ return actx || (actx = new (window.AudioContext || window.webkitAudioContext)()); }
+function click(){
+  try{
+    const a = audio(), t = a.currentTime;
+    const o = a.createOscillator(), gn = a.createGain();
+    o.type = 'square'; o.frequency.setValueAtTime(320, t);
+    o.frequency.exponentialRampToValueAtTime(180, t + 0.05);
+    gn.gain.setValueAtTime(0.12, t);
+    gn.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+    o.connect(gn).connect(a.destination);
+    o.start(t); o.stop(t + 0.08);
+  }catch(e){ /* audio blocked; menu still works */ }
+}
+
+let musicOn = false, musicTimer = null, musicGain = null;
+const CHORDS = [[261.6,329.6,392.0],[220.0,261.6,329.6],[196.0,246.9,293.7],[174.6,220.0,261.6]];
+let chordIdx = 0;
+function playChord(){
+  const a = audio(), t = a.currentTime;
+  const notes = CHORDS[chordIdx++ % CHORDS.length];
+  for (const f of notes){
+    const o = a.createOscillator(), gn = a.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    gn.gain.setValueAtTime(0, t);
+    gn.gain.linearRampToValueAtTime(0.028, t + 1.2);
+    gn.gain.linearRampToValueAtTime(0, t + 5.5);
+    o.connect(gn).connect(musicGain);
+    o.start(t); o.stop(t + 5.6);
+  }
+}
+function setMusic(on){
+  musicOn = on;
+  const a = audio();
+  if (!musicGain){ musicGain = a.createGain(); musicGain.gain.value = 1; musicGain.connect(a.destination); }
+  if (on){ playChord(); musicTimer = setInterval(playChord, 5000); }
+  else if (musicTimer){ clearInterval(musicTimer); musicTimer = null; }
+}
+
+/* =========================================================
+ * Menu behavior
+ * ========================================================= */
+const toast = document.getElementById('toast');
+let toastTimer = null;
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+const optionsOverlay = document.getElementById('optionsOverlay');
+const quitOverlay = document.getElementById('quitOverlay');
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn');
+  if (!btn || btn.disabled) return;
+  click();
+  switch (btn.dataset.act){
+    case 'sp':      showToast('Singleplayer is not included in this demo!'); break;
+    case 'mp':      showToast('Multiplayer is not included in this demo!'); break;
+    case 'lang':    showToast('Language: English (US)'); break;
+    case 'a11y':    showToast('Accessibility settings coming soon!'); break;
+    case 'options': optionsOverlay.classList.add('open'); break;
+    case 'quit':    quitOverlay.classList.add('open'); break;
+  }
+});
+
+/* options screen */
+const cycles = {
+  optDifficulty: { label:'Difficulty', values:['Peaceful','Easy','Normal','Hard'], i:2 },
+  optFov:        { label:'FOV',        values:['70','80','90','Quake Pro'],       i:0 },
+  optGraphics:   { label:'Graphics',   values:['Fancy','Fast','Fabulous!'],       i:0 },
+};
+for (const [id, c] of Object.entries(cycles)){
+  const el = document.getElementById(id);
+  el.textContent = `${c.label}: ${c.values[c.i]}`;
+  el.addEventListener('click', () => {
+    c.i = (c.i + 1) % c.values.length;
+    el.textContent = `${c.label}: ${c.values[c.i]}`;
+  });
+}
+document.getElementById('optMusic').addEventListener('click', function(){
+  setMusic(!musicOn);
+  this.textContent = `Music: ${musicOn ? 'ON' : 'OFF'}`;
+});
+document.getElementById('optDone').addEventListener('click', () =>
+  optionsOverlay.classList.remove('open'));
+quitOverlay.addEventListener('click', () =>
+  quitOverlay.classList.remove('open'));
+</script>
+</body>
+</html>
