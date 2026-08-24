@@ -68,7 +68,7 @@ class SplashView(context: Context, private val onDone: () -> Unit) : BaseView(co
     }
 
     override fun drawBackground(c: Canvas) {
-        // fade from deep navy into the light theme as the logo forms
+        // resolve from deep navy into whatever the equipped skin's board is
         val k = ((t - 1.15f) / 0.75f).coerceIn(0f, 1f)
         val top = Palette.lerpColor(0xFF0B1230.toInt(), Palette.BG_TOP, Ease.inOut(k))
         val bot = Palette.lerpColor(0xFF141C3E.toInt(), Palette.BG_BOTTOM, Ease.inOut(k))
@@ -92,6 +92,22 @@ class SplashView(context: Context, private val onDone: () -> Unit) : BaseView(co
             drawStreak(c, cx, cy, unit, heroPts, Ease.inOut(heroT),
                 alpha = (255 * (1f - dissolve) * fadeIn).toInt(), width = unit * 0.026f,
                 headOn = true)
+        }
+
+        // --- board lattice resolving in behind the mark ---
+        val latticeT = ((t - 1.5f) / 0.7f).coerceIn(0f, 1f)
+        if (latticeT > 0f) {
+            val step = unit * 0.13f
+            val p = fillPaint(Palette.withAlpha(Palette.DOT, (latticeT * 210).toInt()))
+            var gx = cx - step * 3
+            while (gx <= cx + step * 3) {
+                var gy = cy - step * 3
+                while (gy <= cy + step * 3) {
+                    c.drawCircle(gx, gy, unit * 0.006f * latticeT, p)
+                    gy += step
+                }
+                gx += step
+            }
         }
 
         // --- companion paths ---

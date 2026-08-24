@@ -24,9 +24,11 @@ enum class Dir(val dx: Int, val dy: Int) {
 class ArrowPath(val id: Int, val pts: List<Pair<Int, Int>>) {
 
     val headDir: Dir
-    /** Every lattice point the path covers, encoded as (x shl 8) or y. */
+    /** Every lattice point the path covers, encoded by [key], tail first. */
     val covered: IntArray
     val coveredSet: HashSet<Int>
+    /** key -> index along the body (0 = tail). Used by the streaming rule. */
+    val coveredIndex: HashMap<Int, Int>
     /** Number of unit cells the path spans (covered points - 1). */
     val bodyLen: Int get() = covered.size - 1
 
@@ -62,12 +64,16 @@ class ArrowPath(val id: Int, val pts: List<Pair<Int, Int>>) {
         covered = cov.toIntArray()
         coveredSet = HashSet(cov)
         require(coveredSet.size == covered.size) { "arrow $id overlaps itself" }
+        coveredIndex = HashMap(cov.size * 2)
+        for (i in cov.indices) coveredIndex[cov[i]] = i
     }
 
     val head: Pair<Int, Int> get() = pts.last()
     val tail: Pair<Int, Int> get() = pts.first()
 
     companion object {
-        fun key(x: Int, y: Int): Int = (x shl 8) or y
+        /** Packs a lattice point into an int. Offset keeps negative
+         *  coordinates (an exit ray leaving the board) from aliasing. */
+        fun key(x: Int, y: Int): Int = ((x + 64) shl 9) or (y + 64)
     }
 }

@@ -37,12 +37,15 @@ class MainActivity : Activity() {
         progress = Progress(this)
         sound = SoundManager(this, settings)
         haptics = Haptics(this, settings)
+        // restore the equipped skin before any view paints
+        com.veergames.veer.ui.Skins.equip(com.veergames.veer.ui.Skins.byId(settings.skinId))
 
         root = FrameLayout(this)
         root.setBackgroundColor(Palette.BG_TOP)
         setContentView(root)
         goFullscreen()
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // hardware volume keys should move the game's own volume
+        volumeControlStream = android.media.AudioManager.STREAM_MUSIC
 
         show(SplashView(this) { showMenu() }, fade = false)
     }
@@ -91,12 +94,35 @@ class MainActivity : Activity() {
 
     fun showMenu() {
         sound.updateMusic()
+        keepAwake(false)
         show(MenuView(this))
     }
 
-    fun showLevelSelect() = show(LevelSelectView(this))
+    fun showLevelSelect() {
+        keepAwake(false)
+        show(LevelSelectView(this))
+    }
 
-    fun showLevel(levelNum: Int) = show(GameView(this, levelNum))
+    /** The screen only has to stay awake while a puzzle is on it. */
+    private fun keepAwake(on: Boolean) {
+        if (on) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    fun showSkins() = show(com.veergames.veer.ui.SkinsView(this))
+
+    /** Equip a skin, persist it, and repaint everything that cached colours. */
+    fun applySkin(skin: com.veergames.veer.ui.Skin) {
+        com.veergames.veer.ui.Skins.equip(skin)
+        settings.skinId = skin.id
+        root.setBackgroundColor(com.veergames.veer.ui.Palette.BG_TOP)
+        current?.invalidate()
+    }
+
+    fun showLevel(levelNum: Int) {
+        keepAwake(true)
+        show(GameView(this, levelNum))
+    }
 
     override fun onPause() {
         super.onPause()
@@ -121,6 +147,8 @@ class MainActivity : Activity() {
             c is GameView && c.handleBack() -> Unit
             c is GameView -> showLevelSelect()
             c is LevelSelectView -> showMenu()
+            c is com.veergames.veer.ui.SkinsView -> showMenu()
+            c is MenuView && c.handleBack() -> Unit
             c is MenuView -> @Suppress("DEPRECATION") super.onBackPressed()
             else -> Unit
         }

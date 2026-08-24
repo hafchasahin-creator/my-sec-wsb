@@ -7,6 +7,7 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.view.MotionEvent
 import com.veergames.veer.core.Levels
+import kotlin.math.max
 import kotlin.math.min
 
 /**
@@ -17,9 +18,10 @@ class MenuView(context: Context) : BaseView(context) {
 
     private val btnPlay = UiButton("play")
     private val btnLevels = UiButton("levels")
+    private val btnSkins = UiButton("skins")
     private val btnDaily = UiButton("daily").apply { enabled = false }
     private val btnSettings = UiButton("settings")
-    private val buttons = listOf(btnPlay, btnLevels, btnDaily, btnSettings)
+    private val buttons = listOf(btnPlay, btnLevels, btnSkins, btnDaily, btnSettings)
 
     private var settingsOpen = false
     private var settingsT = 0f
@@ -34,15 +36,17 @@ class MenuView(context: Context) : BaseView(context) {
     private var enterT = 0f
     private val bg = BackgroundArrows()
 
-    init { startAnim() }
+    init { ambient = true; startAnim() }
 
     override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
         super.onSizeChanged(w, h, ow, oh)
         val bw = min(w * 0.74f, dp(320f))
-        val bh = dp(62f)
-        val gap = dp(14f)
-        var y = h * 0.50f
-        for (b in listOf(btnPlay, btnLevels, btnDaily, btnSettings)) {
+        val bh = dp(58f)
+        val gap = dp(11f)
+        // keep the whole stack inside the lower half, whatever the aspect ratio
+        val stackH = bh * 5 + gap * 4
+        var y = max(h * 0.47f, min(h * 0.52f, h - insetBottom - dp(56f) - stackH))
+        for (b in listOf(btnPlay, btnLevels, btnSkins, btnDaily, btnSettings)) {
             b.rect.set((w - bw) / 2f, y, (w + bw) / 2f, y + bh)
             y += bh + gap
         }
@@ -61,6 +65,12 @@ class MenuView(context: Context) : BaseView(context) {
     }
 
     private fun active(): List<UiButton> = if (settingsOpen) settingsButtons else buttons
+
+    /** Back closes the settings sheet before it leaves the menu. */
+    fun handleBack(): Boolean {
+        if (settingsOpen) { settingsOpen = false; settingsT = 0f; startAnim(); return true }
+        return false
+    }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val x = event.x; val y = event.y
@@ -88,6 +98,7 @@ class MenuView(context: Context) : BaseView(context) {
         when (b.id) {
             "play" -> act.showLevel(act.progress.unlockedUpTo())
             "levels" -> act.showLevelSelect()
+            "skins" -> act.showSkins()
             "settings" -> { settingsOpen = true; settingsT = 0f }
             "close" -> { settingsOpen = false; settingsT = 0f }
             "sound" -> act.settings.sound = !act.settings.sound
@@ -100,11 +111,13 @@ class MenuView(context: Context) : BaseView(context) {
 
     override fun step(dt: Float): Boolean {
         time += dt
-        enterT = min(1f, enterT + dt * 1.8f)
-        settingsT = min(1f, settingsT + dt * 3.4f)
-        for (b in buttons + settingsButtons) b.step(dt)
-        bg.step(dt)
-        return true // continuous ambient motion
+        var busy = false
+        if (enterT < 1f) { enterT = min(1f, enterT + dt * 1.8f); busy = true }
+        if (settingsT < 1f) { settingsT = min(1f, settingsT + dt * 3.4f); busy = true }
+        for (b in buttons + settingsButtons) if (b.step(dt)) busy = true
+        if (bg.step(dt)) busy = true
+        // the logo breathes, so keep a slow heartbeat rather than a 60 Hz spin
+        return busy
     }
 
     override fun render(c: Canvas) {
@@ -127,22 +140,52 @@ class MenuView(context: Context) : BaseView(context) {
         drawPillButton(c, btnPlay,
             if (done == 0) "PLAY" else "CONTINUE  ·  LEVEL ${act.progress.unlockedUpTo()}",
             dp(17f), true)
-        drawPillButton(c, btnLevels, "LEVEL SELECT", dp(16f), false)
+        drawPillButton(c, btnLevels, "LEVEL SELECT", dp(15f), false)
+        drawSkinsButton(c)
         drawDailyButton(c)
-        drawPillButton(c, btnSettings, "SETTINGS", dp(16f), false)
+        drawPillButton(c, btnSettings, "SETTINGS", dp(15f), false)
 
         drawText(c, "$done / ${Levels.all.size} levels cleared", cx,
-            btnSettings.rect.bottom + dp(34f), dp(12.5f), Palette.TEXT_DIM, Fonts.medium)
+            btnSettings.rect.bottom + dp(28f), dp(12f), Palette.TEXT_DIM, Fonts.medium)
 
         if (settingsOpen) drawSettings(c)
     }
 
+    /** SKINS row carries a swatch of the equipped skin so it reads at a glance. */
+    private fun drawSkinsButton(c: Canvas) {
+        val r = RectF(btnSkins.rect)
+        c.save()
+        c.scale(btnSkins.scale, btnSkins.scale, r.centerX(), r.centerY())
+        drawCard(c, r, r.height() / 2f, Palette.CARD, Palette.CARD_EDGE, 18)
+        val skin = Skins.equipped
+        val sw = r.height() * 0.42f
+        val sx = r.left + dp(26f)
+        paint.reset(); paint.isAntiAlias = true
+        paint.shader = android.graphics.LinearGradient(sx - sw / 2, r.centerY() - sw / 2,
+            sx + sw / 2, r.centerY() + sw / 2, skin.inkTail, skin.inkHead,
+            android.graphics.Shader.TileMode.CLAMP)
+        c.drawCircle(sx, r.centerY(), sw / 2, paint)
+        paint.shader = null
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = dp(1.6f)
+        paint.color = Palette.CARD_EDGE
+        c.drawCircle(sx, r.centerY(), sw / 2, paint)
+        paint.style = Paint.Style.FILL
+        val p = textPaint(dp(15f), Palette.TEXT, Fonts.black)
+        p.letterSpacing = 0.06f
+        c.drawText("SKINS", r.centerX() + dp(10f), r.centerY() + dp(5.4f), p)
+        drawText(c, skin.displayName.uppercase(), r.right - dp(24f), r.centerY() + dp(4.6f),
+            dp(11f), Palette.ACCENT, Fonts.bold, Paint.Align.RIGHT, letterSpacing = 0.1f)
+        c.restore()
+    }
+
     private fun drawDailyButton(c: Canvas) {
         val r = RectF(btnDaily.rect)
-        drawCard(c, r, r.height() / 2f, 0xFFF3F6FD.toInt(), Palette.CARD_EDGE, 0)
-        drawText(c, "DAILY CHALLENGE", r.centerX(), r.centerY() - dp(2f), dp(15f),
+        drawCard(c, r, r.height() / 2f, Palette.withAlpha(Palette.CARD, 150),
+            Palette.CARD_EDGE, 0)
+        drawText(c, "DAILY CHALLENGE", r.centerX(), r.centerY() - dp(1f), dp(14f),
             Palette.TEXT_DIM, Fonts.black, letterSpacing = 0.05f)
-        drawText(c, "COMING SOON", r.centerX(), r.centerY() + dp(15f), dp(10f),
+        drawText(c, "COMING SOON", r.centerX(), r.centerY() + dp(14f), dp(9.5f),
             Palette.withAlpha(Palette.ACCENT, 200), Fonts.bold, letterSpacing = 0.18f)
     }
 
@@ -200,7 +243,10 @@ class BackgroundArrows {
         var x: Float, var y: Float, val dirX: Float, val dirY: Float,
         val len: Float, val speed: Float, val bend: Float, val thickness: Float,
         val alpha: Int,
-    )
+    ) {
+        val corner: android.graphics.CornerPathEffect =
+            android.graphics.CornerPathEffect(thickness * 2.4f)
+    }
 
     private val streaks = ArrayList<Streak>()
     private val path = Path()
@@ -229,16 +275,25 @@ class BackgroundArrows {
         }
     }
 
-    fun step(dt: Float) {
+    private var acc = 0f
+
+    /** Returns true when the ambient drift actually moved. Stepping at 30 Hz
+     *  is indistinguishable at these speeds and halves the repaint cost. */
+    fun step(dt: Float): Boolean {
+        acc += dt
+        if (acc < 1f / 30f) return false
+        val step = acc
+        acc = 0f
         for (s in streaks) {
-            s.x += s.dirX * s.speed * dt * 60f * 0.1f
-            s.y += s.dirY * s.speed * dt * 60f * 0.1f
+            s.x += s.dirX * s.speed * step * 60f * 0.1f
+            s.y += s.dirY * s.speed * step * 60f * 0.1f
             val m = s.len * 2f
             if (s.x < -m) s.x = w + m
             if (s.x > w + m) s.x = -m
             if (s.y < -m) s.y = h + m
             if (s.y > h + m) s.y = -m
         }
+        return true
     }
 
     fun draw(c: Canvas, paint: Paint) {
@@ -259,7 +314,7 @@ class BackgroundArrows {
                 path.lineTo(s.x, s.y + s.dirY * half * 0.45f)
                 path.lineTo(s.x + s.bend * half * 0.6f, s.y + s.dirY * half * 0.45f)
             }
-            paint.pathEffect = android.graphics.CornerPathEffect(s.thickness * 2.4f)
+            paint.pathEffect = s.corner
             paint.strokeWidth = s.thickness
             paint.color = Palette.withAlpha(Palette.INK, s.alpha)
             c.drawPath(path, paint)

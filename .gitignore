@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+
+# VeerPath: generated build output (kotlinc classes, intermediate APKs,
+# preview renders) - not source, not the shippable artifact.
+veer/build/

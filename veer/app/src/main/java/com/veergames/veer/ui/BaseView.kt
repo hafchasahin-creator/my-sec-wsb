@@ -23,10 +23,20 @@ abstract class BaseView(context: Context) : View(context) {
     private var bgShader: Shader? = null
     private var bgW = 0
     private var bgH = 0
+    private var bgSkinVersion = -1
 
     /** Safe-area insets in px, filled on layout. */
     protected var insetTop = 0f
     protected var insetBottom = 0f
+
+    /**
+     * Screens with slow ambient motion set this: when [step] reports nothing
+     * urgent, the view keeps ticking at ~30 Hz instead of stopping. Halves
+     * the cost of a menu the player is just looking at, without freezing the
+     * background drift.
+     */
+    protected var ambient = false
+    private var pendingTick = false
 
     init {
         isClickable = true
@@ -46,7 +56,10 @@ abstract class BaseView(context: Context) : View(context) {
             @Suppress("DEPRECATION")
             insetBottom = insets.systemWindowInsetBottom.toFloat()
         }
-        requestLayout()
+        // insets can arrive after the first size pass, and the size may not
+        // change - re-run our own layout explicitly so cutouts are respected
+        if (width > 0 && height > 0) onSizeChanged(width, height, width, height)
+        startAnim()
         return insets
     }
 
@@ -69,12 +82,20 @@ abstract class BaseView(context: Context) : View(context) {
         val more = step(dt)
         drawBackground(canvas)
         render(canvas)
-        if (more) postInvalidateOnAnimation() else { running = false; lastFrameNs = 0L }
+        when {
+            more -> postInvalidateOnAnimation()
+            ambient -> if (!pendingTick) {
+                pendingTick = true
+                postDelayed({ pendingTick = false; invalidate() }, 33L)
+            }
+            else -> { running = false; lastFrameNs = 0L }
+        }
     }
 
     protected open fun drawBackground(c: Canvas) {
-        if (bgShader == null || bgW != width || bgH != height) {
-            bgW = width; bgH = height
+        if (bgShader == null || bgW != width || bgH != height ||
+            bgSkinVersion != Skins.version) {
+            bgW = width; bgH = height; bgSkinVersion = Skins.version
             bgShader = LinearGradient(0f, 0f, 0f, height.toFloat(),
                 Palette.BG_TOP, Palette.BG_BOTTOM, Shader.TileMode.CLAMP)
         }

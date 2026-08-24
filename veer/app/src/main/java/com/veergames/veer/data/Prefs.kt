@@ -18,6 +18,12 @@ class Settings(context: Context) {
     var haptics: Boolean
         get() = p.getBoolean("haptics", true)
         set(v) = p.edit().putBoolean("haptics", v).apply()
+
+    /** Equipped arrow skin id; resolved through Skins.byId so a stale or
+     *  unknown value falls back to Classic instead of crashing. */
+    var skinId: String
+        get() = p.getString("skin", "classic") ?: "classic"
+        set(v) = p.edit().putString("skin", v).apply()
 }
 
 /** Local level progress: stars, best times, unlocks, tutorial flag. */
@@ -27,7 +33,22 @@ class Progress(context: Context) {
 
     val levelCount: Int get() = Levels.all.size
 
-    fun stars(level: Int): Int = p.getInt("stars_$level", 0)
+    // level select reads these every frame; SharedPreferences is synchronized
+    // and allocates, so keep a small cache and invalidate it on write
+    private val starCache = IntArray(levelCount + 2) { -1 }
+
+    fun stars(level: Int): Int {
+        if (level in 1..levelCount) {
+            val c = starCache[level]
+            if (c >= 0) return c
+            val v = p.getInt("stars_$level", 0)
+            starCache[level] = v
+            return v
+        }
+        return p.getInt("stars_$level", 0)
+    }
+
+    val totalStars: Int get() = (1..levelCount).sumOf { stars(it) }
     fun bestTimeMs(level: Int): Long = p.getLong("time_$level", 0L)
 
     /** Highest playable level number (1-based). */
@@ -51,7 +72,13 @@ class Progress(context: Context) {
         val best = bestTimeMs(level)
         if (best == 0L || timeMs < best) e.putLong("time_$level", timeMs)
         e.apply()
+        // invalidate after the write, or the cache would refill with the
+        // value we just replaced
+        if (level in starCache.indices) starCache[level] = -1
     }
 
-    fun resetAll() = p.edit().clear().apply()
+    fun resetAll() {
+        for (i in starCache.indices) starCache[i] = -1
+        p.edit().clear().apply()
+    }
 }

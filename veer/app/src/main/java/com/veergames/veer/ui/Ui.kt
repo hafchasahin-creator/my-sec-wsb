@@ -18,27 +18,25 @@ import kotlin.math.sin
  * blocked. Colour is used sparingly so the puzzle reads instantly.
  */
 object Palette {
-    const val BG_TOP = 0xFFFFFFFF.toInt()
-    const val BG_BOTTOM = 0xFFF2F5FC.toInt()
-    const val CARD = 0xFFFFFFFF.toInt()
-    const val CARD_EDGE = 0xFFE2E8F6.toInt()
-    const val DOT = 0xFFCDD6EA.toInt()
-    const val TEXT = 0xFF1B2547.toInt()
-    const val TEXT_DIM = 0xFF7C89AC.toInt()
-    const val ACCENT = 0xFF2E7BF6.toInt()          // azure - selection / primary
-    const val ACCENT2 = 0xFF16C79A.toInt()         // mint - success
-    const val ACCENT3 = 0xFF6C5CE7.toInt()         // indigo - logo accent
+    // written by Skins.equip(); defaults are the Classic skin
+    @JvmField var BG_TOP = 0xFFFFFFFF.toInt()
+    @JvmField var BG_BOTTOM = 0xFFF2F5FC.toInt()
+    @JvmField var CARD = 0xFFFFFFFF.toInt()
+    @JvmField var CARD_EDGE = 0xFFE2E8F6.toInt()
+    @JvmField var DOT = 0xFFCDD6EA.toInt()
+    @JvmField var TEXT = 0xFF1B2547.toInt()
+    @JvmField var TEXT_DIM = 0xFF7C89AC.toInt()
+    @JvmField var ACCENT = 0xFF2E7BF6.toInt()      // azure - selection / primary
+    @JvmField var ACCENT2 = 0xFF16C79A.toInt()     // mint - success
+    @JvmField var ACCENT3 = 0xFF6C5CE7.toInt()     // indigo - logo accent
+    @JvmField var HEART_EMPTY = 0xFFD8DFEF.toInt()
+    @JvmField var INK = 0xFF16204A.toInt()
+    @JvmField var INK_LIGHT = 0xFF25325F.toInt()
+
     const val HEART = 0xFFFF4D6D.toInt()
-    const val HEART_EMPTY = 0xFFD8DFEF.toInt()
     const val GOLD = 0xFFFFB020.toInt()
     const val DANGER = 0xFFFF3B4E.toInt()
-
-    /** Arrow ink: deep navy with a subtle top-to-bottom lift. */
-    const val INK = 0xFF16204A.toInt()
-    const val INK_LIGHT = 0xFF25325F.toInt()
     const val INK_SHADOW = 0x2A16204A
-
-    val ARROWS = arrayOf(intArrayOf(INK_LIGHT, INK))
 
     /** Celebration-only colours (confetti, stars) - never used on the board. */
     val FESTIVE = intArrayOf(
@@ -46,7 +44,8 @@ object Palette {
         0xFFFF4D6D.toInt(), 0xFF6C5CE7.toInt(), 0xFF00C2D1.toInt(),
     )
 
-    fun arrowColors(index: Int): IntArray = ARROWS[index % ARROWS.size]
+    /** A muted card fill for disabled/locked surfaces on any skin. */
+    fun chipDim(): Int = lerpColor(CARD, BG_BOTTOM, 0.55f)
 
     fun withAlpha(color: Int, alpha: Int): Int =
         (color and 0x00FFFFFF) or (alpha.coerceIn(0, 255) shl 24)
@@ -72,6 +71,9 @@ object Ease {
     fun outCubic(t: Float): Float { val u = 1 - t.coerceIn(0f, 1f); return 1 - u * u * u }
     fun inCubic(t: Float): Float { val u = t.coerceIn(0f, 1f); return u * u * u }
     fun inOut(t: Float): Float { val u = t.coerceIn(0f, 1f); return u * u * (3 - 2 * u) }
+    /** Escape curve: moves on frame one, then accelerates out. */
+    fun launch(t: Float): Float { val u = t.coerceIn(0f, 1f); return 0.55f * u + 0.45f * u * u }
+
     fun outBack(t: Float): Float {
         val u = t.coerceIn(0f, 1f) - 1f
         val s = 1.70158f
@@ -87,9 +89,12 @@ class UiButton(val id: String) {
     var pressAnim = 0f // 0 rest .. 1 fully pressed
     var enabled = true
 
+    /** Touch slop in px, set per screen from dp. */
+    var touchPad = 24f
+
     fun contains(x: Float, y: Float): Boolean {
         if (!enabled) return false
-        val pad = 12f
+        val pad = touchPad
         return x >= rect.left - pad && x <= rect.right + pad &&
             y >= rect.top - pad && y <= rect.bottom + pad
     }

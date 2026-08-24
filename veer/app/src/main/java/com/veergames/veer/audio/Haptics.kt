@@ -38,10 +38,19 @@ class Haptics(context: Context, private val settings: Settings) {
         } catch (_: Throwable) {}
     }
 
-    fun buttonTick() = oneShot(8, 60)
-    fun launch() = oneShot(14, 120)
-    fun escapeDone() = oneShot(10, 70)
-    fun blocked() = waveform(longArrayOf(0, 24, 50, 34), intArrayOf(0, 180, 0, 220))
+    // 12 ms is roughly the floor at which an LRA reaches steady state, so
+    // nothing shorter than that is worth sending
+    fun buttonTick() = oneShot(12, 90)
+    fun launch() = oneShot(16, 130)
+
+    /** Reward ramps with the combo, matching the pitch ladder. */
+    fun escapeDone(combo: Int = 0) =
+        oneShot(14, (90 + 14 * combo.coerceIn(0, 8)))
+
+    /** One waveform for the whole lunge-impact-settle beat: a second call
+     *  would cancel this one, since the vibrator only runs one effect. */
+    fun blocked() = waveform(
+        longArrayOf(0, 34, 8, 26, 70, 14), intArrayOf(0, 80, 0, 255, 0, 70))
     fun win() = waveform(longArrayOf(0, 16, 70, 16, 70, 30), intArrayOf(0, 120, 0, 150, 0, 220))
     fun heartLost() = oneShot(24, 200)
 }
