@@ -287,6 +287,27 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.5;color:#7f93a8;
   word-break:break-word;
 }
+/* Dropped to automatically when the preview cannot hold a smooth frame rate.
+   backdrop-filter over live video is the single most expensive thing here on
+   mobile GPUs, so the blurs, the masked grid and the heavy vignette go first -
+   the layout and colours stay identical. */
+body.perf-lite .chip,
+body.perf-lite #status,
+body.perf-lite .btn,
+body.perf-lite #toast{-webkit-backdrop-filter:none !important;backdrop-filter:none !important;}
+body.perf-lite .chip{background:rgba(7,11,17,.88);}
+body.perf-lite .chip.live{background:rgba(8,26,26,.88);}
+body.perf-lite #status{background:rgba(5,9,14,.85);}
+body.perf-lite .btn{background:rgba(10,15,22,.88);}
+body.perf-lite .btn.on{background:rgba(9,42,40,.92);}
+body.perf-lite #toast{background:rgba(6,10,15,.94);}
+body.perf-lite .fx-grid{display:none;}
+body.perf-lite .reticle{display:none;}
+body.perf-lite .fx-vignette{
+  background:linear-gradient(to bottom,rgba(2,5,9,.72) 0%,transparent 20%,transparent 70%,rgba(2,5,9,.80) 100%);
+}
+body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
+
 .reduced-motion *{animation-duration:.001s !important;}
 @media (prefers-reduced-motion:reduce){
   #app,.chip,#status,.dock,.card > *{animation-duration:.001s !important;}
@@ -424,7 +445,8 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
 
   var MAX_BOXES      = 20;    // upper bound on simultaneous detections
   var MIN_SCORE      = 0.34;  // model-side score cutoff
-  var MAX_AI_FPS     = 14;    // hard ceiling on inference rate
+  var MAX_AI_FPS     = 12;    // hard ceiling on inference rate
+  var MODEL_INPUT    = 300;   // the SSD graph resizes to 300x300 regardless
   var IOU_MATCH      = 0.18;  // track <-> detection association threshold
   var MAX_MISSES     = 2;     // detection cycles before a track is stale
   var STALE_MS       = 550;   // hard time-to-live without a fresh hit
@@ -432,9 +454,7 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
   var FADE_IN_TAU    = 85;    // ms
   var FADE_OUT_TAU   = 62;    // ms
   var CONFIRM_SCORE  = 0.55;  // instantly trust detections above this
-  var INFER_MIN      = 256;   // adaptive inference long-side bounds
-  var INFER_MAX      = 448;
-  var INFER_START    = 320;
+  var QUIET_HINT_MS  = 8000;  // how long to scan before admitting nothing is found
 
   /* ---------------------------------------------------------------
      DOM
@@ -487,9 +507,11 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
     tracks: [],
     nextId: 1,
     inferMs: 0,
-    inferLong: INFER_START,
-    lastAdapt: 0,
     aiRate: 0,
+    lastHit: 0,
+    hintShown: false,
+    fpsAvg: 0,
+    lite: false,
     fps: 0,
     visibleCount: 0
   };
@@ -501,6 +523,7 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
   // predictions arrive in true (sensor-oriented) video coordinates.
   var work = document.createElement('canvas');
   var wctx = work.getContext('2d', { alpha: false, desynchronized: true });
+  var pad = { ox: 0, oy: 0, iw: 1, ih: 1 };   // letterbox insets inside `work`
 
   /* ---------------------------------------------------------------
      Small helpers
@@ -645,8 +668,13 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
 
       S.model = model;
       S.modelState = 'ready';
-      if (S.backend === 'cpu') {
-        toast('GPU unavailable — running in slow compatibility mode.', 4200);
+      S.lastHit = now();
+      if (S.backend === 'webgl') {
+        toast('AI ready \u00b7 GPU accelerated', 1900);
+      } else if (S.backend === 'wasm') {
+        toast('AI ready \u00b7 no GPU, using WebAssembly', 3600);
+      } else {
+        toast('AI ready \u00b7 no GPU, running slowly', 4600);
       }
       return model;
     })();
@@ -954,6 +982,10 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
       }
 
       S.tracks.length = 0;
+      S.lastHit = now();
+      S.hintShown = false;
+      S.fpsAvg = 0;
+      liteSince = performance.now();   // give the camera time to settle first
       S.running = true;
       body.classList.add('live');
       hideError();
@@ -1080,9 +1112,15 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
      --------------------------------------------------------------- */
   // Feed the model exactly the region the preview shows, i.e. the same centred
   // crop `object-fit: cover` applies. That keeps the object count honest (no
-  // labels for things scrolled off the edges), spends the inference budget on
-  // visible pixels only, and makes work-canvas coordinates map straight onto
-  // the viewport.
+  // labels for things scrolled off the edges) and spends the inference budget
+  // on visible pixels only.
+  //
+  // The crop is letterboxed into a square rather than stretched to fill it. A
+  // portrait crop squeezed into the model's square input distorts every shape
+  // by more than 2x; measured against the real model that cost noticeable
+  // confidence (0.96 -> 1.00 on the same object once letterboxed). The square
+  // is the model's own 300x300 input size, so nothing is resized twice and
+  // larger inputs would buy nothing.
   function prepareInput() {
     if (viewW < 2 || viewH < 2) resize();      // never crop against a stale size
     var vw = video.videoWidth, vh = video.videoHeight;
@@ -1092,22 +1130,29 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
     var sx = (vw - sw) / 2;
     var sy = (vh - sh) / 2;
 
-    var k = Math.min(1, S.inferLong / Math.max(sw, sh));
-    var w = Math.max(64, Math.round(sw * k));
-    var h = Math.max(64, Math.round(sh * k));
-    if (work.width !== w || work.height !== h) { work.width = w; work.height = h; }
-    wctx.drawImage(video, sx, sy, sw, sh, 0, 0, w, h);   // never mirrored
+    var side = MODEL_INPUT;
+    if (work.width !== side || work.height !== side) { work.width = work.height = side; }
+
+    var k = Math.min(side / sw, side / sh);
+    var iw = Math.max(1, Math.round(sw * k));
+    var ih = Math.max(1, Math.round(sh * k));
+    pad.ox = Math.round((side - iw) / 2);
+    pad.oy = Math.round((side - ih) / 2);
+    pad.iw = iw; pad.ih = ih;
+
+    wctx.fillStyle = '#000';
+    wctx.fillRect(0, 0, side, side);
+    wctx.drawImage(video, sx, sy, sw, sh, pad.ox, pad.oy, iw, ih);   // never mirrored
     return work;
   }
 
-  function adaptQuality(t) {
-    if (t - S.lastAdapt < 1600) return;
-    var before = S.inferLong;
-    if (S.inferMs > 230)      S.inferLong = INFER_MIN;
-    else if (S.inferMs > 130) S.inferLong = Math.min(S.inferLong, 320);
-    else if (S.inferMs < 48)  S.inferLong = Math.min(INFER_MAX, S.inferLong + 64);
-    S.inferLong = clamp(S.inferLong, INFER_MIN, INFER_MAX);
-    if (S.inferLong !== before) S.lastAdapt = t;
+  // Inference and rendering share one thread, so the honest signal for "am I
+  // starving the preview" is the measured render rate. Back off until the
+  // camera is smooth again rather than chasing a fixed inference rate.
+  function idleGap() {
+    var duty = S.fps > 0 && S.fps < 24 ? 3.4 : (S.fps < 42 ? 2.4 : 1.7);
+    var period = Math.max(1000 / MAX_AI_FPS, S.inferMs * duty);
+    return clamp(period - S.inferMs, 16, 500);
   }
 
   var aiWindow = [];
@@ -1151,12 +1196,7 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
         S.inferMs = S.inferMs ? (S.inferMs * 0.7 + (t1 - t0) * 0.3) : (t1 - t0);
         noteInference(t1);
         ingest(preds, t1);
-        adaptQuality(t1);
-
-        // Duty-cycle throttle: leave the main thread and GPU room to
-        // keep the *video* smooth rather than inferring every frame.
-        var period = Math.max(1000 / MAX_AI_FPS, S.inferMs * 1.5);
-        await sleep(clamp(period - S.inferMs, 16, 400));
+        await sleep(idleGap());
       }
     } finally {
       S.inferBusy = false;
@@ -1176,14 +1216,15 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
   }
 
   function ingest(preds, t) {
-    var iw = work.width, ih = work.height;
     var mirror = S.mirrored;
     var dets = [];
 
     for (var i = 0; i < preds.length; i++) {
       var p = preds[i];
       var bb = p.bbox;
-      var nx = bb[0] / iw, ny = bb[1] / ih, nw = bb[2] / iw, nh = bb[3] / ih;
+      // strip the letterbox padding, leaving a fraction of the visible preview
+      var nx = (bb[0] - pad.ox) / pad.iw, ny = (bb[1] - pad.oy) / pad.ih;
+      var nw = bb[2] / pad.iw, nh = bb[3] / pad.ih;
 
       // clamp to the frame before mirroring so the flip stays symmetric
       if (nx < 0) { nw += nx; nx = 0; }
@@ -1497,8 +1538,19 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
     if (S.modelState === 'failed')  { setStatus('AI unavailable', 'bad'); return; }
     if (S.modelState !== 'ready')   { setStatus('Preparing...'); return; }
 
-    if (c === 0) setStatus('Scanning...');
-    else setStatus(c + (c === 1 ? ' object detected' : ' objects detected'));
+    if (c > 0) {
+      S.lastHit = t;
+      S.hintShown = false;
+      setStatus(c + (c === 1 ? ' object detected' : ' objects detected'));
+    } else if (S.lastHit && (t - S.lastHit) > QUIET_HINT_MS) {
+      setStatus('Nothing recognised yet');
+      if (!S.hintShown) {
+        S.hintShown = true;
+        toast('Point at a person, phone, cup, bottle, chair, laptop or TV.', 5000);
+      }
+    } else {
+      setStatus('Scanning...');
+    }
   }
 
   function syncButtons() {
@@ -1519,7 +1571,7 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
   /* ---------------------------------------------------------------
      Main render loop
      --------------------------------------------------------------- */
-  var rafId = 0, lastFrame = 0, frameTimes = [];
+  var rafId = 0, lastFrame = 0, frameTimes = [], liteSince = 0;
   function frame(ts) {
     rafId = requestAnimationFrame(frame);
 
@@ -1534,6 +1586,7 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
     if (S.running) {
       advanceTracks(dt, now());
       drawOverlay();
+      considerLiteMode(ts);
     } else if (S.tracks.length) {
       S.tracks.length = 0;
       S.visibleCount = 0;
@@ -1541,6 +1594,20 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
     }
 
     updateHud(false);
+  }
+
+  // One-way: flipping effects on and off around the threshold would be worse
+  // than either state, so once the preview has proved it cannot keep up the
+  // lighter skin stays for the session.
+  function considerLiteMode(ts) {
+    if (S.lite || frameTimes.length < 5) return;   // a low frame rate is exactly what we are looking for
+    S.fpsAvg = S.fpsAvg ? (S.fpsAvg * 0.94 + S.fps * 0.06) : S.fps;
+    if (ts - liteSince < 4000) return;
+    if (S.fpsAvg < 28) {
+      S.lite = true;
+      body.classList.add('perf-lite');
+      toast('Reduced visual effects to keep the camera smooth.', 3200);
+    }
   }
 
   /* ---------------------------------------------------------------
@@ -1598,6 +1665,8 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
     S.detecting = !S.detecting;
     syncButtons();
     if (S.detecting) {
+      S.lastHit = now();
+      S.hintShown = false;
       startInference();
       toast('AI detection on', 1400);
     } else {
