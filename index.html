@@ -512,6 +512,8 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
     hintShown: false,
     fpsAvg: 0,
     lite: false,
+    darkRuns: 0,
+    feedDark: false,
     fps: 0,
     visibleCount: 0
   };
@@ -522,7 +524,10 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
   // Offscreen buffer that feeds the model. Deliberately NOT mirrored, so
   // predictions arrive in true (sensor-oriented) video coordinates.
   var work = document.createElement('canvas');
-  var wctx = work.getContext('2d', { alpha: false, desynchronized: true });
+  // Plain context on purpose: `desynchronized` is only useful for displayed
+  // canvases and is known to read back blank on some Android Chrome builds,
+  // which would silently feed the model black frames.
+  var wctx = work.getContext('2d', { willReadFrequently: true });
   var pad = { ox: 0, oy: 0, iw: 1, ih: 1 };   // letterbox insets inside `work`
 
   /* ---------------------------------------------------------------
@@ -612,13 +617,31 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
   /* ---------------------------------------------------------------
      Model
      --------------------------------------------------------------- */
+  // A backend can initialise and still compute garbage - notably WebGL on
+  // phones whose GPU cannot render the texture formats TF.js picks. That
+  // failure mode is silent: the model "works" but every score is ~0. So a
+  // backend is only accepted after it proves a tiny computation comes back
+  // with the right answer.
+  async function backendComputes() {
+    var tf = window.tf;
+    if (!tf.tensor1d) return true;         // exotic build - nothing to test with
+    try {
+      var t = tf.tensor1d([1, 2, 3]);
+      var sum = t.sum();
+      var v = (await sum.data())[0];
+      t.dispose(); sum.dispose();
+      return isFinite(v) && Math.abs(v - 6) < 1e-3;
+    } catch (e) {
+      return false;
+    }
+  }
+
   async function pickBackend() {
     var tf = window.tf;
-    try { tf.env().set('WEBGL_FORCE_F16_TEXTURES', true); } catch (e) {}
     try {
       await tf.setBackend('webgl');
       await tf.ready();
-      if (tf.getBackend() === 'webgl') { S.backend = 'webgl'; return; }
+      if (tf.getBackend() === 'webgl' && await backendComputes()) { S.backend = 'webgl'; return; }
     } catch (e) { /* fall through */ }
 
     try {
@@ -631,7 +654,7 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
       }
       await tf.setBackend('wasm');
       await tf.ready();
-      if (tf.getBackend() === 'wasm') { S.backend = 'wasm'; return; }
+      if (tf.getBackend() === 'wasm' && await backendComputes()) { S.backend = 'wasm'; return; }
     } catch (e) { /* fall through */ }
 
     await tf.setBackend('cpu');
@@ -1146,6 +1169,24 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
     return work;
   }
 
+  // If the frames reaching the model are essentially black while the camera
+  // claims to be running, no amount of scanning will find anything - say so.
+  function workFrameLooksDark() {
+    try {
+      var d = wctx.getImageData(pad.ox + (pad.iw >> 2), pad.oy + (pad.ih >> 2),
+                                Math.max(1, pad.iw >> 1), Math.max(1, pad.ih >> 1)).data;
+      var max = 0;
+      for (var i = 0; i < d.length; i += 97) {           // sparse sample
+        if (d[i] > max) max = d[i];
+        if (d[i + 1] > max) max = d[i + 1];
+        if (d[i + 2] > max) max = d[i + 2];
+      }
+      return max < 14;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Inference and rendering share one thread, so the honest signal for "am I
   // starving the preview" is the measured render rate. Back off until the
   // camera is smooth again rather than chasing a fixed inference rate.
@@ -1196,6 +1237,18 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
         S.inferMs = S.inferMs ? (S.inferMs * 0.7 + (t1 - t0) * 0.3) : (t1 - t0);
         noteInference(t1);
         ingest(preds, t1);
+
+        if (!preds.length) {
+          S.darkRuns = workFrameLooksDark() ? S.darkRuns + 1 : 0;
+          if (S.darkRuns >= 8 && !S.feedDark) {
+            S.feedDark = true;
+            toast('The camera image looks black \u2014 cover removed? Try switching cameras.', 4600);
+          }
+        } else {
+          S.darkRuns = 0;
+          S.feedDark = false;
+        }
+
         await sleep(idleGap());
       }
     } finally {
