@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#04070c" />
+<meta name="color-scheme" content="dark" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="description" content="Neural Lens — a single-file selfie camera with real-time on-device object detection." />
+<title>Neural Lens — Live AI Camera</title>
+<style>
+/* ============================================================
+   Neural Lens — single file live computer-vision camera
+   ============================================================ */
+:root{
+  --bg:#04070c;
+  --ink:#eaf6ff;
+  --muted:#8fa6bd;
+  --accent:#38f0d8;
+  --accent-2:#7c5cff;
+  --warn:#ffb020;
+  --danger:#ff4d6d;
+  --glass:rgba(9,14,21,.55);
+  --glass-strong:rgba(7,11,17,.82);
+  --hair:rgba(255,255,255,.10);
+  --hair-2:rgba(255,255,255,.06);
+  --scanH:190px;
+  --stageH:100vh;
+  --ease:cubic-bezier(.22,.8,.28,1);
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);overflow:hidden;overscroll-behavior:none;}
+body{
+  font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  touch-action:manipulation;
+  user-select:none;-webkit-user-select:none;
+}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;}
+
+#app{
+  position:fixed;inset:0;
+  height:100vh;height:100dvh;
+  width:100vw;width:100dvw;
+  overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 0%,#0b1420 0%,#04070c 70%);
+  opacity:0;
+  animation:appIn .9s var(--ease) .05s forwards;
+}
+@keyframes appIn{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:none}}
+
+/* ---------- stage / video ---------- */
+#stage{position:absolute;inset:0;overflow:hidden;background:#000;}
+#video{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:50% 50%;
+  background:#000;display:block;
+  transform:scaleX(1);
+  transition:opacity .5s var(--ease), filter .6s var(--ease);
+  opacity:0;filter:blur(14px) saturate(.6);
+}
+body.live #video{opacity:1;filter:none;}
+#video.mirror{transform:scaleX(-1);}
+#overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block;}
+
+/* ---------- ambient fx ---------- */
+.fx{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.fx-grid{
+  position:absolute;inset:-2px;opacity:0;transition:opacity .6s var(--ease);
+  background-image:
+    linear-gradient(rgba(120,200,220,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(120,200,220,.055) 1px,transparent 1px);
+  background-size:44px 44px;
+  mask-image:radial-gradient(105% 80% at 50% 50%,transparent 42%,#000 100%);
+  -webkit-mask-image:radial-gradient(105% 80% at 50% 50%,transparent 42%,#000 100%);
+}
+body.live .fx-grid{opacity:1;}
+.fx-vignette{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(130% 90% at 50% 50%,transparent 45%,rgba(0,0,0,.55) 100%),
+    linear-gradient(to bottom,rgba(2,5,9,.72) 0%,transparent 22%,transparent 66%,rgba(2,5,9,.80) 100%);
+}
+.scanline{
+  position:absolute;left:0;right:0;top:0;height:var(--scanH);
+  opacity:0;transition:opacity .45s var(--ease);
+  transform:translate3d(0,calc(-1 * var(--scanH)),0);
+  background:linear-gradient(to bottom,
+    rgba(56,240,216,0) 0%,
+    rgba(56,240,216,.045) 58%,
+    rgba(56,240,216,.16) 90%,
+    rgba(56,240,216,.60) 99%,
+    rgba(160,255,244,.95) 100%);
+  will-change:transform;
+}
+body.scanning .scanline{opacity:.85;animation:scanSweep 3.4s cubic-bezier(.5,.05,.5,.95) infinite;}
+@keyframes scanSweep{
+  0%{transform:translate3d(0,calc(-1 * var(--scanH)),0)}
+  100%{transform:translate3d(0,var(--stageH),0)}
+}
+.reticle{position:absolute;inset:0;opacity:0;transition:opacity .6s var(--ease);}
+body.live .reticle{opacity:.55;}
+.reticle i{position:absolute;width:26px;height:26px;border:1.5px solid rgba(56,240,216,.5);}
+.reticle i:nth-child(1){top:calc(env(safe-area-inset-top,0px) + 74px);left:18px;border-right:0;border-bottom:0;border-radius:6px 0 0 0;}
+.reticle i:nth-child(2){top:calc(env(safe-area-inset-top,0px) + 74px);right:18px;border-left:0;border-bottom:0;border-radius:0 6px 0 0;}
+.reticle i:nth-child(3){bottom:calc(env(safe-area-inset-bottom,0px) + 118px);left:18px;border-right:0;border-top:0;border-radius:0 0 0 6px;}
+.reticle i:nth-child(4){bottom:calc(env(safe-area-inset-bottom,0px) + 118px);right:18px;border-left:0;border-top:0;border-radius:0 0 6px 0;}
+
+/* ---------- HUD ---------- */
+.hud-top{
+  position:absolute;left:0;right:0;top:0;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) calc(env(safe-area-inset-right,0px) + 14px) 0 calc(env(safe-area-inset-left,0px) + 14px);
+  display:flex;flex-direction:column;gap:9px;align-items:flex-start;
+  pointer-events:none;
+}
+.hud-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%;}
+.chip{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 12px;border-radius:999px;
+  background:var(--glass);border:1px solid var(--hair);
+  -webkit-backdrop-filter:blur(16px) saturate(1.25);backdrop-filter:blur(16px) saturate(1.25);
+  font-size:11px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;
+  font-variant-numeric:tabular-nums;
+  color:var(--ink);
+  box-shadow:0 6px 22px rgba(0,0,0,.34);
+  opacity:0;transform:translateY(-10px);
+  animation:chipIn .7s var(--ease) forwards;
+  white-space:nowrap;
+}
+.chip:nth-child(1){animation-delay:.30s}
+.chip:nth-child(2){animation-delay:.38s}
+.chip:nth-child(3){animation-delay:.46s}
+@keyframes chipIn{to{opacity:1;transform:none}}
+.chip .k{color:var(--muted);font-weight:600;letter-spacing:.14em;}
+.chip .v{color:var(--ink);font-weight:800;letter-spacing:.06em;}
+.chip.live{color:var(--accent);border-color:rgba(56,240,216,.30);background:rgba(8,26,26,.5);}
+.chip.live .dot{
+  width:7px;height:7px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 0 0 rgba(56,240,216,.55);
+}
+body.scanning .chip.live .dot{animation:pulse 1.5s ease-out infinite;}
+body:not(.scanning) .chip.live{color:var(--muted);border-color:var(--hair);background:var(--glass);}
+body:not(.scanning) .chip.live .dot{background:var(--muted);box-shadow:none;}
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 rgba(56,240,216,.55)}
+  70%{box-shadow:0 0 0 9px rgba(56,240,216,0)}
+  100%{box-shadow:0 0 0 0 rgba(56,240,216,0)}
+}
+.chip.count .v{color:var(--accent);}
+#status{
+  display:inline-flex;align-items:center;gap:8px;
+  max-width:calc(100% - 4px);
+  padding:6px 12px;border-radius:999px;
+  background:rgba(4,8,13,.5);border:1px solid var(--hair-2);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--muted);
+  opacity:0;transform:translateY(-8px);
+  animation:chipIn .7s var(--ease) .56s forwards;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+#status .spark{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:0 0 auto;opacity:.9;}
+#status.warn{color:var(--warn);} #status.warn .spark{background:var(--warn);}
+#status.bad{color:var(--danger);} #status.bad .spark{background:var(--danger);}
+
+/* ---------- dock ---------- */
+.dock{
+  position:absolute;left:0;right:0;bottom:0;
+  display:flex;align-items:center;justify-content:center;gap:26px;
+  padding:0 16px calc(env(safe-area-inset-bottom,0px) + 20px);
+  opacity:0;transform:translateY(20px);
+  animation:dockIn .8s var(--ease) .5s forwards;
+}
+@keyframes dockIn{to{opacity:1;transform:none}}
+.btn{
+  position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  width:58px;height:58px;border-radius:50%;
+  background:var(--glass);border:1px solid var(--hair);
+  -webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);
+  box-shadow:0 10px 30px rgba(0,0,0,.42);
+  transition:transform .18s var(--ease),background .25s,border-color .25s,box-shadow .25s,opacity .25s;
+  color:var(--ink);
+}
+.btn:active{transform:scale(.9);}
+.btn:disabled{opacity:.35;pointer-events:none;}
+.btn svg{width:22px;height:22px;display:block;}
+.btn .lab{font-size:8.5px;font-weight:800;letter-spacing:.13em;color:var(--muted);text-transform:uppercase;}
+.btn.on{background:rgba(9,42,40,.62);border-color:rgba(56,240,216,.55);color:var(--accent);box-shadow:0 0 26px rgba(56,240,216,.24),0 10px 30px rgba(0,0,0,.42);}
+.btn.on .lab{color:var(--accent);}
+.btn.power{width:74px;height:74px;border-width:2px;border-color:rgba(255,255,255,.32);background:rgba(12,18,26,.55);}
+.btn.power .ring{position:absolute;inset:6px;border-radius:50%;border:2px solid rgba(255,255,255,.16);}
+.btn.power.rec{border-color:rgba(255,77,109,.75);box-shadow:0 0 30px rgba(255,77,109,.26),0 10px 30px rgba(0,0,0,.42);color:#ff8098;}
+.btn.power.rec .ring{border-color:rgba(255,77,109,.28);}
+.btn.busy{opacity:.6;pointer-events:none;}
+.btn.busy svg{animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media (orientation:landscape) and (max-height:560px){
+  .dock{
+    left:auto;right:0;top:50%;bottom:auto;transform:translateY(-50%);
+    flex-direction:column-reverse;gap:16px;
+    padding:0 calc(env(safe-area-inset-right,0px) + 14px) 0 0;
+    animation:dockInLand .8s var(--ease) .5s forwards;
+  }
+  @keyframes dockInLand{from{opacity:0;transform:translate(20px,-50%)}to{opacity:1;transform:translateY(-50%)}}
+  .btn{width:50px;height:50px}
+  .btn.power{width:62px;height:62px}
+  .hud-top{padding-right:calc(env(safe-area-inset-right,0px) + 92px);}
+  .reticle i:nth-child(3){bottom:calc(env(safe-area-inset-bottom,0px) + 22px);}
+  .reticle i:nth-child(4){bottom:calc(env(safe-area-inset-bottom,0px) + 22px);}
+}
+
+/* ---------- toast ---------- */
+#toast{
+  position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 118px);
+  transform:translate(-50%,14px);
+  max-width:min(86vw,420px);
+  padding:9px 15px;border-radius:14px;
+  background:var(--glass-strong);border:1px solid var(--hair);
+  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+  font-size:12.5px;font-weight:600;color:var(--ink);text-align:center;
+  opacity:0;pointer-events:none;transition:opacity .3s var(--ease),transform .3s var(--ease);
+  box-shadow:0 12px 34px rgba(0,0,0,.5);
+  z-index:40;
+}
+#toast.show{opacity:1;transform:translate(-50%,0);}
+
+/* ---------- panels (intro + error) ---------- */
+.panel{
+  position:absolute;inset:0;z-index:60;
+  display:flex;align-items:center;justify-content:center;
+  padding:calc(env(safe-area-inset-top,0px) + 22px) 22px calc(env(safe-area-inset-bottom,0px) + 22px);
+  background:radial-gradient(120% 90% at 50% 10%,rgba(14,26,38,.92) 0%,rgba(3,6,10,.97) 68%);
+  -webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);
+  transition:opacity .45s var(--ease),visibility .45s;
+  overflow-y:auto;
+}
+.panel[hidden]{display:flex;opacity:0;visibility:hidden;pointer-events:none;}
+.card{width:min(430px,100%);text-align:center;}
+.card > *{opacity:0;transform:translateY(14px);animation:riseIn .75s var(--ease) forwards;}
+.card > *:nth-child(1){animation-delay:.10s}
+.card > *:nth-child(2){animation-delay:.18s}
+.card > *:nth-child(3){animation-delay:.26s}
+.card > *:nth-child(4){animation-delay:.34s}
+.card > *:nth-child(5){animation-delay:.42s}
+.card > *:nth-child(6){animation-delay:.50s}
+@keyframes riseIn{to{opacity:1;transform:none}}
+.mark{
+  width:78px;height:78px;margin:0 auto 20px;border-radius:24px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(150deg,rgba(56,240,216,.16),rgba(124,92,255,.16));
+  border:1px solid rgba(56,240,216,.34);
+  box-shadow:0 0 44px rgba(56,240,216,.18),inset 0 0 24px rgba(56,240,216,.08);
+}
+.mark svg{width:38px;height:38px;color:var(--accent);}
+.mark.bad{background:linear-gradient(150deg,rgba(255,77,109,.18),rgba(255,176,32,.12));border-color:rgba(255,77,109,.4);box-shadow:0 0 44px rgba(255,77,109,.16);}
+.mark.bad svg{color:var(--danger);}
+.eyebrow{font-size:10.5px;font-weight:800;letter-spacing:.34em;text-transform:uppercase;color:var(--accent);margin:0 0 10px;}
+.eyebrow.bad{color:var(--danger);}
+h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight:800;letter-spacing:-.02em;}
+.sub{font-size:14.5px;line-height:1.6;color:var(--muted);margin:0 0 24px;}
+.sub code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:rgba(255,255,255,.07);padding:1px 6px;border-radius:5px;color:var(--ink);}
+.cta{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;padding:16px 22px;border-radius:17px;
+  background:linear-gradient(135deg,var(--accent),#43c8ff 55%,var(--accent-2));
+  color:#04121a;font-size:15px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  box-shadow:0 14px 40px rgba(56,240,216,.28);
+  transition:transform .18s var(--ease),box-shadow .25s,filter .25s;
+}
+.cta:active{transform:scale(.97);box-shadow:0 8px 22px rgba(56,240,216,.2);}
+.cta.ghost{background:transparent;color:var(--ink);border:1px solid var(--hair);box-shadow:none;margin-top:10px;}
+.cta svg{width:19px;height:19px;}
+.badges{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin:0 0 24px;}
+.badge{
+  font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  padding:6px 11px;border-radius:999px;color:var(--muted);
+  background:rgba(255,255,255,.045);border:1px solid var(--hair-2);
+}
+.note{font-size:11.5px;line-height:1.65;color:#6f849a;margin:18px 0 0;}
+.detail{
+  margin:16px 0 0;padding:11px 13px;border-radius:12px;text-align:left;
+  background:rgba(0,0,0,.35);border:1px solid var(--hair-2);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.5;color:#7f93a8;
+  word-break:break-word;
+}
+.reduced-motion *{animation-duration:.001s !important;}
+@media (prefers-reduced-motion:reduce){
+  #app,.chip,#status,.dock,.card > *{animation-duration:.001s !important;}
+  body.scanning .scanline{animation:none;opacity:.28;transform:translate3d(0,40%,0);}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <video id="video" playsinline webkit-playsinline muted autoplay disablepictureinpicture></video>
+    <canvas id="overlay"></canvas>
+    <div class="fx">
+      <div class="fx-grid"></div>
+      <div class="scanline"></div>
+      <div class="reticle"><i></i><i></i><i></i><i></i></div>
+      <div class="fx-vignette"></div>
+    </div>
+  </div>
+
+  <div class="hud-top">
+    <div class="hud-row">
+      <span class="chip live"><span class="dot"></span><span id="liveLabel">Live AI</span></span>
+      <span class="chip"><span class="v" id="fps">--</span><span class="k">fps</span></span>
+      <span class="chip count"><span class="v" id="objCount">0</span><span class="k">objects</span></span>
+    </div>
+    <div id="status"><span class="spark"></span><span id="statusText">Ready</span></div>
+  </div>
+
+  <div class="dock">
+    <button class="btn" id="btnDetect" type="button" aria-label="Toggle AI detection">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8"/><path d="M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8"/>
+        <path d="M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16"/><path d="M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/>
+        <circle cx="12" cy="12" r="3.2"/>
+      </svg>
+      <span class="lab">AI</span>
+    </button>
+
+    <button class="btn power" id="btnPower" type="button" aria-label="Start or stop camera">
+      <span class="ring"></span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3v9"/><path d="M18.4 6.4a9 9 0 1 1-12.8 0"/>
+      </svg>
+    </button>
+
+    <button class="btn" id="btnFlip" type="button" aria-label="Switch camera">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 7h3l1.6-2.2h8.8L18 7h3v13H3z"/>
+        <path d="M9.4 13.5a2.6 2.6 0 0 1 4.4-1.9l1.2 1.1"/><path d="M15 10.4v2.4h-2.4"/>
+        <path d="M14.6 15.1a2.6 2.6 0 0 1-4.4 1.9L9 15.9"/><path d="M9 18.2v-2.4h2.4"/>
+      </svg>
+      <span class="lab" id="flipLabel">Front</span>
+    </button>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <!-- intro -->
+  <section class="panel" id="intro">
+    <div class="card">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8"/><path d="M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8"/>
+          <path d="M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16"/><path d="M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/>
+          <circle cx="12" cy="12" r="3.4"/><path d="M12 3.2v1.6"/><path d="M12 19.2v1.6"/>
+        </svg>
+      </div>
+      <p class="eyebrow">Neural Lens</p>
+      <h1>Live AI selfie camera</h1>
+      <p class="sub">Point the front camera at your world. Objects are recognised on-device and labelled in real time with a confidence score.</p>
+      <div class="badges">
+        <span class="badge">On-device</span>
+        <span class="badge">80 object types</span>
+        <span class="badge">Front camera</span>
+        <span class="badge">Real time</span>
+      </div>
+      <button class="cta" id="btnStart" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 7h3l1.6-2.2h8.8L18 7h3v13H3z"/><circle cx="12" cy="13.4" r="3.6"/>
+        </svg>
+        Start camera
+      </button>
+      <p class="note">
+        Video never leaves your device — detection runs entirely in this browser tab.<br>
+        Labels name object <em>categories</em> only (e.g. <code>PERSON</code>). This app does not identify who anyone is and makes no inference about identity, ethnicity, emotion or health.
+      </p>
+    </div>
+  </section>
+
+  <!-- error -->
+  <section class="panel" id="errorPanel" hidden>
+    <div class="card">
+      <div class="mark bad">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 8.4v4.4"/><circle cx="12" cy="16.4" r=".9" fill="currentColor" stroke="none"/>
+          <path d="M10.3 3.9 2.5 17.6A2 2 0 0 0 4.2 20.6h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+        </svg>
+      </div>
+      <p class="eyebrow bad" id="errKind">Camera error</p>
+      <h1 id="errTitle">Something went wrong</h1>
+      <p class="sub" id="errMsg">Unknown error.</p>
+      <button class="cta" id="btnRetry" type="button">Try again</button>
+      <button class="cta ghost" id="btnDismiss" type="button">Continue without it</button>
+      <div class="detail" id="errDetail" hidden></div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* =====================================================================
+   Neural Lens
+   Single-file live camera + on-device object detection (TF.js COCO-SSD)
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  /* ---------------------------------------------------------------
+     Config
+     --------------------------------------------------------------- */
+  var TFJS_SOURCES = [
+    'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js',
+    'https://unpkg.com/@tensorflow/tfjs@4.22.0/dist/tf.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.22.0/tf.min.js'
+  ];
+  var COCO_SOURCES = [
+    'https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js',
+    'https://unpkg.com/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js'
+  ];
+  var WASM_SOURCES = [
+    'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@4.22.0/dist/tf-backend-wasm.js',
+    'https://unpkg.com/@tensorflow/tfjs-backend-wasm@4.22.0/dist/tf-backend-wasm.js'
+  ];
+  var WASM_BINARY_BASE = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@4.22.0/dist/';
+
+  var MAX_BOXES      = 20;    // upper bound on simultaneous detections
+  var MIN_SCORE      = 0.34;  // model-side score cutoff
+  var MAX_AI_FPS     = 14;    // hard ceiling on inference rate
+  var IOU_MATCH      = 0.18;  // track <-> detection association threshold
+  var MAX_MISSES     = 2;     // detection cycles before a track is stale
+  var STALE_MS       = 550;   // hard time-to-live without a fresh hit
+  var BOX_TAU        = 68;    // ms; box position smoothing time constant
+  var FADE_IN_TAU    = 85;    // ms
+  var FADE_OUT_TAU   = 62;    // ms
+  var CONFIRM_SCORE  = 0.55;  // instantly trust detections above this
+  var INFER_MIN      = 256;   // adaptive inference long-side bounds
+  var INFER_MAX      = 448;
+  var INFER_START    = 320;
+
+  /* ---------------------------------------------------------------
+     DOM
+     --------------------------------------------------------------- */
+  function $(id) { return document.getElementById(id); }
+  var body        = document.body;
+  var stage       = $('stage');
+  var video       = $('video');
+  var overlay     = $('overlay');
+  var octx        = overlay.getContext('2d');
+  var elFps       = $('fps');
+  var elCount     = $('objCount');
+  var elStatus    = $('status');
+  var elStatusTxt = $('statusText');
+  var elLive      = $('liveLabel');
+  var btnDetect   = $('btnDetect');
+  var btnPower    = $('btnPower');
+  var btnFlip     = $('btnFlip');
+  var flipLabel   = $('flipLabel');
+  var btnStart    = $('btnStart');
+  var btnRetry    = $('btnRetry');
+  var btnDismiss  = $('btnDismiss');
+  var intro       = $('intro');
+  var errorPanel  = $('errorPanel');
+  var errKind     = $('errKind');
+  var errTitle    = $('errTitle');
+  var errMsg      = $('errMsg');
+  var errDetail   = $('errDetail');
+  var toastEl     = $('toast');
+
+  /* ---------------------------------------------------------------
+     State
+     --------------------------------------------------------------- */
+  var S = {
+    stream: null,
+    facing: 'user',
+    mirrored: true,
+    running: false,          // camera live
+    starting: false,
+    detecting: true,         // AI toggle
+    inferBusy: false,        // inference loop active
+    model: null,
+    modelPromise: null,
+    modelState: 'idle',      // idle | loading | ready | failed
+    backend: '',
+    multiCam: false,
+    modelFailed: false,
+    statusLock: false,
+    retryAction: null,
+    tracks: [],
+    nextId: 1,
+    inferMs: 0,
+    inferLong: INFER_START,
+    lastAdapt: 0,
+    aiRate: 0,
+    fps: 0,
+    visibleCount: 0
+  };
+
+  var viewW = 1, viewH = 1, dpr = 1;
+  var hudBottom = 0, hudRight = 0;   // labels dodge the status strip instead of hiding under it
+
+  // Offscreen buffer that feeds the model. Deliberately NOT mirrored, so
+  // predictions arrive in true (sensor-oriented) video coordinates.
+  var work = document.createElement('canvas');
+  var wctx = work.getContext('2d', { alpha: false, desynchronized: true });
+
+  /* ---------------------------------------------------------------
+     Small helpers
+     --------------------------------------------------------------- */
+  function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function now() { return performance.now(); }
+
+  var toastTimer = null;
+  function toast(msg, ms) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, ms || 2600);
+  }
+
+  function setStatus(text, tone) {
+    if (elStatusTxt.textContent !== text) elStatusTxt.textContent = text;
+    elStatus.classList.toggle('warn', tone === 'warn');
+    elStatus.classList.toggle('bad', tone === 'bad');
+  }
+
+  // Terminal conditions (denied permission, dead stream, no model) must not be
+  // overwritten by the routine HUD refresh a fifth of a second later.
+  function lockStatus(text, tone) { S.statusLock = true; setStatus(text, tone); }
+  function unlockStatus(text, tone) { S.statusLock = false; if (text) setStatus(text, tone); }
+
+  function showError(kind, title, message, detail, opts) {
+    opts = opts || {};
+    errKind.textContent = kind;
+    errTitle.textContent = title;
+    errMsg.innerHTML = message;
+    if (detail) { errDetail.textContent = detail; errDetail.hidden = false; }
+    else { errDetail.hidden = true; }
+    btnRetry.textContent = opts.retryLabel || 'Try again';
+    btnRetry.style.display = opts.hideRetry ? 'none' : '';
+    btnDismiss.style.display = opts.hideDismiss ? 'none' : '';
+    S.retryAction = opts.retry || null;
+    errorPanel.hidden = false;
+  }
+  function hideError() { errorPanel.hidden = true; S.retryAction = null; }
+
+  /* ---------------------------------------------------------------
+     Script loading with CDN fallbacks
+     --------------------------------------------------------------- */
+  var loaded = {};
+  function loadScript(urls) {
+    var key = urls[0];
+    if (loaded[key]) return loaded[key];
+    loaded[key] = new Promise(function (resolve, reject) {
+      var i = 0;
+      (function attempt() {
+        if (i >= urls.length) {
+          reject(new Error('Could not download required libraries from any CDN.'));
+          return;
+        }
+        var url = urls[i++];
+        var s = document.createElement('script');
+        var settled = false;
+        var timer = setTimeout(function () {
+          if (settled) return;
+          settled = true;
+          s.onload = s.onerror = null;
+          try { s.remove(); } catch (e) {}
+          attempt();
+        }, 20000);
+        s.src = url;
+        s.async = true;
+        s.onload = function () {
+          if (settled) return;
+          settled = true; clearTimeout(timer); resolve(url);
+        };
+        s.onerror = function () {
+          if (settled) return;
+          settled = true; clearTimeout(timer);
+          try { s.remove(); } catch (e) {}
+          attempt();
+        };
+        document.head.appendChild(s);
+      })();
+    });
+    loaded[key]['catch'](function () { delete loaded[key]; });
+    return loaded[key];
+  }
+
+  /* ---------------------------------------------------------------
+     Model
+     --------------------------------------------------------------- */
+  async function pickBackend() {
+    var tf = window.tf;
+    try { tf.env().set('WEBGL_FORCE_F16_TEXTURES', true); } catch (e) {}
+    try {
+      await tf.setBackend('webgl');
+      await tf.ready();
+      if (tf.getBackend() === 'webgl') { S.backend = 'webgl'; return; }
+    } catch (e) { /* fall through */ }
+
+    try {
+      var wasmUrl = await loadScript(WASM_SOURCES);
+      if (window.tf && window.tf.wasm && window.tf.wasm.setWasmPaths) {
+        // Take the binaries from whichever CDN actually served the loader, so
+        // a partial outage can't leave the loader without its .wasm files.
+        window.tf.wasm.setWasmPaths(
+          wasmUrl ? wasmUrl.slice(0, wasmUrl.lastIndexOf('/') + 1) : WASM_BINARY_BASE);
+      }
+      await tf.setBackend('wasm');
+      await tf.ready();
+      if (tf.getBackend() === 'wasm') { S.backend = 'wasm'; return; }
+    } catch (e) { /* fall through */ }
+
+    await tf.setBackend('cpu');
+    await tf.ready();
+    S.backend = 'cpu';
+  }
+
+  function ensureModel() {
+    if (S.model) return Promise.resolve(S.model);
+    if (S.modelPromise) return S.modelPromise;
+
+    S.modelState = 'loading';
+    unlockStatus('Model loading...');
+
+    S.modelPromise = (async function () {
+      await loadScript(TFJS_SOURCES);
+      if (!window.tf) throw new Error('TensorFlow.js did not initialise.');
+
+      await pickBackend();
+
+      await loadScript(COCO_SOURCES);
+      if (!window.cocoSsd) throw new Error('Detection model library did not initialise.');
+
+      var model = await window.cocoSsd.load({ base: 'lite_mobilenet_v2' });
+
+      // Warm-up pass so the first live frame isn't the slow one.
+      try {
+        var warm = document.createElement('canvas');
+        warm.width = 128; warm.height = 128;
+        var wc = warm.getContext('2d');
+        wc.fillStyle = '#101820'; wc.fillRect(0, 0, 128, 128);
+        await model.detect(warm, 1, 0.9);
+      } catch (e) { /* warm-up is best effort */ }
+
+      S.model = model;
+      S.modelState = 'ready';
+      if (S.backend === 'cpu') {
+        toast('GPU unavailable — running in slow compatibility mode.', 4200);
+      }
+      return model;
+    })();
+
+    S.modelPromise['catch'](function () {
+      S.modelPromise = null;
+      S.modelState = 'failed';
+    });
+
+    return S.modelPromise;
+  }
+
+  function handleModelFailure(err) {
+    if (S.modelFailed) return;
+    S.modelFailed = true;
+    S.detecting = false;
+    syncButtons();
+    lockStatus('AI unavailable', 'bad');
+    showError(
+      'Model error',
+      'Could not load the AI model',
+      'The object-detection model could not be downloaded. Check your connection and try again — the camera keeps working in the meantime.',
+      (err && (err.message || String(err))) || '',
+      {
+        retryLabel: 'Retry model',
+        retry: function () {
+          hideError();
+          S.modelFailed = false;
+          S.detecting = true;
+          unlockStatus('Model loading...');
+          syncButtons();
+          startInference();
+        }
+      }
+    );
+  }
+
+  /* ---------------------------------------------------------------
+     Camera
+     --------------------------------------------------------------- */
+  function cameraSupported() {
+    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  }
+
+  function describeCameraError(err) {
+    var name = (err && err.name) || '';
+    switch (name) {
+      case 'NotAllowedError':
+      case 'PermissionDeniedError':
+        return {
+          kind: 'Permission denied',
+          title: 'Camera access is blocked',
+          msg: 'This app needs camera permission to see anything.<br><br>In Chrome tap the <strong>lock / tune icon</strong> next to the address bar → <strong>Permissions</strong> → <strong>Camera</strong> → <em>Allow</em>, then reload and try again.'
+        };
+      case 'NotFoundError':
+      case 'DevicesNotFoundError':
+        return {
+          kind: 'No camera',
+          title: 'No camera was found',
+          msg: 'This device does not expose a usable camera to the browser.'
+        };
+      case 'NotReadableError':
+      case 'TrackStartError':
+        return {
+          kind: 'Camera busy',
+          title: 'The camera is unavailable',
+          msg: 'Another app or browser tab is already using the camera. Close it, then try again.'
+        };
+      case 'OverconstrainedError':
+      case 'ConstraintNotSatisfiedError':
+        return {
+          kind: 'Unsupported mode',
+          title: 'That camera mode is not supported',
+          msg: 'The requested camera or resolution is not available on this device.'
+        };
+      case 'SecurityError':
+        return {
+          kind: 'Blocked',
+          title: 'Blocked by the browser',
+          msg: 'Camera access requires a secure page. Open this file over <code>https://</code> or <code>localhost</code>.'
+        };
+      case 'AbortError':
+        return {
+          kind: 'Interrupted',
+          title: 'The camera stopped unexpectedly',
+          msg: 'The hardware interrupted the stream. Try starting it again.'
+        };
+      default:
+        return {
+          kind: 'Camera error',
+          title: 'Could not start the camera',
+          msg: 'An unexpected error occurred while opening the camera.'
+        };
+    }
+  }
+
+  function stopStream() {
+    if (S.stream) {
+      S.stream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} });
+      S.stream = null;
+    }
+    try { video.pause(); } catch (e) {}
+    if (video.srcObject) video.srcObject = null;
+  }
+
+  // Errors that mean "stop asking" rather than "try a looser constraint".
+  function isHardCameraError(err) {
+    var n = err && err.name;
+    return n === 'NotAllowedError' || n === 'PermissionDeniedError' ||
+           n === 'SecurityError'   || n === 'NotReadableError'      ||
+           n === 'TrackStartError';
+  }
+
+  function quality() {
+    return { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 60 } };
+  }
+
+  function facingOf(stream) {
+    var track = stream && stream.getVideoTracks()[0];
+    var st = (track && track.getSettings) ? track.getSettings() : {};
+    return st.facingMode || '';
+  }
+
+  var RE_FRONT = /front|user|selfie|face/i;
+  var RE_BACK  = /back|rear|environment|world|wide|tele/i;
+
+  // Device labels are only populated once permission has been granted, which
+  // is exactly when we need them: as a fallback for phones whose camera stack
+  // ignores facingMode entirely.
+  async function deviceIdFor(facing) {
+    try {
+      var devices = await navigator.mediaDevices.enumerateDevices();
+      var cams = devices.filter(function (d) { return d.kind === 'videoinput' && d.deviceId; });
+      if (cams.length < 2) return null;
+      var want = (facing === 'user') ? RE_FRONT : RE_BACK;
+      var avoid = (facing === 'user') ? RE_BACK : RE_FRONT;
+      var hit = cams.filter(function (c) { return want.test(c.label || ''); })[0];
+      if (hit) return hit.deviceId;
+      hit = cams.filter(function (c) { return c.label && !avoid.test(c.label); })[0];
+      return hit ? hit.deviceId : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function getStream(facing) {
+    // Progressively looser constraints. `exact` first so devices that *do*
+    // honour facingMode can never hand back the wrong lens.
+    var ladder = [
+      { audio: false, video: Object.assign({ facingMode: { exact: facing } }, quality()) },
+      { audio: false, video: Object.assign({ facingMode: { ideal: facing } }, quality()) },
+      { audio: false, video: { facingMode: { ideal: facing } } },
+      { audio: false, video: true }
+    ];
+
+    var lastErr = null, stream = null;
+    for (var i = 0; i < ladder.length; i++) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(ladder[i]);
+        break;
+      } catch (err) {
+        lastErr = err;
+        if (isHardCameraError(err)) throw err;   // denied / busy: don't keep trying
+      }
+    }
+    if (!stream) throw lastErr || new Error('Could not open any camera.');
+
+    // Last resort: the stream came back on the wrong lens, so pick the right
+    // device explicitly by its label.
+    var got = facingOf(stream);
+    if (got && got !== facing) {
+      var id = await deviceIdFor(facing);
+      if (id) {
+        try {
+          var better = await navigator.mediaDevices.getUserMedia({
+            audio: false, video: Object.assign({ deviceId: { exact: id } }, quality())
+          });
+          stream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} });
+          return better;
+        } catch (e) { /* keep what we already have */ }
+      }
+    }
+    return stream;
+  }
+
+  function waitForVideoReady(timeoutMs) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      function ok() {
+        if (done) return;
+        if (!video.videoWidth || !video.videoHeight) return;
+        done = true; cleanup(); resolve();
+      }
+      function fail() {
+        if (done) return;
+        done = true; cleanup();
+        reject(new Error('The video stream produced no frames.'));
+      }
+      function cleanup() {
+        video.removeEventListener('loadedmetadata', ok);
+        video.removeEventListener('loadeddata', ok);
+        video.removeEventListener('playing', ok);
+        clearTimeout(timer);
+        clearInterval(poll);
+      }
+      var timer = setTimeout(fail, timeoutMs || 12000);
+      var poll = setInterval(ok, 120);
+      video.addEventListener('loadedmetadata', ok);
+      video.addEventListener('loadeddata', ok);
+      video.addEventListener('playing', ok);
+      ok();
+    });
+  }
+
+  async function startCamera(facing) {
+    if (S.starting) return false;
+    facing = facing || S.facing;
+
+    if (!cameraSupported()) {
+      showError('Unsupported', 'Camera not supported',
+        'This browser does not expose <code>getUserMedia</code>, so live camera capture is not possible. Try Chrome on Android or Safari on iOS.',
+        '', { hideRetry: true, hideDismiss: false });
+      lockStatus('Camera not supported', 'bad');
+      return false;
+    }
+    if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      showError('Blocked', 'Insecure connection',
+        'Browsers only allow camera access on secure pages. Serve this file over <code>https://</code> or <code>localhost</code>.',
+        location.href, { hideRetry: true });
+      lockStatus('Needs HTTPS', 'bad');
+      return false;
+    }
+
+    S.starting = true;
+    btnPower.classList.add('busy');
+    unlockStatus('Starting camera...');
+
+    try {
+      stopStream();
+      var stream = await getStream(facing);
+      S.stream = stream;
+      video.srcObject = stream;
+
+      try { await video.play(); } catch (e) { /* some browsers resolve late */ }
+      await waitForVideoReady(12000);
+
+      // Trust what the hardware actually gave us over what we asked for, so
+      // the preview is only mirrored when it really is the selfie camera.
+      var track = stream.getVideoTracks()[0];
+      var actual = facingOf(stream) || facing;
+      S.facing = (actual === 'environment') ? 'environment' : 'user';
+      S.mirrored = (S.facing === 'user');
+      video.classList.toggle('mirror', S.mirrored);
+      if (S.facing !== facing) {
+        toast(facing === 'user'
+          ? 'This device would not open the front camera.'
+          : 'This device would not open the rear camera.', 3200);
+      }
+
+      if (track) {
+        track.addEventListener('ended', function () {
+          if (!S.running) return;
+          S.running = false;
+          syncButtons();
+          lockStatus('Camera disconnected', 'bad');
+          toast('Camera stream ended.');
+        });
+      }
+
+      S.tracks.length = 0;
+      S.running = true;
+      body.classList.add('live');
+      hideError();
+      resize();
+      setTimeout(resize, 250);
+      setTimeout(resize, 900);
+      syncButtons();
+      refreshCameraList();
+      startInference();
+      return true;
+    } catch (err) {
+      S.running = false;
+      body.classList.remove('live');
+      stopStream();
+      var d = describeCameraError(err);
+      lockStatus(d.kind, 'bad');
+      showError(d.kind, d.title, d.msg, (err && (err.name + (err.message ? ': ' + err.message : ''))) || '', {
+        retry: function () { hideError(); startCamera('user'); }
+      });
+      syncButtons();
+      return false;
+    } finally {
+      S.starting = false;
+      btnPower.classList.remove('busy');
+      updateHud(true);
+    }
+  }
+
+  function stopCamera() {
+    S.running = false;
+    stopStream();
+    S.tracks.length = 0;
+    body.classList.remove('live');
+    octx.clearRect(0, 0, viewW, viewH);
+    syncButtons();
+    unlockStatus('Camera off');
+    updateHud(true);
+  }
+
+  async function flipCamera() {
+    if (!S.running || S.starting) return;
+    if (!S.multiCam) { toast('Only one camera is available.', 2200); return; }
+    var next = (S.facing === 'user') ? 'environment' : 'user';
+    var previous = S.facing;
+    btnFlip.classList.add('busy');
+    unlockStatus('Switching camera...');
+    try {
+      // The model is already in S.model, so switching never re-downloads it.
+      var ok = await startCamera(next);
+      if (!ok) {
+        hideError();
+        await startCamera(previous);     // never leave the user with a dead preview
+        toast('Could not switch camera.', 2600);
+      } else {
+        toast(S.facing === 'user' ? 'Front camera' : 'Rear camera', 1500);
+      }
+    } catch (e) {
+      try { hideError(); await startCamera('user'); } catch (e2) {}
+      toast('Could not switch camera.', 2600);
+    } finally {
+      btnFlip.classList.remove('busy');
+      syncButtons();
+    }
+  }
+
+  async function refreshCameraList() {
+    try {
+      var devices = await navigator.mediaDevices.enumerateDevices();
+      var cams = devices.filter(function (d) { return d.kind === 'videoinput'; });
+      S.multiCam = cams.length > 1;
+    } catch (e) {
+      S.multiCam = true; // assume yes rather than disabling a working control
+    }
+    syncButtons();
+  }
+
+  /* ---------------------------------------------------------------
+     Geometry — model space -> screen space
+     ---------------------------------------------------------------
+     The work canvas holds the same centred crop that `object-fit: cover`
+     paints, un-mirrored, so a detection normalised against it is already
+     a fraction of the viewport: screenX = nx * viewW.
+
+     The preview is mirrored by CSS (scaleX(-1) on the <video>), which
+     flips about the element's centre. Because the element fills the
+     stage, that is the same as flipping the normalised box:
+         nx' = 1 - nx - nw
+     The overlay canvas is deliberately NOT mirrored, so the boxes follow
+     the flipped image while the label text still reads left-to-right.
+     --------------------------------------------------------------- */
+  function resize() {
+    // clientWidth/clientHeight is the border-box size and, unlike
+    // getBoundingClientRect(), is immune to the opening scale animation.
+    // The canvas itself is stretched over the stage by CSS, so these values
+    // only ever drive the drawing transform.
+    viewW = Math.max(1, stage.clientWidth || Math.round(stage.getBoundingClientRect().width));
+    viewH = Math.max(1, stage.clientHeight || Math.round(stage.getBoundingClientRect().height));
+    dpr = clamp(window.devicePixelRatio || 1, 1, 2);
+
+    var bw = Math.round(viewW * dpr);
+    var bh = Math.round(viewH * dpr);
+    if (overlay.width !== bw || overlay.height !== bh) {
+      overlay.width = bw;
+      overlay.height = bh;
+    }
+    octx.setTransform(dpr, 0, 0, dpr, 0, 0);   // canvas resize resets the ctx
+
+    document.documentElement.style.setProperty('--stageH', viewH + 'px');
+
+    // offsetTop/offsetLeft are layout-based, so they are unaffected by the
+    // opening scale animation the way getBoundingClientRect() would be.
+    var hud = document.querySelector('.hud-top');
+    hudBottom = hud ? (hud.offsetTop + hud.offsetHeight) : 0;
+    hudRight = 0;
+    var pills = document.querySelectorAll('.hud-top .chip, .hud-top #status');
+    for (var i = 0; i < pills.length; i++) {
+      hudRight = Math.max(hudRight, pills[i].offsetLeft + pills[i].offsetWidth);
+    }
+    hudRight += 8;
+  }
+
+  /* ---------------------------------------------------------------
+     Inference loop (decoupled from rendering)
+     --------------------------------------------------------------- */
+  // Feed the model exactly the region the preview shows, i.e. the same centred
+  // crop `object-fit: cover` applies. That keeps the object count honest (no
+  // labels for things scrolled off the edges), spends the inference budget on
+  // visible pixels only, and makes work-canvas coordinates map straight onto
+  // the viewport.
+  function prepareInput() {
+    if (viewW < 2 || viewH < 2) resize();      // never crop against a stale size
+    var vw = video.videoWidth, vh = video.videoHeight;
+    var scale = Math.max(viewW / vw, viewH / vh);
+    var sw = Math.min(vw, viewW / scale);
+    var sh = Math.min(vh, viewH / scale);
+    var sx = (vw - sw) / 2;
+    var sy = (vh - sh) / 2;
+
+    var k = Math.min(1, S.inferLong / Math.max(sw, sh));
+    var w = Math.max(64, Math.round(sw * k));
+    var h = Math.max(64, Math.round(sh * k));
+    if (work.width !== w || work.height !== h) { work.width = w; work.height = h; }
+    wctx.drawImage(video, sx, sy, sw, sh, 0, 0, w, h);   // never mirrored
+    return work;
+  }
+
+  function adaptQuality(t) {
+    if (t - S.lastAdapt < 1600) return;
+    var before = S.inferLong;
+    if (S.inferMs > 230)      S.inferLong = INFER_MIN;
+    else if (S.inferMs > 130) S.inferLong = Math.min(S.inferLong, 320);
+    else if (S.inferMs < 48)  S.inferLong = Math.min(INFER_MAX, S.inferLong + 64);
+    S.inferLong = clamp(S.inferLong, INFER_MIN, INFER_MAX);
+    if (S.inferLong !== before) S.lastAdapt = t;
+  }
+
+  var aiWindow = [];
+  function noteInference(t) {
+    aiWindow.push(t);
+    while (aiWindow.length && t - aiWindow[0] > 1000) aiWindow.shift();
+    S.aiRate = aiWindow.length;
+  }
+
+  function startInference() {
+    if (S.inferBusy) return;
+    inferenceLoop();
+  }
+
+  async function inferenceLoop() {
+    S.inferBusy = true;
+    try {
+      while (S.running && S.detecting && !document.hidden) {
+        if (!S.model) {
+          try {
+            await ensureModel();
+          } catch (err) {
+            handleModelFailure(err);
+            break;
+          }
+          if (!S.running || !S.detecting) break;
+        }
+
+        if (video.readyState < 2 || !video.videoWidth) { await sleep(90); continue; }
+
+        var t0 = now();
+        var preds;
+        try {
+          preds = await S.model.detect(prepareInput(), MAX_BOXES, MIN_SCORE);
+        } catch (err) {
+          // A transient GPU/context hiccup shouldn't kill the camera.
+          await sleep(260);
+          continue;
+        }
+        var t1 = now();
+        S.inferMs = S.inferMs ? (S.inferMs * 0.7 + (t1 - t0) * 0.3) : (t1 - t0);
+        noteInference(t1);
+        ingest(preds, t1);
+        adaptQuality(t1);
+
+        // Duty-cycle throttle: leave the main thread and GPU room to
+        // keep the *video* smooth rather than inferring every frame.
+        var period = Math.max(1000 / MAX_AI_FPS, S.inferMs * 1.5);
+        await sleep(clamp(period - S.inferMs, 16, 400));
+      }
+    } finally {
+      S.inferBusy = false;
+    }
+  }
+
+  /* ---------------------------------------------------------------
+     Tracking + smoothing
+     --------------------------------------------------------------- */
+  function iou(a, b) {
+    var x1 = Math.max(a.x, b.x), y1 = Math.max(a.y, b.y);
+    var x2 = Math.min(a.x + a.w, b.x + b.w), y2 = Math.min(a.y + a.h, b.y + b.h);
+    var iw = x2 - x1, ih = y2 - y1;
+    if (iw <= 0 || ih <= 0) return 0;
+    var inter = iw * ih;
+    return inter / (a.w * a.h + b.w * b.h - inter);
+  }
+
+  function ingest(preds, t) {
+    var iw = work.width, ih = work.height;
+    var mirror = S.mirrored;
+    var dets = [];
+
+    for (var i = 0; i < preds.length; i++) {
+      var p = preds[i];
+      var bb = p.bbox;
+      var nx = bb[0] / iw, ny = bb[1] / ih, nw = bb[2] / iw, nh = bb[3] / ih;
+
+      // clamp to the frame before mirroring so the flip stays symmetric
+      if (nx < 0) { nw += nx; nx = 0; }
+      if (ny < 0) { nh += ny; ny = 0; }
+      if (nx + nw > 1) nw = 1 - nx;
+      if (ny + nh > 1) nh = 1 - ny;
+      if (nw <= 0.012 || nh <= 0.012) continue;
+
+      if (mirror) nx = 1 - nx - nw;
+
+      dets.push({ cls: p.class, score: p.score, x: nx, y: ny, w: nw, h: nh });
+    }
+
+    matchTracks(dets, t);
+  }
+
+  function matchTracks(dets, t) {
+    var tracks = S.tracks;
+    var pairs = [];
+
+    for (var i = 0; i < tracks.length; i++) {
+      for (var j = 0; j < dets.length; j++) {
+        if (tracks[i].cls !== dets[j].cls) continue;
+        var v = iou(tracks[i].target, dets[j]);
+        if (v >= IOU_MATCH) pairs.push([v, i, j]);
+      }
+    }
+    pairs.sort(function (a, b) { return b[0] - a[0]; });
+
+    var tUsed = {}, dUsed = {};
+    for (var k = 0; k < pairs.length; k++) {
+      var pi = pairs[k][1], pj = pairs[k][2];
+      if (tUsed[pi] || dUsed[pj]) continue;
+      tUsed[pi] = dUsed[pj] = true;
+
+      var tr = tracks[pi], d = dets[pj];
+      tr.target.x = d.x; tr.target.y = d.y; tr.target.w = d.w; tr.target.h = d.h;
+      tr.score = tr.score * 0.62 + d.score * 0.38;
+      tr.peak = Math.max(tr.peak, d.score);
+      tr.hits++;
+      tr.misses = 0;
+      tr.lastSeen = t;
+    }
+
+    for (var m = 0; m < tracks.length; m++) if (!tUsed[m]) tracks[m].misses++;
+
+    for (var n = 0; n < dets.length; n++) {
+      if (dUsed[n]) continue;
+      var nd = dets[n];
+      tracks.push({
+        id: S.nextId++,
+        cls: nd.cls,
+        score: nd.score,
+        peak: nd.score,
+        x: nd.x, y: nd.y, w: nd.w, h: nd.h,
+        target: { x: nd.x, y: nd.y, w: nd.w, h: nd.h },
+        alpha: 0,
+        hits: 1,
+        misses: 0,
+        lastSeen: t,
+        born: t,
+        color: colorFor(nd.cls)
+      });
+    }
+
+    // Guard rail: never let the list grow unbounded.
+    if (tracks.length > 64) tracks.splice(0, tracks.length - 64);
+  }
+
+  function trackIsStale(tr, t) {
+    return tr.misses >= MAX_MISSES || (t - tr.lastSeen) > STALE_MS;
+  }
+
+  function advanceTracks(dt, t) {
+    var kBox = 1 - Math.exp(-dt / BOX_TAU);
+    var alive = [];
+    var visible = 0;
+
+    for (var i = 0; i < S.tracks.length; i++) {
+      var tr = S.tracks[i];
+
+      tr.x += (tr.target.x - tr.x) * kBox;
+      tr.y += (tr.target.y - tr.y) * kBox;
+      tr.w += (tr.target.w - tr.w) * kBox;
+      tr.h += (tr.target.h - tr.h) * kBox;
+
+      var stale = trackIsStale(tr, t);
+      var confirmed = tr.hits >= 2 || tr.peak >= CONFIRM_SCORE;
+      var want = (!stale && confirmed) ? 1 : 0;
+      var kA = 1 - Math.exp(-dt / (want ? FADE_IN_TAU : FADE_OUT_TAU));
+      tr.alpha += (want - tr.alpha) * kA;
+
+      if (stale && tr.alpha < 0.02) continue;      // fully faded — drop it
+      if (tr.alpha > 0.45) visible++;
+      alive.push(tr);
+    }
+
+    S.tracks = alive;
+    S.visibleCount = visible;
+  }
+
+  /* ---------------------------------------------------------------
+     Label styling
+     --------------------------------------------------------------- */
+  var PALETTE = ['#38f0d8', '#7c5cff', '#ffb020', '#ff5d8f', '#4fd1ff',
+                 '#9dff5c', '#ff8a3d', '#c77dff', '#5cffb0', '#ffd166'];
+  var FIXED = {
+    'person': '#38f0d8',
+    'cell phone': '#4fd1ff',
+    'laptop': '#7c5cff',
+    'bottle': '#9dff5c',
+    'cup': '#ffd166',
+    'chair': '#ff8a3d',
+    'book': '#ff5d8f',
+    'tv': '#c77dff',
+    'keyboard': '#5cffb0',
+    'backpack': '#ffb020'
+  };
+  var PRETTY = {
+    'cell phone': 'phone',
+    'potted plant': 'plant',
+    'dining table': 'table',
+    'wine glass': 'glass',
+    'sports ball': 'ball',
+    'tv': 'tv'
+  };
+  var colorCache = {};
+  function colorFor(cls) {
+    if (FIXED[cls]) return FIXED[cls];
+    if (colorCache[cls]) return colorCache[cls];
+    var h = 0;
+    for (var i = 0; i < cls.length; i++) h = (h * 31 + cls.charCodeAt(i)) >>> 0;
+    return (colorCache[cls] = PALETTE[h % PALETTE.length]);
+  }
+  function labelFor(cls) { return (PRETTY[cls] || cls).toUpperCase(); }
+
+  function rgba(hex, a) {
+    var r = parseInt(hex.slice(1, 3), 16);
+    var g = parseInt(hex.slice(3, 5), 16);
+    var b = parseInt(hex.slice(5, 7), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+
+  /* ---------------------------------------------------------------
+     Rendering
+     --------------------------------------------------------------- */
+  function drawOverlay() {
+    var ctx = octx;
+    ctx.clearRect(0, 0, viewW, viewH);
+    if (!S.running || !S.tracks.length) return;
+
+    var S_ui = clamp(Math.min(viewW, viewH) / 420, 0.85, 1.4);
+    var fontPx = Math.round(12 * S_ui);
+    var fontStack = '800 ' + fontPx + 'px ui-monospace, SFMono-Regular, "Roboto Mono", Menlo, monospace';
+
+    for (var i = 0; i < S.tracks.length; i++) {
+      var tr = S.tracks[i];
+      if (tr.alpha < 0.02) continue;
+
+      var a = tr.alpha * tr.alpha * (3 - 2 * tr.alpha);       // smoothstep
+      var lift = (1 - a) * 8 * S_ui;
+
+      var x = tr.x * viewW;
+      var y = tr.y * viewH + lift;
+      var w = tr.w * viewW;
+      var h = tr.h * viewH;
+
+      // keep boxes inside the visible viewport (the video is crop-scaled)
+      var x2 = Math.min(x + w, viewW - 1), y2 = Math.min(y + h, viewH - 1);
+      x = Math.max(1, x); y = Math.max(1, y);
+      w = x2 - x; h = y2 - y;
+      if (w <= 2 || h <= 2) continue;
+
+      var col = tr.color;
+
+      // body tint
+      ctx.fillStyle = rgba(col, 0.05 * a);
+      roundRect(ctx, x, y, w, h, 10 * S_ui);
+      ctx.fill();
+
+      // hairline outline
+      ctx.strokeStyle = rgba(col, 0.34 * a);
+      ctx.lineWidth = 1 * S_ui;
+      roundRect(ctx, x, y, w, h, 10 * S_ui);
+      ctx.stroke();
+
+      // corner brackets
+      var c = Math.max(9, Math.min(24 * S_ui, w * 0.3, h * 0.3));
+      ctx.strokeStyle = rgba(col, 0.95 * a);
+      ctx.lineWidth = 2.4 * S_ui;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x, y + c);           ctx.lineTo(x, y);         ctx.lineTo(x + c, y);
+      ctx.moveTo(x + w - c, y);       ctx.lineTo(x + w, y);     ctx.lineTo(x + w, y + c);
+      ctx.moveTo(x + w, y + h - c);   ctx.lineTo(x + w, y + h); ctx.lineTo(x + w - c, y + h);
+      ctx.moveTo(x + c, y + h);       ctx.lineTo(x, y + h);     ctx.lineTo(x, y + h - c);
+      ctx.stroke();
+
+      drawChip(ctx, tr, x, y, w, col, a, S_ui, fontPx, fontStack);
+    }
+  }
+
+  function drawChip(ctx, tr, bx, by, bw, col, a, S_ui, fontPx, fontStack) {
+    ctx.font = fontStack;
+    try { ctx.letterSpacing = Math.round(0.9 * S_ui) + 'px'; } catch (e) {}
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+
+    var pct = Math.round(clamp(tr.score, 0, 1) * 100);
+    var name = labelFor(tr.cls);
+    var sep = ' \u2022 ';
+    var conf = pct + '%';
+    var padX = Math.round(10 * S_ui);
+    var wName = ctx.measureText(name).width;
+    var wSep = ctx.measureText(sep).width;
+    var wConf = ctx.measureText(conf).width;
+    var tw = wName + wSep + wConf;
+    var chipW = padX + tw + padX;
+    var chipH = Math.round(fontPx + 13 * S_ui);
+    var margin = Math.round(6 * S_ui);
+
+    var guard = Math.min(hudBottom + Math.round(4 * S_ui), viewH * 0.4);
+    var cx = bx;
+    var cy = by - chipH - margin;
+    // Sitting above the box is preferred, but never underneath the HUD pills.
+    if (cy < guard && bx < hudRight) cy = Math.min(by + margin, viewH - chipH - 2);
+    else if (cy < 2) cy = Math.min(by + margin, viewH - chipH - 2);
+    cx = clamp(cx, 2, Math.max(2, viewW - chipW - 2));
+    cy = clamp(cy, 2, Math.max(2, viewH - chipH - 2));
+
+    ctx.globalAlpha = a;
+
+    // plate
+    ctx.fillStyle = 'rgba(5,9,14,0.80)';
+    roundRect(ctx, cx, cy, chipW, chipH, chipH / 2);
+    ctx.fill();
+    ctx.strokeStyle = rgba(col, 0.55);
+    ctx.lineWidth = 1 * S_ui;
+    roundRect(ctx, cx, cy, chipW, chipH, chipH / 2);
+    ctx.stroke();
+
+    // "PERSON \u2022 97%" - name in white, bullet and confidence in the class colour
+    var ty = cy + chipH / 2 + 0.5 * S_ui;
+    var tx = cx + padX;
+    ctx.fillStyle = '#f2fbff';
+    ctx.fillText(name, tx, ty);
+    ctx.fillStyle = col;
+    ctx.fillText(sep + conf, tx + wName, ty);
+
+    // confidence underline
+    var barY = cy + chipH - Math.max(1.6, 1.8 * S_ui);
+    var barW = (chipW - padX * 2) * clamp(tr.score, 0, 1);
+    ctx.strokeStyle = rgba(col, 0.85);
+    ctx.lineWidth = Math.max(1.4, 1.6 * S_ui);
+    ctx.beginPath();
+    ctx.moveTo(cx + padX, barY);
+    ctx.lineTo(cx + padX + barW, barY);
+    ctx.stroke();
+
+    // tether from chip to box
+    if (cy + chipH <= by) {
+      ctx.strokeStyle = rgba(col, 0.4);
+      ctx.lineWidth = 1 * S_ui;
+      ctx.beginPath();
+      ctx.moveTo(cx + chipH / 2, cy + chipH);
+      ctx.lineTo(cx + chipH / 2, by);
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
+    try { ctx.letterSpacing = '0px'; } catch (e) {}
+  }
+
+  /* ---------------------------------------------------------------
+     HUD
+     --------------------------------------------------------------- */
+  var lastHud = 0, lastCountShown = -1, lastFpsShown = '';
+  function updateHud(force) {
+    var t = now();
+    if (!force && t - lastHud < 200) return;
+    lastHud = t;
+
+    var f = S.running ? String(Math.round(S.fps)) : '--';
+    if (f !== lastFpsShown) { elFps.textContent = f; lastFpsShown = f; }
+
+    var c = S.running ? S.visibleCount : 0;
+    if (c !== lastCountShown) { elCount.textContent = c; lastCountShown = c; }
+
+    elLive.textContent = (S.running && S.detecting && S.modelState === 'ready') ? 'Live AI' : 'AI idle';
+
+    if (S.statusLock) return;
+
+    if (!S.running) {
+      if (!S.starting) setStatus(S.stream ? 'Standby' : 'Camera off');
+      return;
+    }
+    if (!S.detecting) { setStatus('Detection paused'); return; }
+    if (S.modelState === 'loading') { setStatus('Model loading...'); return; }
+    if (S.modelState === 'failed')  { setStatus('AI unavailable', 'bad'); return; }
+    if (S.modelState !== 'ready')   { setStatus('Preparing...'); return; }
+
+    if (c === 0) setStatus('Scanning...');
+    else setStatus(c + (c === 1 ? ' object detected' : ' objects detected'));
+  }
+
+  function syncButtons() {
+    var scanning = S.running && S.detecting;
+    body.classList.toggle('scanning', scanning);
+    btnDetect.classList.toggle('on', S.detecting);
+    btnDetect.setAttribute('aria-pressed', String(S.detecting));
+    btnDetect.disabled = !S.running;
+    btnPower.classList.toggle('rec', S.running);
+    btnPower.setAttribute('aria-label', S.running ? 'Stop camera' : 'Start camera');
+    btnFlip.disabled = !S.running || S.starting;
+    btnFlip.style.opacity = S.multiCam ? '' : '.55';
+    var lens = (S.facing === 'user') ? 'Front' : 'Rear';
+    if (flipLabel.textContent !== lens) flipLabel.textContent = lens;
+    btnFlip.setAttribute('aria-label', 'Switch camera (currently ' + lens.toLowerCase() + ')');
+  }
+
+  /* ---------------------------------------------------------------
+     Main render loop
+     --------------------------------------------------------------- */
+  var rafId = 0, lastFrame = 0, frameTimes = [];
+  function frame(ts) {
+    rafId = requestAnimationFrame(frame);
+
+    if (!lastFrame) lastFrame = ts;
+    var dt = clamp(ts - lastFrame, 1, 64);
+    lastFrame = ts;
+
+    frameTimes.push(ts);
+    while (frameTimes.length && ts - frameTimes[0] > 1000) frameTimes.shift();
+    S.fps = frameTimes.length;
+
+    if (S.running) {
+      advanceTracks(dt, now());
+      drawOverlay();
+    } else if (S.tracks.length) {
+      S.tracks.length = 0;
+      S.visibleCount = 0;
+      octx.clearRect(0, 0, viewW, viewH);
+    }
+
+    updateHud(false);
+  }
+
+  /* ---------------------------------------------------------------
+     Events
+     --------------------------------------------------------------- */
+  var resizeTimer = null;
+  function scheduleResize() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resize, 60);
+    resize();                                   // immediate + settled pass
+  }
+
+  window.addEventListener('resize', scheduleResize, { passive: true });
+  window.addEventListener('orientationchange', function () {
+    setTimeout(scheduleResize, 120);
+    setTimeout(scheduleResize, 450);
+  }, { passive: true });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scheduleResize, { passive: true });
+  }
+  if (window.ResizeObserver) {
+    try { new ResizeObserver(function () { resize(); }).observe(stage); } catch (e) {}
+  }
+  video.addEventListener('loadedmetadata', resize);
+  video.addEventListener('resize', resize);     // fires when videoWidth changes
+  document.getElementById('app').addEventListener('animationend', resize);
+  window.addEventListener('load', scheduleResize);
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) return;
+    resize();
+    if (S.running && S.detecting) startInference();
+  });
+
+  if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+    navigator.mediaDevices.addEventListener('devicechange', refreshCameraList);
+  }
+
+  window.addEventListener('pagehide', stopStream);
+  window.addEventListener('beforeunload', stopStream);
+
+  btnStart.addEventListener('click', function () {
+    intro.hidden = true;
+    startCamera('user');                 // always opens on the selfie camera
+    ensureModel()['catch'](handleModelFailure);
+  });
+
+  btnPower.addEventListener('click', function () {
+    if (S.starting) return;
+    if (S.running) stopCamera();
+    else startCamera('user');            // every fresh start returns to selfie
+  });
+
+  btnDetect.addEventListener('click', function () {
+    S.detecting = !S.detecting;
+    syncButtons();
+    if (S.detecting) {
+      startInference();
+      toast('AI detection on', 1400);
+    } else {
+      S.tracks.length = 0;
+      S.visibleCount = 0;
+      octx.clearRect(0, 0, viewW, viewH);
+      toast('AI detection paused', 1400);
+    }
+    updateHud(true);
+  });
+
+  btnFlip.addEventListener('click', flipCamera);
+
+  btnRetry.addEventListener('click', function () {
+    if (S.retryAction) S.retryAction();
+    else { hideError(); startCamera('user'); }
+  });
+  btnDismiss.addEventListener('click', hideError);
+
+  /* ---------------------------------------------------------------
+     Boot
+     --------------------------------------------------------------- */
+  resize();
+  syncButtons();
+  setStatus('Tap start to begin');
+  S.statusLock = false;
+  rafId = requestAnimationFrame(frame);
+
+  if (!cameraSupported()) {
+    btnStart.disabled = true;
+    btnStart.style.opacity = '.5';
+    lockStatus('Camera not supported', 'bad');
+    var sub = intro.querySelector('.sub');
+    if (sub) sub.innerHTML = 'This browser does not support live camera capture (<code>getUserMedia</code> is missing). Try Chrome on Android or Safari on iOS.';
+  }
+})();
+</script>
+</body>
+</html>
