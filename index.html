@@ -169,15 +169,15 @@ body:not(.scanning) .chip.live .dot{background:var(--muted);box-shadow:none;}
 /* ---------- dock ---------- */
 .dock{
   position:absolute;left:0;right:0;bottom:0;
-  display:flex;align-items:center;justify-content:center;gap:26px;
-  padding:0 16px calc(env(safe-area-inset-bottom,0px) + 20px);
+  display:flex;align-items:center;justify-content:center;gap:18px;
+  padding:0 12px calc(env(safe-area-inset-bottom,0px) + 20px);
   opacity:0;transform:translateY(20px);
   animation:dockIn .8s var(--ease) .5s forwards;
 }
 @keyframes dockIn{to{opacity:1;transform:none}}
 .btn{
   position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  width:58px;height:58px;border-radius:50%;
+  width:54px;height:54px;border-radius:50%;
   background:var(--glass);border:1px solid var(--hair);
   -webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);
   box-shadow:0 10px 30px rgba(0,0,0,.42);
@@ -196,6 +196,7 @@ body:not(.scanning) .chip.live .dot{background:var(--muted);box-shadow:none;}
 .btn.power.rec .ring{border-color:rgba(255,77,109,.28);}
 .btn.busy{opacity:.6;pointer-events:none;}
 .btn.busy svg{animation:spin 1s linear infinite;}
+.btn .lab{transition:color .25s;}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 @media (orientation:landscape) and (max-height:560px){
@@ -354,6 +355,14 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
       </svg>
     </button>
 
+    <button class="btn" id="btnVocab" type="button" aria-label="Expand detection vocabulary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="10.5" cy="10.5" r="6.2"/><path d="M15.2 15.2 21 21"/>
+        <path d="M10.5 7.8v5.4"/><path d="M7.8 10.5h5.4"/>
+      </svg>
+      <span class="lab" id="vocabLabel">80</span>
+    </button>
+
     <button class="btn" id="btnFlip" type="button" aria-label="Switch camera">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M3 7h3l1.6-2.2h8.8L18 7h3v13H3z"/>
@@ -447,12 +456,38 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
   var MIN_SCORE      = 0.34;  // model-side score cutoff
   var MAX_AI_FPS     = 12;    // hard ceiling on inference rate
   var MODEL_INPUT    = 300;   // the SSD graph resizes to 300x300 regardless
+  var TILE_STALE_MS  = 2600;  // sweep-only tracks are re-measured about once a second
+  var OID_DIRS       = ['models/oid-v4/', './models/oid-v4/'];
+  var OID_FALLBACK   = 'https://cdn.jsdelivr.net/gh/hafchasahin-creator/my-sec-wsb@claude/selfie-camera-detection-4a8sgc/models/oid-v4/';
+  var OID_MIN_SCORE  = 0.24;  // Open Images scores run far lower than COCO's
+  var MAX_CHIPS      = 12;    // boxes for everything, labels for the strongest
+  var OID_MAX_BOXES  = 30;
+
+  // Index 0 is the whole visible frame. The rest are overlapping tiles: feeding
+  // a zoomed sub-region to the same detector genuinely raises recall on small
+  // and peripheral objects, because the 300x300 input then spends its pixels on
+  // a quarter of the scene. Measured on a real photo, a single full-frame pass
+  // missed a potted plant entirely that the tile sweep found at 0.59.
+  var REGIONS = [
+    { x: 0,    y: 0,    w: 1,   h: 1   },
+    { x: 0,    y: 0,    w: 0.6, h: 0.6 },
+    { x: 0.4,  y: 0,    w: 0.6, h: 0.6 },
+    { x: 0,    y: 0.4,  w: 0.6, h: 0.6 },
+    { x: 0.4,  y: 0.4,  w: 0.6, h: 0.6 }
+  ];
   var IOU_MATCH      = 0.18;  // track <-> detection association threshold
   var MAX_MISSES     = 2;     // detection cycles before a track is stale
   var STALE_MS       = 550;   // hard time-to-live without a fresh hit
-  var BOX_TAU        = 68;    // ms; box position smoothing time constant
-  var FADE_IN_TAU    = 85;    // ms
+  var BOX_TAU        = 62;    // ms; box position smoothing time constant
+  var FADE_IN_TAU    = 115;   // ms
   var FADE_OUT_TAU   = 62;    // ms
+  var ACQUIRE_MS     = 460;   // length of the "object acquired" animation
+  var SCORE_TAU      = 240;   // ms; how fast the displayed percentage catches up
+  var AB_ALPHA       = 0.62;  // alpha-beta filter: position correction
+  var AB_BETA        = 0.20;  // alpha-beta filter: velocity correction
+  var VEL_KEEP_MS    = 700;   // velocity memory while a track is being seen
+  var VEL_DROP_MS    = 110;   // velocity memory once it goes stale
+  var VEL_MAX        = 0.0035;// screen-fractions per ms, sanity cap
   var CONFIRM_SCORE  = 0.55;  // instantly trust detections above this
   var QUIET_HINT_MS  = 8000;  // how long to scan before admitting nothing is found
 
@@ -474,6 +509,8 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
   var btnPower    = $('btnPower');
   var btnFlip     = $('btnFlip');
   var flipLabel   = $('flipLabel');
+  var btnVocab    = $('btnVocab');
+  var vocabLabel  = $('vocabLabel');
   var btnStart    = $('btnStart');
   var btnRetry    = $('btnRetry');
   var btnDismiss  = $('btnDismiss');
@@ -514,6 +551,13 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
     lite: false,
     darkRuns: 0,
     feedDark: false,
+    cycle: 0,
+    sweepIdx: 0,
+    sweeping: false,
+    expanded: false,        // 601-class Open Images pass enabled
+    oidModel: null,
+    oidLabels: null,
+    oidState: 'idle',       // idle | loading | ready | failed
     repaired: false,
     fps: 0,
     visibleCount: 0
@@ -781,6 +825,107 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
     });
 
     return S.modelPromise;
+  }
+
+  /* ---------------------------------------------------------------
+     Expanded vocabulary: SSD MobileNet v2 trained on Open Images v4.
+     601 classes instead of COCO's 80 - headphones, watches, glasses,
+     doors, windows, ceiling fans, pillows, footwear, light switches,
+     human faces and several hundred more. It is a raw graph model, so
+     the box decode and NMS that coco-ssd does internally are done here.
+     --------------------------------------------------------------- */
+  async function fetchFirst(paths, suffix) {
+    var lastErr = null;
+    for (var i = 0; i < paths.length; i++) {
+      try {
+        var r = await fetch(paths[i] + suffix, { cache: 'force-cache' });
+        if (r.ok) return { base: paths[i], res: r };
+        lastErr = new Error('HTTP ' + r.status + ' for ' + paths[i] + suffix);
+      } catch (e) { lastErr = e; }
+    }
+    throw lastErr || new Error('not found: ' + suffix);
+  }
+
+  async function ensureExpanded() {
+    if (S.oidModel) return S.oidModel;
+    if (S.oidPromise) return S.oidPromise;
+    S.oidState = 'loading';
+
+    S.oidPromise = (async function () {
+      await ensureModel();                       // guarantees tf is present
+      var bases = OID_DIRS.concat([OID_FALLBACK]);
+      var found = await fetchFirst(bases, 'labels.json');
+      S.oidLabels = await found.res.json();
+      var model = await window.tf.loadGraphModel(found.base + 'model.json');
+
+      // prove it before trusting it, exactly as with the primary model
+      var probe = document.createElement('canvas');
+      probe.width = probe.height = MODEL_INPUT;
+      var pc = probe.getContext('2d');
+      pc.fillStyle = '#404850'; pc.fillRect(0, 0, MODEL_INPUT, MODEL_INPUT);
+      await detectOID(model, probe, 0.9);
+
+      S.oidModel = model;
+      S.oidState = 'ready';
+      return model;
+    })();
+
+    S.oidPromise['catch'](function () { S.oidPromise = null; S.oidState = 'failed'; });
+    return S.oidPromise;
+  }
+
+  async function detectOID(model, canvas, minScore) {
+    var batched = window.tf.tidy(function () {
+      return window.tf.expandDims(window.tf.browser.fromPixels(canvas));
+    });
+    var res;
+    try {
+      res = await model.executeAsync(batched);
+    } finally {
+      batched.dispose();
+    }
+
+    var boxesT = null, scoresT = null;
+    for (var i = 0; i < res.length; i++) {
+      if (res[i].shape.length === 4 && res[i].shape[3] === 4) boxesT = res[i];
+      else if (res[i].shape.length === 3 && res[i].shape[2] > 10) scoresT = res[i];
+    }
+    if (!boxesT || !scoresT) { res.forEach(function (t) { t.dispose(); }); return []; }
+
+    var N = boxesT.shape[1], C = scoresT.shape[2];
+    var bd = boxesT.dataSync(), sd = scoresT.dataSync();
+    var maxS = new Float32Array(N), cls = new Int32Array(N);
+    for (var b = 0; b < N; b++) {
+      var m = -1, ci = 0, off = b * C;
+      for (var j = 0; j < C; j++) { var v = sd[off + j]; if (v > m) { m = v; ci = j; } }
+      maxS[b] = m; cls[b] = ci;
+    }
+
+    var out = [];
+    var boxes2d = window.tf.tensor2d(bd, [N, 4]);
+    var scores1d = window.tf.tensor1d(maxS);
+    try {
+      var keep = await window.tf.image.nonMaxSuppressionAsync(
+        boxes2d, scores1d, OID_MAX_BOXES, 0.5, minScore);
+      var ids = await keep.data();
+      keep.dispose();
+      var W = canvas.width, H = canvas.height;
+      for (var k = 0; k < ids.length; k++) {
+        var idx = ids[k], o = idx * 4;
+        var y1 = bd[o], x1 = bd[o + 1], y2 = bd[o + 2], x2 = bd[o + 3];
+        var name = (S.oidLabels && S.oidLabels[String(cls[idx] + 1)]) || null;
+        if (!name) continue;
+        out.push({
+          bbox: [x1 * W, y1 * H, (x2 - x1) * W, (y2 - y1) * H],
+          'class': name,
+          score: maxS[idx]
+        });
+      }
+    } finally {
+      boxes2d.dispose(); scores1d.dispose();
+      res.forEach(function (t) { t.dispose(); });
+    }
+    return out;
   }
 
   function handleModelFailure(err) {
@@ -1217,14 +1362,18 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
   // confidence (0.96 -> 1.00 on the same object once letterboxed). The square
   // is the model's own 300x300 input size, so nothing is resized twice and
   // larger inputs would buy nothing.
-  function prepareInput() {
+  function prepareInput(region) {
     if (viewW < 2 || viewH < 2) resize();      // never crop against a stale size
     var vw = video.videoWidth, vh = video.videoHeight;
     var scale = Math.max(viewW / vw, viewH / vh);
-    var sw = Math.min(vw, viewW / scale);
-    var sh = Math.min(vh, viewH / scale);
-    var sx = (vw - sw) / 2;
-    var sy = (vh - sh) / 2;
+    var cw = Math.min(vw, viewW / scale);      // the visible preview, in video px
+    var ch = Math.min(vh, viewH / scale);
+    var cx = (vw - cw) / 2;
+    var cy = (vh - ch) / 2;
+
+    // the requested sub-region of that visible preview
+    var sw = cw * region.w, sh = ch * region.h;
+    var sx = cx + cw * region.x, sy = cy + ch * region.y;
 
     var side = MODEL_INPUT;
     if (work.width !== side || work.height !== side) { work.width = work.height = side; }
@@ -1297,10 +1446,36 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
 
         if (video.readyState < 2 || !video.videoWidth) { await sleep(90); continue; }
 
+        // Half the cycles are always the fast full-frame COCO pass, which is
+        // what keeps tracking responsive. The other half alternates between a
+        // zoomed sweep tile (better recall on small objects) and, when it is
+        // switched on, the 601-class pass (better vocabulary). Total inference
+        // rate is identical in every mode.
+        var wide = S.expanded && S.oidModel;
+        var sweepOk = !S.lite && S.inferMs < 260;
+        var region = REGIONS[0], src = 'full', useOid = false;
+
+        if (S.cycle % 2 === 1) {
+          var wantOid = wide && (!sweepOk || (S.cycle >> 1) % 2 === 1);
+          if (wantOid) {
+            useOid = true;
+          } else if (sweepOk) {
+            region = REGIONS[1 + (S.sweepIdx % (REGIONS.length - 1))];
+            S.sweepIdx++;
+            src = 'tile';
+          }
+        }
+        S.cycle++;
+        S.sweeping = sweepOk;
+
         var t0 = now();
         var preds;
         try {
-          preds = await S.model.detect(prepareInput(), MAX_BOXES, MIN_SCORE);
+          var frame = prepareInput(region);
+          preds = useOid
+            ? await detectOID(S.oidModel, frame, OID_MIN_SCORE)
+            : await S.model.detect(frame, MAX_BOXES, MIN_SCORE);
+          if (useOid) src = 'wide';
         } catch (err) {
           // A transient GPU/context hiccup shouldn't kill the camera.
           await sleep(260);
@@ -1309,9 +1484,9 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
         var t1 = now();
         S.inferMs = S.inferMs ? (S.inferMs * 0.7 + (t1 - t0) * 0.3) : (t1 - t0);
         noteInference(t1);
-        ingest(preds, t1);
+        ingest(preds, t1, region, src);
 
-        if (!preds.length) {
+        if (!preds.length && src === 'full' && !useOid) {
           S.darkRuns = workFrameLooksDark() ? S.darkRuns + 1 : 0;
           if (S.darkRuns >= 8 && !S.feedDark) {
             S.feedDark = true;
@@ -1332,6 +1507,17 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
   /* ---------------------------------------------------------------
      Tracking + smoothing
      --------------------------------------------------------------- */
+  // Fraction of the SMALLER box that lies inside the other. Two tiles seeing
+  // the same object often disagree on its extent, giving a low IoU but near
+  // total containment - which IoU alone would let through as two objects.
+  function containment(a, b) {
+    var x1 = Math.max(a.x, b.x), y1 = Math.max(a.y, b.y);
+    var x2 = Math.min(a.x + a.w, b.x + b.w), y2 = Math.min(a.y + a.h, b.y + b.h);
+    var iw = x2 - x1, ih = y2 - y1;
+    if (iw <= 0 || ih <= 0) return 0;
+    return (iw * ih) / Math.max(1e-6, Math.min(a.w * a.h, b.w * b.h));
+  }
+
   function iou(a, b) {
     var x1 = Math.max(a.x, b.x), y1 = Math.max(a.y, b.y);
     var x2 = Math.min(a.x + a.w, b.x + b.w), y2 = Math.min(a.y + a.h, b.y + b.h);
@@ -1341,16 +1527,33 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
     return inter / (a.w * a.h + b.w * b.h - inter);
   }
 
-  function ingest(preds, t) {
+  function ingest(preds, t, region, src) {
     var mirror = S.mirrored;
     var dets = [];
 
     for (var i = 0; i < preds.length; i++) {
       var p = preds[i];
       var bb = p.bbox;
-      // strip the letterbox padding, leaving a fraction of the visible preview
-      var nx = (bb[0] - pad.ox) / pad.iw, ny = (bb[1] - pad.oy) / pad.ih;
-      var nw = bb[2] / pad.iw, nh = bb[3] / pad.ih;
+      // strip the letterbox padding, giving a fraction of this tile
+      var lx = (bb[0] - pad.ox) / pad.iw, ly = (bb[1] - pad.oy) / pad.ih;
+      var lw = bb[2] / pad.iw, lh = bb[3] / pad.ih;
+
+      // An object straddling a tile edge is measured truncated, and feeding
+      // that to the tracker drags the whole box inwards. Discard anything
+      // touching an INTERIOR tile boundary - the full-frame pass sees those
+      // properly. Edges that coincide with the real frame edge are genuine.
+      if (src === 'tile') {
+        var E = 0.02;
+        if ((lx <= E && region.x > 0.001) ||
+            (ly <= E && region.y > 0.001) ||
+            (lx + lw >= 1 - E && region.x + region.w < 0.999) ||
+            (ly + lh >= 1 - E && region.y + region.h < 0.999)) continue;
+      }
+
+      // lift the tile's own sub-rectangle back up into full-preview coordinates
+      var nx = lx * region.w + region.x;
+      var ny = ly * region.h + region.y;
+      var nw = lw * region.w, nh = lh * region.h;
 
       // clamp to the frame before mirroring so the flip stays symmetric
       if (nx < 0) { nw += nx; nx = 0; }
@@ -1361,20 +1564,24 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
 
       if (mirror) nx = 1 - nx - nw;
 
-      dets.push({ cls: p.class, score: p.score, x: nx, y: ny, w: nw, h: nh });
+      var canon = canonOf(p.class);
+      if (src === 'wide' && cocoCovers(canon)) continue;   // COCO owns this class
+      dets.push({ cls: p.class, canon: canon, label: labelFor(p.class),
+                  score: p.score, x: nx, y: ny, w: nw, h: nh });
     }
 
-    matchTracks(dets, t);
+    matchTracks(dets, t, src);
+    return dets.length;
   }
 
-  function matchTracks(dets, t) {
+  function matchTracks(dets, t, src) {
     var tracks = S.tracks;
     var pairs = [];
 
     for (var i = 0; i < tracks.length; i++) {
       for (var j = 0; j < dets.length; j++) {
-        if (tracks[i].cls !== dets[j].cls) continue;
-        var v = iou(tracks[i].target, dets[j]);
+        if (tracks[i].canon !== dets[j].canon) continue;
+        var v = iou(tracks[i].est, dets[j]);
         if (v >= IOU_MATCH) pairs.push([v, i, j]);
       }
     }
@@ -1387,27 +1594,56 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
       tUsed[pi] = dUsed[pj] = true;
 
       var tr = tracks[pi], d = dets[pj];
-      tr.target.x = d.x; tr.target.y = d.y; tr.target.w = d.w; tr.target.h = d.h;
+
+      // Alpha-beta filter. Inference is roughly 8x slower than the display, so
+      // the estimate is integrated forward every rendered frame and only
+      // *corrected* when a measurement lands. Extrapolating from the last
+      // measurement instead would reset its clock on every correction, which
+      // makes the box saw-tooth back and forth as an object moves.
+      var dtm = clamp(t - tr.lastMeasure, 1, 900);
+      var ax, res;
+      for (var q = 0; q < 4; q++) {
+        var key = ['x', 'y', 'w', 'h'][q];
+        res = d[key] - tr.est[key];
+        tr.est[key] += AB_ALPHA * res;
+        tr.vel[key] = clamp(tr.vel[key] + (AB_BETA * res) / dtm, -VEL_MAX, VEL_MAX);
+      }
+      tr.lastMeasure = t;
       tr.score = tr.score * 0.62 + d.score * 0.38;
       tr.peak = Math.max(tr.peak, d.score);
+      if (d.label && d.label !== tr.label) tr.label = d.label;
       tr.hits++;
       tr.misses = 0;
       tr.lastSeen = t;
+      if (src === 'full') tr.tileOnly = false;
     }
 
-    for (var m = 0; m < tracks.length; m++) if (!tUsed[m]) tracks[m].misses++;
+    // Only the full-frame pass sees everything, so only it may hold a missed
+    // detection against a track. A tile that does not contain an object is no
+    // evidence the object has gone.
+    if (src === 'full') {
+      for (var m = 0; m < tracks.length; m++) if (!tUsed[m] && !tracks[m].tileOnly) tracks[m].misses++;
+    }
 
     for (var n = 0; n < dets.length; n++) {
       if (dUsed[n]) continue;
       var nd = dets[n];
       tracks.push({
-        id: S.nextId++,
+        id: S.nextId++,                       // stable identity for the animation
         cls: nd.cls,
+        canon: nd.canon,
+        label: nd.label,
         score: nd.score,
+        shownScore: nd.score,                 // separately eased, so the % counts up
         peak: nd.score,
-        x: nd.x, y: nd.y, w: nd.w, h: nd.h,
-        target: { x: nd.x, y: nd.y, w: nd.w, h: nd.h },
+        x: nd.x, y: nd.y, w: nd.w, h: nd.h,          // what is drawn
+        est: { x: nd.x, y: nd.y, w: nd.w, h: nd.h }, // filter state
+        vel: { x: 0, y: 0, w: 0, h: 0 },             // per-ms
+        lastMeasure: t,
+        dying: false,
+        tileOnly: src !== 'full',
         alpha: 0,
+        acquire: 0,                           // 0..1 acquisition animation
         hits: 1,
         misses: 0,
         lastSeen: t,
@@ -1416,32 +1652,72 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
       });
     }
 
+    // Overlapping tiles can each find the same object; fold those together so
+    // one object never carries two labels.
+    for (var p1 = 0; p1 < tracks.length; p1++) {
+      for (var p2 = p1 + 1; p2 < tracks.length; p2++) {
+        if (tracks[p1].canon !== tracks[p2].canon) continue;
+        if (iou(tracks[p1].est, tracks[p2].est) < 0.45 &&
+            containment(tracks[p1].est, tracks[p2].est) < 0.72) continue;
+        var drop = (tracks[p1].hits >= tracks[p2].hits) ? p2 : p1;
+        var keep = drop === p2 ? p1 : p2;
+        tracks[keep].hits = Math.max(tracks[keep].hits, tracks[drop].hits);
+        tracks[keep].peak = Math.max(tracks[keep].peak, tracks[drop].peak);
+        tracks[keep].tileOnly = tracks[keep].tileOnly && tracks[drop].tileOnly;
+        tracks.splice(drop, 1);
+        p2--;
+        if (drop === p1) break;
+      }
+    }
+
     // Guard rail: never let the list grow unbounded.
     if (tracks.length > 64) tracks.splice(0, tracks.length - 64);
   }
 
   function trackIsStale(tr, t) {
+    // A track only the sweep has ever seen is re-measured about once a second,
+    // so judging it by the full-frame cadence would kill it between looks.
+    if (tr.tileOnly) return (t - tr.lastSeen) > TILE_STALE_MS;
     return tr.misses >= MAX_MISSES || (t - tr.lastSeen) > STALE_MS;
   }
 
   function advanceTracks(dt, t) {
     var kBox = 1 - Math.exp(-dt / BOX_TAU);
+    var kScore = 1 - Math.exp(-dt / SCORE_TAU);
     var alive = [];
     var visible = 0;
 
     for (var i = 0; i < S.tracks.length; i++) {
       var tr = S.tracks[i];
+      var stale0 = trackIsStale(tr, t);
 
-      tr.x += (tr.target.x - tr.x) * kBox;
-      tr.y += (tr.target.y - tr.y) * kBox;
-      tr.w += (tr.target.w - tr.w) * kBox;
-      tr.h += (tr.target.h - tr.h) * kBox;
+      // Integrate the estimate forward, then bleed velocity away so a track
+      // that stops being measured coasts to a halt instead of flying off.
+      var damp = Math.exp(-dt / (stale0 ? VEL_DROP_MS : VEL_KEEP_MS));
+      tr.est.x = clamp(tr.est.x + tr.vel.x * dt, -0.25, 1.25);
+      tr.est.y = clamp(tr.est.y + tr.vel.y * dt, -0.25, 1.25);
+      tr.est.w = clamp(tr.est.w + tr.vel.w * dt, 0.004, 1.5);
+      tr.est.h = clamp(tr.est.h + tr.vel.h * dt, 0.004, 1.5);
+      tr.vel.x *= damp; tr.vel.y *= damp; tr.vel.w *= damp; tr.vel.h *= damp;
 
-      var stale = trackIsStale(tr, t);
+      tr.x += (tr.est.x - tr.x) * kBox;
+      tr.y += (tr.est.y - tr.y) * kBox;
+      tr.w += (tr.est.w - tr.w) * kBox;
+      tr.h += (tr.est.h - tr.h) * kBox;
+
+      tr.shownScore += (tr.score - tr.shownScore) * kScore;
+      if (tr.acquire < 1) tr.acquire = Math.min(1, tr.acquire + dt / ACQUIRE_MS);
+
+      var stale = stale0;
+      // Anything below the confidence bar must be found twice before it earns a
+      // label, whichever pass found it. That is what keeps one-off tile
+      // hallucinations out while still surfacing genuine weak detections that
+      // the full-frame pass is too coarse to see at all.
       var confirmed = tr.hits >= 2 || tr.peak >= CONFIRM_SCORE;
       var want = (!stale && confirmed) ? 1 : 0;
       var kA = 1 - Math.exp(-dt / (want ? FADE_IN_TAU : FADE_OUT_TAU));
       tr.alpha += (want - tr.alpha) * kA;
+      tr.dying = stale;
 
       if (stale && tr.alpha < 0.02) continue;      // fully faded — drop it
       if (tr.alpha > 0.45) visible++;
@@ -1477,15 +1753,63 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
     'sports ball': 'ball',
     'tv': 'tv'
   };
+  // COCO and Open Images name the same thing differently ("person" vs "Man" /
+  // "Woman" / "Person"). Collapsing both to one canonical key lets a single
+  // track survive alternating passes, instead of the same object collecting
+  // one label per model.
+  var CANON = {
+    'person': 'person', 'man': 'person', 'woman': 'person', 'boy': 'person',
+    'girl': 'person', 'human body': 'person',
+    'cell phone': 'phone', 'mobile phone': 'phone', 'telephone': 'phone', 'corded phone': 'phone',
+    'potted plant': 'plant', 'houseplant': 'plant', 'flowerpot': 'plant',
+    'tv': 'tv', 'television': 'tv',
+    'couch': 'couch', 'sofa bed': 'couch', 'studio couch': 'couch',
+    'dining table': 'table', 'coffee table': 'table', 'kitchen & dining room table': 'table',
+    'wine glass': 'glass', 'coffee cup': 'cup', 'mug': 'cup',
+    'computer keyboard': 'keyboard', 'computer mouse': 'mouse',
+    'motorcycle': 'motorcycle', 'bicycle': 'bicycle',
+    'sunglasses': 'glasses', 'goggles': 'glasses',
+    'traffic light': 'traffic light'
+  };
+  // The 80 classes COCO-SSD already covers, canonicalised. Open Images is
+  // markedly weaker on exactly these (people came back at 0.40 where COCO says
+  // 0.93), so it is not allowed to compete for them - it only contributes the
+  // ~520 classes COCO has no word for at all. That keeps the common case at
+  // COCO's confidence while genuinely widening the vocabulary.
+  var COCO_CLASSES = ('person,bicycle,car,motorcycle,airplane,bus,train,truck,boat,traffic light,' +
+    'fire hydrant,stop sign,parking meter,bench,bird,cat,dog,horse,sheep,cow,elephant,bear,zebra,' +
+    'giraffe,backpack,umbrella,handbag,tie,suitcase,frisbee,skis,snowboard,sports ball,kite,' +
+    'baseball bat,baseball glove,skateboard,surfboard,tennis racket,bottle,wine glass,cup,fork,' +
+    'knife,spoon,bowl,banana,apple,sandwich,orange,broccoli,carrot,hot dog,pizza,donut,cake,chair,' +
+    'couch,potted plant,bed,dining table,toilet,tv,laptop,mouse,remote,keyboard,cell phone,microwave,' +
+    'oven,toaster,sink,refrigerator,book,clock,vase,scissors,teddy bear,hair drier,toothbrush').split(',');
+  var COCO_COVERS = null;
+  function cocoCovers(canon) {
+    if (!COCO_COVERS) {
+      COCO_COVERS = {};
+      for (var i = 0; i < COCO_CLASSES.length; i++) COCO_COVERS[canonOf(COCO_CLASSES[i])] = true;
+    }
+    return !!COCO_COVERS[canon];
+  }
+
+  function canonOf(cls) {
+    var k = String(cls).toLowerCase();
+    return CANON[k] || k;
+  }
+
   var colorCache = {};
   function colorFor(cls) {
+    cls = canonOf(cls);
     if (FIXED[cls]) return FIXED[cls];
     if (colorCache[cls]) return colorCache[cls];
     var h = 0;
     for (var i = 0; i < cls.length; i++) h = (h * 31 + cls.charCodeAt(i)) >>> 0;
     return (colorCache[cls] = PALETTE[h % PALETTE.length]);
   }
-  function labelFor(cls) { return (PRETTY[cls] || cls).toUpperCase(); }
+  function labelFor(cls) {
+    var c = canonOf(cls);
+    return (PRETTY[c] || PRETTY[cls] || cls).toUpperCase();
+  }
 
   function rgba(hex, a) {
     var r = parseInt(hex.slice(1, 3), 16);
@@ -1508,6 +1832,9 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
   /* ---------------------------------------------------------------
      Rendering
      --------------------------------------------------------------- */
+  function easeOutCubic(v) { var u = 1 - v; return 1 - u * u * u; }
+  function smoothstep(v) { return v * v * (3 - 2 * v); }
+
   function drawOverlay() {
     var ctx = octx;
     ctx.clearRect(0, 0, viewW, viewH);
@@ -1516,18 +1843,33 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
     var S_ui = clamp(Math.min(viewW, viewH) / 420, 0.85, 1.4);
     var fontPx = Math.round(12 * S_ui);
     var fontStack = '800 ' + fontPx + 'px ui-monospace, SFMono-Regular, "Roboto Mono", Menlo, monospace';
+    var t = now();
 
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // ---- pass 1: geometry, and draw every box ----
+    var plan = [];
     for (var i = 0; i < S.tracks.length; i++) {
       var tr = S.tracks[i];
       if (tr.alpha < 0.02) continue;
 
-      var a = tr.alpha * tr.alpha * (3 - 2 * tr.alpha);       // smoothstep
-      var lift = (1 - a) * 8 * S_ui;
+      var a = smoothstep(clamp(tr.alpha, 0, 1));
+      var ac = smoothstep(clamp(tr.acquire, 0, 1));
 
-      var x = tr.x * viewW;
-      var y = tr.y * viewH + lift;
-      var w = tr.w * viewW;
-      var h = tr.h * viewH;
+      // Enters by settling inwards from slightly oversized; leaves by shrinking
+      // away. The two are independent - applying the exit shrink during entry
+      // would cancel the overshoot - and both land on exactly 1.0 while the
+      // object is simply being tracked, so a steady box is pixel-accurate.
+      var scale = (1 + 0.16 * (1 - ac)) * (tr.dying ? (0.90 + 0.10 * a) : 1);
+
+      var cxN = tr.x + tr.w / 2, cyN = tr.y + tr.h / 2;
+      var hw = (tr.w * scale) / 2, hh = (tr.h * scale) / 2;
+
+      var x = (cxN - hw) * viewW;
+      var y = (cyN - hh) * viewH;
+      var w = hw * 2 * viewW;
+      var h = hh * 2 * viewH;
 
       // keep boxes inside the visible viewport (the video is crop-scaled)
       var x2 = Math.min(x + w, viewW - 1), y2 = Math.min(y + h, viewH - 1);
@@ -1535,100 +1877,178 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
       w = x2 - x; h = y2 - y;
       if (w <= 2 || h <= 2) continue;
 
-      var col = tr.color;
+      drawBox(ctx, tr, x, y, w, h, a, ac, S_ui, t);
+      plan.push({ tr: tr, x: x, y: y, w: w, h: h, a: a, ac: ac });
+    }
 
-      // body tint
-      ctx.fillStyle = rgba(col, 0.05 * a);
-      roundRect(ctx, x, y, w, h, 10 * S_ui);
-      ctx.fill();
-
-      // hairline outline
-      ctx.strokeStyle = rgba(col, 0.34 * a);
-      ctx.lineWidth = 1 * S_ui;
-      roundRect(ctx, x, y, w, h, 10 * S_ui);
-      ctx.stroke();
-
-      // corner brackets
-      var c = Math.max(9, Math.min(24 * S_ui, w * 0.3, h * 0.3));
-      ctx.strokeStyle = rgba(col, 0.95 * a);
-      ctx.lineWidth = 2.4 * S_ui;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(x, y + c);           ctx.lineTo(x, y);         ctx.lineTo(x + c, y);
-      ctx.moveTo(x + w - c, y);       ctx.lineTo(x + w, y);     ctx.lineTo(x + w, y + c);
-      ctx.moveTo(x + w, y + h - c);   ctx.lineTo(x + w, y + h); ctx.lineTo(x + w - c, y + h);
-      ctx.moveTo(x + c, y + h);       ctx.lineTo(x, y + h);     ctx.lineTo(x, y + h - c);
-      ctx.stroke();
-
-      drawChip(ctx, tr, x, y, w, col, a, S_ui, fontPx, fontStack);
+    // ---- pass 2: place labels so they never pile up on each other ----
+    layoutChips(ctx, plan, S_ui, fontPx, fontStack);
+    for (var j = 0; j < plan.length; j++) {
+      var pl = plan[j];
+      if (pl.chip) drawChip(ctx, pl, S_ui, fontPx, fontStack);
     }
   }
 
-  function drawChip(ctx, tr, bx, by, bw, col, a, S_ui, fontPx, fontStack) {
+  function drawBox(ctx, tr, x, y, w, h, a, ac, S_ui, t) {
+    var col = tr.color;
+    var r = 10 * S_ui;
+
+    // one-shot acquisition halo, expanding outwards as it fades
+    if (ac < 1) {
+      var grow = (1 - ac) * 16 * S_ui;
+      ctx.strokeStyle = rgba(col, (1 - ac) * 0.5 * a);
+      ctx.lineWidth = 1.6 * S_ui;
+      roundRect(ctx, x - grow, y - grow, w + grow * 2, h + grow * 2, r + grow);
+      ctx.stroke();
+    }
+
+    // body tint, with a barely-there breathing pulse so a live box never
+    // looks like a frozen screenshot
+    var breathe = 0.045 + 0.014 * Math.sin(t / 760 + tr.id * 1.7);
+    ctx.fillStyle = rgba(col, breathe * a);
+    roundRect(ctx, x, y, w, h, r);
+    ctx.fill();
+
+    // hairline outline
+    ctx.strokeStyle = rgba(col, 0.32 * a);
+    ctx.lineWidth = 1 * S_ui;
+    roundRect(ctx, x, y, w, h, r);
+    ctx.stroke();
+
+    // corner brackets: they grow into place as the object is acquired
+    var full = Math.max(9, Math.min(24 * S_ui, w * 0.3, h * 0.3));
+    var c = full * (0.34 + 0.66 * ac);
+    ctx.strokeStyle = rgba(col, 0.95 * a);
+    ctx.lineWidth = 2.4 * S_ui;
+    ctx.beginPath();
+    ctx.moveTo(x, y + c);           ctx.lineTo(x, y);         ctx.lineTo(x + c, y);
+    ctx.moveTo(x + w - c, y);       ctx.lineTo(x + w, y);     ctx.lineTo(x + w, y + c);
+    ctx.moveTo(x + w, y + h - c);   ctx.lineTo(x + w, y + h); ctx.lineTo(x + w - c, y + h);
+    ctx.moveTo(x + c, y + h);       ctx.lineTo(x, y + h);     ctx.lineTo(x, y + h - c);
+    ctx.stroke();
+
+    drawTrackId(ctx, tr, x, y, w, h, col, a * ac, S_ui);
+  }
+
+  // Six people standing in a row produce six labels at the same height. Nudge
+  // each one clear of the ones already placed, preferring upwards, so a crowd
+  // stays readable instead of collapsing into a single illegible pile.
+  function layoutChips(ctx, plan, S_ui, fontPx, fontStack) {
+    ctx.font = fontStack;
+    try { ctx.letterSpacing = Math.round(0.9 * S_ui) + 'px'; } catch (e) {}
+
+    var padX = Math.round(10 * S_ui);
+    var chipH = Math.round(fontPx + 13 * S_ui);
+    var margin = Math.round(6 * S_ui);
+    var guard = Math.min(hudBottom + Math.round(4 * S_ui), viewH * 0.4);
+
+    // Strongest first, so a confident label keeps the spot nearest its object -
+    // and past a point extra labels only obscure the picture, so the weakest
+    // keep their box and lose their chip.
+    var order = plan.slice().sort(function (p, q) { return q.tr.score - p.tr.score; });
+    var placed = [];
+    var limit = Math.min(order.length, MAX_CHIPS);
+
+    for (var i = 0; i < limit; i++) {
+      var pl = order[i], tr = pl.tr;
+      var name = tr.label || labelFor(tr.cls);
+      var sep = ' \u00b7 ';
+      var conf = Math.round(clamp(tr.shownScore, 0, 1) * 100) + '%';
+      var wName = ctx.measureText(name).width;
+      var wSep = ctx.measureText(sep).width;
+      var wConf = ctx.measureText(conf).width;
+      var chipW = padX + wName + wSep + wConf + padX;
+
+      var cx = clamp(pl.x, 2, Math.max(2, viewW - chipW - 2));
+      var cy = pl.y - chipH - margin;
+      if (cy < guard && pl.x < hudRight) cy = pl.y + margin;
+      else if (cy < 2) cy = pl.y + margin;
+
+      // step clear of anything already placed
+      for (var attempt = 0; attempt < 14; attempt++) {
+        var hit = null;
+        for (var k = 0; k < placed.length; k++) {
+          var q = placed[k];
+          if (cx < q.x + q.w + 3 && cx + chipW + 3 > q.x &&
+              cy < q.y + q.h + 2 && cy + chipH + 2 > q.y) { hit = q; break; }
+        }
+        if (!hit) break;
+        var up = hit.y - chipH - 3;
+        cy = (up >= guard) ? up : (hit.y + hit.h + 3);
+      }
+      cy = clamp(cy, 2, Math.max(2, viewH - chipH - 2));
+
+      pl.chip = { x: cx, y: cy, w: chipW, h: chipH, name: name, sep: sep, conf: conf,
+                  wName: wName, padX: padX };
+      placed.push({ x: cx, y: cy, w: chipW, h: chipH });
+    }
+    try { ctx.letterSpacing = '0px'; } catch (e) {}
+  }
+
+  // A small stable handle, so it is visible that the same object keeps the
+  // same identity frame to frame rather than being re-detected each time.
+  function drawTrackId(ctx, tr, bx, by, bw, bh, col, a, S_ui) {
+    if (a < 0.15 || bw < 54 * S_ui || bh < 40 * S_ui) return;
+    var fs = Math.round(8.5 * S_ui);
+    ctx.font = '700 ' + fs + 'px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = rgba(col, 0.5 * a);
+    ctx.fillText('ID ' + (tr.id % 1000), bx + bw - 6 * S_ui, by + bh - 6 * S_ui);
+    ctx.textAlign = 'left';
+  }
+
+  function drawChip(ctx, pl, S_ui, fontPx, fontStack) {
+    var tr = pl.tr, ch = pl.chip, col = tr.color;
+    var a = pl.a, ac = pl.ac;
+
     ctx.font = fontStack;
     try { ctx.letterSpacing = Math.round(0.9 * S_ui) + 'px'; } catch (e) {}
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    var pct = Math.round(clamp(tr.score, 0, 1) * 100);
-    var name = labelFor(tr.cls);
-    var sep = ' \u2022 ';
-    var conf = pct + '%';
-    var padX = Math.round(10 * S_ui);
-    var wName = ctx.measureText(name).width;
-    var wSep = ctx.measureText(sep).width;
-    var wConf = ctx.measureText(conf).width;
-    var tw = wName + wSep + wConf;
-    var chipW = padX + tw + padX;
-    var chipH = Math.round(fontPx + 13 * S_ui);
-    var margin = Math.round(6 * S_ui);
+    var cx = ch.x;
+    var cy = ch.y + (1 - ac) * 10 * S_ui;   // slides up into place as it fades in
 
-    var guard = Math.min(hudBottom + Math.round(4 * S_ui), viewH * 0.4);
-    var cx = bx;
-    var cy = by - chipH - margin;
-    // Sitting above the box is preferred, but never underneath the HUD pills.
-    if (cy < guard && bx < hudRight) cy = Math.min(by + margin, viewH - chipH - 2);
-    else if (cy < 2) cy = Math.min(by + margin, viewH - chipH - 2);
-    cx = clamp(cx, 2, Math.max(2, viewW - chipW - 2));
-    cy = clamp(cy, 2, Math.max(2, viewH - chipH - 2));
-
-    ctx.globalAlpha = a;
+    ctx.globalAlpha = a * (0.25 + 0.75 * ac);
 
     // plate
-    ctx.fillStyle = 'rgba(5,9,14,0.80)';
-    roundRect(ctx, cx, cy, chipW, chipH, chipH / 2);
+    ctx.fillStyle = 'rgba(5,9,14,0.84)';
+    roundRect(ctx, cx, cy, ch.w, ch.h, ch.h / 2);
     ctx.fill();
     ctx.strokeStyle = rgba(col, 0.55);
     ctx.lineWidth = 1 * S_ui;
-    roundRect(ctx, cx, cy, chipW, chipH, chipH / 2);
+    roundRect(ctx, cx, cy, ch.w, ch.h, ch.h / 2);
     ctx.stroke();
 
-    // "PERSON \u2022 97%" - name in white, bullet and confidence in the class colour
-    var ty = cy + chipH / 2 + 0.5 * S_ui;
-    var tx = cx + padX;
+    // "PERSON \u00b7 97%" - name in white, separator and confidence in the class colour
+    var ty = cy + ch.h / 2 + 0.5 * S_ui;
+    var tx = cx + ch.padX;
     ctx.fillStyle = '#f2fbff';
-    ctx.fillText(name, tx, ty);
+    ctx.fillText(ch.name, tx, ty);
     ctx.fillStyle = col;
-    ctx.fillText(sep + conf, tx + wName, ty);
+    ctx.fillText(ch.sep + ch.conf, tx + ch.wName, ty);
 
-    // confidence underline
-    var barY = cy + chipH - Math.max(1.6, 1.8 * S_ui);
-    var barW = (chipW - padX * 2) * clamp(tr.score, 0, 1);
+    // confidence underline, tracking the eased percentage
+    var barY = cy + ch.h - Math.max(1.6, 1.8 * S_ui);
+    var barW = (ch.w - ch.padX * 2) * clamp(tr.shownScore, 0, 1);
     ctx.strokeStyle = rgba(col, 0.85);
     ctx.lineWidth = Math.max(1.4, 1.6 * S_ui);
     ctx.beginPath();
-    ctx.moveTo(cx + padX, barY);
-    ctx.lineTo(cx + padX + barW, barY);
+    ctx.moveTo(cx + ch.padX, barY);
+    ctx.lineTo(cx + ch.padX + barW, barY);
     ctx.stroke();
 
-    // tether from chip to box
-    if (cy + chipH <= by) {
-      ctx.strokeStyle = rgba(col, 0.4);
+    // leader line back to the box it belongs to, now that chips can be nudged
+    var anchorX = clamp(pl.x + pl.w / 2, cx + 6, cx + ch.w - 6);
+    var below = cy + ch.h <= pl.y;
+    var above = cy >= pl.y + pl.h;
+    if (below || above) {
+      ctx.strokeStyle = rgba(col, 0.42);
       ctx.lineWidth = 1 * S_ui;
       ctx.beginPath();
-      ctx.moveTo(cx + chipH / 2, cy + chipH);
-      ctx.lineTo(cx + chipH / 2, by);
+      ctx.moveTo(anchorX, below ? cy + ch.h : cy);
+      ctx.lineTo(anchorX, below ? pl.y : pl.y + pl.h);
       ctx.stroke();
     }
 
@@ -1669,10 +2089,12 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
       S.hintShown = false;
       setStatus(c + (c === 1 ? ' object detected' : ' objects detected'));
     } else if (S.lastHit && (t - S.lastHit) > QUIET_HINT_MS) {
-      setStatus('Nothing recognised yet \u00b7 ' + (S.backend || 'ai'));
+      setStatus('Nothing recognised yet \u00b7 ' + (S.expanded ? '601 objects' : '80 objects'));
       if (!S.hintShown) {
         S.hintShown = true;
-        toast('Point at a person, phone, cup, bottle, chair, laptop or TV.', 5000);
+        toast(S.expanded
+          ? 'Point at anything - 601 object types are active.'
+          : 'Point at a person, phone, cup, bottle, chair, laptop or TV. Tap 80 to widen it.', 5200);
       }
     } else {
       setStatus('Scanning...');
@@ -1689,6 +2111,12 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
     btnPower.setAttribute('aria-label', S.running ? 'Stop camera' : 'Start camera');
     btnFlip.disabled = !S.running || S.starting;
     btnFlip.style.opacity = S.multiCam ? '' : '.55';
+    btnVocab.classList.toggle('on', S.expanded);
+    btnVocab.setAttribute('aria-pressed', String(S.expanded));
+    btnVocab.disabled = !S.running;
+    var vl = S.oidState === 'loading' ? '...' : (S.expanded ? '601' : '80');
+    if (vocabLabel.textContent !== vl) vocabLabel.textContent = vl;
+
     var lens = (S.facing === 'user') ? 'Front' : 'Rear';
     if (flipLabel.textContent !== lens) flipLabel.textContent = lens;
     btnFlip.setAttribute('aria-label', 'Switch camera (currently ' + lens.toLowerCase() + ')');
@@ -1805,6 +2233,45 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
   });
 
   btnFlip.addEventListener('click', flipCamera);
+
+  btnVocab.addEventListener('click', async function () {
+    if (S.oidState === 'loading') return;
+
+    if (S.expanded) {                       // turn it back off
+      S.expanded = false;
+      syncButtons();
+      toast('Back to the fast 80-object model.', 2000);
+      return;
+    }
+
+    if (S.oidModel) {                       // already downloaded this session
+      S.expanded = true;
+      syncButtons();
+      toast('Expanded vocabulary on \u00b7 601 objects', 2400);
+      return;
+    }
+
+    btnVocab.classList.add('busy');
+    unlockStatus('Downloading 601-object model...');
+    toast('Downloading the 601-object model (~28 MB, once).', 4000);
+    try {
+      await ensureExpanded();
+      S.expanded = true;
+      toast('Expanded vocabulary on \u00b7 601 objects, lower confidence scores', 4200);
+    } catch (err) {
+      toast('Could not load the expanded model.', 3200);
+      showError('Expanded model', 'Could not load the 601-object model',
+        'The larger Open Images model could not be downloaded. The fast 80-object detector is still running normally.',
+        (err && (err.message || String(err))) || '',
+        { hideRetry: true });
+    } finally {
+      btnVocab.classList.remove('busy');
+      S.hintShown = false;
+      S.lastHit = now();
+      syncButtons();
+      updateHud(true);
+    }
+  });
 
   btnRetry.addEventListener('click', function () {
     if (S.retryAction) S.retryAction();
