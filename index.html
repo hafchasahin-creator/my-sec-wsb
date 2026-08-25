@@ -691,11 +691,53 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
     return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   }
 
+  // Phones only hand out camera permission to a real web origin. A page opened
+  // straight from storage (content:// on Android, file:// elsewhere) has no
+  // origin to attach a permission to, so getUserMedia fails instantly and no
+  // amount of tapping the lock icon will help. Detect that up front and say so.
+  function pageContext() {
+    var p = location.protocol;
+    if (p === 'https:') return 'ok';
+    if (p === 'http:') {
+      var h = location.hostname;
+      if (window.isSecureContext || h === 'localhost' || h === '127.0.0.1' || h === '::1') return 'ok';
+      return 'insecure';
+    }
+    return 'nonweb';
+  }
+
+  function showContextError(kind) {
+    if (kind === 'nonweb') {
+      showError(
+        'Opened as a file',
+        'This needs to be opened from a web link',
+        'You opened the file straight from your device, so the browser has no website to grant camera permission to \u2014 that is why it was denied instantly.' +
+        '<br><br>Put <code>index.html</code> on any <code>https://</code> address and open that link instead. Turning on GitHub Pages for the repository is the quickest way; the camera then works normally.',
+        location.protocol + ' is not a web origin',
+        { hideRetry: true });
+      lockStatus('Open over https', 'bad');
+    } else {
+      showError(
+        'Insecure connection',
+        'This page must be served over https',
+        'Browsers only allow camera access on secure pages. Open this over <code>https://</code> (or <code>localhost</code> during development) and try again.',
+        location.href, { hideRetry: true });
+      lockStatus('Needs HTTPS', 'bad');
+    }
+  }
+
   function describeCameraError(err) {
     var name = (err && err.name) || '';
     switch (name) {
       case 'NotAllowedError':
       case 'PermissionDeniedError':
+        if (pageContext() === 'nonweb') {
+          return {
+            kind: 'Opened as a file',
+            title: 'This needs to be opened from a web link',
+            msg: 'The browser denied the camera instantly because this page was opened straight from your device rather than from a website, so there is no permission to grant.<br><br>Put <code>index.html</code> on an <code>https://</code> address and open that link instead.'
+          };
+        }
         return {
           kind: 'Permission denied',
           title: 'Camera access is blocked',
@@ -872,13 +914,8 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
       lockStatus('Camera not supported', 'bad');
       return false;
     }
-    if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-      showError('Blocked', 'Insecure connection',
-        'Browsers only allow camera access on secure pages. Serve this file over <code>https://</code> or <code>localhost</code>.',
-        location.href, { hideRetry: true });
-      lockStatus('Needs HTTPS', 'bad');
-      return false;
-    }
+    var pc = pageContext();
+    if (pc !== 'ok') { showContextError(pc); return false; }
 
     S.starting = true;
     btnPower.classList.add('busy');
@@ -1595,6 +1632,13 @@ h1{font-size:clamp(25px,7.2vw,34px);line-height:1.12;margin:0 0 12px;font-weight
     lockStatus('Camera not supported', 'bad');
     var sub = intro.querySelector('.sub');
     if (sub) sub.innerHTML = 'This browser does not support live camera capture (<code>getUserMedia</code> is missing). Try Chrome on Android or Safari on iOS.';
+  } else {
+    var boot = pageContext();
+    if (boot !== 'ok') {
+      // Say it immediately rather than after a dead-end permission prompt.
+      intro.hidden = true;
+      showContextError(boot);
+    }
   }
 })();
 </script>
