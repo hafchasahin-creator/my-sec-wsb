@@ -514,6 +514,7 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
     lite: false,
     darkRuns: 0,
     feedDark: false,
+    repaired: false,
     fps: 0,
     visibleCount: 0
   };
@@ -662,6 +663,77 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
     S.backend = 'cpu';
   }
 
+  // A drawn scene the model must recognise (clock scores ~0.99 on a healthy
+  // backend, deterministically). A backend can initialise, load weights and
+  // still compute garbage - some mobile GPUs miscompute the convolutions while
+  // passing any trivial arithmetic check - and the only reliable proof is
+  // running the actual network on a known image.
+  function selfTestScene() {
+    var cv = document.createElement('canvas');
+    cv.width = cv.height = MODEL_INPUT;
+    var g = cv.getContext('2d', { willReadFrequently: true });
+    var k = MODEL_INPUT / 300;
+    g.fillStyle = '#8a8f96'; g.fillRect(0, 0, cv.width, cv.height);
+    var cx = 150 * k, cy = 150 * k, r = 108 * k;
+    g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fillStyle = '#fdfdfa'; g.fill();
+    g.lineWidth = 9 * k; g.strokeStyle = '#14161a'; g.stroke();
+    for (var i = 0; i < 12; i++) {
+      var a = i * Math.PI / 6;
+      g.lineWidth = (i % 3 === 0 ? 6 : 3) * k;
+      g.beginPath();
+      g.moveTo(cx + Math.sin(a) * (r - 15 * k), cy - Math.cos(a) * (r - 15 * k));
+      g.lineTo(cx + Math.sin(a) * (r - 30 * k), cy - Math.cos(a) * (r - 30 * k));
+      g.stroke();
+    }
+    g.lineCap = 'round'; g.strokeStyle = '#14161a';
+    g.lineWidth = 9 * k; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + 40 * k, cy - 40 * k); g.stroke();
+    g.lineWidth = 6 * k; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx - 11 * k, cy - 79 * k); g.stroke();
+    g.beginPath(); g.arc(cx, cy, 7 * k, 0, 7); g.fillStyle = '#14161a'; g.fill();
+    g.fillStyle = '#e02020'; g.fillRect(8 * k, 258 * k, 34 * k, 34 * k);
+    return cv;
+  }
+
+  async function modelWorks(model) {
+    try {
+      var preds = await model.detect(selfTestScene(), 5, 0.2);
+      for (var i = 0; i < preds.length; i++) if (preds[i].score > 0.5) return true;
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // The loaded model failed its self-test: the current backend is computing
+  // garbage. Step down through the remaining backends, reloading the model on
+  // each one that actually engages, and keep the first that proves itself.
+  // If nothing does, keep the original model rather than giving up.
+  async function repairBackend(model) {
+    var tf = window.tf;
+    var order = ['wasm', 'cpu'];
+    for (var i = 0; i < order.length; i++) {
+      var want = order[i];
+      if (want === S.backend) continue;
+      try {
+        if (want === 'wasm') {
+          var wasmUrl = await loadScript(WASM_SOURCES);
+          if (tf.wasm && tf.wasm.setWasmPaths) {
+            tf.wasm.setWasmPaths(wasmUrl ? wasmUrl.slice(0, wasmUrl.lastIndexOf('/') + 1) : WASM_BINARY_BASE);
+          }
+        }
+        await tf.setBackend(want);
+        await tf.ready();
+        if (tf.getBackend() !== want) continue;
+        var fresh = await window.cocoSsd.load({ base: 'lite_mobilenet_v2' });
+        if (await modelWorks(fresh)) {
+          S.backend = want;
+          S.repaired = true;
+          return fresh;
+        }
+      } catch (e) { /* try the next one */ }
+    }
+    return model;
+  }
+
   function ensureModel() {
     if (S.model) return Promise.resolve(S.model);
     if (S.modelPromise) return S.modelPromise;
@@ -680,19 +752,20 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
 
       var model = await window.cocoSsd.load({ base: 'lite_mobilenet_v2' });
 
-      // Warm-up pass so the first live frame isn't the slow one.
-      try {
-        var warm = document.createElement('canvas');
-        warm.width = 128; warm.height = 128;
-        var wc = warm.getContext('2d');
-        wc.fillStyle = '#101820'; wc.fillRect(0, 0, 128, 128);
-        await model.detect(warm, 1, 0.9);
-      } catch (e) { /* warm-up is best effort */ }
+      // Prove the backend end to end (this doubles as the warm-up pass): the
+      // network must actually recognise a known image before it is trusted
+      // with live frames.
+      if (!(await modelWorks(model))) {
+        model = await repairBackend(model);
+      }
 
       S.model = model;
       S.modelState = 'ready';
       S.lastHit = now();
-      if (S.backend === 'webgl') {
+      if (S.repaired) {
+        toast('AI ready \u00b7 the GPU gave wrong results, using ' +
+              (S.backend === 'wasm' ? 'WebAssembly instead' : 'the CPU instead'), 4600);
+      } else if (S.backend === 'webgl') {
         toast('AI ready \u00b7 GPU accelerated', 1900);
       } else if (S.backend === 'wasm') {
         toast('AI ready \u00b7 no GPU, using WebAssembly', 3600);
@@ -1596,7 +1669,7 @@ body.perf-lite .btn,body.perf-lite .chip{box-shadow:none;}
       S.hintShown = false;
       setStatus(c + (c === 1 ? ' object detected' : ' objects detected'));
     } else if (S.lastHit && (t - S.lastHit) > QUIET_HINT_MS) {
-      setStatus('Nothing recognised yet');
+      setStatus('Nothing recognised yet \u00b7 ' + (S.backend || 'ai'));
       if (!S.hintShown) {
         S.hintShown = true;
         toast('Point at a person, phone, cup, bottle, chair, laptop or TV.', 5000);
