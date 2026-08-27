@@ -1,0 +1,13 @@
+{
+  "name": "ai-energy-logo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Animated AI energy orb logo — deterministic canvas renderer + frame capture",
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs --out frames --fps 60 --seconds 6"
+  },
+  "dependencies": {
+    "playwright-core": "1.52"
+  }
+}

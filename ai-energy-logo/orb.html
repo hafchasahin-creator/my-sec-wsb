@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>AI Energy Orb — deterministic frame renderer</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #000; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1080"></canvas>
+<script>
+'use strict';
+
+// ---------------------------------------------------------------------------
+// AI Energy Orb — seamless-loop renderer.
+// Every animated quantity is a sum of integer-harmonic sinusoids of u = t/T,
+// and net rotation per loop is exactly 2π, so frame(T) === frame(0).
+// ---------------------------------------------------------------------------
+
+const SIZE = 1080;
+const T = 6.0;                       // loop duration, seconds
+const TAU = Math.PI * 2;
+const CX = SIZE / 2, CY = SIZE / 2;
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// Offscreen: crisp blade fills only (used as the mask for the light wave).
+const bladeLayer = document.createElement('canvas');
+bladeLayer.width = SIZE; bladeLayer.height = SIZE;
+const bctx = bladeLayer.getContext('2d');
+
+// Offscreen scratch for the masked wave ring.
+const waveLayer = document.createElement('canvas');
+waveLayer.width = SIZE; waveLayer.height = SIZE;
+const wctx = waveLayer.getContext('2d');
+
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const frac = x => x - Math.floor(x);
+const easeOutCubic = x => 1 - Math.pow(1 - x, 3);
+
+// --- Global rotation --------------------------------------------------------
+// θ(u) = 2π·u + A·sin(4π·u + φ)  → exactly one revolution per loop, with two
+// smooth accelerate/decelerate swells. ω ranges ≈ 0.5×–1.5× the mean speed.
+const ROT_A = 0.25, ROT_PH = 1.1;
+const theta = u => TAU * u + ROT_A * Math.sin(2 * TAU * u + ROT_PH);
+// Normalised angular speed (1 = mean).
+const omegaN = u => 1 + 2 * ROT_A * Math.cos(2 * TAU * u + ROT_PH);
+
+// --- Per-blade organic character -------------------------------------------
+// Each blade gets its own phases/harmonics so the four never move in lockstep.
+const BLADES = [
+  { jH: 2, jP: 0.0, sH: 2, sP: 0.7, lH: 3, lP: 2.1, wH: 2, wP: 4.0, bH: 3, bP: 0.3 },
+  { jH: 3, jP: 1.9, sH: 3, sP: 2.8, lH: 2, lP: 5.3, wH: 3, wP: 1.2, bH: 2, bP: 2.6 },
+  { jH: 2, jP: 3.7, sH: 2, sP: 4.9, lH: 3, lP: 0.6, wH: 2, wP: 5.5, bH: 3, bP: 4.1 },
+  { jH: 3, jP: 5.1, sH: 3, sP: 1.4, lH: 2, lP: 3.9, wH: 3, wP: 2.9, bH: 2, bP: 5.8 },
+];
+
+function bladeState(i, u) {
+  const b = BLADES[i];
+  return {
+    jitter:   0.045 * Math.sin(TAU * b.jH * u + b.jP),   // angular lag (rad)
+    stretch:  1 + 0.070 * Math.sin(TAU * b.sH * u + b.sP), // sweep stretch
+    lenMul:   1 + 0.045 * Math.sin(TAU * b.lH * u + b.lP), // reach
+    widthMul: 1 + 0.090 * Math.sin(TAU * b.wH * u + b.wP), // contract/expand
+    bow:      0.085 * Math.sin(TAU * b.bH * u + b.bP),     // liquid bend (rad)
+  };
+}
+
+// --- Blade geometry ---------------------------------------------------------
+const R_IN = 158, R_OUT = 425, SWEEP = 1.85, W_MAX = 100;
+
+// Returns {outer, inner} point arrays for one blade.
+function bladePoints(baseAngle, st) {
+  const N = 90;
+  const outer = [], inner = [];
+  const rOut = R_OUT * st.lenMul;
+  const sweep = SWEEP * st.stretch;
+  for (let j = 0; j <= N; j++) {
+    const s = j / N;
+    const rs = R_IN + (rOut - R_IN) * Math.pow(s, 0.9);
+    const a = baseAngle + sweep * s + st.bow * Math.sin(Math.PI * s);
+    const w = W_MAX * st.widthMul
+            * Math.pow(Math.sin(Math.PI * (0.06 + 0.94 * s)), 0.8)
+            * (1 - 0.55 * s);
+    const ca = Math.cos(a), sa = Math.sin(a);
+    outer.push([CX + ca * (rs + w / 2), CY + sa * (rs + w / 2)]);
+    inner.push([CX + ca * (rs - w / 2), CY + sa * (rs - w / 2)]);
+  }
+  return { outer, inner };
+}
+
+function tracePath(g, pts) {
+  const { outer, inner } = pts;
+  g.beginPath();
+  g.moveTo(outer[0][0], outer[0][1]);
+  for (let j = 1; j < outer.length; j++) g.lineTo(outer[j][0], outer[j][1]);
+  for (let j = inner.length - 1; j >= 0; j--) g.lineTo(inner[j][0], inner[j][1]);
+  g.closePath();
+}
+
+// Glassy body gradient: hot magenta near the core → electric purple → violet tip.
+function bladeGradient(g, alphaMul = 1) {
+  const grad = g.createRadialGradient(CX, CY, 130, CX, CY, 460);
+  grad.addColorStop(0.00, `rgba(255,196,244,${0.95 * alphaMul})`);
+  grad.addColorStop(0.22, `rgba(255,60,212,${0.84 * alphaMul})`);
+  grad.addColorStop(0.52, `rgba(198,58,255,${0.62 * alphaMul})`);
+  grad.addColorStop(0.82, `rgba(120,34,244,${0.38 * alphaMul})`);
+  grad.addColorStop(1.00, `rgba(74,6,190,0)`);
+  return grad;
+}
+
+function allBladePoints(u, angleOffset = 0) {
+  const th = theta(u) + angleOffset;
+  const pts = [];
+  for (let i = 0; i < 4; i++) {
+    const st = bladeState(i, u);
+    pts.push(bladePoints(th + i * Math.PI / 2 + st.jitter, st));
+  }
+  return pts;
+}
+
+function drawRadial(g, r, stops, scale = 1) {
+  const grad = g.createRadialGradient(CX, CY, 0, CX, CY, r * scale);
+  for (const [p, c] of stops) grad.addColorStop(p, c);
+  g.fillStyle = grad;
+  g.beginPath();
+  g.arc(CX, CY, r * scale, 0, TAU);
+  g.fill();
+}
+
+// --- Frame ------------------------------------------------------------------
+function renderFrame(t) {
+  const u = frac(t / T);
+
+  // Breathing pulse of the core: dominant slow wave + a faint upper harmonic.
+  const breath = 0.78 * Math.sin(TAU * 3 * u - Math.PI / 2)
+               + 0.22 * Math.sin(TAU * 6 * u + 1.7);
+  const cScale = 1 + 0.050 * breath;
+  const cBright = 1 + 0.14 * breath;
+
+  // ----- background ---------------------------------------------------------
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.filter = 'none';
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  // Faint volumetric ambience.
+  ctx.globalCompositeOperation = 'lighter';
+  drawRadial(ctx, 530, [
+    [0, `rgba(96,28,210,${0.10 * cBright})`],
+    [0.55, `rgba(70,16,170,${0.055 * cBright})`],
+    [1, 'rgba(40,6,110,0)'],
+  ], cScale);
+
+  // ----- crisp blade fills → offscreen (also the wave mask) -----------------
+  const pts = allBladePoints(u);
+  bctx.globalCompositeOperation = 'source-over';
+  bctx.clearRect(0, 0, SIZE, SIZE);
+  bctx.globalCompositeOperation = 'lighter';
+  bctx.fillStyle = bladeGradient(bctx);
+  for (const p of pts) { tracePath(bctx, p); bctx.fill(); }
+
+  // ----- bloom behind the blades -------------------------------------------
+  ctx.globalAlpha = 0.42;
+  ctx.filter = 'blur(46px)';
+  ctx.drawImage(bladeLayer, 0, 0);
+  ctx.globalAlpha = 0.58;
+  ctx.filter = 'blur(16px)';
+  ctx.drawImage(bladeLayer, 0, 0);
+  ctx.filter = 'none';
+  ctx.globalAlpha = 1;
+
+  // ----- speed trails (only while the blades run fast) ----------------------
+  const strength = clamp((omegaN(u) - 1.05) / 0.45, 0, 1);
+  if (strength > 0.01) {
+    const G = 5;
+    ctx.filter = 'blur(9px)';
+    for (let g = 1; g <= G; g++) {
+      const ug = u - g * 0.0062;                  // slightly earlier along the path
+      const ghost = allBladePoints(ug);
+      ctx.globalAlpha = strength * 0.052 * (1 - (g - 1) / G);
+      ctx.fillStyle = bladeGradient(ctx, 0.9);
+      for (const p of ghost) { tracePath(ctx, p); ctx.fill(); }
+    }
+    ctx.filter = 'none';
+    ctx.globalAlpha = 1;
+  }
+
+  // ----- blade bodies -------------------------------------------------------
+  ctx.drawImage(bladeLayer, 0, 0);
+
+  // Glassy sheen: a fixed world-space light source, so each blade softly
+  // "catches the light" as it sweeps through the upper left.
+  const sheen = ctx.createLinearGradient(CX - 420, CY - 420, CX + 300, CY + 300);
+  sheen.addColorStop(0, 'rgba(255,244,255,0.16)');
+  sheen.addColorStop(0.45, 'rgba(255,244,255,0.045)');
+  sheen.addColorStop(1, 'rgba(255,244,255,0)');
+  ctx.fillStyle = sheen;
+  for (const p of pts) { tracePath(ctx, p); ctx.fill(); }
+
+  // Sharp glowing rim along the outer (leading) edge of each blade.
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  for (const p of pts) {
+    // soft glow under the rim
+    ctx.beginPath();
+    ctx.moveTo(p.outer[0][0], p.outer[0][1]);
+    for (let j = 1; j < p.outer.length; j++) ctx.lineTo(p.outer[j][0], p.outer[j][1]);
+    ctx.strokeStyle = 'rgba(255,120,235,0.55)';
+    ctx.lineWidth = 7;
+    ctx.filter = 'blur(6px)';
+    ctx.stroke();
+    // crisp bright edge
+    ctx.filter = 'none';
+    ctx.strokeStyle = 'rgba(255,224,250,0.85)';
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+    // faint inner-edge definition
+    ctx.beginPath();
+    ctx.moveTo(p.inner[0][0], p.inner[0][1]);
+    for (let j = 1; j < p.inner.length; j++) ctx.lineTo(p.inner[j][0], p.inner[j][1]);
+    ctx.strokeStyle = 'rgba(255,170,245,0.28)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  }
+
+  // ----- occasional light wave through the blades ---------------------------
+  let coreFlash = 0;
+  for (const t0 of [0.10, 0.60]) {
+    const p = frac(u - t0);
+    const DUR = 0.30;
+    if (p < DUR) {
+      const q = p / DUR;
+      const radius = 150 + easeOutCubic(q) * 400;
+      const ringW = 95;
+      const inten = Math.pow(Math.sin(Math.PI * q), 1.2) * 0.55;
+      if (q < 0.3) coreFlash = Math.max(coreFlash, Math.sin(Math.PI * q / 0.3) * 0.22);
+
+      wctx.globalCompositeOperation = 'source-over';
+      wctx.clearRect(0, 0, SIZE, SIZE);
+      const rg = wctx.createRadialGradient(CX, CY, Math.max(0, radius - ringW), CX, CY, radius + ringW);
+      rg.addColorStop(0, 'rgba(255,255,255,0)');
+      rg.addColorStop(0.5, 'rgba(255,235,252,1)');
+      rg.addColorStop(1, 'rgba(255,255,255,0)');
+      wctx.fillStyle = rg;
+      wctx.beginPath();
+      wctx.arc(CX, CY, radius + ringW, 0, TAU);
+      wctx.fill();
+      // keep the wave only where the blades are
+      wctx.globalCompositeOperation = 'destination-in';
+      wctx.drawImage(bladeLayer, 0, 0);
+
+      ctx.globalAlpha = inten;
+      ctx.filter = 'blur(2px)';
+      ctx.drawImage(waveLayer, 0, 0);
+      ctx.filter = 'none';
+      // whisper of the ring outside the blades, for atmosphere
+      ctx.globalAlpha = inten * 0.10;
+      const rg2 = ctx.createRadialGradient(CX, CY, Math.max(0, radius - ringW), CX, CY, radius + ringW);
+      rg2.addColorStop(0, 'rgba(220,120,255,0)');
+      rg2.addColorStop(0.5, 'rgba(235,150,255,1)');
+      rg2.addColorStop(1, 'rgba(220,120,255,0)');
+      ctx.fillStyle = rg2;
+      ctx.beginPath();
+      ctx.arc(CX, CY, radius + ringW, 0, TAU);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ----- breathing core -----------------------------------------------------
+  const f = cBright + coreFlash;
+  drawRadial(ctx, 345, [
+    [0, `rgba(140,50,255,${clamp(0.44 * f, 0, 1)})`],
+    [0.5, `rgba(110,30,235,${clamp(0.18 * f, 0, 1)})`],
+    [1, 'rgba(90,20,210,0)'],
+  ], cScale);
+  drawRadial(ctx, 190, [
+    [0, `rgba(255,92,232,${clamp(0.66 * f, 0, 1)})`],
+    [0.6, `rgba(240,60,238,${clamp(0.32 * f, 0, 1)})`],
+    [1, 'rgba(210,40,240,0)'],
+  ], cScale);
+  drawRadial(ctx, 100, [
+    [0, `rgba(255,255,255,${clamp(0.98 * f, 0, 1)})`],
+    [0.35, `rgba(255,214,248,${clamp(0.9 * f, 0, 1)})`],
+    [0.75, `rgba(255,140,240,${clamp(0.5 * f, 0, 1)})`],
+    [1, 'rgba(255,110,235,0)'],
+  ], cScale);
+
+  ctx.globalCompositeOperation = 'source-over';
+  return canvas.toDataURL('image/png');
+}
+
+window.renderFrame = renderFrame;
+window.LOOP_SECONDS = T;
+
+// Live preview when opened in a normal browser.
+if (!navigator.webdriver) {
+  const start = performance.now();
+  (function tick() {
+    renderFrame(((performance.now() - start) / 1000) % T);
+    requestAnimationFrame(tick);
+  })();
+}
+</script>
+</body>
+</html>
