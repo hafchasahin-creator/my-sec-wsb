@@ -1,0 +1,38 @@
+## Secret Bunker - English (US)
+
+pack.name=Secret Bunker RP
+pack.description=Textures, models and names for the Secret Bunker facility set.
+
+## Blocks
+tile.bunker:blast_door.name=Blast Door
+tile.bunker:cable_conduit.name=Cable Conduit
+tile.bunker:ceiling_light.name=Ceiling Light Panel
+tile.bunker:concrete_panel.name=Concrete Wall Panel
+tile.bunker:control_console.name=Control Console
+tile.bunker:emergency_light.name=Emergency Light
+tile.bunker:floor_tile.name=Bunker Floor Tile
+tile.bunker:generator.name=Backup Generator
+tile.bunker:hatch.name=Bunker Hatch
+tile.bunker:hazard_stripe.name=Hazard Stripe Block
+tile.bunker:keypad.name=Security Keypad
+tile.bunker:medical_cabinet.name=Medical Cabinet
+tile.bunker:radiation_sign.name=Radiation Warning Sign
+tile.bunker:reinforced_concrete.name=Reinforced Concrete
+tile.bunker:reinforced_glass.name=Reinforced Glass
+tile.bunker:security_camera.name=Security Camera
+tile.bunker:server_rack.name=Server Rack
+tile.bunker:steel_grate.name=Steel Grate
+tile.bunker:steel_plating.name=Steel Plating
+tile.bunker:storage_locker.name=Storage Locker
+tile.bunker:supply_crate.name=Supply Crate
+tile.bunker:vault_door.name=Vault Door
+tile.bunker:vent_panel.name=Ventilation Panel
+tile.bunker:wall_monitor.name=Wall Monitor
+
+## Items
+item.bunker:deployment_beacon=Bunker Deployment Beacon
+item.bunker:deployment_beacon.name=Bunker Deployment Beacon
+item.bunker:keycard=Level-3 Keycard
+item.bunker:keycard.name=Level-3 Keycard
+item.bunker:motion_tracker=Motion Tracker
+item.bunker:motion_tracker.name=Motion Tracker

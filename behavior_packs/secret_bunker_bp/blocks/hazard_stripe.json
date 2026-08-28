@@ -1,0 +1,26 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "bunker:hazard_stripe",
+      "menu_category": {
+        "category": "construction"
+      }
+    },
+    "components": {
+      "minecraft:display_name": "Hazard Stripe Block",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "bunker_hazard_stripe",
+          "render_method": "opaque"
+        }
+      },
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 3.0
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 30
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bunker:vault_door"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "SSS",
+      "SIS",
+      "SSS"
+    ],
+    "key": {
+      "S": {
+        "item": "bunker:steel_plating"
+      },
+      "I": {
+        "item": "minecraft:iron_block"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bunker:vault_door",
+      "count": 1
+    }
+  }
+}

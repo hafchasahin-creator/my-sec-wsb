@@ -1,0 +1,32 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bunker:medical_cabinet"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "SR",
+      "SS"
+    ],
+    "key": {
+      "S": {
+        "item": "bunker:steel_plating"
+      },
+      "R": {
+        "item": "minecraft:red_dye"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bunker:medical_cabinet",
+      "count": 1
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bunker:motion_tracker"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " G ",
+      "ICI",
+      " R "
+    ],
+    "key": {
+      "G": {
+        "item": "minecraft:glass"
+      },
+      "I": {
+        "item": "minecraft:iron_ingot"
+      },
+      "C": {
+        "item": "minecraft:compass"
+      },
+      "R": {
+        "item": "minecraft:redstone_block"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bunker:motion_tracker",
+      "count": 1
+    }
+  }
+}

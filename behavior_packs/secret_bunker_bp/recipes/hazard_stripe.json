@@ -1,0 +1,35 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bunker:hazard_stripe"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "CY",
+      "BC"
+    ],
+    "key": {
+      "C": {
+        "item": "bunker:reinforced_concrete"
+      },
+      "Y": {
+        "item": "minecraft:yellow_dye"
+      },
+      "B": {
+        "item": "minecraft:black_dye"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bunker:hazard_stripe",
+      "count": 2
+    }
+  }
+}

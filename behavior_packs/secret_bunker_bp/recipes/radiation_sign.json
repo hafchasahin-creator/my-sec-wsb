@@ -1,0 +1,32 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bunker:radiation_sign"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "HB",
+      "BH"
+    ],
+    "key": {
+      "H": {
+        "item": "bunker:hazard_stripe"
+      },
+      "B": {
+        "item": "minecraft:black_dye"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bunker:radiation_sign",
+      "count": 2
+    }
+  }
+}

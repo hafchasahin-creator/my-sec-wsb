@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bunker:blast_door"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "SHS",
+      "SSS",
+      "SHS"
+    ],
+    "key": {
+      "S": {
+        "item": "bunker:steel_plating"
+      },
+      "H": {
+        "item": "bunker:hazard_stripe"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bunker:blast_door",
+      "count": 1
+    }
+  }
+}

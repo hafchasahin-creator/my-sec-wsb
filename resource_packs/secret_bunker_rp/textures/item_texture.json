@@ -1,0 +1,15 @@
+{
+  "resource_pack_name": "secret_bunker",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "bunker_deployment_beacon": {
+      "textures": "textures/items/bunker_deployment_beacon"
+    },
+    "bunker_keycard": {
+      "textures": "textures/items/bunker_keycard"
+    },
+    "bunker_motion_tracker": {
+      "textures": "textures/items/bunker_motion_tracker"
+    }
+  }
+}

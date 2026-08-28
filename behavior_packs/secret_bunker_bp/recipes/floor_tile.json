@@ -1,0 +1,32 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bunker:floor_tile"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "CG",
+      "GC"
+    ],
+    "key": {
+      "C": {
+        "item": "bunker:reinforced_concrete"
+      },
+      "G": {
+        "item": "minecraft:gravel"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bunker:floor_tile",
+      "count": 4
+    }
+  }
+}

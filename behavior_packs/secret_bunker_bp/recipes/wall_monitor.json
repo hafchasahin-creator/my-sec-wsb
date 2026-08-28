@@ -1,0 +1,35 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bunker:wall_monitor"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "GGG",
+      "SRS"
+    ],
+    "key": {
+      "G": {
+        "item": "minecraft:glass"
+      },
+      "S": {
+        "item": "bunker:steel_plating"
+      },
+      "R": {
+        "item": "minecraft:redstone"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bunker:wall_monitor",
+      "count": 1
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bunker:steel_grate"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "NIN",
+      "INI",
+      "NIN"
+    ],
+    "key": {
+      "N": {
+        "item": "minecraft:iron_nugget"
+      },
+      "I": {
+        "item": "minecraft:iron_ingot"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bunker:steel_grate",
+      "count": 6
+    }
+  }
+}

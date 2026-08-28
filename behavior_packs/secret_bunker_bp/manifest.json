@@ -1,0 +1,39 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Secret Bunker BP",
+    "description": "A modern underground bunker: 24 facility blocks, keycard-locked blast doors and a one-tap bunker builder. Behavior Pack.",
+    "uuid": "27c2dfab-a645-4989-8958-6707ee5596ad",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "204de3cd-6e9c-477b-ad69-7939d594260e",
+      "version": [1, 0, 0]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "71a15ece-b849-4d1c-affb-d22eb155fc86",
+      "version": [1, 0, 0]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "baa2795b-8680-4446-a5a2-036f0bdcc2d2",
+      "version": [1, 0, 0]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.11.0"
+    }
+  ],
+  "metadata": {
+    "authors": ["Secret Bunker"],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}

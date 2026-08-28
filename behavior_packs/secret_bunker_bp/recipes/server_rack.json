@@ -1,0 +1,36 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bunker:server_rack"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "SRS",
+      "SGS",
+      "SRS"
+    ],
+    "key": {
+      "S": {
+        "item": "bunker:steel_plating"
+      },
+      "R": {
+        "item": "minecraft:redstone"
+      },
+      "G": {
+        "item": "minecraft:glass"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bunker:server_rack",
+      "count": 1
+    }
+  }
+}

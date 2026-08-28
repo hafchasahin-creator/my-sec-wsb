@@ -1,0 +1,101 @@
+{
+  "resource_pack_name": "secret_bunker",
+  "texture_name": "atlas.terrain",
+  "padding": 8,
+  "num_mip_levels": 4,
+  "texture_data": {
+    "bunker_blast_door": {
+      "textures": "textures/blocks/bunker_blast_door"
+    },
+    "bunker_blast_door_frame": {
+      "textures": "textures/blocks/bunker_blast_door_frame"
+    },
+    "bunker_cable_conduit": {
+      "textures": "textures/blocks/bunker_cable_conduit"
+    },
+    "bunker_camera": {
+      "textures": "textures/blocks/bunker_camera"
+    },
+    "bunker_ceiling_light": {
+      "textures": "textures/blocks/bunker_ceiling_light"
+    },
+    "bunker_concrete_panel": {
+      "textures": "textures/blocks/bunker_concrete_panel"
+    },
+    "bunker_console_front": {
+      "textures": "textures/blocks/bunker_console_front"
+    },
+    "bunker_console_top": {
+      "textures": "textures/blocks/bunker_console_top"
+    },
+    "bunker_crate_side": {
+      "textures": "textures/blocks/bunker_crate_side"
+    },
+    "bunker_crate_top": {
+      "textures": "textures/blocks/bunker_crate_top"
+    },
+    "bunker_door_cap": {
+      "textures": "textures/blocks/bunker_door_cap"
+    },
+    "bunker_emergency_light": {
+      "textures": "textures/blocks/bunker_emergency_light"
+    },
+    "bunker_floor_tile": {
+      "textures": "textures/blocks/bunker_floor_tile"
+    },
+    "bunker_generator_front": {
+      "textures": "textures/blocks/bunker_generator_front"
+    },
+    "bunker_generator_side": {
+      "textures": "textures/blocks/bunker_generator_side"
+    },
+    "bunker_hatch_side": {
+      "textures": "textures/blocks/bunker_hatch_side"
+    },
+    "bunker_hatch_top": {
+      "textures": "textures/blocks/bunker_hatch_top"
+    },
+    "bunker_hazard_stripe": {
+      "textures": "textures/blocks/bunker_hazard_stripe"
+    },
+    "bunker_keypad": {
+      "textures": "textures/blocks/bunker_keypad"
+    },
+    "bunker_locker": {
+      "textures": "textures/blocks/bunker_locker"
+    },
+    "bunker_med_locker": {
+      "textures": "textures/blocks/bunker_med_locker"
+    },
+    "bunker_monitor": {
+      "textures": "textures/blocks/bunker_monitor"
+    },
+    "bunker_radiation_sign": {
+      "textures": "textures/blocks/bunker_radiation_sign"
+    },
+    "bunker_reinforced_concrete": {
+      "textures": "textures/blocks/bunker_reinforced_concrete"
+    },
+    "bunker_reinforced_glass": {
+      "textures": "textures/blocks/bunker_reinforced_glass"
+    },
+    "bunker_server_rack_front": {
+      "textures": "textures/blocks/bunker_server_rack_front"
+    },
+    "bunker_server_rack_side": {
+      "textures": "textures/blocks/bunker_server_rack_side"
+    },
+    "bunker_steel_grate": {
+      "textures": "textures/blocks/bunker_steel_grate"
+    },
+    "bunker_steel_plating": {
+      "textures": "textures/blocks/bunker_steel_plating"
+    },
+    "bunker_vault_door": {
+      "textures": "textures/blocks/bunker_vault_door"
+    },
+    "bunker_vent_panel": {
+      "textures": "textures/blocks/bunker_vent_panel"
+    }
+  }
+}

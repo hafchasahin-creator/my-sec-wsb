@@ -1,0 +1,29 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bunker:concrete_panel"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "CC",
+      "CC"
+    ],
+    "key": {
+      "C": {
+        "item": "bunker:reinforced_concrete"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bunker:concrete_panel",
+      "count": 4
+    }
+  }
+}

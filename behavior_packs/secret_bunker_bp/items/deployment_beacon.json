@@ -1,0 +1,33 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "bunker:deployment_beacon",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "bunker_deployment_beacon"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "Bunker Deployment Beacon"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:hand_equipped": false,
+      "minecraft:glint": true,
+      "minecraft:cooldown": {
+        "category": "bunker_deploy",
+        "duration": 30.0
+      },
+      "minecraft:tags": {
+        "tags": [
+          "bunker:tool"
+        ]
+      }
+    }
+  }
+}

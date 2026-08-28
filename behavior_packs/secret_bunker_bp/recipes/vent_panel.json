@@ -1,0 +1,32 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bunker:vent_panel"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "SB",
+      "BS"
+    ],
+    "key": {
+      "S": {
+        "item": "bunker:steel_plating"
+      },
+      "B": {
+        "item": "minecraft:iron_bars"
+      }
+    },
+    "unlock": [
+      {
+        "context": "AlwaysUnlocked"
+      }
+    ],
+    "result": {
+      "item": "bunker:vent_panel",
+      "count": 2
+    }
+  }
+}

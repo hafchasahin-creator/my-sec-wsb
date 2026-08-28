@@ -1,0 +1,26 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "bunker:cable_conduit",
+      "menu_category": {
+        "category": "construction"
+      }
+    },
+    "components": {
+      "minecraft:display_name": "Cable Conduit",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "bunker_cable_conduit",
+          "render_method": "opaque"
+        }
+      },
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 2.5
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 20
+      }
+    }
+  }
+}

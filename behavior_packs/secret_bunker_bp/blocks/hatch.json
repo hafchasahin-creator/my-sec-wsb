@@ -1,0 +1,70 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "bunker:hatch",
+      "menu_category": {
+        "category": "construction"
+      },
+      "states": {
+        "bunker:open": [
+          false,
+          true
+        ]
+      }
+    },
+    "components": {
+      "minecraft:display_name": "Bunker Hatch",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "bunker_hatch_side",
+          "render_method": "opaque"
+        },
+        "up": {
+          "texture": "bunker_hatch_top",
+          "render_method": "opaque"
+        },
+        "down": {
+          "texture": "bunker_hatch_top",
+          "render_method": "opaque"
+        }
+      },
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 5.0
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 90
+      }
+    },
+    "permutations": [
+      {
+        "condition": "query.block_state('bunker:open')",
+        "components": {
+          "minecraft:geometry": "geometry.bunker.hatch_open",
+          "minecraft:material_instances": {
+            "*": {
+              "texture": "bunker_hatch_side",
+              "render_method": "alpha_test",
+              "face_dimming": true,
+              "ambient_occlusion": true
+            }
+          },
+          "minecraft:collision_box": false,
+          "minecraft:selection_box": {
+            "origin": [
+              -8,
+              13,
+              -8
+            ],
+            "size": [
+              16,
+              3,
+              16
+            ]
+          },
+          "minecraft:light_dampening": 0
+        }
+      }
+    ]
+  }
+}

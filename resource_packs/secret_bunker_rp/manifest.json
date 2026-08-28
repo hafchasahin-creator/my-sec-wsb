@@ -1,0 +1,22 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Secret Bunker RP",
+    "description": "Textures, models and names for the Secret Bunker facility set. Resource Pack.",
+    "uuid": "baa2795b-8680-4446-a5a2-036f0bdcc2d2",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "7c9cfa57-0c34-48bc-8ea4-bd08f6c3feed",
+      "version": [1, 0, 0]
+    }
+  ],
+  "metadata": {
+    "authors": ["Secret Bunker"],
+    "license": "MIT",
+    "product_type": "addon"
+  }
+}
