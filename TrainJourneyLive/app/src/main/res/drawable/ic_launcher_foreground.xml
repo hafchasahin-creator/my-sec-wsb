@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- 2D top-down locomotive, nose pointing up -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M54,26 C60,26 67,33 67,42 L67,76 C67,80.4 63.4,84 59,84 L49,84 C44.6,84 41,80.4 41,76 L41,42 C41,33 48,26 54,26 Z" />
+    <path android:fillColor="#1E6FE8"
+        android:pathData="M54,31 C58,31 63,36.5 63,42.5 L63,47 L45,47 L45,42.5 C45,36.5 50,31 54,31 Z" />
+    <path android:fillColor="#0E2A52"
+        android:pathData="M46,53 h6.2 v11 h-6.2 z M55.8,53 h6.2 v11 h-6.2 z M46,69 h16 v6 h-16 z" />
+    <path android:fillColor="#FFC53D"
+        android:pathData="M48.5,29.5 m-2.2,0 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0 Z
+              M59.5,29.5 m-2.2,0 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0 Z" />
+</vector>

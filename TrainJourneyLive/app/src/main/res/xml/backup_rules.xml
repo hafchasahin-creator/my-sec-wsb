@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Journey history stays on the device. This app uploads nothing to any server. -->
+<full-backup-content>
+    <exclude domain="database" path="railcache.db" />
+    <exclude domain="file" path="tiles" />
+</full-backup-content>
