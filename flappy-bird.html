@@ -90,16 +90,58 @@ const WING_POS = [[1, 3], [0, 5], [1, 7]];        // up, mid, down
 const FLAP_SEQ = [0, 1, 2, 1];
 const BIRD_COLORS = ['#fbd23e', '#f25c39', '#58c0dc'];   // yellow, red, blue
 
+// the fit: bucket hat, tiny shades, oversized lilac hoodie, gold chain
+const FIT = {
+  k: K,
+  H: '#e8d8ac', D: '#c6ab6e',                // bucket hat + band
+  S: '#221a2e', g: '#b9aed6',                // shades lens + glint
+  P: '#a678e8', Q: '#7e50c0',                // hoodie + hood/sleeve shade
+  G: '#ffd94a',                              // chain
+};
+const HAT = [
+  '.......kkkkk.....',
+  '......kHHHHHk....',
+  '......kHHHHHk....',
+  '.....kDDDDDDDk...',
+  '...kkHHHHHHHHHkk.',
+  '..kHHHHHHHHHHHHHk',
+  '...kkkkkkkkkkkkk.',
+];
+const SHADES = [
+  '....SSSSSSSSSS...',
+  '.........SgSSS...',
+];
+const HOODIE = [
+  '..QQ.............',
+  '..QQPPPPPPP......',
+  '.QQPPPPPPPP......',
+  '.QPPPPPPPP.......',
+  '..PPPPPPPP.......',
+  '...PPPPPPPP......',
+];
+const CHAIN = [
+  '.....G....G......',
+  '......GGGG.......',
+];
+
+// Composite frame is 34x34: 5 extra art rows above the 17x12 body make room
+// for the hat. The body's own pixels start at art row 5 (y = 10px).
 function makeBirdSet(body) {
   const pal = { k: K, y: body, w: '#ffffff', p: '#101018', c: '#f7eec9', r: '#f8551d' };
   const base = px(BIRD_BODY, pal);
-  const wing = px(WING, { k: K, c: '#f7eec9' });
+  const wing = px(WING, { k: K, c: FIT.Q });         // hoodie sleeve
+  const hat = px(HAT, FIT), shades = px(SHADES, FIT);
+  const hoodie = px(HOODIE, FIT), chain = px(CHAIN, FIT);
   return WING_POS.map(([wx, wy]) => {
     const c = document.createElement('canvas');
-    c.width = base.width; c.height = base.height;
+    c.width = 34; c.height = 34;
     const g = c.getContext('2d');
-    g.drawImage(base, 0, 0);
-    g.drawImage(wing, wx * 2, wy * 2);
+    g.drawImage(base, 0, 10);
+    g.drawImage(hoodie, 0, 20);                      // body rows 5-10
+    g.drawImage(wing, wx * 2, (wy + 5) * 2);
+    g.drawImage(chain, 0, 22);                       // body rows 6-7
+    g.drawImage(hat, 0, 0);
+    g.drawImage(shades, 0, 16);                      // body rows 3-4
     return c;
   });
 }
@@ -583,7 +625,9 @@ function drawBird() {
   ctx.save();
   ctx.translate(BIRD_X, Math.round(bird.y));
   ctx.rotate(bird.rot * Math.PI / 180);
-  ctx.drawImage(frames[fi], -17, -12);
+  // frame canvas has 10px of hat headroom above the body; keep the body
+  // centered on the physics point so the hitbox is unchanged
+  ctx.drawImage(frames[fi], -17, -22);
   ctx.restore();
 }
 
